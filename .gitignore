@@ -1,16 +1,12 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
-dist/
 develop-eggs/
+dist/
 downloads/
 eggs/
 .eggs/
@@ -20,147 +16,35 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Type checking
-.mypy_cache/
-.pyre/
-.pytype/
-.ruff_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb_checkpoints/
-
-# Virtual environments
-.venv/
+# 虚拟环境
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
-*.venv/
-virtualenv/
-.virtualenv/
+.venv
 
-# UV (Python package manager)
-.uv/
-uv_cache/
-
-# IDEs and editors
-.idea/
+# IDE
 .vscode/
-*.sublime-project
-*.sublime-workspace
+.idea/
 *.swp
 *.swo
 *~
-.project
-.pydevproject
-.settings/
 
-# Local configuration
+# 环境变量
 .env
-.env.*
-*.local
-*.ini.local
-*.cfg.local
-*.secret
+.env.local
 
-# Logs
-logs/
+# 日志
 *.log
-nohup.out
 
-# OS generated files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# User configuration files (runtime artifacts, contain sensitive data)
-user_config.json
-mqtt_user_config.json
-db_user_config.json
-
-# Django
-*.pot
-*.po
-local_settings.py
-media/
-staticfiles/
-static_root/
-/static/
-
-# Flask
-instance/
-.webassets-cache
-
-# Deep Learning / ML models (usually large files)
-*.h5
-*.hdf5
-*.ckpt
-*.pth
-*.pt
-*.pb
-*.onnx
-*.safetensors
-models/
-checkpoints/
-wandb/
-tensorboard/
-runs/
-lightning_logs/
-.neptune/
-
-# Data files (uncomment if you don't want to track large datasets)
-# *.parquet
-# *.feather
-# *.arrow
-# data/
-# datasets/
-# raw_data/
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Redis dump
-dump.rdb
-
-# Miscellaneous
+# 数据库
+*.db
 *.sqlite
 *.sqlite3
-*.db
-*.pkl
-*.pid
-*.orig
-*.tmp
-*.bak
+
+# 操作系统
+.DS_Store
+Thumbs.db
