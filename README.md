@@ -79,19 +79,231 @@ uv run python huya.py
 uv run python weibo.py
 ```
 
-### 定时任务配置
+### 定时任务配置（Ubuntu Cron）
 
-建议使用cron或systemd定时器定期执行监控脚本：
+本项目提供了完整的cron定时任务配置方案，推荐使用自动安装脚本。
 
-**微博监控（每5分钟执行一次）:**
+#### 方法一：使用自动安装脚本（推荐）
+
+1. **运行安装脚本**:
 ```bash
-*/5 * * * * cd /path/to/WebMoniter && uv run python weibo.py
+cd /home/fengyu/WebMoniter
+bash scripts/setup_cron.sh
 ```
 
-**虎牙监控（每2分钟执行一次）:**
+脚本会自动：
+- 检测项目路径
+- 创建包装脚本（确保环境变量和路径正确）
+- 配置cron定时任务
+- 设置日志文件目录
+
+2. **验证安装**:
 ```bash
-*/2 * * * * cd /path/to/WebMoniter && uv run python huya.py
+# 查看crontab配置
+crontab -l
 ```
+
+应该看到类似以下内容：
+```
+# Web监控系统定时任务
+# 虎牙直播监控 - 每2分钟执行一次
+*/2 * * * * /home/fengyu/WebMoniter/scripts/run_huya.sh
+
+# 微博监控 - 每5分钟执行一次
+*/5 * * * * /home/fengyu/WebMoniter/scripts/run_weibo.sh
+
+# 日志清理 - 每天凌晨2点执行，删除超过3天的日志文件
+0 2 * * * /home/fengyu/WebMoniter/scripts/cleanup_logs.sh
+```
+
+```bash
+# 检查cron服务状态
+systemctl status cron
+
+# 查看cron执行日志
+grep CRON /var/log/syslog | tail -20
+
+# 或者使用journalctl（systemd系统）
+journalctl -u cron | tail -20
+```
+
+#### 方法二：手动配置
+
+如果选择手动配置，请按以下步骤操作：
+
+1. **创建包装脚本**（已提供在`scripts/`目录）:
+   - `scripts/run_huya.sh` - 虎牙监控包装脚本
+   - `scripts/run_weibo.sh` - 微博监控包装脚本
+
+2. **确保脚本有执行权限**:
+```bash
+chmod +x scripts/run_huya.sh scripts/run_weibo.sh
+```
+
+3. **编辑crontab**:
+```bash
+crontab -e
+```
+
+4. **添加以下内容**（请将路径替换为实际项目路径）:
+```bash
+# Web监控系统定时任务
+# 虎牙直播监控 - 每2分钟执行一次
+*/2 * * * * /home/fengyu/WebMoniter/scripts/run_huya.sh
+
+# 微博监控 - 每5分钟执行一次
+*/5 * * * * /home/fengyu/WebMoniter/scripts/run_weibo.sh
+```
+
+#### Cron时间格式说明
+
+```
+* * * * * 命令
+│ │ │ │ │
+│ │ │ │ └─── 星期几 (0-7, 0和7都表示星期日)
+│ │ │ └───── 月份 (1-12)
+│ │ └─────── 日期 (1-31)
+│ └───────── 小时 (0-23)
+└─────────── 分钟 (0-59)
+```
+
+**常用示例**:
+- `*/2 * * * *` - 每2分钟执行一次
+- `*/5 * * * *` - 每5分钟执行一次
+- `0 */1 * * *` - 每小时执行一次
+- `0 9 * * *` - 每天上午9点执行一次
+
+#### 日志管理
+
+所有监控任务的日志都会自动保存到`logs/`目录：
+- 虎牙监控日志: `logs/huya_YYYYMMDD.log`（按日期分割）
+- 微博监控日志: `logs/weibo_YYYYMMDD.log`（按日期分割）
+- 清理日志: `logs/cleanup.log`（记录日志清理操作）
+
+**查看日志**:
+```bash
+# 查看今天的虎牙监控日志
+tail -f logs/huya_$(date +%Y%m%d).log
+
+# 查看今天的微博监控日志
+tail -f logs/weibo_$(date +%Y%m%d).log
+
+# 查看最近的错误日志
+grep -i error logs/*.log | tail -20
+
+# 查看日志清理记录
+tail -f logs/cleanup.log
+```
+
+**自动日志清理**:
+- 系统会自动删除超过3天的日志文件
+- 清理任务每天凌晨2点自动执行
+- 清理操作会记录到`logs/cleanup.log`文件中
+- 如需手动清理，可执行：`bash scripts/cleanup_logs.sh`
+
+**修改清理策略**：
+如果需要修改清理天数，编辑`scripts/cleanup_logs.sh`文件，修改`-mtime +3`中的数字（3表示3天）。
+
+#### 常见问题排查
+
+##### 问题1：任务未执行
+
+**检查步骤**：
+1. 确认cron服务运行：`systemctl status cron`
+2. 启动cron服务：`sudo systemctl start cron`
+3. 查看cron日志：`grep CRON /var/log/syslog`
+4. 检查crontab配置：`crontab -l`
+
+##### 问题2：脚本执行失败
+
+**常见错误：`uv: 未找到命令`**
+
+这是cron环境变量问题，脚本已自动修复。如果仍出现此问题：
+
+1. **检查uv安装位置**：
+   ```bash
+   which uv
+   ```
+
+2. **如果uv不在`/home/fengyu/.local/bin`**，需要修改脚本中的PATH设置：
+   ```bash
+   # 编辑脚本，修改PATH设置
+   vim scripts/run_weibo.sh
+   # 将 /home/fengyu/.local/bin 替换为你的uv实际路径
+   ```
+
+3. **手动执行脚本测试**：
+   ```bash
+   bash scripts/run_huya.sh
+   bash scripts/run_weibo.sh
+   ```
+
+4. **其他检查步骤**：
+   - 检查脚本权限：`ls -l scripts/*.sh`
+   - 检查路径是否正确（使用绝对路径）
+   - 查看日志文件中的错误信息
+   - 确认`.env`文件存在且配置正确
+
+##### 问题3：环境变量未加载
+
+**解决方案**：
+- 包装脚本会自动切换到项目目录
+- `uv run`会自动加载`.env`文件
+- 如果仍有问题，检查`.env`文件路径和格式
+
+##### 问题4：权限问题
+
+**解决方案**：
+```bash
+# 添加执行权限
+chmod +x scripts/*.sh
+
+# 确保日志目录可写
+mkdir -p logs
+chmod 755 logs
+```
+
+#### 手动配置（高级）
+
+如果需要自定义执行时间，可以手动编辑crontab：
+
+```bash
+crontab -e
+```
+
+**Cron时间格式**：
+```
+分钟 小时 日期 月份 星期 命令
+```
+
+**常用时间示例**：
+- `*/2 * * * *` - 每2分钟
+- `*/5 * * * *` - 每5分钟
+- `*/10 * * * *` - 每10分钟
+- `0 */1 * * *` - 每小时
+- `0 9 * * *` - 每天9点
+- `0 9 * * 1` - 每周一9点
+
+#### 卸载Cron任务
+
+##### 方法1：编辑crontab删除
+```bash
+crontab -e
+# 删除相关行后保存
+```
+
+##### 方法2：完全删除（谨慎）
+```bash
+crontab -r  # 删除所有crontab任务
+```
+
+#### Cron最佳实践
+
+1. **定期检查日志**：确保监控任务正常运行
+2. **监控磁盘空间**：日志文件会持续增长，系统已自动清理超过3天的日志
+3. **备份配置**：定期备份`.env`和crontab配置
+4. **测试脚本**：修改配置后先手动测试脚本是否正常
+5. **查看清理记录**：定期查看`logs/cleanup.log`了解日志清理情况
 
 ## 功能实现详解
 
@@ -407,10 +619,96 @@ self.DAY_LIMIT = 200     # 修改天限制
 │   ├── config.py          # 配置管理（环境变量、Pydantic验证）
 │   ├── database.py        # 异步数据库操作（连接池、CRUD）
 │   └── push.py            # 企业微信推送（频率限制、队列）
+├── scripts/               # Cron定时任务脚本目录
+│   ├── run_huya.sh        # 虎牙监控包装脚本
+│   ├── run_weibo.sh       # 微博监控包装脚本
+│   ├── setup_cron.sh      # Cron任务自动安装脚本
+│   └── cleanup_logs.sh    # 日志清理脚本
+├── logs/                  # 日志文件目录（自动创建）
 ├── pyproject.toml         # 项目配置和依赖管理
 ├── uv.lock                # 依赖锁定文件（必须提交到git）
 └── .env.example           # 环境变量模板
 ```
+
+## 脚本说明
+
+`scripts/` 目录包含用于cron定时任务的包装脚本和安装脚本。
+
+### 脚本文件说明
+
+#### `run_huya.sh`
+虎牙监控的包装脚本，用于cron定时任务执行。
+- 自动切换到项目目录
+- 自动创建日志目录
+- 设置PATH环境变量，确保能找到`uv`命令
+- 使用`uv run`执行，确保环境变量正确加载
+- 日志输出到`logs/huya_YYYYMMDD.log`
+- 检查`uv`命令是否可用，失败时记录错误
+
+#### `run_weibo.sh`
+微博监控的包装脚本，用于cron定时任务执行。
+- 自动切换到项目目录
+- 自动创建日志目录
+- 设置PATH环境变量，确保能找到`uv`命令
+- 使用`uv run`执行，确保环境变量正确加载
+- 日志输出到`logs/weibo_YYYYMMDD.log`
+- 检查`uv`命令是否可用，失败时记录错误
+
+#### `setup_cron.sh`
+Cron定时任务自动安装脚本。
+- 自动检测项目路径
+- 为所有脚本添加执行权限
+- 配置cron定时任务（虎牙每2分钟，微博每5分钟，日志清理每天凌晨2点）
+- 备份现有crontab配置
+- 避免重复添加任务
+- 显示安装结果和验证方法
+
+#### `cleanup_logs.sh`
+日志清理脚本，用于自动删除旧日志文件。
+- 自动删除超过3天的日志文件
+- 记录清理操作到`logs/cleanup.log`
+- 自动清理cleanup.log本身（超过30天）
+- 统计删除的文件数量
+
+### 脚本使用方法
+
+#### 安装cron任务
+```bash
+bash scripts/setup_cron.sh
+```
+
+#### 手动执行测试
+```bash
+# 测试虎牙监控脚本
+bash scripts/run_huya.sh
+
+# 测试微博监控脚本
+bash scripts/run_weibo.sh
+
+# 手动执行日志清理
+bash scripts/cleanup_logs.sh
+```
+
+#### 查看日志
+```bash
+# 查看今天的虎牙监控日志
+tail -f logs/huya_$(date +%Y%m%d).log
+
+# 查看今天的微博监控日志
+tail -f logs/weibo_$(date +%Y%m%d).log
+
+# 查看日志清理记录
+tail -f logs/cleanup.log
+```
+
+### 脚本注意事项
+
+1. **环境变量**：确保`.env`文件存在于项目根目录
+2. **uv安装**：确保已安装`uv`并配置好Python环境
+3. **路径设置**：脚本使用绝对路径，确保cron执行时路径正确
+4. **日志管理**：日志文件按日期分割，方便管理和查看
+5. **自动清理**：日志清理任务会自动配置，每天凌晨2点执行，删除超过3天的日志文件
+6. **PATH问题**：如果`uv`不在`/home/fengyu/.local/bin`，需要修改脚本中的PATH设置
 
 ## 技术栈
 
