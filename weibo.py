@@ -260,7 +260,15 @@ class WeiboMonitor:
         """运行监控"""
         await self.initialize()
         try:
-            tasks = [self.process_user(uid) for uid in self.weibo_config.uids]
+            # 创建信号量控制并发数
+            semaphore = asyncio.Semaphore(self.weibo_config.concurrency)
+            
+            async def process_with_semaphore(uid: str):
+                """使用信号量包装的处理函数"""
+                async with semaphore:
+                    return await self.process_user(uid)
+            
+            tasks = [process_with_semaphore(uid) for uid in self.weibo_config.uids]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             # 检查是否有Cookie失效异常
             for result in results:

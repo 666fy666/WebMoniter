@@ -29,6 +29,7 @@ class WeiboConfig(BaseModel):
     """微博配置"""
     cookie: str
     uids: list[str]
+    concurrency: int = 3  # 并发数，默认3，建议2-5
 
 
 class HuyaConfig(BaseModel):
@@ -36,6 +37,7 @@ class HuyaConfig(BaseModel):
     user_agent: str
     cookie: str
     rooms: list[str]
+    concurrency: int = 7  # 并发数，默认7，建议5-10
 
 
 class AppConfig(BaseSettings):
@@ -65,11 +67,13 @@ class AppConfig(BaseSettings):
     # 微博
     weibo_cookie: str
     weibo_uids: str  # 逗号分隔的UID列表
+    weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
 
     # 虎牙
     huya_user_agent: str
     huya_cookie: str
     huya_rooms: str  # 逗号分隔的房间号列表
+    huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
 
     # 可选配置
     config_json_url: Optional[str] = None
@@ -98,7 +102,11 @@ class AppConfig(BaseSettings):
     def get_weibo_config(self) -> WeiboConfig:
         """获取微博配置"""
         uids = [uid.strip() for uid in self.weibo_uids.split(",") if uid.strip()]
-        return WeiboConfig(cookie=self.weibo_cookie, uids=uids)
+        return WeiboConfig(
+            cookie=self.weibo_cookie,
+            uids=uids,
+            concurrency=self.weibo_concurrency,
+        )
 
     def get_huya_config(self) -> HuyaConfig:
         """获取虎牙配置"""
@@ -107,6 +115,7 @@ class AppConfig(BaseSettings):
             user_agent=self.huya_user_agent,
             cookie=self.huya_cookie,
             rooms=rooms,
+            concurrency=self.huya_concurrency,
         )
 
 

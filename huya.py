@@ -177,8 +177,16 @@ class HuyaMonitor:
         """运行监控"""
         await self.initialize()
         try:
+            # 创建信号量控制并发数
+            semaphore = asyncio.Semaphore(self.huya_config.concurrency)
+            
+            async def process_with_semaphore(room_id: str):
+                """使用信号量包装的处理函数"""
+                async with semaphore:
+                    return await self.process_room(room_id)
+            
             tasks = [
-                self.process_room(room_id) for room_id in self.huya_config.rooms
+                process_with_semaphore(room_id) for room_id in self.huya_config.rooms
             ]
             await asyncio.gather(*tasks)
         finally:
