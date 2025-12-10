@@ -17,6 +17,11 @@ from src.database import AsyncDatabase
 from src.push import AsyncWeChatPush
 
 
+class CookieExpiredError(Exception):
+    """Cookie失效异常"""
+    pass
+
+
 class WeiboMonitor:
     """微博监控类"""
 
@@ -28,6 +33,7 @@ class WeiboMonitor:
         self.db: Optional[AsyncDatabase] = None
         self.push: Optional[AsyncWeChatPush] = None
         self.old_data_dict: dict[str, tuple] = {}
+        self._cookie_expired_notified = False  # 标记是否已发送Cookie失效提醒
 
     async def _get_session(self) -> ClientSession:
         """获取或创建session"""
@@ -88,6 +94,10 @@ class WeiboMonitor:
 
             res_info = await info_resp.json()
             res_list = await con_resp.json()
+
+            # 检测cookie是否失效
+            if res_info.get("ok") == -100 or res_list.get("ok") == -100:
+                raise CookieExpiredError("微博Cookie已失效，需要重新登录")
 
         # 解析用户信息
         user_info = res_info["data"]["user"]
@@ -160,6 +170,11 @@ class WeiboMonitor:
         """处理单个用户"""
         try:
             new_data = await self.get_info(uid)
+        except CookieExpiredError as e:
+            # Cookie失效，发送企业微信提醒
+            print(f"检测到Cookie失效: {e}")
+            await self.push_cookie_expired_notification()
+            raise  # 重新抛出异常，让调用者知道
         except Exception as e:
             print(f"获取用户 {uid} 数据失败: {e}")
             return
@@ -215,12 +230,44 @@ class WeiboMonitor:
         except Exception as e:
             print(f"推送失败: {e}")
 
+    async def push_cookie_expired_notification(self):
+        """发送Cookie失效提醒（仅发送一次）"""
+        # 如果已经发送过提醒，直接返回
+        if self._cookie_expired_notified:
+            return
+
+        if not self.push:
+            print("推送服务未初始化，无法发送Cookie失效提醒")
+            return
+
+        try:
+            await self.push.send_news(
+                title="⚠️ 微博Cookie已失效",
+                description=(
+                    "微博监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
+                    "请及时更新.env文件中的微博Cookie配置，以确保监控正常运行。"
+                ),
+                picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
+                to_url="https://weibo.com/login.php",
+                btntxt="前往登录",
+            )
+            self._cookie_expired_notified = True  # 标记已发送
+            print("已发送Cookie失效提醒到企业微信")
+        except Exception as e:
+            print(f"发送Cookie失效提醒失败: {e}")
+
     async def run(self):
         """运行监控"""
         await self.initialize()
         try:
             tasks = [self.process_user(uid) for uid in self.weibo_config.uids]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            # 检查是否有Cookie失效异常
+            for result in results:
+                if isinstance(result, CookieExpiredError):
+                    # 已经在process_user中发送了提醒，这里只打印日志
+                    print("监控任务因Cookie失效而中断")
+                    break
         finally:
             await self.close()
 
