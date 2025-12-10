@@ -88,9 +88,9 @@ uv run python weibo.py
 */5 * * * * cd /path/to/WebMoniter && uv run python weibo.py
 ```
 
-**虎牙监控（每小时执行一次）:**
+**虎牙监控（每2分钟执行一次）:**
 ```bash
-50 * * * * cd /path/to/WebMoniter && uv run python huya.py
+*/2 * * * * cd /path/to/WebMoniter && uv run python huya.py
 ```
 
 ## 功能实现详解
