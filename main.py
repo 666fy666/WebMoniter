@@ -12,20 +12,29 @@ from typing import Callable
 from src.config import get_config
 from src.scheduler import TaskScheduler, setup_logging
 from src.log_manager import LogManager
+from src.cookie_cache_manager import cookie_cache
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
 
 
 async def run_huya_monitor():
-    """运行虎牙监控任务"""
-    config = get_config()
+    """运行虎牙监控任务（支持env热重载）"""
+    # 重新加载环境变量，获取最新的cookie
+    config = get_config(reload=True)
+    logger = logging.getLogger(__name__)
+    logger.debug(f"虎牙监控：已重新加载环境变量和配置 (Cookie长度: {len(config.huya_cookie)} 字符)")
+    
     async with HuyaMonitor(config) as monitor:
         await monitor.run()
 
 
 async def run_weibo_monitor():
-    """运行微博监控任务"""
-    config = get_config()
+    """运行微博监控任务（支持env热重载）"""
+    # 重新加载环境变量，获取最新的cookie
+    config = get_config(reload=True)
+    logger = logging.getLogger(__name__)
+    logger.debug(f"微博监控：已重新加载环境变量和配置 (Cookie长度: {len(config.weibo_cookie)} 字符)")
+    
     async with WeiboMonitor(config) as monitor:
         await monitor.run()
 
@@ -45,17 +54,17 @@ def register_monitors(scheduler: TaskScheduler):
     2. 创建运行函数（如上面的run_xxx_monitor）
     3. 使用scheduler.add_interval_job或add_cron_job注册任务
     """
-    # 虎牙直播监控 - 每2分钟执行一次
+    # 虎牙直播监控 - 每65秒执行一次
     scheduler.add_interval_job(
         func=run_huya_monitor,
-        minutes=2,
+        seconds=65,
         job_id="huya_monitor",
     )
 
-    # 微博监控 - 每5分钟执行一次
+    # 微博监控 - 每300秒（5分钟）执行一次
     scheduler.add_interval_job(
         func=run_weibo_monitor,
-        minutes=5,
+        seconds=300,
         job_id="weibo_monitor",
     )
 
@@ -99,6 +108,10 @@ async def main():
         logger.error("请确保已创建.env文件并配置了必要的环境变量")
         logger.error("参考.env.example文件")
         sys.exit(1)
+
+    # 初始化Cookie缓存：项目启动时重置所有Cookie状态为有效
+    cookie_cache.reset_all()
+    logger.info("Cookie缓存已初始化，所有Cookie状态已重置为有效")
 
     # 创建调度器
     scheduler = TaskScheduler(config)

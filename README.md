@@ -88,7 +88,7 @@ WEIBO_CONCURRENCY=3  # 并发数，建议2-5
 
 # 虎牙监控配置
 HUYA_USER_AGENT=your_user_agent
-HUYA_COOKIE=your_huya_cookie
+HUYA_COOKIE=your_huya_cookie  # HUYA_COOKIE没有可不填
 HUYA_ROOMS=room1,room2,room3  # 逗号分隔的房间号列表
 HUYA_CONCURRENCY=7  # 并发数，建议5-10
 

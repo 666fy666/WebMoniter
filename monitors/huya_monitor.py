@@ -8,8 +8,14 @@ from typing import Optional
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
-from src.config import AppConfig
+from src.config import AppConfig, get_config
 from src.monitor import BaseMonitor
+from src.cookie_cache_manager import cookie_cache
+
+
+class CookieExpiredError(Exception):
+    """Cookie失效异常"""
+    pass
 
 # 预编译正则表达式
 RE_PROFILE = re.compile(r'"tProfileInfo":({.*?})')
@@ -41,6 +47,10 @@ class HuyaMonitor(BaseMonitor):
                 timeout=ClientTimeout(total=10),
             )
             self._own_session = True
+        else:
+            # 如果session已存在，更新Cookie和User-Agent（用于热重载）
+            self.session.headers["Cookie"] = self.huya_config.cookie
+            self.session.headers["User-Agent"] = self.huya_config.user_agent
         return self.session
 
     async def load_old_info(self):
@@ -61,6 +71,14 @@ class HuyaMonitor(BaseMonitor):
         async with session.get(url) as response:
             response.raise_for_status()
             page_content = await response.text()
+
+            # 检测cookie是否失效：如果返回403或页面包含登录相关关键词，可能cookie失效
+            if response.status == 403:
+                raise CookieExpiredError("虎牙Cookie已失效，返回403状态码")
+            
+            # 检查页面是否包含登录提示
+            if "登录" in page_content and "请先登录" in page_content:
+                raise CookieExpiredError("虎牙Cookie已失效，需要重新登录")
 
         # 使用预编译正则匹配
         profile_match = RE_PROFILE.search(page_content)
@@ -95,6 +113,19 @@ class HuyaMonitor(BaseMonitor):
         """处理单个房间"""
         try:
             data = await self.get_info(room_id)
+            # 成功获取数据，如果之前被标记为过期，现在标记为有效
+            if not cookie_cache.is_valid("huya"):
+                cookie_cache.mark_valid("huya")
+                self.logger.info("虎牙Cookie已恢复有效")
+        except CookieExpiredError as e:
+            # Cookie失效，更新缓存并发送企业微信提醒（仅发送一次）
+            self.logger.error(f"检测到Cookie失效: {e}")
+            cookie_cache.mark_expired("huya")
+            # 只有在未发送过提醒时才发送
+            if not cookie_cache.is_notified("huya"):
+                await self.push_cookie_expired_notification()
+                cookie_cache.mark_notified("huya")
+            return  # 不再抛出异常，直接返回
         except Exception as e:
             self.logger.error(f"获取房间 {room_id} 信息失败: {e}")
             return
@@ -147,9 +178,89 @@ class HuyaMonitor(BaseMonitor):
         except Exception as e:
             self.logger.error(f"推送失败: {e}")
 
+    async def push_cookie_expired_notification(self):
+        """发送Cookie失效提醒"""
+        if not self.push:
+            self.logger.warning("推送服务未初始化，无法发送Cookie失效提醒")
+            return
+
+        try:
+            await self.push.send_news(
+                title="⚠️ 虎牙Cookie已失效",
+                description=(
+                    "虎牙监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
+                    "请及时更新.env文件中的虎牙Cookie配置，以确保监控正常运行。"
+                ),
+                picurl="https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
+                to_url="https://www.huya.com/login",
+                btntxt="前往登录",
+            )
+            self.logger.info("已发送Cookie失效提醒到企业微信")
+        except Exception as e:
+            self.logger.error(f"发送Cookie失效提醒失败: {e}")
+
     async def run(self):
         """运行监控"""
+        # 热重载：重新加载.env文件中的配置
+        old_cookie = self.huya_config.cookie
+        old_user_agent = self.huya_config.user_agent
+        new_config = get_config(reload=True)
+        self.config = new_config
+        self.huya_config = new_config.get_huya_config()
+        new_cookie = self.huya_config.cookie
+        new_user_agent = self.huya_config.user_agent
+        
+        # 检测Cookie或User-Agent是否变化
+        cookie_changed = old_cookie != new_cookie
+        user_agent_changed = old_user_agent != new_user_agent
+        
+        if cookie_changed or user_agent_changed:
+            changes = []
+            if cookie_changed:
+                changes.append(f"Cookie (旧长度: {len(old_cookie)}, 新长度: {len(new_cookie)})")
+            if user_agent_changed:
+                changes.append(f"User-Agent (旧: {old_user_agent[:30]}..., 新: {new_user_agent[:30]}...)")
+            self.logger.info(f"检测到配置已更新: {', '.join(changes)}")
+            # Cookie更新后，重置过期状态和提醒状态
+            # mark_valid会自动重置notified标志
+            cookie_cache.mark_valid("huya")
+            # 如果session已存在，更新headers中的Cookie和User-Agent
+            if self.session is not None:
+                self.session.headers["Cookie"] = new_cookie
+                self.session.headers["User-Agent"] = new_user_agent
+                self.logger.debug("已更新session headers中的Cookie和User-Agent")
+        else:
+            self.logger.debug(f"配置未变化 (Cookie长度: {len(old_cookie)}, User-Agent: {old_user_agent[:30]}...)")
+        
         self.logger.info(f"开始执行{self.monitor_name}")
+        
+        # 在执行任务前检查Cookie状态
+        # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
+        if not cookie_cache.is_valid("huya"):
+            self.logger.warning(f"{self.monitor_name} Cookie标记为过期，尝试验证...")
+            # 尝试获取第一个房间的数据来验证Cookie是否真的无效
+            if self.huya_config.rooms:
+                try:
+                    test_room = self.huya_config.rooms[0]
+                    test_data = await self.get_info(test_room)
+                    # 如果成功获取数据，说明Cookie实际有效，恢复状态
+                    cookie_cache.mark_valid("huya")
+                    self.logger.info("Cookie验证成功，已恢复有效状态")
+                except CookieExpiredError:
+                    # Cookie确实无效，跳过本次执行
+                    self.logger.warning(f"{self.monitor_name} Cookie验证失败，跳过本次执行")
+                    self.logger.info("─" * 30)
+                    return
+                except Exception as e:
+                    # 其他错误，也跳过本次执行
+                    self.logger.error(f"Cookie验证时发生错误: {e}，跳过本次执行")
+                    self.logger.info("─" * 30)
+                    return
+            else:
+                # 没有房间ID，无法验证，跳过执行
+                self.logger.warning(f"{self.monitor_name} 无房间ID，跳过本次执行")
+                self.logger.info("─" * 30)
+                return
         try:
             # 创建信号量控制并发数
             semaphore = asyncio.Semaphore(self.huya_config.concurrency)
@@ -163,10 +274,12 @@ class HuyaMonitor(BaseMonitor):
                 process_with_semaphore(room_id) for room_id in self.huya_config.rooms
             ]
             await asyncio.gather(*tasks)
-            self.logger.info(f"{self.monitor_name}执行完成")
         except Exception as e:
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
             raise
+        finally:
+            self.logger.info(f"{self.monitor_name}执行完成")
+            self.logger.info("─" * 30)
 
     @property
     def monitor_name(self) -> str:

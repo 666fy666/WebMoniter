@@ -37,6 +37,9 @@ ENV/
 .env
 .env.local
 
+# Cookie缓存
+cookie_cache.json
+
 # 日志
 *.log
 logs/

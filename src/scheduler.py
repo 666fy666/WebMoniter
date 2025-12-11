@@ -54,20 +54,37 @@ class TaskScheduler:
     def add_interval_job(
         self,
         func: Callable,
-        minutes: int = 1,
+        seconds: Optional[int] = None,
+        minutes: Optional[int] = None,
+        hours: Optional[int] = None,
         job_id: Optional[str] = None,
     ):
         """
-        添加间隔任务（每N分钟执行一次）
+        添加间隔任务
         
         Args:
             func: 要执行的异步函数
+            seconds: 间隔秒数（优先级最高）
             minutes: 间隔分钟数
+            hours: 间隔小时数
             job_id: 任务ID
+        
+        注意：seconds、minutes、hours 至少需要提供一个，如果提供多个，优先级为 seconds > minutes > hours
         """
+        trigger_kwargs = {}
+        if seconds is not None:
+            trigger_kwargs["seconds"] = seconds
+        elif minutes is not None:
+            trigger_kwargs["minutes"] = minutes
+        elif hours is not None:
+            trigger_kwargs["hours"] = hours
+        else:
+            # 默认使用1分钟
+            trigger_kwargs["minutes"] = 1
+        
         self.add_job(
             func,
-            trigger=IntervalTrigger(minutes=minutes),
+            trigger=IntervalTrigger(**trigger_kwargs),
             job_id=job_id,
         )
 
@@ -175,6 +192,11 @@ def setup_logging(log_level: str = "INFO", console_output: bool = None):
     
     # 设置根日志记录器的级别和格式
     root_logger.setLevel(getattr(logging, log_level.upper()))
+    
+    # 降低APScheduler的日志级别，减少冗余的调度器日志
+    # 只记录WARNING及以上级别的日志，减少INFO级别的"Running job"、"executed successfully"等日志
+    apscheduler_logger = logging.getLogger("apscheduler")
+    apscheduler_logger.setLevel(logging.WARNING)
     
     # 如果没有处理器，创建一个NullHandler避免警告
     if not root_logger.handlers:

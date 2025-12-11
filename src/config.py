@@ -1,9 +1,14 @@
 """配置管理模块 - 支持环境变量和远程配置"""
+import logging
 from typing import Optional
 
 import aiohttp
+from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# 获取logger
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConfig(BaseModel):
@@ -131,12 +136,49 @@ async def load_config_from_url(url: str) -> Optional[dict]:
         return None
 
 
-def get_config() -> AppConfig:
+def get_config(reload: bool = False) -> AppConfig:
     """
     获取配置
     优先使用环境变量，如果配置了远程URL则尝试从远程加载
+    
+    Args:
+        reload: 是否重新加载.env文件（用于热重载）
+               如果为True，会强制重新读取.env文件并覆盖现有环境变量
+    
+    Returns:
+        AppConfig实例
     """
-    # 首先尝试从环境变量加载
+    # 如果需要重新加载，使用load_dotenv强制重新读取.env文件
+    if reload:
+        logger.debug("开始重新加载.env文件...")
+        # 记录原始值（如果存在）
+        import os
+        old_weibo_cookie = os.environ.get('weibo_cookie')
+        old_huya_cookie = os.environ.get('huya_cookie')
+        
+        # override=True 会覆盖已存在的环境变量，确保使用最新的值
+        load_dotenv(override=True)
+        
+        # 记录新值
+        new_weibo_cookie = os.environ.get('weibo_cookie')
+        new_huya_cookie = os.environ.get('huya_cookie')
+        
+        logger.debug("环境变量重载完成")
+        # 只在Cookie真正变化时才记录INFO级别的日志
+        if old_weibo_cookie != new_weibo_cookie:
+            logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
+        else:
+            logger.debug("微博Cookie未变更")
+            
+        if old_huya_cookie != new_huya_cookie:
+            logger.info(f"虎牙Cookie已更新 (长度: {len(new_huya_cookie or '')} 字符)")
+        else:
+            logger.debug("虎牙Cookie未变更")
+    else:
+        logger.debug("加载.env文件（首次加载）")
+        load_dotenv()
+    
+    # 创建新实例，pydantic-settings会从环境变量读取配置
     config = AppConfig()
 
     # 如果配置了远程URL，尝试从远程加载（但环境变量优先级更高）
