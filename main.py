@@ -54,25 +54,28 @@ def register_monitors(scheduler: TaskScheduler):
     2. 创建运行函数（如上面的run_xxx_monitor）
     3. 使用scheduler.add_interval_job或add_cron_job注册任务
     """
-    # 虎牙直播监控 - 每65秒执行一次
+    # 加载配置以获取调度间隔时间
+    config = get_config()
+    
+    # 虎牙直播监控 - 间隔时间从环境变量配置，默认65秒
     scheduler.add_interval_job(
         func=run_huya_monitor,
-        seconds=65,
+        seconds=config.huya_monitor_interval_seconds,
         job_id="huya_monitor",
     )
 
-    # 微博监控 - 每300秒（5分钟）执行一次
+    # 微博监控 - 间隔时间从环境变量配置，默认300秒（5分钟）
     scheduler.add_interval_job(
         func=run_weibo_monitor,
-        seconds=300,
+        seconds=config.weibo_monitor_interval_seconds,
         job_id="weibo_monitor",
     )
 
-    # 日志清理 - 每天凌晨2点执行
+    # 日志清理 - 执行时间从环境变量配置，默认每天凌晨2点
     scheduler.add_cron_job(
         func=cleanup_logs,
-        minute="0",
-        hour="2",
+        minute=str(config.cleanup_logs_minute),
+        hour=str(config.cleanup_logs_hour),
         job_id="cleanup_logs",
     )
 

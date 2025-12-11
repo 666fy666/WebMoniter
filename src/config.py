@@ -80,6 +80,12 @@ class AppConfig(BaseSettings):
     huya_rooms: str  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
 
+    # 调度器配置
+    huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
+    weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
+    cleanup_logs_hour: int = 2  # 日志清理时间（小时），默认2点
+    cleanup_logs_minute: int = 0  # 日志清理时间（分钟），默认0分
+
     # 可选配置
     config_json_url: Optional[str] = None
 
