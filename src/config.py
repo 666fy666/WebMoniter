@@ -1,4 +1,5 @@
 """配置管理模块 - 从YAML配置文件读取配置"""
+
 import logging
 from pathlib import Path
 from typing import Optional
@@ -11,18 +12,31 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 
+class EmailConfig(BaseModel):
+    """邮件配置"""
+
+    smtp_host: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password: str
+    from_email: str
+    to_email: str
+    use_tls: bool = True
+
+
 class WeChatConfig(BaseModel):
     """企业微信配置"""
+
     corpid: str
     secret: str
     agentid: str
     touser: str
     pushplus: Optional[str] = None
-    email: Optional[str] = None
 
 
 class WeiboConfig(BaseModel):
     """微博配置"""
+
     cookie: str
     uids: list[str]
     concurrency: int = 3  # 并发数，默认3，建议2-5
@@ -30,6 +44,7 @@ class WeiboConfig(BaseModel):
 
 class HuyaConfig(BaseModel):
     """虎牙配置"""
+
     user_agent: str
     cookie: str
     rooms: list[str]
@@ -38,13 +53,22 @@ class HuyaConfig(BaseModel):
 
 class AppConfig(BaseModel):
     """应用配置"""
+
     # 企业微信
     wechat_corpid: str
     wechat_secret: str
     wechat_agentid: str
     wechat_touser: str
     wechat_pushplus: Optional[str] = None
-    wechat_email: Optional[str] = None
+
+    # 邮件配置（可选）
+    email_smtp_host: Optional[str] = None
+    email_smtp_port: Optional[int] = None
+    email_smtp_user: Optional[str] = None
+    email_smtp_password: Optional[str] = None
+    email_from_email: Optional[str] = None
+    email_to_email: Optional[str] = None
+    email_use_tls: bool = True
 
     # 微博
     weibo_cookie: str
@@ -74,7 +98,29 @@ class AppConfig(BaseModel):
             agentid=self.wechat_agentid,
             touser=self.wechat_touser,
             pushplus=self.wechat_pushplus,
-            email=self.wechat_email,
+        )
+
+    def get_email_config(self) -> Optional[EmailConfig]:
+        """获取邮件配置"""
+        if not all(
+            [
+                self.email_smtp_host,
+                self.email_smtp_port,
+                self.email_smtp_user,
+                self.email_smtp_password,
+                self.email_from_email,
+                self.email_to_email,
+            ]
+        ):
+            return None
+        return EmailConfig(
+            smtp_host=self.email_smtp_host,
+            smtp_port=self.email_smtp_port,
+            smtp_user=self.email_smtp_user,
+            smtp_password=self.email_smtp_password,
+            from_email=self.email_from_email,
+            to_email=self.email_to_email,
+            use_tls=self.email_use_tls,
         )
 
     def get_weibo_config(self) -> WeiboConfig:
@@ -100,26 +146,26 @@ class AppConfig(BaseModel):
 def load_config_from_yml(yml_path: str = "config.yml") -> dict:
     """
     从YAML文件加载配置并转换为AppConfig所需的格式
-    
+
     Args:
         yml_path: YAML配置文件路径，默认为 config.yml
-    
+
     Returns:
         配置字典（扁平化格式，用于创建AppConfig实例）
     """
     config_dict = {}
     yml_file = Path(yml_path)
-    
+
     if not yml_file.exists():
         raise FileNotFoundError(f"配置文件 {yml_path} 不存在，请先创建配置文件")
-    
+
     try:
         with open(yml_file, "r", encoding="utf-8") as f:
             yml_config = yaml.safe_load(f)
-        
+
         if not yml_config:
             raise ValueError(f"配置文件 {yml_path} 为空")
-        
+
         # 将嵌套的YAML配置转换为扁平化格式
         # 企业微信配置
         if "wechat" in yml_config:
@@ -135,9 +181,25 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["wechat_touser"] = str(wechat["touser"])
             if "pushplus" in wechat and wechat["pushplus"]:
                 config_dict["wechat_pushplus"] = str(wechat["pushplus"])
-            if "email" in wechat and wechat["email"]:
-                config_dict["wechat_email"] = str(wechat["email"])
-        
+
+        # 邮件配置
+        if "email" in yml_config:
+            email = yml_config["email"]
+            if "smtp_host" in email and email["smtp_host"]:
+                config_dict["email_smtp_host"] = str(email["smtp_host"])
+            if "smtp_port" in email and email["smtp_port"]:
+                config_dict["email_smtp_port"] = int(email["smtp_port"])
+            if "smtp_user" in email and email["smtp_user"]:
+                config_dict["email_smtp_user"] = str(email["smtp_user"])
+            if "smtp_password" in email and email["smtp_password"]:
+                config_dict["email_smtp_password"] = str(email["smtp_password"])
+            if "from_email" in email and email["from_email"]:
+                config_dict["email_from_email"] = str(email["from_email"])
+            if "to_email" in email and email["to_email"]:
+                config_dict["email_to_email"] = str(email["to_email"])
+            if "use_tls" in email:
+                config_dict["email_use_tls"] = bool(email["use_tls"])
+
         # 微博配置
         if "weibo" in yml_config:
             weibo = yml_config["weibo"]
@@ -147,7 +209,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["weibo_uids"] = weibo["uids"]
             if "concurrency" in weibo:
                 config_dict["weibo_concurrency"] = weibo["concurrency"]
-        
+
         # 虎牙配置
         if "huya" in yml_config:
             huya = yml_config["huya"]
@@ -162,28 +224,32 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["huya_rooms"] = huya["rooms"]
             if "concurrency" in huya:
                 config_dict["huya_concurrency"] = huya["concurrency"]
-        
+
         # 调度器配置
         if "scheduler" in yml_config:
             scheduler = yml_config["scheduler"]
             if "huya_monitor_interval_seconds" in scheduler:
-                config_dict["huya_monitor_interval_seconds"] = scheduler["huya_monitor_interval_seconds"]
+                config_dict["huya_monitor_interval_seconds"] = scheduler[
+                    "huya_monitor_interval_seconds"
+                ]
             if "weibo_monitor_interval_seconds" in scheduler:
-                config_dict["weibo_monitor_interval_seconds"] = scheduler["weibo_monitor_interval_seconds"]
+                config_dict["weibo_monitor_interval_seconds"] = scheduler[
+                    "weibo_monitor_interval_seconds"
+                ]
             if "cleanup_logs_hour" in scheduler:
                 config_dict["cleanup_logs_hour"] = scheduler["cleanup_logs_hour"]
             if "cleanup_logs_minute" in scheduler:
                 config_dict["cleanup_logs_minute"] = scheduler["cleanup_logs_minute"]
-        
+
         # 可选配置
         if "optional" in yml_config:
             optional = yml_config["optional"]
             if "config_json_url" in optional and optional["config_json_url"]:
                 config_dict["config_json_url"] = optional["config_json_url"]
-        
+
         logger.debug(f"成功从 {yml_path} 加载配置")
         return config_dict
-    
+
     except FileNotFoundError:
         raise
     except Exception as e:
@@ -204,61 +270,72 @@ async def load_config_from_url(url: str) -> Optional[dict]:
 
 # 全局配置缓存，用于热重载时检测变化
 _config_cache: Optional[AppConfig] = None
+_config_file_mtime: float = 0  # 配置文件最后修改时间
 
 
 def get_config(reload: bool = False) -> AppConfig:
     """
     从config.yml文件获取配置
-    
+
     Args:
         reload: 是否重新加载配置文件（用于热重载）
                如果为True，会强制重新读取config.yml文件
-    
+
     Returns:
         AppConfig实例
     """
-    global _config_cache
-    
+    global _config_cache, _config_file_mtime
+
     # 记录原始值（如果存在，用于检测变化）
     old_weibo_cookie = None
     old_huya_cookie = None
     if _config_cache is not None:
         old_weibo_cookie = _config_cache.weibo_cookie
         old_huya_cookie = _config_cache.huya_cookie
-    
-    # 如果不需要重载且已有缓存，直接返回缓存
+
+    # 检查配置文件修改时间（优化热重载效率）
+    config_file_path = Path("config.yml")
+    current_mtime = 0
+    if config_file_path.exists():
+        current_mtime = config_file_path.stat().st_mtime
+
+    # 如果不需要重载且已有缓存，检查文件是否被修改
     if not reload and _config_cache is not None:
-        return _config_cache
-    
+        # 如果文件未被修改，直接返回缓存
+        if current_mtime <= _config_file_mtime:
+            return _config_cache
+        # 文件被修改了，需要重新加载
+        logger.debug("检测到配置文件已修改，自动重新加载...")
+
     # 从YAML文件加载配置
     if reload:
         logger.debug("开始重新加载配置文件...")
     else:
         logger.debug("加载配置文件...")
-    
+
     yml_config = load_config_from_yml()
-    
+    _config_file_mtime = current_mtime  # 更新文件修改时间
+
     # 创建AppConfig实例
     config = AppConfig(**yml_config)
-    
+
     # 更新缓存
     _config_cache = config
-    
+
     # 记录新值并检测变化
     new_weibo_cookie = config.weibo_cookie
     new_huya_cookie = config.huya_cookie
-    
+
     logger.debug("配置加载完成")
     # 只在Cookie真正变化时才记录INFO级别的日志
     if old_weibo_cookie is not None and old_weibo_cookie != new_weibo_cookie:
         logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
     else:
         logger.debug("微博Cookie未变更")
-        
+
     if old_huya_cookie is not None and old_huya_cookie != new_huya_cookie:
         logger.info(f"虎牙Cookie已更新 (长度: {len(new_huya_cookie or '')} 字符)")
     else:
         logger.debug("虎牙Cookie未变更")
 
     return config
-

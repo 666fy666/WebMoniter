@@ -1,4 +1,5 @@
 """日志管理模块 - 统一管理日志文件"""
+
 import logging
 import os
 import time
@@ -13,7 +14,7 @@ class LogManager:
     def __init__(self, log_dir: str = "logs", retention_days: int = 3):
         """
         初始化日志管理器
-        
+
         Args:
             log_dir: 日志目录路径
             retention_days: 日志保留天数，超过此天数的日志将被删除
@@ -28,11 +29,11 @@ class LogManager:
     def get_log_file(self, name: str, date_format: str = "%Y%m%d") -> Path:
         """
         获取日志文件路径（按日期分割）
-        
+
         Args:
             name: 日志文件名前缀
             date_format: 日期格式
-            
+
         Returns:
             日志文件路径
         """
@@ -47,12 +48,12 @@ class LogManager:
     ) -> logging.FileHandler:
         """
         设置文件日志处理器
-        
+
         Args:
             name: 日志文件名前缀
             log_level: 日志级别
             date_format: 日期格式
-            
+
         Returns:
             文件处理器
         """
@@ -70,7 +71,7 @@ class LogManager:
     def cleanup_old_logs(self, cleanup_log_name: str = "cleanup"):
         """
         清理旧的日志文件
-        
+
         Args:
             cleanup_log_name: 清理日志的文件名前缀
         """
@@ -105,7 +106,7 @@ class LogManager:
     def get_log_size(self) -> int:
         """
         获取日志目录总大小（字节）
-        
+
         Returns:
             日志目录总大小
         """
@@ -120,10 +121,10 @@ class LogManager:
     def format_size(self, size_bytes: int) -> str:
         """
         格式化文件大小
-        
+
         Args:
             size_bytes: 字节数
-            
+
         Returns:
             格式化后的大小字符串
         """
@@ -132,4 +133,3 @@ class LogManager:
                 return f"{size_bytes:.2f} {unit}"
             size_bytes /= 1024.0
         return f"{size_bytes:.2f} TB"
-

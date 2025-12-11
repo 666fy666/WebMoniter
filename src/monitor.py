@@ -1,4 +1,5 @@
 """监控任务基类 - 提供可扩展的监控框架"""
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -9,7 +10,12 @@ from aiohttp import ClientSession
 
 from src.config import AppConfig
 from src.database import AsyncDatabase
-from src.push import AsyncWeChatPush
+from src.push import (
+    AsyncEmailPush,
+    AsyncPushPlusPush,
+    AsyncWeChatPush,
+    UnifiedPushManager,
+)
 
 
 class BaseMonitor(ABC):
@@ -18,7 +24,7 @@ class BaseMonitor(ABC):
     def __init__(self, config: AppConfig, session: Optional[ClientSession] = None):
         """
         初始化监控器
-        
+
         Args:
             config: 应用配置
             session: 可选的HTTP会话（用于共享连接）
@@ -27,15 +33,13 @@ class BaseMonitor(ABC):
         self.session = session
         self._own_session = False
         self.db: Optional[AsyncDatabase] = None
-        self.push: Optional[AsyncWeChatPush] = None
+        self.push: Optional[UnifiedPushManager] = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def _get_session(self) -> ClientSession:
         """获取或创建HTTP会话"""
         if self.session is None:
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=10)
-            )
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
             self._own_session = True
         return self.session
 
@@ -45,7 +49,51 @@ class BaseMonitor(ABC):
         await self.db.initialize()
 
         session = await self._get_session()
-        self.push = AsyncWeChatPush(self.config.get_wechat_config(), session)
+        
+        # 初始化各种推送方式
+        wechat_push = None
+        pushplus_push = None
+        email_push = None
+
+        # 企业微信推送
+        try:
+            wechat_config = self.config.get_wechat_config()
+            wechat_push = AsyncWeChatPush(wechat_config, session)
+        except Exception as e:
+            self.logger.warning(f"企业微信推送初始化失败: {e}")
+
+        # PushPlus推送
+        if self.config.wechat_pushplus:
+            try:
+                pushplus_push = AsyncPushPlusPush(self.config.wechat_pushplus, session)
+            except Exception as e:
+                self.logger.warning(f"PushPlus推送初始化失败: {e}")
+
+        # 邮件推送
+        email_config = self.config.get_email_config()
+        if email_config:
+            try:
+                email_push = AsyncEmailPush(
+                    smtp_host=email_config.smtp_host,
+                    smtp_port=email_config.smtp_port,
+                    smtp_user=email_config.smtp_user,
+                    smtp_password=email_config.smtp_password,
+                    from_email=email_config.from_email,
+                    to_email=email_config.to_email,
+                    use_tls=email_config.use_tls,
+                )
+            except Exception as e:
+                self.logger.warning(f"邮件推送初始化失败: {e}")
+
+        # 创建统一的推送管理器
+        if wechat_push or pushplus_push or email_push:
+            self.push = UnifiedPushManager(
+                wechat_push=wechat_push,
+                pushplus_push=pushplus_push,
+                email_push=email_push,
+            )
+        else:
+            self.logger.warning("未配置任何推送方式，推送功能将不可用")
 
     async def close(self):
         """关闭资源"""
@@ -60,7 +108,7 @@ class BaseMonitor(ABC):
     async def run(self):
         """
         运行监控任务 - 子类必须实现此方法
-        
+
         此方法应该包含监控的核心逻辑
         """
         pass
@@ -70,7 +118,7 @@ class BaseMonitor(ABC):
     def monitor_name(self) -> str:
         """
         监控器名称 - 用于日志和标识
-        
+
         Returns:
             监控器名称，如 "虎牙直播监控"、"微博监控"
         """
@@ -84,4 +132,3 @@ class BaseMonitor(ABC):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器出口"""
         await self.close()
-

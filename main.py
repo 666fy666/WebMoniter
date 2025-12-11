@@ -6,7 +6,6 @@ Web监控系统主入口
 """
 import asyncio
 import logging
-import sys
 from typing import Callable
 
 from src.config import get_config
@@ -24,7 +23,7 @@ async def run_huya_monitor():
     config = get_config(reload=True)
     logger = logging.getLogger(__name__)
     logger.debug(f"虎牙监控：已重新加载配置文件 (Cookie长度: {len(config.huya_cookie)} 字符)")
-    
+
     async with HuyaMonitor(config) as monitor:
         await monitor.run()
 
@@ -35,7 +34,7 @@ async def run_weibo_monitor():
     config = get_config(reload=True)
     logger = logging.getLogger(__name__)
     logger.debug(f"微博监控：已重新加载配置文件 (Cookie长度: {len(config.weibo_cookie)} 字符)")
-    
+
     async with WeiboMonitor(config) as monitor:
         await monitor.run()
 
@@ -46,10 +45,10 @@ async def cleanup_logs():
     log_manager.cleanup_old_logs()
 
 
-def register_monitors(scheduler: TaskScheduler):
+async def register_monitors(scheduler: TaskScheduler):
     """
     注册所有监控任务到调度器
-    
+
     在这里添加新的监控任务：
     1. 创建监控类（继承BaseMonitor）
     2. 创建运行函数（如上面的run_xxx_monitor）
@@ -57,7 +56,7 @@ def register_monitors(scheduler: TaskScheduler):
     """
     # 加载配置以获取调度间隔时间
     config = get_config()
-    
+
     # 虎牙直播监控 - 间隔时间从配置文件配置，默认65秒
     scheduler.add_interval_job(
         func=run_huya_monitor,
@@ -80,6 +79,24 @@ def register_monitors(scheduler: TaskScheduler):
         job_id="cleanup_logs",
     )
 
+    # 项目启动时立即执行一次监控任务
+    logger = logging.getLogger(__name__)
+    logger.info("正在启动时立即执行一次监控任务...")
+    
+    # 立即执行虎牙监控
+    try:
+        await run_huya_monitor()
+        logger.info("虎牙监控启动时首次执行完成")
+    except Exception as e:
+        logger.error(f"虎牙监控启动时首次执行失败: {e}", exc_info=True)
+    
+    # 立即执行微博监控
+    try:
+        await run_weibo_monitor()
+        logger.info("微博监控启动时首次执行完成")
+    except Exception as e:
+        logger.error(f"微博监控启动时首次执行失败: {e}", exc_info=True)
+
     # 可以添加更多监控任务，例如：
     # scheduler.add_interval_job(
     #     func=run_douyin_monitor,
@@ -92,8 +109,9 @@ async def main():
     """主函数"""
     # 检测是否为后台运行（非交互式终端）
     import sys
+
     is_background = not sys.stdout.isatty()
-    
+
     # 设置日志：后台运行时只输出到文件，前台运行时同时输出到控制台和文件
     setup_logging(log_level="INFO", console_output=not is_background)
     logger = logging.getLogger(__name__)
@@ -114,14 +132,14 @@ async def main():
         sys.exit(1)
 
     # 初始化Cookie缓存：项目启动时重置所有Cookie状态为有效
-    cookie_cache.reset_all()
+    await cookie_cache.reset_all()
     logger.info("Cookie缓存已初始化，所有Cookie状态已重置为有效")
 
     # 创建调度器
     scheduler = TaskScheduler(config)
 
-    # 注册所有监控任务
-    register_monitors(scheduler)
+    # 注册所有监控任务（启动时立即执行一次）
+    await register_monitors(scheduler)
 
     logger.info("=" * 50)
     logger.info("Web监控系统启动")
@@ -146,4 +164,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

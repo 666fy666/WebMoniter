@@ -145,6 +145,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "5.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/15/c2dc93a58d716bce64b53918d3cf667d86c96a56a9f3a239a9f104643637/aiosmtplib-5.0.0.tar.gz", hash = "sha256:514ac11c31cb767c764077eb3c2eb2ae48df6f63f1e847aeb36119c4fc42b52d", size = 61057, upload-time = "2025-10-19T19:12:31.426Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/42/b997c306dc54e6ac62a251787f6b5ec730797eea08e0336d8f0d7b899d5f/aiosmtplib-5.0.0-py3-none-any.whl", hash = "sha256:95eb0f81189780845363ab0627e7f130bca2d0060d46cd3eeb459f066eb7df32", size = 27048, upload-time = "2025-10-19T19:12:30.124Z" },
+]
+
+[[package]]
 name = "aiosqlite"
 version = "0.21.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1087,6 +1096,7 @@ version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "aiosmtplib" },
     { name = "aiosqlite" },
     { name = "apscheduler" },
     { name = "pydantic" },
@@ -1104,6 +1114,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9.0" },
+    { name = "aiosmtplib", specifier = ">=3.0.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
     { name = "apscheduler", specifier = ">=3.10.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },

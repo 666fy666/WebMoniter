@@ -1,4 +1,5 @@
 """微博监控模块"""
+
 import asyncio
 from typing import Optional
 
@@ -12,6 +13,7 @@ from src.cookie_cache_manager import cookie_cache
 
 class CookieExpiredError(Exception):
     """Cookie失效异常"""
+
     pass
 
 
@@ -156,7 +158,7 @@ class WeiboMonitor(BaseMonitor):
             new_data = await self.get_info(uid)
             # 成功获取数据，如果之前被标记为过期，现在标记为有效
             if not cookie_cache.is_valid("weibo"):
-                cookie_cache.mark_valid("weibo")
+                await cookie_cache.mark_valid("weibo")
                 self.logger.info("微博Cookie已恢复有效")
                 # Cookie恢复有效时，重置处理标志
                 self._cookie_expired_handled = False
@@ -167,11 +169,11 @@ class WeiboMonitor(BaseMonitor):
                 if not self._cookie_expired_handled:
                     self._cookie_expired_handled = True
                     self.logger.error(f"检测到Cookie失效: {e}")
-                    cookie_cache.mark_expired("weibo")
+                    await cookie_cache.mark_expired("weibo")
                     # 只有在未发送过提醒时才发送
                     if not cookie_cache.is_notified("weibo"):
                         await self.push_cookie_expired_notification()
-                        cookie_cache.mark_notified("weibo")
+                        await cookie_cache.mark_notified("weibo")
             return  # 不再抛出异常，直接返回
         except Exception as e:
             self.logger.error(f"获取用户 {uid} 数据失败: {e}")
@@ -204,7 +206,7 @@ class WeiboMonitor(BaseMonitor):
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, %(微博数)s, %(文本)s, %(mid)s)"
             )
             await self.db.execute_insert(sql, new_data)
-            
+
             if self._is_first_time:
                 self.logger.info(f"{new_data['用户名']} 新收录（首次创建数据库，跳过推送）")
             else:
@@ -255,51 +257,70 @@ class WeiboMonitor(BaseMonitor):
 
     async def run(self):
         """运行监控"""
-        # 热重载：重新加载config.yml文件中的配置
+        # 热重载：重新加载config.yml文件中的配置（如果文件被修改）
         old_cookie = self.weibo_config.cookie
-        new_config = get_config(reload=True)
+        new_config = get_config(reload=False)  # 使用自动检测，不需要强制重载
         self.config = new_config
         self.weibo_config = new_config.get_weibo_config()
         new_cookie = self.weibo_config.cookie
-        
+
         # 检测Cookie是否变化
         if old_cookie != new_cookie:
-            self.logger.info(f"检测到Cookie已更新，使用新的Cookie (旧Cookie长度: {len(old_cookie)}, 新Cookie长度: {len(new_cookie)})")
+            self.logger.info(
+                f"检测到Cookie已更新，使用新的Cookie (旧Cookie长度: {len(old_cookie)}, 新Cookie长度: {len(new_cookie)})"
+            )
             # Cookie更新后，重置过期状态和提醒状态
             # mark_valid会自动重置notified标志
-            cookie_cache.mark_valid("weibo")
+            await cookie_cache.mark_valid("weibo")
             # 如果session已存在，更新headers中的Cookie
             if self.session is not None:
                 self.session.headers["Cookie"] = new_cookie
                 self.logger.debug("已更新session headers中的Cookie")
         else:
             self.logger.debug(f"Cookie未变化 (长度: {len(old_cookie)})")
-        
+
         # 重置Cookie失效处理标志
         self._cookie_expired_handled = False
-        
+
         self.logger.info(f"开始执行{self.monitor_name}")
-        
+
         # 在执行任务前检查Cookie状态
         # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
         if not cookie_cache.is_valid("weibo"):
             self.logger.warning(f"{self.monitor_name} Cookie标记为过期，尝试验证...")
-            # 尝试获取第一个用户的数据来验证Cookie是否真的无效
+            # 尝试获取前几个用户的数据来验证Cookie是否真的无效（改进：不因单个用户失败就跳过所有）
             if self.weibo_config.uids:
-                try:
-                    test_uid = self.weibo_config.uids[0]
-                    test_data = await self.get_info(test_uid)
-                    # 如果成功获取数据，说明Cookie实际有效，恢复状态
-                    cookie_cache.mark_valid("weibo")
-                    self.logger.info("Cookie验证成功，已恢复有效状态")
-                except CookieExpiredError:
-                    # Cookie确实无效，跳过本次执行
-                    self.logger.warning(f"{self.monitor_name} Cookie验证失败，跳过本次执行")
-                    self.logger.info("─" * 30)
-                    return
-                except Exception as e:
-                    # 其他错误，也跳过本次执行
-                    self.logger.error(f"Cookie验证时发生错误: {e}，跳过本次执行")
+                verification_success = False
+                verification_errors = 0
+                max_verification_attempts = min(3, len(self.weibo_config.uids))  # 最多尝试3个用户
+                
+                for i in range(max_verification_attempts):
+                    try:
+                        test_uid = self.weibo_config.uids[i]
+                        test_data = await self.get_info(test_uid)
+                        # 如果成功获取数据，说明Cookie实际有效，恢复状态
+                        await cookie_cache.mark_valid("weibo")
+                        self.logger.info("Cookie验证成功，已恢复有效状态")
+                        verification_success = True
+                        break
+                    except CookieExpiredError:
+                        verification_errors += 1
+                        # 如果所有验证都失败，才跳过执行
+                        if verification_errors >= max_verification_attempts:
+                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个用户），跳过本次执行")
+                            self.logger.info("─" * 30)
+                            return
+                    except Exception as e:
+                        # 其他错误（如网络错误），不立即跳过，继续尝试下一个用户
+                        self.logger.debug(f"Cookie验证时发生错误（用户{self.weibo_config.uids[i]}）: {e}，继续尝试...")
+                        verification_errors += 1
+                        if verification_errors >= max_verification_attempts:
+                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个用户），跳过本次执行")
+                            self.logger.info("─" * 30)
+                            return
+                
+                if not verification_success:
+                    self.logger.warning(f"{self.monitor_name} Cookie验证未成功，跳过本次执行")
                     self.logger.info("─" * 30)
                     return
             else:
@@ -329,4 +350,3 @@ class WeiboMonitor(BaseMonitor):
     def monitor_name(self) -> str:
         """监控器名称"""
         return "微博监控🖼️  🖼️  🖼️"
-

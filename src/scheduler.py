@@ -1,4 +1,5 @@
 """任务调度器模块 - 使用APScheduler进行任务调度"""
+
 import asyncio
 import logging
 import signal
@@ -18,7 +19,7 @@ class TaskScheduler:
     def __init__(self, config: Optional[AppConfig] = None):
         """
         初始化调度器
-        
+
         Args:
             config: 应用配置，如果为None则自动加载
         """
@@ -36,7 +37,7 @@ class TaskScheduler:
     ):
         """
         添加定时任务
-        
+
         Args:
             func: 要执行的异步函数
             trigger: 触发器，可以是字符串（如 "interval", "cron"）或触发器对象
@@ -61,14 +62,14 @@ class TaskScheduler:
     ):
         """
         添加间隔任务
-        
+
         Args:
             func: 要执行的异步函数
             seconds: 间隔秒数（优先级最高）
             minutes: 间隔分钟数
             hours: 间隔小时数
             job_id: 任务ID
-        
+
         注意：seconds、minutes、hours 至少需要提供一个，如果提供多个，优先级为 seconds > minutes > hours
         """
         trigger_kwargs = {}
@@ -81,7 +82,7 @@ class TaskScheduler:
         else:
             # 默认使用1分钟
             trigger_kwargs["minutes"] = 1
-        
+
         self.add_job(
             func,
             trigger=IntervalTrigger(**trigger_kwargs),
@@ -100,7 +101,7 @@ class TaskScheduler:
     ):
         """
         添加Cron任务
-        
+
         Args:
             func: 要执行的异步函数
             minute: 分钟（cron格式，如 "*/2" 表示每2分钟）
@@ -130,7 +131,7 @@ class TaskScheduler:
     def shutdown(self, wait: bool = True):
         """
         关闭调度器
-        
+
         Args:
             wait: 是否等待正在执行的任务完成
         """
@@ -139,13 +140,16 @@ class TaskScheduler:
 
     async def run_forever(self):
         """运行调度器直到收到停止信号"""
+
         # 设置信号处理
         def signal_handler(signum, frame):
             self.logger.info(f"收到信号 {signum}，准备关闭...")
             self._shutdown_event.set()
 
+        # Windows平台不支持SIGTERM，需要检查平台
         signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        if sys.platform != "win32":
+            signal.signal(signal.SIGTERM, signal_handler)
 
         # 启动调度器
         self.start()
@@ -162,22 +166,22 @@ class TaskScheduler:
 def setup_logging(log_level: str = "INFO", console_output: bool = None):
     """
     设置日志配置
-    
+
     Args:
         log_level: 日志级别
         console_output: 是否输出到控制台，None时自动检测（非TTY环境不输出到控制台）
     """
     import sys
-    
+
     # 自动检测是否为交互式终端
     if console_output is None:
         # 如果标准输出不是TTY（如nohup后台运行），则不输出到控制台
         console_output = sys.stdout.isatty()
-    
+
     # 先清除现有的处理器（避免重复）
     root_logger = logging.root
     root_logger.handlers.clear()
-    
+
     # 只在交互式终端或明确指定时才添加控制台处理器
     if console_output:
         console_handler = logging.StreamHandler(sys.stdout)
@@ -189,16 +193,15 @@ def setup_logging(log_level: str = "INFO", console_output: bool = None):
             )
         )
         root_logger.addHandler(console_handler)
-    
+
     # 设置根日志记录器的级别和格式
     root_logger.setLevel(getattr(logging, log_level.upper()))
-    
+
     # 降低APScheduler的日志级别，减少冗余的调度器日志
     # 只记录WARNING及以上级别的日志，减少INFO级别的"Running job"、"executed successfully"等日志
     apscheduler_logger = logging.getLogger("apscheduler")
     apscheduler_logger.setLevel(logging.WARNING)
-    
+
     # 如果没有处理器，创建一个NullHandler避免警告
     if not root_logger.handlers:
         root_logger.addHandler(logging.NullHandler())
-

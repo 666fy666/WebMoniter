@@ -77,8 +77,17 @@ wechat:
   secret: your_secret
   agentid: your_agentid
   touser: your_touser
-  pushplus: null  # 可选
-  email: null  # 可选
+  pushplus: null  # 可选，PushPlus token
+
+# 邮件推送配置（可选）
+email:
+  smtp_host: smtp.example.com  # SMTP服务器地址
+  smtp_port: 587  # SMTP端口（587为TLS，465为SSL）
+  smtp_user: your_email@example.com  # SMTP用户名（通常是邮箱地址）
+  smtp_password: your_password  # SMTP密码或授权码
+  from_email: your_email@example.com  # 发件人邮箱
+  to_email: recipient@example.com  # 收件人邮箱
+  use_tls: true  # 是否使用TLS加密（587端口通常为true，465端口通常为false）
 
 # 微博监控配置
 weibo:
@@ -210,6 +219,8 @@ uv sync --extra dev
 ```
 
 ### 代码格式化
+
+**注意**：使用格式化工具前，请确保已安装开发依赖（见上方"安装开发依赖"章节）。
 
 ```bash
 # 使用 black 格式化

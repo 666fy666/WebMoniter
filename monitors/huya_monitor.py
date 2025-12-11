@@ -1,4 +1,5 @@
 """虎牙直播监控模块"""
+
 import asyncio
 import json
 import re
@@ -15,7 +16,9 @@ from src.cookie_cache_manager import cookie_cache
 
 class CookieExpiredError(Exception):
     """Cookie失效异常"""
+
     pass
+
 
 # 预编译正则表达式
 RE_PROFILE = re.compile(r'"tProfileInfo":({.*?})')
@@ -79,7 +82,7 @@ class HuyaMonitor(BaseMonitor):
             # 检测cookie是否失效：如果返回403或页面包含登录相关关键词，可能cookie失效
             if response.status == 403:
                 raise CookieExpiredError("虎牙Cookie已失效，返回403状态码")
-            
+
             # 检查页面是否包含登录提示
             if "登录" in page_content and "请先登录" in page_content:
                 raise CookieExpiredError("虎牙Cookie已失效，需要重新登录")
@@ -119,16 +122,16 @@ class HuyaMonitor(BaseMonitor):
             data = await self.get_info(room_id)
             # 成功获取数据，如果之前被标记为过期，现在标记为有效
             if not cookie_cache.is_valid("huya"):
-                cookie_cache.mark_valid("huya")
+                await cookie_cache.mark_valid("huya")
                 self.logger.info("虎牙Cookie已恢复有效")
         except CookieExpiredError as e:
             # Cookie失效，更新缓存并发送企业微信提醒（仅发送一次）
             self.logger.error(f"检测到Cookie失效: {e}")
-            cookie_cache.mark_expired("huya")
+            await cookie_cache.mark_expired("huya")
             # 只有在未发送过提醒时才发送
             if not cookie_cache.is_notified("huya"):
                 await self.push_cookie_expired_notification()
-                cookie_cache.mark_notified("huya")
+                await cookie_cache.mark_notified("huya")
             return  # 不再抛出异常，直接返回
         except Exception as e:
             self.logger.error(f"获取房间 {room_id} 信息失败: {e}")
@@ -153,7 +156,7 @@ class HuyaMonitor(BaseMonitor):
             # 新录入
             sql = "INSERT INTO huya (room, name, is_live) VALUES (%(room)s, %(name)s, %(is_live)s)"
             await self.db.execute_insert(sql, data)
-            
+
             if self._is_first_time:
                 self.logger.info(f"新录入主播: {data['name']}（首次创建数据库，跳过推送）")
             else:
@@ -166,7 +169,9 @@ class HuyaMonitor(BaseMonitor):
         quote = " "
         try:
             session = await self._get_session()
-            async with session.get("https://v1.hitokoto.cn/", timeout=ClientTimeout(total=3)) as resp:
+            async with session.get(
+                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=3)
+            ) as resp:
                 if resp.status == 200:
                     hitokoto = await resp.json()
                     quote = f'\n{hitokoto.get("hitokoto", "")} —— {hitokoto.get("from", "")}\n'
@@ -209,59 +214,80 @@ class HuyaMonitor(BaseMonitor):
 
     async def run(self):
         """运行监控"""
-        # 热重载：重新加载config.yml文件中的配置
+        # 热重载：重新加载config.yml文件中的配置（如果文件被修改）
         old_cookie = self.huya_config.cookie
         old_user_agent = self.huya_config.user_agent
-        new_config = get_config(reload=True)
+        new_config = get_config(reload=False)  # 使用自动检测，不需要强制重载
         self.config = new_config
         self.huya_config = new_config.get_huya_config()
         new_cookie = self.huya_config.cookie
         new_user_agent = self.huya_config.user_agent
-        
+
         # 检测Cookie或User-Agent是否变化
         cookie_changed = old_cookie != new_cookie
         user_agent_changed = old_user_agent != new_user_agent
-        
+
         if cookie_changed or user_agent_changed:
             changes = []
             if cookie_changed:
                 changes.append(f"Cookie (旧长度: {len(old_cookie)}, 新长度: {len(new_cookie)})")
             if user_agent_changed:
-                changes.append(f"User-Agent (旧: {old_user_agent[:30]}..., 新: {new_user_agent[:30]}...)")
+                changes.append(
+                    f"User-Agent (旧: {old_user_agent[:30]}..., 新: {new_user_agent[:30]}...)"
+                )
             self.logger.info(f"检测到配置已更新: {', '.join(changes)}")
             # Cookie更新后，重置过期状态和提醒状态
             # mark_valid会自动重置notified标志
-            cookie_cache.mark_valid("huya")
+            await cookie_cache.mark_valid("huya")
             # 如果session已存在，更新headers中的Cookie和User-Agent
             if self.session is not None:
                 self.session.headers["Cookie"] = new_cookie
                 self.session.headers["User-Agent"] = new_user_agent
                 self.logger.debug("已更新session headers中的Cookie和User-Agent")
         else:
-            self.logger.debug(f"配置未变化 (Cookie长度: {len(old_cookie)}, User-Agent: {old_user_agent[:30]}...)")
-        
+            self.logger.debug(
+                f"配置未变化 (Cookie长度: {len(old_cookie)}, User-Agent: {old_user_agent[:30]}...)"
+            )
+
         self.logger.info(f"开始执行{self.monitor_name}")
-        
+
         # 在执行任务前检查Cookie状态
         # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
         if not cookie_cache.is_valid("huya"):
             self.logger.warning(f"{self.monitor_name} Cookie标记为过期，尝试验证...")
-            # 尝试获取第一个房间的数据来验证Cookie是否真的无效
+            # 尝试获取前几个房间的数据来验证Cookie是否真的无效（改进：不因单个房间失败就跳过所有）
             if self.huya_config.rooms:
-                try:
-                    test_room = self.huya_config.rooms[0]
-                    test_data = await self.get_info(test_room)
-                    # 如果成功获取数据，说明Cookie实际有效，恢复状态
-                    cookie_cache.mark_valid("huya")
-                    self.logger.info("Cookie验证成功，已恢复有效状态")
-                except CookieExpiredError:
-                    # Cookie确实无效，跳过本次执行
-                    self.logger.warning(f"{self.monitor_name} Cookie验证失败，跳过本次执行")
-                    self.logger.info("─" * 30)
-                    return
-                except Exception as e:
-                    # 其他错误，也跳过本次执行
-                    self.logger.error(f"Cookie验证时发生错误: {e}，跳过本次执行")
+                verification_success = False
+                verification_errors = 0
+                max_verification_attempts = min(3, len(self.huya_config.rooms))  # 最多尝试3个房间
+                
+                for i in range(max_verification_attempts):
+                    try:
+                        test_room = self.huya_config.rooms[i]
+                        test_data = await self.get_info(test_room)
+                        # 如果成功获取数据，说明Cookie实际有效，恢复状态
+                        await cookie_cache.mark_valid("huya")
+                        self.logger.info("Cookie验证成功，已恢复有效状态")
+                        verification_success = True
+                        break
+                    except CookieExpiredError:
+                        verification_errors += 1
+                        # 如果所有验证都失败，才跳过执行
+                        if verification_errors >= max_verification_attempts:
+                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行")
+                            self.logger.info("─" * 30)
+                            return
+                    except Exception as e:
+                        # 其他错误（如网络错误），不立即跳过，继续尝试下一个房间
+                        self.logger.debug(f"Cookie验证时发生错误（房间{self.huya_config.rooms[i]}）: {e}，继续尝试...")
+                        verification_errors += 1
+                        if verification_errors >= max_verification_attempts:
+                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行")
+                            self.logger.info("─" * 30)
+                            return
+                
+                if not verification_success:
+                    self.logger.warning(f"{self.monitor_name} Cookie验证未成功，跳过本次执行")
                     self.logger.info("─" * 30)
                     return
             else:
@@ -278,9 +304,7 @@ class HuyaMonitor(BaseMonitor):
                 async with semaphore:
                     return await self.process_room(room_id)
 
-            tasks = [
-                process_with_semaphore(room_id) for room_id in self.huya_config.rooms
-            ]
+            tasks = [process_with_semaphore(room_id) for room_id in self.huya_config.rooms]
             await asyncio.gather(*tasks)
         except Exception as e:
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
@@ -293,4 +317,3 @@ class HuyaMonitor(BaseMonitor):
     def monitor_name(self) -> str:
         """监控器名称"""
         return "虎牙直播监控🐯  🐯  🐯"
-

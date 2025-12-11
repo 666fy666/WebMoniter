@@ -1,4 +1,5 @@
 """异步数据库操作模块 - 使用 SQLite"""
+
 import asyncio
 import logging
 import re
@@ -30,33 +31,32 @@ class AsyncDatabase:
     async def initialize(self):
         """初始化数据库连接并创建表结构"""
         global _shared_connection, _connection_ref_count
-        
+
         if self._use_shared:
             # 使用共享连接
             async with _connection_lock:
                 if _shared_connection is None:
                     # 确保数据库文件目录存在
                     self.db_path.parent.mkdir(parents=True, exist_ok=True)
-                    
+
                     # 创建数据库连接，启用 WAL 模式提高并发性能
                     _shared_connection = await aiosqlite.connect(
-                        str(self.db_path),
-                        timeout=30.0  # 增加超时时间
+                        str(self.db_path), timeout=30.0  # 增加超时时间
                     )
                     # 设置行工厂，返回字典格式的结果
                     _shared_connection.row_factory = aiosqlite.Row
-                    
+
                     # 启用 WAL 模式以提高并发性能
                     await _shared_connection.execute("PRAGMA journal_mode=WAL")
                     await _shared_connection.execute("PRAGMA synchronous=NORMAL")
                     await _shared_connection.execute("PRAGMA busy_timeout=30000")  # 30秒超时
                     await _shared_connection.commit()
-                    
+
                     # 初始化表结构
                     await self._init_tables(_shared_connection)
-                    
+
                     _logger.info("数据库连接已创建（WAL模式）")
-                
+
                 self._conn = _shared_connection
                 _connection_ref_count += 1
                 _logger.debug(f"数据库连接引用计数: {_connection_ref_count}")
@@ -75,7 +75,8 @@ class AsyncDatabase:
     async def _init_tables(self, conn: aiosqlite.Connection):
         """初始化数据库表结构"""
         # 创建 weibo 表
-        await conn.execute("""
+        await conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS weibo (
                 UID TEXT PRIMARY KEY,
                 用户名 TEXT NOT NULL,
@@ -86,29 +87,32 @@ class AsyncDatabase:
                 文本 TEXT,
                 mid TEXT
             )
-        """)
+        """
+        )
 
         # 创建 huya 表
-        await conn.execute("""
+        await conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS huya (
                 room TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 is_live TEXT
             )
-        """)
+        """
+        )
 
         await conn.commit()
 
     async def _check_connection_health(self) -> bool:
         """
         检查数据库连接是否健康
-        
+
         Returns:
             True 如果连接健康，False 如果连接失效
         """
         if self._conn is None:
             return False
-        
+
         try:
             # 执行一个简单的查询来检查连接
             async with self._conn.execute("SELECT 1") as cursor:
@@ -126,7 +130,7 @@ class AsyncDatabase:
         重新建立数据库连接（仅在共享连接模式下使用）
         """
         global _shared_connection, _connection_ref_count
-        
+
         if not self._use_shared:
             # 独立连接模式，直接重新初始化
             if self._conn:
@@ -137,11 +141,11 @@ class AsyncDatabase:
                 self._conn = None
             await self.initialize()
             return
-        
+
         # 共享连接模式
         async with _connection_lock:
             _logger.warning("检测到数据库连接失效，正在重新连接...")
-            
+
             # 关闭旧连接
             if _shared_connection is not None:
                 try:
@@ -151,28 +155,25 @@ class AsyncDatabase:
                 finally:
                     _shared_connection = None
                     _connection_ref_count = 0
-            
+
             # 重新创建连接
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            _shared_connection = await aiosqlite.connect(
-                str(self.db_path),
-                timeout=30.0
-            )
+            _shared_connection = await aiosqlite.connect(str(self.db_path), timeout=30.0)
             _shared_connection.row_factory = aiosqlite.Row
-            
+
             # 重新设置 WAL 模式
             await _shared_connection.execute("PRAGMA journal_mode=WAL")
             await _shared_connection.execute("PRAGMA synchronous=NORMAL")
             await _shared_connection.execute("PRAGMA busy_timeout=30000")
             await _shared_connection.commit()
-            
+
             # 重新初始化表结构（CREATE TABLE IF NOT EXISTS 是安全的）
             await self._init_tables(_shared_connection)
-            
+
             # 更新当前实例的连接引用
             self._conn = _shared_connection
             _connection_ref_count = 1
-            
+
             _logger.info("数据库连接已重新建立（WAL模式）")
 
     async def _ensure_connection(self):
@@ -182,7 +183,7 @@ class AsyncDatabase:
         if self._conn is None:
             await self.initialize()
             return
-        
+
         # 检查连接健康状态
         if not await self._check_connection_health():
             await self._reconnect()
@@ -190,7 +191,7 @@ class AsyncDatabase:
     async def close(self):
         """关闭数据库连接（共享连接时只减少引用计数）"""
         global _shared_connection, _connection_ref_count
-        
+
         if self._use_shared:
             async with _connection_lock:
                 if _connection_ref_count > 0:
@@ -214,7 +215,7 @@ class AsyncDatabase:
     def _convert_sql(self, sql: str) -> str:
         """将 MySQL 风格的 SQL 转换为 SQLite 风格"""
         # 将 %(key)s 替换为 :key
-        return re.sub(r'%\((\w+)\)s', r':\1', sql)
+        return re.sub(r"%\((\w+)\)s", r":\1", sql)
 
     @asynccontextmanager
     async def get_connection(self):
@@ -225,18 +226,18 @@ class AsyncDatabase:
     async def _execute_with_retry(self, operation, max_retries=5, initial_delay=0.1):
         """
         执行数据库操作，带重试机制和连接恢复
-        
+
         Args:
             operation: 要执行的异步操作函数
             max_retries: 最大重试次数
             initial_delay: 初始延迟（秒），每次重试会指数退避
-        
+
         Returns:
             操作结果
         """
         delay = initial_delay
         last_exception = None
-        
+
         for attempt in range(max_retries):
             try:
                 # 在执行前确保连接有效
@@ -248,8 +249,7 @@ class AsyncDatabase:
                     last_exception = e
                     if attempt < max_retries - 1:
                         _logger.warning(
-                            f"数据库锁定，重试 {attempt + 1}/{max_retries} "
-                            f"(延迟 {delay:.2f}秒)"
+                            f"数据库锁定，重试 {attempt + 1}/{max_retries} " f"(延迟 {delay:.2f}秒)"
                         )
                         await asyncio.sleep(delay)
                         delay *= 2  # 指数退避
@@ -295,7 +295,7 @@ class AsyncDatabase:
             except Exception as e:
                 _logger.error(f"数据库操作异常: {e}")
                 raise
-        
+
         if last_exception:
             raise last_exception
 
@@ -304,13 +304,13 @@ class AsyncDatabase:
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
         sqlite_params = self._convert_params(params)
-        
+
         async def _query():
             async with self._conn.execute(sqlite_sql, sqlite_params) as cursor:
                 rows = await cursor.fetchall()
                 # 将 Row 对象转换为元组
                 return [tuple(row) for row in rows]
-        
+
         try:
             return await self._execute_with_retry(_query)
         except Exception as e:
@@ -322,12 +322,12 @@ class AsyncDatabase:
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
         sqlite_params = self._convert_params(params)
-        
+
         async def _update():
             await self._conn.execute(sqlite_sql, sqlite_params)
             await self._conn.commit()
             return True
-        
+
         try:
             return await self._execute_with_retry(_update)
         except Exception as e:
@@ -350,10 +350,10 @@ class AsyncDatabase:
     async def is_table_empty(self, table_name: str) -> bool:
         """
         检查表是否为空（用于判断是否是首次创建数据库）
-        
+
         Args:
             table_name: 表名
-            
+
         Returns:
             True 如果表为空，False 如果表有数据
         """
@@ -380,7 +380,7 @@ class AsyncDatabase:
 async def close_shared_connection():
     """关闭共享数据库连接（程序退出时调用）"""
     global _shared_connection, _connection_ref_count
-    
+
     async with _connection_lock:
         if _shared_connection is not None:
             try:

@@ -1,7 +1,8 @@
 """Cookie缓存管理模块 - 管理各平台Cookie的过期状态"""
+
+import asyncio
 import json
 import logging
-import threading
 from pathlib import Path
 from typing import Optional
 
@@ -14,13 +15,15 @@ class CookieCache:
     def __init__(self, cache_file: str = "cookie_cache.json"):
         """
         初始化Cookie缓存管理器
-        
+
         Args:
             cache_file: 缓存文件路径，默认为项目根目录下的cookie_cache.json
         """
         self.cache_file = Path(cache_file)
         # 缓存结构: {platform: {"valid": bool, "notified": bool}}
         self._cache: dict[str, dict] = {}
+        # 异步锁保护文件操作
+        self._lock = asyncio.Lock()
         self._load_cache()
 
     def _load_cache(self):
@@ -53,7 +56,7 @@ class CookieCache:
                 pass
 
     def _save_cache(self):
-        """保存缓存到文件"""
+        """保存缓存到文件（同步方法，内部使用）"""
         try:
             # 确保目录存在
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
@@ -63,13 +66,18 @@ class CookieCache:
         except Exception as e:
             logger.error(f"保存Cookie缓存失败: {e}")
 
+    async def _save_cache_async(self):
+        """异步保存缓存到文件（带锁保护）"""
+        async with self._lock:
+            self._save_cache()
+
     def is_valid(self, platform: str) -> bool:
         """
         检查指定平台的Cookie是否有效
-        
+
         Args:
             platform: 平台名称，如 "weibo", "huya"
-            
+
         Returns:
             True表示有效，False表示已过期
             如果平台不存在于缓存中，默认返回True（项目启动时默认有效）
@@ -83,59 +91,62 @@ class CookieCache:
         # 兼容旧格式
         return platform_data
 
-    def mark_expired(self, platform: str):
+    async def mark_expired(self, platform: str):
         """
-        标记指定平台的Cookie为已过期
-        
+        标记指定平台的Cookie为已过期（异步方法，带锁保护）
+
         Args:
             platform: 平台名称，如 "weibo", "huya"
         """
-        if platform not in self._cache or self._cache[platform].get("valid", True) is not False:
-            if platform not in self._cache:
-                self._cache[platform] = {"valid": False, "notified": False}
-            else:
-                self._cache[platform]["valid"] = False
-            self._save_cache()
-            logger.warning(f"已标记 {platform} Cookie为过期状态")
+        async with self._lock:
+            if platform not in self._cache or self._cache[platform].get("valid", True) is not False:
+                if platform not in self._cache:
+                    self._cache[platform] = {"valid": False, "notified": False}
+                else:
+                    self._cache[platform]["valid"] = False
+                self._save_cache()
+                logger.warning(f"已标记 {platform} Cookie为过期状态")
 
-    def mark_valid(self, platform: str):
+    async def mark_valid(self, platform: str):
         """
-        标记指定平台的Cookie为有效
-        
+        标记指定平台的Cookie为有效（异步方法，带锁保护）
+
         Args:
             platform: 平台名称，如 "weibo", "huya"
         """
-        if platform not in self._cache or self._cache[platform].get("valid", False) is not True:
-            if platform not in self._cache:
-                self._cache[platform] = {"valid": True, "notified": False}
-            else:
-                self._cache[platform]["valid"] = True
-                # Cookie恢复有效时，重置提醒标记，以便下次过期时能再次提醒
-                self._cache[platform]["notified"] = False
-            self._save_cache()
-            logger.info(f"已标记 {platform} Cookie为有效状态")
-
-    def reset_all(self):
-        """重置所有Cookie状态为有效（项目启动时调用）"""
-        updated = False
-        for platform in self._cache:
-            platform_data = self._cache[platform]
-            if isinstance(platform_data, dict):
-                if platform_data.get("valid", True) is False:
-                    platform_data["valid"] = True
-                    platform_data["notified"] = False  # 重置提醒标记
-                    updated = True
-            else:
-                # 兼容旧格式
-                if platform_data is False:
+        async with self._lock:
+            if platform not in self._cache or self._cache[platform].get("valid", False) is not True:
+                if platform not in self._cache:
                     self._cache[platform] = {"valid": True, "notified": False}
-                    updated = True
-        # 即使没有更新，也保存一次以确保文件存在
-        self._save_cache()
-        if updated:
-            logger.info("已重置所有Cookie状态为有效")
-        else:
-            logger.debug("Cookie缓存文件已更新")
+                else:
+                    self._cache[platform]["valid"] = True
+                    # Cookie恢复有效时，重置提醒标记，以便下次过期时能再次提醒
+                    self._cache[platform]["notified"] = False
+                self._save_cache()
+                logger.info(f"已标记 {platform} Cookie为有效状态")
+
+    async def reset_all(self):
+        """重置所有Cookie状态为有效（项目启动时调用，异步方法，带锁保护）"""
+        async with self._lock:
+            updated = False
+            for platform in self._cache:
+                platform_data = self._cache[platform]
+                if isinstance(platform_data, dict):
+                    if platform_data.get("valid", True) is False:
+                        platform_data["valid"] = True
+                        platform_data["notified"] = False  # 重置提醒标记
+                        updated = True
+                else:
+                    # 兼容旧格式
+                    if platform_data is False:
+                        self._cache[platform] = {"valid": True, "notified": False}
+                        updated = True
+            # 即使没有更新，也保存一次以确保文件存在
+            self._save_cache()
+            if updated:
+                logger.info("已重置所有Cookie状态为有效")
+            else:
+                logger.debug("Cookie缓存文件已更新")
 
     def get_all_status(self) -> dict[str, bool]:
         """获取所有平台的Cookie状态"""
@@ -150,10 +161,10 @@ class CookieCache:
     def is_notified(self, platform: str) -> bool:
         """
         检查指定平台的Cookie过期提醒是否已发送
-        
+
         Args:
             platform: 平台名称，如 "weibo", "huya"
-            
+
         Returns:
             True表示已发送提醒，False表示未发送
         """
@@ -164,21 +175,21 @@ class CookieCache:
             return platform_data.get("notified", False)
         return False
 
-    def mark_notified(self, platform: str):
+    async def mark_notified(self, platform: str):
         """
-        标记指定平台的Cookie过期提醒已发送
-        
+        标记指定平台的Cookie过期提醒已发送（异步方法，带锁保护）
+
         Args:
             platform: 平台名称，如 "weibo", "huya"
         """
-        if platform not in self._cache:
-            self._cache[platform] = {"valid": False, "notified": True}
-        else:
-            if not isinstance(self._cache[platform], dict):
-                # 兼容旧格式
-                self._cache[platform] = {"valid": self._cache[platform], "notified": True}
+        async with self._lock:
+            if platform not in self._cache:
+                self._cache[platform] = {"valid": False, "notified": True}
             else:
-                self._cache[platform]["notified"] = True
-        self._save_cache()
-        logger.debug(f"已标记 {platform} Cookie过期提醒已发送")
-
+                if not isinstance(self._cache[platform], dict):
+                    # 兼容旧格式
+                    self._cache[platform] = {"valid": self._cache[platform], "notified": True}
+                else:
+                    self._cache[platform]["notified"] = True
+            self._save_cache()
+            logger.debug(f"已标记 {platform} Cookie过期提醒已发送")
