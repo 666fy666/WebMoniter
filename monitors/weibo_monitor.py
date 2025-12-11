@@ -320,5 +320,5 @@ class WeiboMonitor(BaseMonitor):
     @property
     def monitor_name(self) -> str:
         """监控器名称"""
-        return "微博监控"
+        return "微博监控🖼️🖼️🖼️"
 

@@ -1,8 +1,11 @@
-"""配置管理模块 - 支持环境变量和远程配置"""
+"""配置管理模块 - 支持环境变量、YAML配置和远程配置"""
 import logging
+import os
+from pathlib import Path
 from typing import Optional
 
 import aiohttp
+import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -130,6 +133,110 @@ class AppConfig(BaseSettings):
         )
 
 
+def load_config_from_yml(yml_path: str = "config.yml") -> dict:
+    """
+    从YAML文件加载配置并转换为环境变量格式
+    
+    Args:
+        yml_path: YAML配置文件路径，默认为 config.yml
+    
+    Returns:
+        配置字典（扁平化的环境变量格式）
+    """
+    config_dict = {}
+    yml_file = Path(yml_path)
+    
+    if not yml_file.exists():
+        logger.debug(f"YAML配置文件 {yml_path} 不存在，跳过")
+        return config_dict
+    
+    try:
+        with open(yml_file, "r", encoding="utf-8") as f:
+            yml_config = yaml.safe_load(f)
+        
+        if not yml_config:
+            logger.debug(f"YAML配置文件 {yml_path} 为空")
+            return config_dict
+        
+        # 将嵌套的YAML配置转换为扁平化的环境变量格式
+        # 企业微信配置
+        if "wechat" in yml_config:
+            wechat = yml_config["wechat"]
+            if "corpid" in wechat:
+                config_dict["wechat_corpid"] = wechat["corpid"]
+            if "secret" in wechat:
+                config_dict["wechat_secret"] = wechat["secret"]
+            if "agentid" in wechat:
+                config_dict["wechat_agentid"] = wechat["agentid"]
+            if "touser" in wechat:
+                config_dict["wechat_touser"] = wechat["touser"]
+            if "pushplus" in wechat and wechat["pushplus"]:
+                config_dict["wechat_pushplus"] = wechat["pushplus"]
+            if "email" in wechat and wechat["email"]:
+                config_dict["wechat_email"] = wechat["email"]
+        
+        # 数据库配置
+        if "database" in yml_config:
+            db = yml_config["database"]
+            if "host" in db:
+                config_dict["db_host"] = db["host"]
+            if "port" in db:
+                config_dict["db_port"] = str(db["port"])
+            if "user" in db:
+                config_dict["db_user"] = db["user"]
+            if "password" in db:
+                config_dict["db_password"] = db["password"]
+            if "name" in db:
+                config_dict["db_name"] = db["name"]
+        
+        # 微博配置
+        if "weibo" in yml_config:
+            weibo = yml_config["weibo"]
+            if "cookie" in weibo:
+                config_dict["weibo_cookie"] = weibo["cookie"]
+            if "uids" in weibo:
+                config_dict["weibo_uids"] = weibo["uids"]
+            if "concurrency" in weibo:
+                config_dict["weibo_concurrency"] = str(weibo["concurrency"])
+        
+        # 虎牙配置
+        if "huya" in yml_config:
+            huya = yml_config["huya"]
+            if "user_agent" in huya:
+                config_dict["huya_user_agent"] = huya["user_agent"]
+            if "cookie" in huya:
+                config_dict["huya_cookie"] = huya["cookie"]
+            if "rooms" in huya:
+                config_dict["huya_rooms"] = huya["rooms"]
+            if "concurrency" in huya:
+                config_dict["huya_concurrency"] = str(huya["concurrency"])
+        
+        # 调度器配置
+        if "scheduler" in yml_config:
+            scheduler = yml_config["scheduler"]
+            if "huya_monitor_interval_seconds" in scheduler:
+                config_dict["huya_monitor_interval_seconds"] = str(scheduler["huya_monitor_interval_seconds"])
+            if "weibo_monitor_interval_seconds" in scheduler:
+                config_dict["weibo_monitor_interval_seconds"] = str(scheduler["weibo_monitor_interval_seconds"])
+            if "cleanup_logs_hour" in scheduler:
+                config_dict["cleanup_logs_hour"] = str(scheduler["cleanup_logs_hour"])
+            if "cleanup_logs_minute" in scheduler:
+                config_dict["cleanup_logs_minute"] = str(scheduler["cleanup_logs_minute"])
+        
+        # 可选配置
+        if "optional" in yml_config:
+            optional = yml_config["optional"]
+            if "config_json_url" in optional and optional["config_json_url"]:
+                config_dict["config_json_url"] = optional["config_json_url"]
+        
+        logger.debug(f"成功从 {yml_path} 加载配置")
+        return config_dict
+    
+    except Exception as e:
+        logger.warning(f"加载YAML配置文件 {yml_path} 失败: {e}")
+        return config_dict
+
+
 async def load_config_from_url(url: str) -> Optional[dict]:
     """从远程URL异步加载配置"""
     try:
@@ -145,44 +252,54 @@ async def load_config_from_url(url: str) -> Optional[dict]:
 def get_config(reload: bool = False) -> AppConfig:
     """
     获取配置
-    优先使用环境变量，如果配置了远程URL则尝试从远程加载
+    配置优先级：环境变量(.env) > config.yml
+    如果环境变量中存在相同的配置项，将优先使用环境变量的值
     
     Args:
-        reload: 是否重新加载.env文件（用于热重载）
-               如果为True，会强制重新读取.env文件并覆盖现有环境变量
+        reload: 是否重新加载配置文件（用于热重载）
+               如果为True，会强制重新读取.env和config.yml文件并覆盖现有环境变量
     
     Returns:
         AppConfig实例
     """
-    # 如果需要重新加载，使用load_dotenv强制重新读取.env文件
+    # 记录原始值（如果存在，用于检测变化）
+    old_weibo_cookie = os.environ.get("weibo_cookie")
+    old_huya_cookie = os.environ.get("huya_cookie")
+    
+    # 1. 首先加载.env文件（优先级较高）
     if reload:
-        logger.debug("开始重新加载.env文件...")
-        # 记录原始值（如果存在）
-        import os
-        old_weibo_cookie = os.environ.get('weibo_cookie')
-        old_huya_cookie = os.environ.get('huya_cookie')
-        
+        logger.debug("开始重新加载配置文件...")
+        logger.debug("重新加载.env文件...")
         # override=True 会覆盖已存在的环境变量，确保使用最新的值
         load_dotenv(override=True)
-        
-        # 记录新值
-        new_weibo_cookie = os.environ.get('weibo_cookie')
-        new_huya_cookie = os.environ.get('huya_cookie')
-        
-        logger.debug("环境变量重载完成")
-        # 只在Cookie真正变化时才记录INFO级别的日志
-        if old_weibo_cookie != new_weibo_cookie:
-            logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
-        else:
-            logger.debug("微博Cookie未变更")
-            
-        if old_huya_cookie != new_huya_cookie:
-            logger.info(f"虎牙Cookie已更新 (长度: {len(new_huya_cookie or '')} 字符)")
-        else:
-            logger.debug("虎牙Cookie未变更")
     else:
         logger.debug("加载.env文件（首次加载）")
         load_dotenv()
+    
+    # 2. 然后从YAML文件加载配置（优先级较低）
+    # 只有当环境变量中不存在该配置项时，才使用YAML中的值
+    yml_config = load_config_from_yml()
+    for key, value in yml_config.items():
+        # 如果环境变量中不存在该配置项，则使用YAML中的值
+        if key not in os.environ:
+            os.environ[key] = value
+            logger.debug(f"从YAML加载配置: {key}")
+    
+    # 记录新值
+    new_weibo_cookie = os.environ.get("weibo_cookie")
+    new_huya_cookie = os.environ.get("huya_cookie")
+    
+    logger.debug("配置加载完成")
+    # 只在Cookie真正变化时才记录INFO级别的日志
+    if old_weibo_cookie != new_weibo_cookie:
+        logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
+    else:
+        logger.debug("微博Cookie未变更")
+        
+    if old_huya_cookie != new_huya_cookie:
+        logger.info(f"虎牙Cookie已更新 (长度: {len(new_huya_cookie or '')} 字符)")
+    else:
+        logger.debug("虎牙Cookie未变更")
     
     # 创建新实例，pydantic-settings会从环境变量读取配置
     config = AppConfig()

@@ -284,5 +284,5 @@ class HuyaMonitor(BaseMonitor):
     @property
     def monitor_name(self) -> str:
         """监控器名称"""
-        return "虎牙直播监控"
+        return "虎牙直播监控🐯🐯🐯"
 
