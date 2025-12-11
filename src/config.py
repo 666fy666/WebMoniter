@@ -11,15 +11,6 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 
-class DatabaseConfig(BaseModel):
-    """数据库配置"""
-    host: str
-    port: int = 3306
-    user: str
-    password: str
-    db: str
-
-
 class WeChatConfig(BaseModel):
     """企业微信配置"""
     corpid: str
@@ -55,13 +46,6 @@ class AppConfig(BaseModel):
     wechat_pushplus: Optional[str] = None
     wechat_email: Optional[str] = None
 
-    # 数据库
-    db_host: str
-    db_port: int = 3306
-    db_user: str
-    db_password: str
-    db_name: str
-
     # 微博
     weibo_cookie: str
     weibo_uids: str  # 逗号分隔的UID列表
@@ -81,16 +65,6 @@ class AppConfig(BaseModel):
 
     # 可选配置
     config_json_url: Optional[str] = None
-
-    def get_database_config(self) -> DatabaseConfig:
-        """获取数据库配置"""
-        return DatabaseConfig(
-            host=self.db_host,
-            port=self.db_port,
-            user=self.db_user,
-            password=self.db_password,
-            db=self.db_name,
-        )
 
     def get_wechat_config(self) -> WeChatConfig:
         """获取企业微信配置"""
@@ -163,20 +137,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["wechat_pushplus"] = str(wechat["pushplus"])
             if "email" in wechat and wechat["email"]:
                 config_dict["wechat_email"] = str(wechat["email"])
-        
-        # 数据库配置
-        if "database" in yml_config:
-            db = yml_config["database"]
-            if "host" in db:
-                config_dict["db_host"] = db["host"]
-            if "port" in db:
-                config_dict["db_port"] = db["port"]
-            if "user" in db:
-                config_dict["db_user"] = db["user"]
-            if "password" in db:
-                config_dict["db_password"] = db["password"]
-            if "name" in db:
-                config_dict["db_name"] = db["name"]
         
         # 微博配置
         if "weibo" in yml_config:

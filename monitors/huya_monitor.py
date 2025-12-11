@@ -29,6 +29,7 @@ class HuyaMonitor(BaseMonitor):
         super().__init__(config, session)
         self.huya_config = config.get_huya_config()
         self.old_data_dict: dict[str, tuple] = {}
+        self._is_first_time: bool = False  # 标记是否是首次创建数据库
 
     async def initialize(self):
         """初始化数据库和推送服务"""
@@ -59,9 +60,12 @@ class HuyaMonitor(BaseMonitor):
             sql = "SELECT room, name, is_live FROM huya"
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
+            # 检查是否是首次创建数据库（表为空）
+            self._is_first_time = len(self.old_data_dict) == 0
         except Exception as e:
             self.logger.error(f"加载旧数据失败: {e}")
             self.old_data_dict = {}
+            self._is_first_time = True  # 出错时也认为是首次创建
 
     async def get_info(self, room_id: str) -> dict:
         """获取直播状态"""
@@ -149,8 +153,12 @@ class HuyaMonitor(BaseMonitor):
             # 新录入
             sql = "INSERT INTO huya (room, name, is_live) VALUES (%(room)s, %(name)s, %(is_live)s)"
             await self.db.execute_insert(sql, data)
-            self.logger.info(f"新录入主播: {data['name']}")
-            await self.push_notification(data, 1)
+            
+            if self._is_first_time:
+                self.logger.info(f"新录入主播: {data['name']}（首次创建数据库，跳过推送）")
+            else:
+                self.logger.info(f"新录入主播: {data['name']}")
+                await self.push_notification(data, 1)
 
     async def push_notification(self, data: dict, res: int):
         """发送推送通知"""

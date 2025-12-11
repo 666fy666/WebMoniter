@@ -25,6 +25,7 @@ class WeiboMonitor(BaseMonitor):
         # Cookie失效处理标志和锁，确保只处理一次
         self._cookie_expired_handled = False
         self._cookie_expired_lock = asyncio.Lock()
+        self._is_first_time: bool = False  # 标记是否是首次创建数据库
 
     async def initialize(self):
         """初始化数据库和推送服务"""
@@ -57,9 +58,12 @@ class WeiboMonitor(BaseMonitor):
             sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
+            # 检查是否是首次创建数据库（表为空）
+            self._is_first_time = len(self.old_data_dict) == 0
         except Exception as e:
             self.logger.error(f"加载旧数据失败: {e}")
             self.old_data_dict = {}
+            self._is_first_time = True  # 出错时也认为是首次创建
 
     async def get_info(self, uid: str) -> dict:
         """获取微博信息"""
@@ -200,8 +204,12 @@ class WeiboMonitor(BaseMonitor):
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, %(微博数)s, %(文本)s, %(mid)s)"
             )
             await self.db.execute_insert(sql, new_data)
-            self.logger.info(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
-            await self.push_notification(new_data, 1)
+            
+            if self._is_first_time:
+                self.logger.info(f"{new_data['用户名']} 新收录（首次创建数据库，跳过推送）")
+            else:
+                self.logger.info(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
+                await self.push_notification(new_data, 1)
 
     async def push_notification(self, data: dict, diff: int):
         """发送推送通知"""

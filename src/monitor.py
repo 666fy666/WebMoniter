@@ -41,7 +41,7 @@ class BaseMonitor(ABC):
 
     async def initialize(self):
         """初始化数据库和推送服务"""
-        self.db = AsyncDatabase(self.config.get_database_config())
+        self.db = AsyncDatabase()
         await self.db.initialize()
 
         session = await self._get_session()

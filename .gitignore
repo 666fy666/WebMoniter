@@ -49,8 +49,14 @@ logs/
 
 # 数据库
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # 操作系统
 .DS_Store

@@ -1,12 +1,12 @@
 # Web监控系统
 
-一个基于 Python 的异步 Web 监控系统，支持多平台监控任务（虎牙直播、微博等），使用 APScheduler 进行任务调度，支持企业微信推送和 MySQL 数据存储。
+一个基于 Python 的异步 Web 监控系统，支持多平台监控任务（虎牙直播、微博等），使用 APScheduler 进行任务调度，支持企业微信推送和 SQLite 数据存储。
 
 ## 功能特性
 
 - 🎯 **多平台监控**：支持虎牙直播、微博等平台监控
 - ⏰ **任务调度**：基于 APScheduler 的灵活任务调度系统
-- 📊 **数据存储**：MySQL 数据库存储监控数据
+- 📊 **数据存储**：SQLite 本地数据库存储监控数据
 - 📱 **消息推送**：企业微信、PushPlus、邮件等多种推送方式
 - 📝 **日志管理**：完善的日志记录和自动清理机制
 - 🚀 **异步架构**：基于 asyncio 的高性能异步处理
@@ -17,7 +17,7 @@
 - **Python**: >=3.10
 - **异步框架**: asyncio, aiohttp
 - **任务调度**: APScheduler
-- **数据库**: MySQL (aiomysql)
+- **数据库**: SQLite (aiosqlite)
 - **配置管理**: pydantic, pyyaml
 - **依赖管理**: uv
 
@@ -46,7 +46,6 @@ WebMoniter/
 ### 1. 环境要求
 
 - Python >= 3.10
-- MySQL 数据库
 - uv (Python 包管理器)
 
 ### 2. 安装依赖
@@ -81,14 +80,6 @@ wechat:
   pushplus: null  # 可选
   email: null  # 可选
 
-# 数据库配置
-database:
-  host: localhost
-  port: 3306
-  user: your_db_user
-  password: your_db_password
-  name: your_db_name
-
 # 微博监控配置
 weibo:
   cookie: your_weibo_cookie
@@ -118,7 +109,7 @@ optional:
 
 ### 4. 数据库初始化
 
-确保 MySQL 数据库已创建，监控系统会自动创建所需的数据表。
+系统会自动在项目根目录创建 `data.db` SQLite 数据库文件，并自动创建所需的数据表。无需手动配置数据库。
 
 ## 使用方法
 
@@ -139,7 +130,7 @@ nohup uv run python main.py > /dev/null 2>&1 &
 ```ini
 [Unit]
 Description=Web Monitor Service
-After=network.target mysql.service
+After=network.target
 
 [Service]
 Type=simple
@@ -238,7 +229,7 @@ uv run pytest
 
 1. **并发控制**：微博监控建议并发数设置为 2-5，避免触发限流；虎牙监控可以设置更高（5-10）
 2. **Cookie 更新**：定期更新微博和虎牙的 Cookie，避免失效
-3. **数据库连接**：确保 MySQL 服务正常运行，数据库连接配置正确
+3. **数据库存储**：数据库文件 `data.db` 存储在项目根目录，系统会自动创建和初始化表结构
 4. **日志清理**：定期检查日志目录大小，避免占用过多磁盘空间
 5. **systemd 服务**：修改配置文件后需执行 `sudo systemctl daemon-reload`，确保 `ExecStart` 路径正确
 

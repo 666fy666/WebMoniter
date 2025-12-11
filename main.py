@@ -13,6 +13,7 @@ from src.config import get_config
 from src.scheduler import TaskScheduler, setup_logging
 from src.log_manager import LogManager
 from src.cookie_cache_manager import cookie_cache
+from src.database import close_shared_connection
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
 
@@ -138,6 +139,8 @@ async def main():
         logger.error(f"调度器运行出错: {e}")
         raise
     finally:
+        # 关闭共享数据库连接
+        await close_shared_connection()
         logger.info("程序退出")
 
 
