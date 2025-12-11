@@ -1,20 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Author: Fy
-cron: 0 */5 * * * ?
-new Env('微博监控');
-"""
+"""微博监控模块"""
 import asyncio
-import time
 from typing import Optional
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
-from src.config import get_config, AppConfig
-from src.database import AsyncDatabase
-from src.push import AsyncWeChatPush
+from src.config import AppConfig
+from src.monitor import BaseMonitor
 
 
 class CookieExpiredError(Exception):
@@ -22,18 +14,20 @@ class CookieExpiredError(Exception):
     pass
 
 
-class WeiboMonitor:
+class WeiboMonitor(BaseMonitor):
     """微博监控类"""
 
     def __init__(self, config: AppConfig, session: Optional[ClientSession] = None):
-        self.config = config
+        super().__init__(config, session)
         self.weibo_config = config.get_weibo_config()
-        self.session = session
-        self._own_session = False
-        self.db: Optional[AsyncDatabase] = None
-        self.push: Optional[AsyncWeChatPush] = None
         self.old_data_dict: dict[str, tuple] = {}
         self._cookie_expired_notified = False  # 标记是否已发送Cookie失效提醒
+
+    async def initialize(self):
+        """初始化数据库和推送服务"""
+        await super().initialize()
+        # 加载旧数据
+        await self.load_old_info()
 
     async def _get_session(self) -> ClientSession:
         """获取或创建session"""
@@ -51,26 +45,6 @@ class WeiboMonitor:
             self._own_session = True
         return self.session
 
-    async def initialize(self):
-        """初始化数据库和推送服务"""
-        self.db = AsyncDatabase(self.config.get_database_config())
-        await self.db.initialize()
-
-        session = await self._get_session()
-        self.push = AsyncWeChatPush(self.config.get_wechat_config(), session)
-
-        # 加载旧数据
-        await self.load_old_info()
-
-    async def close(self):
-        """关闭资源"""
-        if self.db:
-            await self.db.close()
-        if self.push:
-            await self.push.close()
-        if self._own_session and self.session:
-            await self.session.close()
-
     async def load_old_info(self):
         """从数据库加载旧信息"""
         try:
@@ -78,7 +52,7 @@ class WeiboMonitor:
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
         except Exception as e:
-            print(f"加载旧数据失败: {e}")
+            self.logger.error(f"加载旧数据失败: {e}")
             self.old_data_dict = {}
 
     async def get_info(self, uid: str) -> dict:
@@ -172,11 +146,11 @@ class WeiboMonitor:
             new_data = await self.get_info(uid)
         except CookieExpiredError as e:
             # Cookie失效，发送企业微信提醒
-            print(f"检测到Cookie失效: {e}")
+            self.logger.error(f"检测到Cookie失效: {e}")
             await self.push_cookie_expired_notification()
             raise  # 重新抛出异常，让调用者知道
         except Exception as e:
-            print(f"获取用户 {uid} 数据失败: {e}")
+            self.logger.error(f"获取用户 {uid} 数据失败: {e}")
             return
 
         if uid in self.old_data_dict:
@@ -184,7 +158,7 @@ class WeiboMonitor:
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
-                print(f"{new_data['用户名']} 最近在摸鱼🐟")
+                self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 # 更新数据
                 sql = (
@@ -194,9 +168,9 @@ class WeiboMonitor:
                 await self.db.execute_update(sql, new_data)
 
                 if diff > 0:
-                    print(f"{new_data['用户名']} 发布了{diff}条微博😍")
+                    self.logger.info(f"{new_data['用户名']} 发布了{diff}条微博😍")
                 else:
-                    print(f"{new_data['用户名']} 删除了{abs(diff)}条微博😞")
+                    self.logger.info(f"{new_data['用户名']} 删除了{abs(diff)}条微博😞")
 
                 await self.push_notification(new_data, diff)
         else:
@@ -206,7 +180,7 @@ class WeiboMonitor:
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, %(微博数)s, %(文本)s, %(mid)s)"
             )
             await self.db.execute_insert(sql, new_data)
-            print(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
+            self.logger.info(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
             await self.push_notification(new_data, 1)
 
     async def push_notification(self, data: dict, diff: int):
@@ -228,7 +202,7 @@ class WeiboMonitor:
                 btntxt="阅读全文",
             )
         except Exception as e:
-            print(f"推送失败: {e}")
+            self.logger.error(f"推送失败: {e}")
 
     async def push_cookie_expired_notification(self):
         """发送Cookie失效提醒（仅发送一次）"""
@@ -237,7 +211,7 @@ class WeiboMonitor:
             return
 
         if not self.push:
-            print("推送服务未初始化，无法发送Cookie失效提醒")
+            self.logger.warning("推送服务未初始化，无法发送Cookie失效提醒")
             return
 
         try:
@@ -252,65 +226,37 @@ class WeiboMonitor:
                 btntxt="前往登录",
             )
             self._cookie_expired_notified = True  # 标记已发送
-            print("已发送Cookie失效提醒到企业微信")
+            self.logger.info("已发送Cookie失效提醒到企业微信")
         except Exception as e:
-            print(f"发送Cookie失效提醒失败: {e}")
+            self.logger.error(f"发送Cookie失效提醒失败: {e}")
 
     async def run(self):
         """运行监控"""
-        await self.initialize()
+        self.logger.info(f"开始执行{self.monitor_name}")
         try:
             # 创建信号量控制并发数
             semaphore = asyncio.Semaphore(self.weibo_config.concurrency)
-            
+
             async def process_with_semaphore(uid: str):
                 """使用信号量包装的处理函数"""
                 async with semaphore:
                     return await self.process_user(uid)
-            
+
             tasks = [process_with_semaphore(uid) for uid in self.weibo_config.uids]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             # 检查是否有Cookie失效异常
             for result in results:
                 if isinstance(result, CookieExpiredError):
-                    # 已经在process_user中发送了提醒，这里只打印日志
-                    print("监控任务因Cookie失效而中断")
+                    # 已经在process_user中发送了提醒，这里只记录日志
+                    self.logger.warning("监控任务因Cookie失效而中断")
                     break
-        finally:
-            await self.close()
+            self.logger.info(f"{self.monitor_name}执行完成")
+        except Exception as e:
+            self.logger.error(f"{self.monitor_name}执行失败: {e}")
+            raise
 
-    async def __aenter__(self):
-        """异步上下文管理器入口"""
-        await self.initialize()
-        return self
+    @property
+    def monitor_name(self) -> str:
+        """监控器名称"""
+        return "微博监控"
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """异步上下文管理器出口"""
-        await self.close()
-
-
-async def main():
-    """主函数"""
-    start_time = time.perf_counter()
-
-    try:
-        config = get_config()
-    except Exception as e:
-        print(f"配置加载失败: {e}")
-        print("请确保已创建.env文件并配置了必要的环境变量")
-        print("参考.env.example文件")
-        return
-
-    print("=" * 50)
-    print("开始微博监控")
-    print("=" * 50)
-
-    async with WeiboMonitor(config) as monitor:
-        await monitor.run()
-
-    end_time = time.perf_counter()
-    print(f"\n执行时间: {end_time - start_time:.6f} 秒")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
