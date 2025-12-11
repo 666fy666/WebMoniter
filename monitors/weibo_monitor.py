@@ -235,7 +235,7 @@ class WeiboMonitor(BaseMonitor):
                 title="⚠️ 微博Cookie已失效",
                 description=(
                     "微博监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
-                    "请及时更新.env文件中的微博Cookie配置，以确保监控正常运行。"
+                    "请及时更新config.yml文件中的微博Cookie配置，以确保监控正常运行。"
                 ),
                 picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url="https://weibo.com/login.php",
@@ -247,7 +247,7 @@ class WeiboMonitor(BaseMonitor):
 
     async def run(self):
         """运行监控"""
-        # 热重载：重新加载.env文件中的配置
+        # 热重载：重新加载config.yml文件中的配置
         old_cookie = self.weibo_config.cookie
         new_config = get_config(reload=True)
         self.config = new_config
@@ -314,11 +314,11 @@ class WeiboMonitor(BaseMonitor):
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
             raise
         finally:
-            self.logger.info(f"{self.monitor_name}执行完成")
+            self.logger.info(f"执行完成{self.monitor_name}")
             self.logger.info("─" * 30)
 
     @property
     def monitor_name(self) -> str:
         """监控器名称"""
-        return "微博监控🖼️🖼️🖼️"
+        return "微博监控🖼️  🖼️  🖼️"
 

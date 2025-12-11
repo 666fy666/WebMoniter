@@ -189,7 +189,7 @@ class HuyaMonitor(BaseMonitor):
                 title="⚠️ 虎牙Cookie已失效",
                 description=(
                     "虎牙监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
-                    "请及时更新.env文件中的虎牙Cookie配置，以确保监控正常运行。"
+                    "请及时更新config.yml文件中的虎牙Cookie配置，以确保监控正常运行。"
                 ),
                 picurl="https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
                 to_url="https://www.huya.com/login",
@@ -201,7 +201,7 @@ class HuyaMonitor(BaseMonitor):
 
     async def run(self):
         """运行监控"""
-        # 热重载：重新加载.env文件中的配置
+        # 热重载：重新加载config.yml文件中的配置
         old_cookie = self.huya_config.cookie
         old_user_agent = self.huya_config.user_agent
         new_config = get_config(reload=True)
@@ -278,11 +278,11 @@ class HuyaMonitor(BaseMonitor):
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
             raise
         finally:
-            self.logger.info(f"{self.monitor_name}执行完成")
+            self.logger.info(f"执行完成{self.monitor_name}")
             self.logger.info("─" * 30)
 
     @property
     def monitor_name(self) -> str:
         """监控器名称"""
-        return "虎牙直播监控🐯🐯🐯"
+        return "虎牙直播监控🐯  🐯  🐯"
 

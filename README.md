@@ -10,7 +10,7 @@
 - 📱 **消息推送**：企业微信、PushPlus、邮件等多种推送方式
 - 📝 **日志管理**：完善的日志记录和自动清理机制
 - 🚀 **异步架构**：基于 asyncio 的高性能异步处理
-- ⚙️ **配置管理**：支持环境变量和远程配置
+- ⚙️ **配置管理**：基于YAML文件的配置管理，支持热重载
 
 ## 技术栈
 
@@ -18,7 +18,7 @@
 - **异步框架**: asyncio, aiohttp
 - **任务调度**: APScheduler
 - **数据库**: MySQL (aiomysql)
-- **配置管理**: pydantic-settings, python-dotenv
+- **配置管理**: pydantic, pyyaml
 - **依赖管理**: uv
 
 ## 项目结构
@@ -61,40 +61,60 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
-### 3. 配置环境变量
+### 3. 配置文件设置
 
-在项目根目录创建 `.env` 文件，配置以下环境变量：
+在项目根目录创建 `config.yml` 文件，复制示例配置文件并修改：
 
-```env
+```bash
+cp config.yml.sample config.yml
+```
+
+编辑 `config.yml` 文件，配置以下内容：
+
+```yaml
 # 企业微信配置
-WECHAT_CORPID=your_corpid
-WECHAT_SECRET=your_secret
-WECHAT_AGENTID=your_agentid
-WECHAT_TOUSER=your_touser
-WECHAT_PUSHPLUS=your_pushplus_token  # 可选
-WECHAT_EMAIL=your_email@example.com  # 可选
+wechat:
+  corpid: your_corpid
+  secret: your_secret
+  agentid: your_agentid
+  touser: your_touser
+  pushplus: null  # 可选
+  email: null  # 可选
 
 # 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
+database:
+  host: localhost
+  port: 3306
+  user: your_db_user
+  password: your_db_password
+  name: your_db_name
 
 # 微博监控配置
-WEIBO_COOKIE=your_weibo_cookie
-WEIBO_UIDS=uid1,uid2,uid3  # 逗号分隔的UID列表
-WEIBO_CONCURRENCY=3  # 并发数，建议2-5
+weibo:
+  cookie: your_weibo_cookie
+  uids: uid1,uid2,uid3  # 逗号分隔的UID列表
+  concurrency: 3  # 并发数，建议2-5
 
 # 虎牙监控配置
-HUYA_USER_AGENT=your_user_agent
-HUYA_COOKIE=your_huya_cookie  # HUYA_COOKIE没有可不填
-HUYA_ROOMS=room1,room2,room3  # 逗号分隔的房间号列表
-HUYA_CONCURRENCY=7  # 并发数，建议5-10
+huya:
+  user_agent: your_user_agent
+  cookie: your_huya_cookie  # 可选，没有可不填
+  rooms: room1,room2,room3  # 逗号分隔的房间号列表
+  concurrency: 7  # 并发数，建议5-10
 
-# 可选：远程配置URL
-CONFIG_JSON_URL=https://example.com/config.json  # 可选
+# 调度器配置
+scheduler:
+  huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒
+  weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认300秒（5分钟）
+  cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
+  cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
+
+# 可选配置
+optional:
+  config_json_url: null  # 可选：远程配置URL
 ```
+
+**注意**：`config.yml` 文件不会被提交到 git，请妥善保管。
 
 ### 4. 数据库初始化
 

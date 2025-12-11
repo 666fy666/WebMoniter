@@ -18,22 +18,22 @@ from monitors.weibo_monitor import WeiboMonitor
 
 
 async def run_huya_monitor():
-    """运行虎牙监控任务（支持env热重载）"""
-    # 重新加载环境变量，获取最新的cookie
+    """运行虎牙监控任务（支持配置热重载）"""
+    # 重新加载配置文件，获取最新的cookie
     config = get_config(reload=True)
     logger = logging.getLogger(__name__)
-    logger.debug(f"虎牙监控：已重新加载环境变量和配置 (Cookie长度: {len(config.huya_cookie)} 字符)")
+    logger.debug(f"虎牙监控：已重新加载配置文件 (Cookie长度: {len(config.huya_cookie)} 字符)")
     
     async with HuyaMonitor(config) as monitor:
         await monitor.run()
 
 
 async def run_weibo_monitor():
-    """运行微博监控任务（支持env热重载）"""
-    # 重新加载环境变量，获取最新的cookie
+    """运行微博监控任务（支持配置热重载）"""
+    # 重新加载配置文件，获取最新的cookie
     config = get_config(reload=True)
     logger = logging.getLogger(__name__)
-    logger.debug(f"微博监控：已重新加载环境变量和配置 (Cookie长度: {len(config.weibo_cookie)} 字符)")
+    logger.debug(f"微博监控：已重新加载配置文件 (Cookie长度: {len(config.weibo_cookie)} 字符)")
     
     async with WeiboMonitor(config) as monitor:
         await monitor.run()
@@ -57,21 +57,21 @@ def register_monitors(scheduler: TaskScheduler):
     # 加载配置以获取调度间隔时间
     config = get_config()
     
-    # 虎牙直播监控 - 间隔时间从环境变量配置，默认65秒
+    # 虎牙直播监控 - 间隔时间从配置文件配置，默认65秒
     scheduler.add_interval_job(
         func=run_huya_monitor,
         seconds=config.huya_monitor_interval_seconds,
         job_id="huya_monitor",
     )
 
-    # 微博监控 - 间隔时间从环境变量配置，默认300秒（5分钟）
+    # 微博监控 - 间隔时间从配置文件配置，默认300秒（5分钟）
     scheduler.add_interval_job(
         func=run_weibo_monitor,
         seconds=config.weibo_monitor_interval_seconds,
         job_id="weibo_monitor",
     )
 
-    # 日志清理 - 执行时间从环境变量配置，默认每天凌晨2点
+    # 日志清理 - 执行时间从配置文件配置，默认每天凌晨2点
     scheduler.add_cron_job(
         func=cleanup_logs,
         minute=str(config.cleanup_logs_minute),
@@ -108,8 +108,8 @@ async def main():
         logger.info("配置加载成功")
     except Exception as e:
         logger.error(f"配置加载失败: {e}")
-        logger.error("请确保已创建.env文件并配置了必要的环境变量")
-        logger.error("参考.env.example文件")
+        logger.error("请确保已创建config.yml文件并配置了必要的配置项")
+        logger.error("参考config.yml.sample文件")
         sys.exit(1)
 
     # 初始化Cookie缓存：项目启动时重置所有Cookie状态为有效
