@@ -466,6 +466,6 @@ A: 目前支持企业微信、PushPlus 和邮件推送，可以在配置文件�
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star！**
 
-Made with ❤️ by [Your Name]
+Made with ❤️ by [FY]
 
 </div>

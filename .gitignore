@@ -42,6 +42,7 @@ config.yml
 
 # Cookie缓存
 cookie_cache.json
+*.ruff_cache/
 
 # 日志
 *.log
