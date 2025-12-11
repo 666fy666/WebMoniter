@@ -4,7 +4,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -16,7 +16,7 @@ from src.config import AppConfig, get_config
 class TaskScheduler:
     """任务调度器 - 统一管理所有监控任务"""
 
-    def __init__(self, config: Optional[AppConfig] = None):
+    def __init__(self, config: AppConfig | None = None):
         """
         初始化调度器
 
@@ -32,7 +32,7 @@ class TaskScheduler:
         self,
         func: Callable,
         trigger: str | IntervalTrigger | CronTrigger,
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
         **kwargs,
     ):
         """
@@ -55,10 +55,10 @@ class TaskScheduler:
     def add_interval_job(
         self,
         func: Callable,
-        seconds: Optional[int] = None,
-        minutes: Optional[int] = None,
-        hours: Optional[int] = None,
-        job_id: Optional[str] = None,
+        seconds: int | None = None,
+        minutes: int | None = None,
+        hours: int | None = None,
+        job_id: str | None = None,
     ):
         """
         添加间隔任务
@@ -97,7 +97,7 @@ class TaskScheduler:
         day: str = "*",
         month: str = "*",
         day_of_week: str = "*",
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
     ):
         """
         添加Cron任务

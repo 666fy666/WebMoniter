@@ -1,136 +1,143 @@
 # Web监控系统
 
+<div align="center">
+
+![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 一个基于 Python 的异步 Web 监控系统，支持多平台监控任务（虎牙直播、微博等），使用 APScheduler 进行任务调度，支持企业微信推送和 SQLite 数据存储。
 
-## 功能特性
+[功能特性](#-功能特性) • [快速开始](#-快速开始) • [配置说明](#-配置说明) • [使用指南](#-使用指南) • [开发指南](#-开发指南)
 
-- 🎯 **多平台监控**：支持虎牙直播、微博等平台监控
-- ⏰ **任务调度**：基于 APScheduler 的灵活任务调度系统
-- 📊 **数据存储**：SQLite 本地数据库存储监控数据
-- 📱 **消息推送**：企业微信、PushPlus、邮件等多种推送方式
-- 📝 **日志管理**：完善的日志记录和自动清理机制
-- 🚀 **异步架构**：基于 asyncio 的高性能异步处理
-- ⚙️ **配置管理**：基于YAML文件的配置管理，支持热重载
+</div>
 
-## 技术栈
+---
 
-- **Python**: >=3.10
+## 📋 目录
+
+- [功能特性](#-功能特性)
+- [技术栈](#-技术栈)
+- [快速开始](#-快速开始)
+  - [环境要求](#环境要求)
+  - [安装步骤](#安装步骤)
+  - [配置设置](#配置设置)
+- [使用指南](#-使用指南)
+  - [启动监控系统](#启动监控系统)
+  - [使用 systemd 管理服务](#使用-systemd-管理服务)
+  - [监控任务配置](#监控任务配置)
+- [配置说明](#-配置说明)
+  - [企业微信配置](#企业微信配置)
+  - [邮件推送配置](#邮件推送配置)
+  - [微博监控配置](#微博监控配置)
+  - [虎牙监控配置](#虎牙监控配置)
+  - [调度器配置](#调度器配置)
+- [项目结构](#-项目结构)
+- [添加新的监控任务](#-添加新的监控任务)
+- [开发指南](#-开发指南)
+  - [开发环境设置](#开发环境设置)
+  - [代码格式化](#代码格式化)
+  - [运行测试](#运行测试)
+- [常见问题](#-常见问题)
+- [注意事项](#-注意事项)
+- [贡献指南](#-贡献指南)
+- [许可证](#-许可证)
+
+---
+
+## ✨ 功能特性
+
+- 🎯 **多平台监控**：支持虎牙直播、微博等平台监控，可轻松扩展更多平台
+- ⏰ **灵活调度**：基于 APScheduler 的任务调度系统，支持间隔任务和定时任务
+- 📊 **数据持久化**：SQLite 本地数据库存储监控数据，自动管理表结构
+- 📱 **多渠道推送**：支持企业微信、PushPlus、邮件等多种推送方式
+- 📝 **智能日志**：完善的日志记录和自动清理机制，支持按日期分割
+- 🚀 **高性能异步**：基于 asyncio 的异步架构，支持高并发监控任务
+- ⚙️ **配置热重载**：基于 YAML 文件的配置管理，支持运行时热重载
+- 🔄 **Cookie 管理**：智能 Cookie 缓存管理，自动处理失效和更新
+- 🛡️ **错误处理**：完善的异常处理和重试机制，确保系统稳定运行
+
+## 🛠️ 技术栈
+
+- **语言**: Python >= 3.10
 - **异步框架**: asyncio, aiohttp
 - **任务调度**: APScheduler
 - **数据库**: SQLite (aiosqlite)
 - **配置管理**: pydantic, pyyaml
 - **依赖管理**: uv
+- **代码质量**: black, ruff
 
-## 项目结构
+## 🚀 快速开始
 
-```
-WebMoniter/
-├── main.py              # 主入口文件
-├── pyproject.toml       # 项目配置和依赖
-├── uv.lock              # 依赖锁定文件
-├── src/                 # 核心模块
-│   ├── config.py        # 配置管理
-│   ├── database.py      # 数据库操作
-│   ├── scheduler.py     # 任务调度器
-│   ├── monitor.py       # 监控基类
-│   ├── push.py          # 消息推送
-│   └── log_manager.py   # 日志管理
-├── monitors/            # 监控模块
-│   ├── huya_monitor.py  # 虎牙直播监控
-│   └── weibo_monitor.py # 微博监控
-└── logs/                # 日志目录
-```
-
-## 安装与配置
-
-### 1. 环境要求
+### 环境要求
 
 - Python >= 3.10
 - uv (Python 包管理器)
 
-### 2. 安装依赖
+### 安装步骤
 
-使用 uv 安装项目依赖：
+#### 1. 克隆项目
 
 ```bash
-# 安装 uv (如果尚未安装)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone <repository-url>
+cd WebMoniter
+```
 
-# 安装项目依赖
+#### 2. 安装 uv（如果尚未安装）
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### 3. 安装项目依赖
+
+```bash
 uv sync
 ```
 
-### 3. 配置文件设置
+#### 4. 配置文件设置
 
-在项目根目录创建 `config.yml` 文件，复制示例配置文件并修改：
+复制示例配置文件并修改：
 
 ```bash
 cp config.yml.sample config.yml
 ```
 
-编辑 `config.yml` 文件，配置以下内容：
+编辑 `config.yml` 文件，配置必要的参数（详见[配置说明](#-配置说明)）。
 
-```yaml
-# 企业微信配置
-wechat:
-  corpid: your_corpid
-  secret: your_secret
-  agentid: your_agentid
-  touser: your_touser
-  pushplus: null  # 可选，PushPlus token
+> **注意**：`config.yml` 文件不会被提交到 git，请妥善保管。
 
-# 邮件推送配置（可选）
-email:
-  smtp_host: smtp.example.com  # SMTP服务器地址
-  smtp_port: 587  # SMTP端口（587为TLS，465为SSL）
-  smtp_user: your_email@example.com  # SMTP用户名（通常是邮箱地址）
-  smtp_password: your_password  # SMTP密码或授权码
-  from_email: your_email@example.com  # 发件人邮箱
-  to_email: recipient@example.com  # 收件人邮箱
-  use_tls: true  # 是否使用TLS加密（587端口通常为true，465端口通常为false）
+#### 5. 启动系统
 
-# 微博监控配置
-weibo:
-  cookie: your_weibo_cookie
-  uids: uid1,uid2,uid3  # 逗号分隔的UID列表
-  concurrency: 3  # 并发数，建议2-5
+```bash
+# 前台运行
+uv run python main.py
 
-# 虎牙监控配置
-huya:
-  user_agent: your_user_agent
-  cookie: your_huya_cookie  # 可选，没有可不填
-  rooms: room1,room2,room3  # 逗号分隔的房间号列表
-  concurrency: 7  # 并发数，建议5-10
-
-# 调度器配置
-scheduler:
-  huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒
-  weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认300秒（5分钟）
-  cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
-  cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
-
-# 可选配置
-optional:
-  config_json_url: null  # 可选：远程配置URL
+# 后台运行
+nohup uv run python main.py > /dev/null 2>&1 &
 ```
 
-**注意**：`config.yml` 文件不会被提交到 git，请妥善保管。
+系统会自动创建 `data.db` 数据库文件并初始化表结构，无需手动配置。
 
-### 4. 数据库初始化
-
-系统会自动在项目根目录创建 `data.db` SQLite 数据库文件，并自动创建所需的数据表。无需手动配置数据库。
-
-## 使用方法
+## 📖 使用指南
 
 ### 启动监控系统
 
-```bash
-# 使用 uv 运行
-uv run python main.py
+#### 前台运行（推荐用于测试）
 
-# 或后台运行
+```bash
+uv run python main.py
+```
+
+前台运行时，日志会同时输出到控制台和文件。
+
+#### 后台运行（推荐用于生产环境）
+
+```bash
 nohup uv run python main.py > /dev/null 2>&1 &
 ```
+
+后台运行时，日志仅输出到文件。
 
 ### 使用 systemd 管理服务
 
@@ -144,8 +151,8 @@ After=network.target
 [Service]
 Type=simple
 User=your_username
-WorkingDirectory=/home/fengyu/WebMoniter
-ExecStart=/home/fengyu/.local/bin/uv run python main.py
+WorkingDirectory=/path/to/WebMoniter
+ExecStart=/home/your_username/.local/bin/uv run python main.py
 Restart=always
 RestartSec=10
 
@@ -156,63 +163,187 @@ WantedBy=multi-user.target
 管理命令：
 
 ```bash
+# 重新加载 systemd 配置
 sudo systemctl daemon-reload
+
+# 启动服务
 sudo systemctl start web-monitor
+
+# 设置开机自启
 sudo systemctl enable web-monitor
+
+# 查看服务状态
 sudo systemctl status web-monitor
+
+# 查看日志
 sudo journalctl -u web-monitor -f
 ```
 
 ### 监控任务配置
 
-监控任务在 `main.py` 的 `register_monitors()` 函数中配置：
+监控任务的执行频率在 `config.yml` 中配置：
 
-- **虎牙监控**：默认每 2 分钟执行一次
-- **微博监控**：默认每 5 分钟执行一次
-- **日志清理**：默认每天凌晨 2 点执行
-
-可以根据需要修改执行频率：
-
-```python
-# 修改执行间隔
-scheduler.add_interval_job(
-    func=run_huya_monitor,
-    minutes=2,  # 修改这里的数值
-    job_id="huya_monitor",
-)
+```yaml
+scheduler:
+  huya_monitor_interval_seconds: 65      # 虎牙监控间隔（秒）
+  weibo_monitor_interval_seconds: 300    # 微博监控间隔（秒）
+  cleanup_logs_hour: 2                   # 日志清理时间（小时）
+  cleanup_logs_minute: 0                 # 日志清理时间（分钟）
 ```
 
-## 添加新的监控任务
+系统启动时会立即执行一次所有监控任务，之后按照配置的间隔时间定期执行。
 
-1. 在 `monitors/` 目录下创建新的监控类，继承 `BaseMonitor`
-2. 在 `main.py` 中创建运行函数（如 `run_xxx_monitor`）
-3. 在 `register_monitors()` 函数中注册任务：
+## ⚙️ 配置说明
+
+### 企业微信配置
+
+```yaml
+wechat:
+  enabled: true              # 是否启用企业微信推送
+  corpid: your_corpid        # 企业 ID
+  secret: your_secret        # 应用密钥
+  agentid: your_agentid      # 应用 ID
+  touser: your_touser        # 接收消息的用户 ID（@all 表示所有人）
+  pushplus: null             # 可选，PushPlus token
+  pushplus_enabled: false    # 是否启用 PushPlus 推送
+```
+
+### 邮件推送配置
+
+```yaml
+email:
+  enabled: false                           # 是否启用邮件推送
+  smtp_host: smtp.example.com              # SMTP 服务器地址
+  smtp_port: 587                           # SMTP 端口（587 为 TLS，465 为 SSL）
+  smtp_user: your_email@example.com        # SMTP 用户名（通常是邮箱地址）
+  smtp_password: your_password             # SMTP 密码或授权码
+  from_email: your_email@example.com        # 发件人邮箱
+  to_email: recipient@example.com          # 收件人邮箱
+  use_tls: true                            # 是否使用 TLS 加密
+```
+
+### 微博监控配置
+
+```yaml
+weibo:
+  cookie: your_weibo_cookie                # 微博 Cookie（必需）
+  uids: uid1,uid2,uid3                     # 逗号分隔的 UID 列表
+  concurrency: 2                           # 并发数，建议 2-5，避免触发限流
+```
+
+**获取微博 Cookie**：
+1. 登录微博网页版
+2. 打开浏览器开发者工具（F12）
+3. 在 Network 标签中找到任意请求
+4. 复制请求头中的 `Cookie` 值
+
+### 虎牙监控配置
+
+```yaml
+huya:
+  user_agent: your_user_agent              # User-Agent（必需）
+  cookie: your_huya_cookie                 # 虎牙 Cookie（可选）
+  rooms: room1,room2,room3                # 逗号分隔的房间号列表
+  concurrency: 10                          # 并发数，建议 5-10
+```
+
+**获取虎牙房间号**：
+- 访问虎牙直播间，URL 中的数字即为房间号
+- 例如：`https://www.huya.com/123456` 中的 `123456` 就是房间号
+
+### 调度器配置
+
+```yaml
+scheduler:
+  huya_monitor_interval_seconds: 65        # 虎牙监控间隔（秒），默认 65 秒
+  weibo_monitor_interval_seconds: 300      # 微博监控间隔（秒），默认 300 秒（5 分钟）
+  cleanup_logs_hour: 2                     # 日志清理时间（小时），默认 2 点
+  cleanup_logs_minute: 0                   # 日志清理时间（分钟），默认 0 分
+```
+
+## 📁 项目结构
+
+```
+WebMoniter/
+├── main.py                    # 主入口文件
+├── pyproject.toml             # 项目配置和依赖
+├── uv.lock                    # 依赖锁定文件
+├── config.yml.sample          # 配置文件示例
+├── src/                       # 核心模块
+│   ├── __init__.py
+│   ├── config.py              # 配置管理（支持热重载）
+│   ├── database.py            # 数据库操作
+│   ├── scheduler.py           # 任务调度器
+│   ├── monitor.py             # 监控基类
+│   ├── push.py                # 消息推送（企业微信、邮件、PushPlus）
+│   ├── log_manager.py         # 日志管理
+│   ├── cookie_cache_manager.py # Cookie 缓存管理
+│   └── cookie_cache.py        # Cookie 缓存实现
+├── monitors/                  # 监控模块
+│   ├── __init__.py
+│   ├── huya_monitor.py        # 虎牙直播监控
+│   └── weibo_monitor.py       # 微博监控
+└── logs/                      # 日志目录（自动创建）
+```
+
+## 🔧 添加新的监控任务
+
+添加新的监控任务非常简单，只需三步：
+
+### 1. 创建监控类
+
+在 `monitors/` 目录下创建新的监控类，继承 `BaseMonitor`：
+
+```python
+from src.monitor import BaseMonitor
+from src.config import AppConfig
+
+class NewPlatformMonitor(BaseMonitor):
+    """新平台监控类"""
+    
+    def __init__(self, config: AppConfig):
+        super().__init__(config)
+        # 初始化你的监控逻辑
+    
+    async def monitor(self):
+        """执行监控逻辑"""
+        # 实现监控逻辑
+        pass
+```
+
+### 2. 创建运行函数
+
+在 `main.py` 中创建运行函数：
 
 ```python
 async def run_new_monitor():
-    """运行新监控任务"""
-    config = get_config()
-    async with NewMonitor(config) as monitor:
+    """运行新监控任务（支持配置热重载）"""
+    config = get_config(reload=True)
+    async with NewPlatformMonitor(config) as monitor:
         await monitor.run()
-
-# 在 register_monitors 中注册
-scheduler.add_interval_job(
-    func=run_new_monitor,
-    minutes=5,
-    job_id="new_monitor",
-)
 ```
 
-## 日志管理
+### 3. 注册任务
 
-- 日志文件存储在 `logs/` 目录
-- 系统会自动清理 3 天前的日志文件（可配置）
-- 前台运行时日志同时输出到控制台和文件
-- 后台运行时日志仅输出到文件
+在 `register_monitors()` 函数中注册任务：
 
-## 开发
+```python
+async def register_monitors(scheduler: TaskScheduler):
+    # ... 其他任务 ...
+    
+    # 新监控任务
+    scheduler.add_interval_job(
+        func=run_new_monitor,
+        minutes=5,
+        job_id="new_monitor",
+    )
+```
 
-### 安装开发依赖
+## 💻 开发指南
+
+### 开发环境设置
+
+安装开发依赖：
 
 ```bash
 uv sync --extra dev
@@ -220,14 +351,17 @@ uv sync --extra dev
 
 ### 代码格式化
 
-**注意**：使用格式化工具前，请确保已安装开发依赖（见上方"安装开发依赖"章节）。
+项目使用 `black` 和 `ruff` 进行代码格式化和检查：
 
 ```bash
-# 使用 black 格式化
+# 使用 black 格式化代码
 uv run black .
 
-# 使用 ruff 检查
+# 使用 ruff 检查代码
 uv run ruff check .
+
+# 自动修复可修复的问题
+uv run ruff check --fix .
 ```
 
 ### 运行测试
@@ -236,19 +370,102 @@ uv run ruff check .
 uv run pytest
 ```
 
-## 注意事项
+## ❓ 常见问题
 
-1. **并发控制**：微博监控建议并发数设置为 2-5，避免触发限流；虎牙监控可以设置更高（5-10）
-2. **Cookie 更新**：定期更新微博和虎牙的 Cookie，避免失效
-3. **数据库存储**：数据库文件 `data.db` 存储在项目根目录，系统会自动创建和初始化表结构
-4. **日志清理**：定期检查日志目录大小，避免占用过多磁盘空间
-5. **systemd 服务**：修改配置文件后需执行 `sudo systemctl daemon-reload`，确保 `ExecStart` 路径正确
+### Q: 如何更新 Cookie？
 
-## 许可证
+A: 直接修改 `config.yml` 文件中的 Cookie 值，系统会在下次执行监控任务时自动重新加载配置。
+
+### Q: 监控任务没有执行怎么办？
+
+A: 
+1. 检查日志文件 `logs/main_*.log` 查看错误信息
+2. 确认配置文件 `config.yml` 格式正确
+3. 检查网络连接是否正常
+4. 确认 Cookie 是否有效
+
+### Q: 如何调整监控频率？
+
+A: 在 `config.yml` 的 `scheduler` 部分修改对应的间隔时间（秒）。
+
+### Q: 数据库文件在哪里？
+
+A: 数据库文件 `data.db` 会自动创建在项目根目录。
+
+### Q: 日志文件占用空间太大怎么办？
+
+A: 系统会自动清理 3 天前的日志文件，也可以手动删除 `logs/` 目录下的旧日志文件。
+
+### Q: 支持哪些推送方式？
+
+A: 目前支持企业微信、PushPlus 和邮件推送，可以在配置文件中启用或禁用。
+
+## ⚠️ 注意事项
+
+1. **并发控制**
+   - 微博监控建议并发数设置为 2-5，避免触发限流
+   - 虎牙监控可以设置更高（5-10）
+
+2. **Cookie 管理**
+   - 定期更新微博和虎牙的 Cookie，避免失效
+   - Cookie 失效时系统会记录错误日志，请及时检查
+
+3. **数据库存储**
+   - 数据库文件 `data.db` 存储在项目根目录
+   - 系统会自动创建和初始化表结构
+   - 建议定期备份数据库文件
+
+4. **日志管理**
+   - 日志文件存储在 `logs/` 目录
+   - 系统会自动清理 3 天前的日志文件
+   - 定期检查日志目录大小，避免占用过多磁盘空间
+
+5. **systemd 服务**
+   - 修改配置文件后需执行 `sudo systemctl daemon-reload`
+   - 确保 `ExecStart` 路径正确（使用 `which uv` 查看 uv 路径）
+   - 检查服务用户权限，确保可以访问项目目录和写入日志
+
+6. **网络环境**
+   - 确保服务器可以访问目标网站（虎牙、微博等）
+   - 如果使用代理，需要在代码中配置代理设置
+
+## 🤝 贡献指南
+
+欢迎贡献代码！在提交 Pull Request 之前，请确保：
+
+1. ✅ 代码已通过 `black` 格式化
+2. ✅ 代码已通过 `ruff` 检查
+3. ✅ 添加了必要的注释和文档
+4. ✅ 测试了新功能（如果适用）
+
+### 贡献流程
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+### 报告问题
+
+如果发现问题，请在 [Issues](../../issues) 中报告，并提供：
+- 问题描述
+- 复现步骤
+- 预期行为
+- 实际行为
+- 环境信息（Python 版本、操作系统等）
+- 相关日志（如果有）
+
+## 📄 许可证
 
 本项目采用 MIT 许可证。
 
-## 贡献
+---
 
-欢迎提交 Issue 和 Pull Request！
+<div align="center">
 
+**如果这个项目对你有帮助，请给一个 ⭐ Star！**
+
+Made with ❤️ by [Your Name]
+
+</div>

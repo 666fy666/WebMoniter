@@ -3,18 +3,20 @@
 # 使用方法：
 # 1. 复制此文件为 config.yml: cp config.yml.sample config.yml
 # 2. 根据实际情况修改 config.yml 中的配置项
-# 3. config.yml 不会被提交到 git，请妥善保管
 
 # 企业微信配置
 wechat:
+  enabled: true  # 是否启用企业微信推送
   corpid: your_corpid
   secret: your_secret
   agentid: your_agentid
   touser: your_touser
   pushplus: null  # 可选，PushPlus token
+  pushplus_enabled: false  # 是否启用PushPlus推送
 
-# 邮件推送配置（可选）
+# 邮件推送配置（可选,163授权码180天过期）
 email:
+  enabled: false  # 是否启用邮件推送
   smtp_host: smtp.example.com  # SMTP服务器地址
   smtp_port: 587  # SMTP端口（587为TLS，465为SSL）
   smtp_user: your_email@example.com  # SMTP用户名（通常是邮箱地址）

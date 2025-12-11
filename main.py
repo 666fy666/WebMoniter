@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Web监控系统主入口
 使用APScheduler进行任务调度，支持多平台监控任务
 """
 import asyncio
 import logging
-from typing import Callable
 
-from src.config import get_config
-from src.scheduler import TaskScheduler, setup_logging
-from src.log_manager import LogManager
-from src.cookie_cache_manager import cookie_cache
-from src.database import close_shared_connection
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
+from src.config import get_config
+from src.cookie_cache_manager import cookie_cache
+from src.database import close_shared_connection
+from src.log_manager import LogManager
+from src.scheduler import TaskScheduler, setup_logging
 
 
 async def run_huya_monitor():
@@ -81,19 +79,17 @@ async def register_monitors(scheduler: TaskScheduler):
 
     # 项目启动时立即执行一次监控任务
     logger = logging.getLogger(__name__)
-    logger.info("正在启动时立即执行一次监控任务...")
-    
+    logger.debug("正在启动时立即执行一次监控任务...")
+
     # 立即执行虎牙监控
     try:
         await run_huya_monitor()
-        logger.info("虎牙监控启动时首次执行完成")
     except Exception as e:
         logger.error(f"虎牙监控启动时首次执行失败: {e}", exc_info=True)
-    
+
     # 立即执行微博监控
     try:
         await run_weibo_monitor()
-        logger.info("微博监控启动时首次执行完成")
     except Exception as e:
         logger.error(f"微博监控启动时首次执行失败: {e}", exc_info=True)
 
@@ -138,12 +134,13 @@ async def main():
     # 创建调度器
     scheduler = TaskScheduler(config)
 
-    # 注册所有监控任务（启动时立即执行一次）
-    await register_monitors(scheduler)
-
     logger.info("=" * 50)
     logger.info("Web监控系统启动")
     logger.info("=" * 50)
+    logger.info("开始注册所有监控任务（启动时将立即执行一次）...")
+
+    await register_monitors(scheduler)
+
     logger.info("已注册的监控任务:")
     for job in scheduler.scheduler.get_jobs():
         logger.info(f"  - {job.id}: {job.trigger}")

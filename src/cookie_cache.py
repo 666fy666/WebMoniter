@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class CookieCache:
         """从文件加载缓存"""
         try:
             if self.cache_file.exists():
-                with open(self.cache_file, "r", encoding="utf-8") as f:
+                with open(self.cache_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # 兼容旧格式（只有bool值）和新格式（dict）
                     self._cache = {}

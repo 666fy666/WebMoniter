@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import aiohttp
 import yaml
@@ -22,6 +21,7 @@ class EmailConfig(BaseModel):
     from_email: str
     to_email: str
     use_tls: bool = True
+    enabled: bool = True  # 是否启用邮件推送
 
 
 class WeChatConfig(BaseModel):
@@ -31,7 +31,9 @@ class WeChatConfig(BaseModel):
     secret: str
     agentid: str
     touser: str
-    pushplus: Optional[str] = None
+    pushplus: str | None = None
+    enabled: bool = True  # 是否启用企业微信推送
+    pushplus_enabled: bool = True  # 是否启用PushPlus推送
 
 
 class WeiboConfig(BaseModel):
@@ -55,19 +57,22 @@ class AppConfig(BaseModel):
     """应用配置"""
 
     # 企业微信
+    wechat_enabled: bool = True  # 是否启用企业微信推送
     wechat_corpid: str
     wechat_secret: str
     wechat_agentid: str
     wechat_touser: str
-    wechat_pushplus: Optional[str] = None
+    wechat_pushplus: str | None = None
+    wechat_pushplus_enabled: bool = True  # 是否启用PushPlus推送
 
     # 邮件配置（可选）
-    email_smtp_host: Optional[str] = None
-    email_smtp_port: Optional[int] = None
-    email_smtp_user: Optional[str] = None
-    email_smtp_password: Optional[str] = None
-    email_from_email: Optional[str] = None
-    email_to_email: Optional[str] = None
+    email_enabled: bool = True  # 是否启用邮件推送
+    email_smtp_host: str | None = None
+    email_smtp_port: int | None = None
+    email_smtp_user: str | None = None
+    email_smtp_password: str | None = None
+    email_from_email: str | None = None
+    email_to_email: str | None = None
     email_use_tls: bool = True
 
     # 微博
@@ -88,7 +93,7 @@ class AppConfig(BaseModel):
     cleanup_logs_minute: int = 0  # 日志清理时间（分钟），默认0分
 
     # 可选配置
-    config_json_url: Optional[str] = None
+    config_json_url: str | None = None
 
     def get_wechat_config(self) -> WeChatConfig:
         """获取企业微信配置"""
@@ -98,9 +103,11 @@ class AppConfig(BaseModel):
             agentid=self.wechat_agentid,
             touser=self.wechat_touser,
             pushplus=self.wechat_pushplus,
+            enabled=self.wechat_enabled,
+            pushplus_enabled=self.wechat_pushplus_enabled,
         )
 
-    def get_email_config(self) -> Optional[EmailConfig]:
+    def get_email_config(self) -> EmailConfig | None:
         """获取邮件配置"""
         if not all(
             [
@@ -121,6 +128,7 @@ class AppConfig(BaseModel):
             from_email=self.email_from_email,
             to_email=self.email_to_email,
             use_tls=self.email_use_tls,
+            enabled=self.email_enabled,
         )
 
     def get_weibo_config(self) -> WeiboConfig:
@@ -160,7 +168,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         raise FileNotFoundError(f"配置文件 {yml_path} 不存在，请先创建配置文件")
 
     try:
-        with open(yml_file, "r", encoding="utf-8") as f:
+        with open(yml_file, encoding="utf-8") as f:
             yml_config = yaml.safe_load(f)
 
         if not yml_config:
@@ -170,6 +178,8 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 企业微信配置
         if "wechat" in yml_config:
             wechat = yml_config["wechat"]
+            if "enabled" in wechat:
+                config_dict["wechat_enabled"] = bool(wechat["enabled"])
             if "corpid" in wechat:
                 config_dict["wechat_corpid"] = str(wechat["corpid"])
             if "secret" in wechat:
@@ -181,10 +191,14 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["wechat_touser"] = str(wechat["touser"])
             if "pushplus" in wechat and wechat["pushplus"]:
                 config_dict["wechat_pushplus"] = str(wechat["pushplus"])
+            if "pushplus_enabled" in wechat:
+                config_dict["wechat_pushplus_enabled"] = bool(wechat["pushplus_enabled"])
 
         # 邮件配置
         if "email" in yml_config:
             email = yml_config["email"]
+            if "enabled" in email:
+                config_dict["email_enabled"] = bool(email["enabled"])
             if "smtp_host" in email and email["smtp_host"]:
                 config_dict["email_smtp_host"] = str(email["smtp_host"])
             if "smtp_port" in email and email["smtp_port"]:
@@ -256,7 +270,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         raise ValueError(f"加载配置文件 {yml_path} 失败: {e}") from e
 
 
-async def load_config_from_url(url: str) -> Optional[dict]:
+async def load_config_from_url(url: str) -> dict | None:
     """从远程URL异步加载配置"""
     try:
         async with aiohttp.ClientSession() as session:
@@ -269,7 +283,7 @@ async def load_config_from_url(url: str) -> Optional[dict]:
 
 
 # 全局配置缓存，用于热重载时检测变化
-_config_cache: Optional[AppConfig] = None
+_config_cache: AppConfig | None = None
 _config_file_mtime: float = 0  # 配置文件最后修改时间
 
 

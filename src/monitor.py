@@ -1,9 +1,7 @@
 """监控任务基类 - 提供可扩展的监控框架"""
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import aiohttp
 from aiohttp import ClientSession
@@ -21,7 +19,7 @@ from src.push import (
 class BaseMonitor(ABC):
     """监控任务基类 - 所有监控任务都应该继承此类"""
 
-    def __init__(self, config: AppConfig, session: Optional[ClientSession] = None):
+    def __init__(self, config: AppConfig, session: ClientSession | None = None):
         """
         初始化监控器
 
@@ -32,8 +30,8 @@ class BaseMonitor(ABC):
         self.config = config
         self.session = session
         self._own_session = False
-        self.db: Optional[AsyncDatabase] = None
-        self.push: Optional[UnifiedPushManager] = None
+        self.db: AsyncDatabase | None = None
+        self.push: UnifiedPushManager | None = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def _get_session(self) -> ClientSession:
@@ -49,41 +47,49 @@ class BaseMonitor(ABC):
         await self.db.initialize()
 
         session = await self._get_session()
-        
+
         # 初始化各种推送方式
         wechat_push = None
         pushplus_push = None
         email_push = None
 
         # 企业微信推送
-        try:
-            wechat_config = self.config.get_wechat_config()
-            wechat_push = AsyncWeChatPush(wechat_config, session)
-        except Exception as e:
-            self.logger.warning(f"企业微信推送初始化失败: {e}")
+        if self.config.wechat_enabled:
+            try:
+                wechat_config = self.config.get_wechat_config()
+                wechat_push = AsyncWeChatPush(wechat_config, session)
+            except Exception as e:
+                self.logger.warning(f"企业微信推送初始化失败: {e}")
+        else:
+            self.logger.debug("企业微信推送已禁用")
 
         # PushPlus推送
-        if self.config.wechat_pushplus:
+        if self.config.wechat_pushplus_enabled and self.config.wechat_pushplus:
             try:
                 pushplus_push = AsyncPushPlusPush(self.config.wechat_pushplus, session)
             except Exception as e:
                 self.logger.warning(f"PushPlus推送初始化失败: {e}")
+        elif not self.config.wechat_pushplus_enabled:
+            self.logger.debug("PushPlus推送已禁用")
 
         # 邮件推送
-        email_config = self.config.get_email_config()
-        if email_config:
-            try:
-                email_push = AsyncEmailPush(
-                    smtp_host=email_config.smtp_host,
-                    smtp_port=email_config.smtp_port,
-                    smtp_user=email_config.smtp_user,
-                    smtp_password=email_config.smtp_password,
-                    from_email=email_config.from_email,
-                    to_email=email_config.to_email,
-                    use_tls=email_config.use_tls,
-                )
-            except Exception as e:
-                self.logger.warning(f"邮件推送初始化失败: {e}")
+        if self.config.email_enabled:
+            email_config = self.config.get_email_config()
+            if email_config:
+                try:
+                    email_push = AsyncEmailPush(
+                        smtp_host=email_config.smtp_host,
+                        smtp_port=email_config.smtp_port,
+                        smtp_user=email_config.smtp_user,
+                        smtp_password=email_config.smtp_password,
+                        from_email=email_config.from_email,
+                        to_email=email_config.to_email,
+                        use_tls=email_config.use_tls,
+                    )
+                except Exception as e:
+                    self.logger.warning(f"邮件推送初始化失败: {e}")
+        else:
+            self.logger.debug("邮件推送已禁用")
 
         # 创建统一的推送管理器
         if wechat_push or pushplus_push or email_push:

@@ -6,10 +6,9 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 
 import aiohttp
 import aiosmtplib
@@ -57,14 +56,12 @@ class RateLimiter:
         current_time = time.time()
         return [ts for ts in records if current_time - ts < max_age]
 
-    async def can_send(self, user: str) -> tuple[bool, Optional[str]]:
+    async def can_send(self, user: str) -> tuple[bool, str | None]:
         """
         检查是否可以发送消息（异步方法，带锁保护）
         返回: (是否可以发送, 错误信息)
         """
         async with self._lock:
-            current_time = time.time()
-
             # 清理过期记录
             self._minute_records[user] = self._cleanup_old_records(self._minute_records[user], 60)
             self._hour_records[user] = self._cleanup_old_records(self._hour_records[user], 3600)
@@ -105,10 +102,10 @@ class RateLimiter:
 class AsyncWeChatPush:
     """异步企业微信推送类 - 支持队列"""
 
-    def __init__(self, config: WeChatConfig, session: Optional[ClientSession] = None):
+    def __init__(self, config: WeChatConfig, session: ClientSession | None = None):
         self.config = config
         self.session = session
-        self._token: Optional[str] = None
+        self._token: str | None = None
         self._token_expires_at: float = 0
         self._rate_limiter = RateLimiter()
         self._own_session = False
@@ -116,7 +113,7 @@ class AsyncWeChatPush:
 
         # 推送队列
         self._push_queue: asyncio.Queue[PushTask] = asyncio.Queue()
-        self._queue_processor_task: Optional[asyncio.Task] = None
+        self._queue_processor_task: asyncio.Task | None = None
         self._processing = False
         self._queue_lock = asyncio.Lock()  # 保护队列处理器启动
 
@@ -182,7 +179,9 @@ class AsyncWeChatPush:
                             f"[队列] 发送失败，将重试 ({task.retry_count}/{task.max_retries}): {e}"
                         )
                     else:
-                        self.logger.error(f"[队列] 发送失败，已达最大重试次数: {task.title[:30]}...")
+                        self.logger.error(
+                            f"[队列] 发送失败，已达最大重试次数: {task.title[:30]}..."
+                        )
 
             except asyncio.CancelledError:
                 break
@@ -349,12 +348,14 @@ class AsyncWeChatPush:
                 self.logger.error(f"推送失败: {e}")
                 raise
 
-    async def wait_queue_empty(self, timeout: Optional[float] = None):
+    async def wait_queue_empty(self, timeout: float | None = None):
         """等待队列为空（用于程序结束时）"""
         start_time = time.time()
         while not self._push_queue.empty():
             if timeout and (time.time() - start_time) > timeout:
-                self.logger.warning(f"[队列] 等待超时，仍有 {self._push_queue.qsize()} 个任务未处理")
+                self.logger.warning(
+                    f"[队列] 等待超时，仍有 {self._push_queue.qsize()} 个任务未处理"
+                )
                 break
             await asyncio.sleep(0.5)
 
@@ -372,7 +373,7 @@ class AsyncWeChatPush:
 class AsyncPushPlusPush:
     """异步 PushPlus 推送类"""
 
-    def __init__(self, token: str, session: Optional[ClientSession] = None):
+    def __init__(self, token: str, session: ClientSession | None = None):
         """
         初始化 PushPlus 推送
 
@@ -628,20 +629,20 @@ class AsyncEmailPush:
                 )
 
             await smtp_client.connect()
-            
+
             # 如果需要 TLS（587端口），启动 TLS
             if self.use_tls and self.smtp_port != 465:
                 await smtp_client.starttls()
-            
+
             # 登录
             await smtp_client.login(self.smtp_user, self.smtp_password)
-            
+
             # 发送邮件
             await smtp_client.send_message(message)
-            
+
             # 关闭连接
             await smtp_client.quit()
-            
+
             return {"status": "success", "message": "邮件发送成功"}
         except Exception as e:
             self.logger.error(f"邮件推送失败: {e}")
@@ -665,9 +666,9 @@ class UnifiedPushManager:
 
     def __init__(
         self,
-        wechat_push: Optional[AsyncWeChatPush] = None,
-        pushplus_push: Optional[AsyncPushPlusPush] = None,
-        email_push: Optional[AsyncEmailPush] = None,
+        wechat_push: AsyncWeChatPush | None = None,
+        pushplus_push: AsyncPushPlusPush | None = None,
+        email_push: AsyncEmailPush | None = None,
     ):
         """
         初始化推送管理器
@@ -716,7 +717,14 @@ class UnifiedPushManager:
             channel_names.append("wechat")
             tasks.append(
                 self._send_with_error_handling(
-                    "wechat", self.wechat_push.send_news, title, description, to_url, picurl, btntxt, author
+                    "wechat",
+                    self.wechat_push.send_news,
+                    title,
+                    description,
+                    to_url,
+                    picurl,
+                    btntxt,
+                    author,
                 )
             )
 
@@ -724,7 +732,14 @@ class UnifiedPushManager:
             channel_names.append("pushplus")
             tasks.append(
                 self._send_with_error_handling(
-                    "pushplus", self.pushplus_push.send_news, title, description, to_url, picurl, btntxt, author
+                    "pushplus",
+                    self.pushplus_push.send_news,
+                    title,
+                    description,
+                    to_url,
+                    picurl,
+                    btntxt,
+                    author,
                 )
             )
 
@@ -732,7 +747,14 @@ class UnifiedPushManager:
             channel_names.append("email")
             tasks.append(
                 self._send_with_error_handling(
-                    "email", self.email_push.send_news, title, description, to_url, picurl, btntxt, author
+                    "email",
+                    self.email_push.send_news,
+                    title,
+                    description,
+                    to_url,
+                    picurl,
+                    btntxt,
+                    author,
                 )
             )
 
@@ -764,7 +786,15 @@ class UnifiedPushManager:
         return False
 
     async def _send_with_error_handling(
-        self, channel_name: str, send_func, title: str, description: str, to_url: str, picurl: str, btntxt: str, author: str
+        self,
+        channel_name: str,
+        send_func,
+        title: str,
+        description: str,
+        to_url: str,
+        picurl: str,
+        btntxt: str,
+        author: str,
     ):
         """带错误处理的发送包装器"""
         try:

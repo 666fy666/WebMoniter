@@ -5,7 +5,6 @@ import logging
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
 
 import aiosqlite
 
@@ -13,7 +12,7 @@ import aiosqlite
 DB_PATH = Path(__file__).parent.parent / "data.db"
 
 # 全局单例数据库连接
-_shared_connection: Optional[aiosqlite.Connection] = None
+_shared_connection: aiosqlite.Connection | None = None
 _connection_lock = asyncio.Lock()
 _connection_ref_count = 0
 _logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ class AsyncDatabase:
     def __init__(self):
         """初始化数据库连接"""
         self.db_path = DB_PATH
-        self._conn: Optional[aiosqlite.Connection] = None
+        self._conn: aiosqlite.Connection | None = None
         self._use_shared = True  # 默认使用共享连接
 
     async def initialize(self):
@@ -136,7 +135,7 @@ class AsyncDatabase:
             if self._conn:
                 try:
                     await self._conn.close()
-                except:
+                except Exception:
                     pass
                 self._conn = None
             await self.initialize()
@@ -204,7 +203,7 @@ class AsyncDatabase:
                 await self._conn.close()
                 self._conn = None
 
-    def _convert_params(self, params: Optional[dict]) -> Optional[dict]:
+    def _convert_params(self, params: dict | None) -> dict | None:
         """将 MySQL 风格的参数占位符转换为 SQLite 风格"""
         if params is None:
             return None
@@ -299,7 +298,7 @@ class AsyncDatabase:
         if last_exception:
             raise last_exception
 
-    async def execute_query(self, sql: str, params: Optional[dict] = None) -> list[tuple]:
+    async def execute_query(self, sql: str, params: dict | None = None) -> list[tuple]:
         """执行查询操作（带重试机制和连接检查）"""
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
@@ -317,7 +316,7 @@ class AsyncDatabase:
             _logger.error(f"数据库查询失败: {e}\nSQL: {sqlite_sql}\nParams: {sqlite_params}")
             raise
 
-    async def execute_update(self, sql: str, params: Optional[dict] = None) -> bool:
+    async def execute_update(self, sql: str, params: dict | None = None) -> bool:
         """执行更新操作（INSERT/UPDATE/DELETE，带重试机制和连接检查）"""
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
@@ -334,16 +333,16 @@ class AsyncDatabase:
             try:
                 if self._conn:
                     await self._conn.rollback()
-            except:
+            except Exception:
                 pass
             _logger.error(f"数据库操作失败: {e}\nSQL: {sqlite_sql}\nParams: {sqlite_params}")
             return False
 
-    async def execute_insert(self, sql: str, params: Optional[dict] = None) -> bool:
+    async def execute_insert(self, sql: str, params: dict | None = None) -> bool:
         """执行插入操作"""
         return await self.execute_update(sql, params)
 
-    async def execute_delete(self, sql: str, params: Optional[dict] = None) -> bool:
+    async def execute_delete(self, sql: str, params: dict | None = None) -> bool:
         """执行删除操作"""
         return await self.execute_update(sql, params)
 

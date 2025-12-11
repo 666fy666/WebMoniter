@@ -4,14 +4,13 @@ import asyncio
 import json
 import re
 from datetime import datetime
-from typing import Optional
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config
-from src.monitor import BaseMonitor
 from src.cookie_cache_manager import cookie_cache
+from src.monitor import BaseMonitor
 
 
 class CookieExpiredError(Exception):
@@ -28,7 +27,7 @@ RE_STATUS = re.compile(r'"eLiveStatus":(\d+)')
 class HuyaMonitor(BaseMonitor):
     """虎牙直播监控类"""
 
-    def __init__(self, config: AppConfig, session: Optional[ClientSession] = None):
+    def __init__(self, config: AppConfig, session: ClientSession | None = None):
         super().__init__(config, session)
         self.huya_config = config.get_huya_config()
         self.old_data_dict: dict[str, tuple] = {}
@@ -260,11 +259,11 @@ class HuyaMonitor(BaseMonitor):
                 verification_success = False
                 verification_errors = 0
                 max_verification_attempts = min(3, len(self.huya_config.rooms))  # 最多尝试3个房间
-                
+
                 for i in range(max_verification_attempts):
                     try:
                         test_room = self.huya_config.rooms[i]
-                        test_data = await self.get_info(test_room)
+                        await self.get_info(test_room)
                         # 如果成功获取数据，说明Cookie实际有效，恢复状态
                         await cookie_cache.mark_valid("huya")
                         self.logger.info("Cookie验证成功，已恢复有效状态")
@@ -274,18 +273,24 @@ class HuyaMonitor(BaseMonitor):
                         verification_errors += 1
                         # 如果所有验证都失败，才跳过执行
                         if verification_errors >= max_verification_attempts:
-                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行")
+                            self.logger.warning(
+                                f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行"
+                            )
                             self.logger.info("─" * 30)
                             return
                     except Exception as e:
                         # 其他错误（如网络错误），不立即跳过，继续尝试下一个房间
-                        self.logger.debug(f"Cookie验证时发生错误（房间{self.huya_config.rooms[i]}）: {e}，继续尝试...")
+                        self.logger.debug(
+                            f"Cookie验证时发生错误（房间{self.huya_config.rooms[i]}）: {e}，继续尝试..."
+                        )
                         verification_errors += 1
                         if verification_errors >= max_verification_attempts:
-                            self.logger.warning(f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行")
+                            self.logger.warning(
+                                f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行"
+                            )
                             self.logger.info("─" * 30)
                             return
-                
+
                 if not verification_success:
                     self.logger.warning(f"{self.monitor_name} Cookie验证未成功，跳过本次执行")
                     self.logger.info("─" * 30)
