@@ -1,0 +1,50 @@
+# Web监控系统配置文件
+# 配置优先级：环境变量(.env) > config.yml
+# 如果环境变量中存在相同的配置项，将优先使用环境变量的值
+#
+# 使用方法：
+# 1. 复制此文件为 config.yml: cp config.yml.sample config.yml
+# 2. 根据实际情况修改 config.yml 中的配置项
+# 3. config.yml 不会被提交到 git，请妥善保管
+
+# 企业微信配置
+wechat:
+  corpid: your_corpid
+  secret: your_secret
+  agentid: your_agentid
+  touser: your_touser
+  pushplus: null  # 可选
+  email: null  # 可选
+
+# 数据库配置
+database:
+  host: localhost
+  port: 3306
+  user: your_db_user
+  password: your_db_password
+  name: your_db_name
+
+# 微博监控配置
+weibo:
+  cookie: your_weibo_cookie
+  uids: uid1,uid2,uid3  # 逗号分隔的UID列表
+  concurrency: 3  # 并发数，建议2-5
+
+# 虎牙监控配置
+huya:
+  user_agent: your_user_agent
+  cookie: your_huya_cookie  # 可选，没有可不填
+  rooms: room1,room2,room3  # 逗号分隔的房间号列表
+  concurrency: 7  # 并发数，建议5-10
+
+# 调度器配置
+scheduler:
+  huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒
+  weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认300秒（5分钟）
+  cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
+  cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
+
+# 可选配置
+optional:
+  config_json_url: null  # 可选：远程配置URL
+

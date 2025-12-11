@@ -37,6 +37,9 @@ ENV/
 .env
 .env.local
 
+# 配置文件
+config.yml
+
 # Cookie缓存
 cookie_cache.json
 
