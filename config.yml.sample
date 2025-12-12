@@ -4,27 +4,6 @@
 # 1. 复制此文件为 config.yml: cp config.yml.sample config.yml
 # 2. 根据实际情况修改 config.yml 中的配置项
 
-# 企业微信配置
-wechat:
-  enabled: true  # 是否启用企业微信推送
-  corpid: your_corpid
-  secret: your_secret
-  agentid: your_agentid
-  touser: your_touser
-  pushplus: null  # 可选，PushPlus token
-  pushplus_enabled: false  # 是否启用PushPlus推送
-
-# 邮件推送配置（可选,163授权码180天过期）
-email:
-  enabled: false  # 是否启用邮件推送
-  smtp_host: smtp.example.com  # SMTP服务器地址
-  smtp_port: 587  # SMTP端口（587为TLS，465为SSL）
-  smtp_user: your_email@example.com  # SMTP用户名（通常是邮箱地址）
-  smtp_password: your_password  # SMTP密码或授权码
-  from_email: your_email@example.com  # 发件人邮箱
-  to_email: recipient@example.com  # 收件人邮箱
-  use_tls: true  # 是否使用TLS加密（587端口通常为true，465端口通常为false）
-
 # 微博监控配置
 weibo:
   cookie: your_weibo_cookie
@@ -48,4 +27,115 @@ scheduler:
 # 可选配置
 optional:
   config_json_url: null  # 可选：远程配置URL
+
+# 推送通道配置
+# 通道名称，唯一，可自定义不要纯数字，对应 query_task 中的 target_push_name_list
+push_channel:
+  # Server酱 Turbo
+  - name: Server酱_Turbo
+    enable: false
+    type: serverChan_turbo
+    send_key:
+  # Server酱 3
+  - name: Server酱_3
+    enable: false
+    type: serverChan_3
+    send_key:
+    uid:
+    tags:
+  # 企业微信应用
+  - name: 企业微信应用
+    enable: false
+    type: wecom_apps
+    corp_id:
+    agent_id:
+    corp_secret:
+    touser: @all  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
+  # 企业微信机器人
+  - name: 企业微信机器人
+    enable: false
+    type: wecom_bot
+    key:
+  # 钉钉机器人
+  - name: 钉钉机器人
+    enable: false
+    type: dingtalk_bot
+    access_token:
+  # 飞书自建应用
+  - name: 飞书自建应用
+    enable: false
+    type: feishu_apps
+    app_id:
+    app_secret:
+    receive_id_type:
+    receive_id:
+  # 飞书机器人
+  - name: 飞书机器人
+    enable: false
+    type: feishu_bot
+    webhook_key:
+  # Telegram机器人
+  - name: Telegram机器人
+    enable: false
+    type: telegram_bot
+    api_token:
+    chat_id:
+  # QQ机器人
+  - name: QQ机器人
+    enable: false
+    type: qq_bot
+    base_url: https://api.sgroup.qq.com
+    app_id:
+    token:
+    push_target_list:
+      - guild_name: "频道1"
+        channel_name_list:
+          - "子频道11"
+          - "子频道12"
+  # NapCatQQ
+  - name: NapCatQQ
+    enable: false
+    type: napcat_qq
+    api_url: http://localhost:3000
+    token:
+    user_id:
+    group_id:
+    at_qq: "all"
+  # Bark
+  - name: Bark
+    enable: false
+    type: bark
+    server_url: https://api.day.app
+    key:
+  # Gotify
+  - name: Gotify
+    enable: false
+    type: gotify
+    web_server_url:
+  # Webhook
+  - name: Webhook
+    enable: false
+    type: webhook
+    webhook_url: https://xxx.com?title={{title}}&content={{content}}
+    request_method: GET
+  # PushPlus
+  - name: PushPlus
+    enable: false
+    type: pushplus
+    token:
+    channel: wechat  # 推送渠道，可选值：wechat(微信)、mail(邮件)、webhook(Webhook)、cp(企业微信)、sms(短信)等
+    topic:  # 群组代码，可选，用于群组推送
+    template: html  # 消息模板，可选值：html、txt、json、markdown等，默认html
+    to:  # 好友消息的接收者标识，可选
+  # Email
+  - name: Email
+    enable: false
+    type: email
+    smtp_host:
+    smtp_port:
+    smtp_ssl: true
+    smtp_tls: false
+    sender_email:
+    sender_password:
+    receiver_email:
 

@@ -27,8 +27,7 @@
   - [使用 systemd 管理服务](#使用-systemd-管理服务)
   - [监控任务配置](#监控任务配置)
 - [配置说明](#-配置说明)
-  - [企业微信配置](#企业微信配置)
-  - [邮件推送配置](#邮件推送配置)
+  - [推送通道配置](#推送通道配置)
   - [微博监控配置](#微博监控配置)
   - [虎牙监控配置](#虎牙监控配置)
   - [调度器配置](#调度器配置)
@@ -50,7 +49,7 @@
 - 🎯 **多平台监控**：支持虎牙直播、微博等平台监控，可轻松扩展更多平台
 - ⏰ **灵活调度**：基于 APScheduler 的任务调度系统，支持间隔任务和定时任务
 - 📊 **数据持久化**：SQLite 本地数据库存储监控数据，自动管理表结构
-- 📱 **多渠道推送**：支持企业微信、PushPlus、邮件等多种推送方式
+- 📱 **多渠道推送**：支持 Server酱、企业微信、钉钉、飞书、Telegram、QQ、Bark、Gotify、Webhook、邮件等多种推送方式
 - 📝 **智能日志**：完善的日志记录和自动清理机制，支持按日期分割
 - 🚀 **高性能异步**：基于 asyncio 的异步架构，支持高并发监控任务
 - ⚙️ **配置热重载**：基于 YAML 文件的配置管理，支持运行时热重载
@@ -195,32 +194,164 @@ scheduler:
 
 ## ⚙️ 配置说明
 
-### 企业微信配置
+### 推送通道配置
+
+系统支持多种推送通道，可以在 `push_channel` 配置项中配置多个推送通道。每个通道都有独立的配置，可以同时启用多个通道。
+
+#### 基本配置格式
 
 ```yaml
-wechat:
-  enabled: true              # 是否启用企业微信推送
-  corpid: your_corpid        # 企业 ID
-  secret: your_secret        # 应用密钥
-  agentid: your_agentid      # 应用 ID
-  touser: your_touser        # 接收消息的用户 ID（@all 表示所有人）
-  pushplus: null             # 可选，PushPlus token
-  pushplus_enabled: false    # 是否启用 PushPlus 推送
+push_channel:
+  - name: 推送通道名称        # 通道名称，唯一，可自定义
+    enable: true              # 是否启用
+    type: 通道类型             # 通道类型，详见下方说明
+    # ... 其他通道特定配置
 ```
 
-### 邮件推送配置
+#### 支持的推送通道类型
 
-```yaml
-email:
-  enabled: false                           # 是否启用邮件推送
-  smtp_host: smtp.example.com              # SMTP 服务器地址
-  smtp_port: 587                           # SMTP 端口（587 为 TLS，465 为 SSL）
-  smtp_user: your_email@example.com        # SMTP 用户名（通常是邮箱地址）
-  smtp_password: your_password             # SMTP 密码或授权码
-  from_email: your_email@example.com        # 发件人邮箱
-  to_email: recipient@example.com          # 收件人邮箱
-  use_tls: true                            # 是否使用 TLS 加密
-```
+1. **Server酱 Turbo** (`serverChan_turbo`)
+   ```yaml
+   - name: 推送通道_Server酱_Turbo
+     enable: true
+     type: serverChan_turbo
+     send_key: your_send_key  # 从 https://sct.ftqq.com 获取
+   ```
+
+2. **Server酱 3** (`serverChan_3`)
+   ```yaml
+   - name: 推送通道_Server酱_3
+     enable: true
+     type: serverChan_3
+     send_key: your_send_key
+     uid: your_uid
+     tags: 标签1|标签2  # 可选，多个标签用竖线分隔
+   ```
+
+3. **企业微信应用** (`wecom_apps`)
+   ```yaml
+   - name: 推送通道_企业微信应用
+     enable: true
+     type: wecom_apps
+     corp_id: your_corp_id
+     agent_id: your_agent_id
+     corp_secret: your_corp_secret
+   ```
+
+4. **企业微信机器人** (`wecom_bot`)
+   ```yaml
+   - name: 推送通道_企业微信机器人
+     enable: true
+     type: wecom_bot
+     key: your_webhook_key
+   ```
+
+5. **钉钉机器人** (`dingtalk_bot`)
+   ```yaml
+   - name: 推送通道_钉钉机器人
+     enable: true
+     type: dingtalk_bot
+     access_token: your_access_token
+   ```
+
+6. **飞书自建应用** (`feishu_apps`)
+   ```yaml
+   - name: 推送通道_飞书自建应用
+     enable: true
+     type: feishu_apps
+     app_id: your_app_id
+     app_secret: your_app_secret
+     receive_id_type: open_id  # open_id/user_id/union_id/email/chat_id
+     receive_id: your_receive_id
+   ```
+
+7. **飞书机器人** (`feishu_bot`)
+   ```yaml
+   - name: 推送通道_飞书机器人
+     enable: true
+     type: feishu_bot
+     webhook_key: your_webhook_key
+   ```
+
+8. **Telegram 机器人** (`telegram_bot`)
+   ```yaml
+   - name: 推送通道_Telegram机器人
+     enable: true
+     type: telegram_bot
+     api_token: your_api_token
+     chat_id: your_chat_id
+   ```
+
+9. **QQ 机器人** (`qq_bot`)
+   ```yaml
+   - name: 推送通道_QQ机器人
+     enable: true
+     type: qq_bot
+     base_url: https://api.sgroup.qq.com
+     app_id: your_app_id
+     token: your_token
+     push_target_list:
+       - guild_name: "频道1"
+         channel_name_list:
+           - "子频道11"
+           - "子频道12"
+   ```
+
+10. **NapCatQQ** (`napcat_qq`)
+    ```yaml
+    - name: 推送通道_NapCatQQ
+      enable: true
+      type: napcat_qq
+      api_url: http://localhost:3000
+      token: your_token
+      user_id: your_user_id  # 与 group_id 二选一
+      group_id: your_group_id
+      at_qq: "all"  # 需要 @ 的 QQ 号，"all" 表示@全体成员
+    ```
+
+11. **Bark** (`bark`)
+    ```yaml
+    - name: 推送通道_Bark
+      enable: true
+      type: bark
+      server_url: https://api.day.app  # 可选，默认值
+      key: your_bark_key
+    ```
+
+12. **Gotify** (`gotify`)
+    ```yaml
+    - name: 推送通道_Gotify
+      enable: true
+      type: gotify
+      web_server_url: https://push.example.com/message?token=your_token
+    ```
+
+13. **Webhook** (`webhook`)
+    ```yaml
+    - name: 推送通道_Webhook
+      enable: true
+      type: webhook
+      webhook_url: https://xxx.com?title={{title}}&content={{content}}
+      request_method: GET  # GET 或 POST
+    ```
+
+14. **Email** (`email`)
+    ```yaml
+    - name: 推送通道_Email
+      enable: true
+      type: email
+      smtp_host: smtp.example.com
+      smtp_port: 465
+      smtp_ssl: true   # 465端口使用SSL
+      smtp_tls: false  # 587端口使用TLS
+      sender_email: your_email@example.com
+      sender_password: your_password
+      receiver_email: recipient@example.com
+    ```
+
+#### 配置示例
+
+完整的推送通道配置示例请参考 `config.yml.sample` 文件。
 
 ### 微博监控配置
 
@@ -275,7 +406,11 @@ WebMoniter/
 │   ├── database.py            # 数据库操作
 │   ├── scheduler.py           # 任务调度器
 │   ├── monitor.py             # 监控基类
-│   ├── push.py                # 消息推送（企业微信、邮件、PushPlus）
+│   ├── push_channel/          # 推送通道模块
+│   │   ├── __init__.py
+│   │   ├── _push_channel.py   # 推送通道基类
+│   │   ├── manager.py         # 统一推送管理器
+│   │   └── ...                # 各种推送通道实现
 │   ├── log_manager.py         # 日志管理
 │   ├── cookie_cache_manager.py # Cookie 缓存管理
 │   └── cookie_cache.py        # Cookie 缓存实现
@@ -398,7 +533,19 @@ A: 系统会自动清理 3 天前的日志文件，也可以手动删除 `logs/`
 
 ### Q: 支持哪些推送方式？
 
-A: 目前支持企业微信、PushPlus 和邮件推送，可以在配置文件中启用或禁用。
+A: 目前支持多种推送方式，包括：
+- Server酱（Turbo 和 3）
+- 企业微信（应用和机器人）
+- 钉钉机器人
+- 飞书（自建应用和机器人）
+- Telegram 机器人
+- QQ 机器人（官方和 NapCatQQ）
+- Bark
+- Gotify
+- Webhook
+- Email
+
+可以在 `push_channel` 配置中启用多个推送通道，系统会同时向所有启用的通道发送消息。
 
 ## ⚠️ 注意事项
 

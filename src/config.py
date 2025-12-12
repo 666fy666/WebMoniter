@@ -11,31 +11,6 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 
-class EmailConfig(BaseModel):
-    """邮件配置"""
-
-    smtp_host: str
-    smtp_port: int
-    smtp_user: str
-    smtp_password: str
-    from_email: str
-    to_email: str
-    use_tls: bool = True
-    enabled: bool = True  # 是否启用邮件推送
-
-
-class WeChatConfig(BaseModel):
-    """企业微信配置"""
-
-    corpid: str
-    secret: str
-    agentid: str
-    touser: str
-    pushplus: str | None = None
-    enabled: bool = True  # 是否启用企业微信推送
-    pushplus_enabled: bool = True  # 是否启用PushPlus推送
-
-
 class WeiboConfig(BaseModel):
     """微博配置"""
 
@@ -56,34 +31,15 @@ class HuyaConfig(BaseModel):
 class AppConfig(BaseModel):
     """应用配置"""
 
-    # 企业微信
-    wechat_enabled: bool = True  # 是否启用企业微信推送
-    wechat_corpid: str
-    wechat_secret: str
-    wechat_agentid: str
-    wechat_touser: str
-    wechat_pushplus: str | None = None
-    wechat_pushplus_enabled: bool = True  # 是否启用PushPlus推送
-
-    # 邮件配置（可选）
-    email_enabled: bool = True  # 是否启用邮件推送
-    email_smtp_host: str | None = None
-    email_smtp_port: int | None = None
-    email_smtp_user: str | None = None
-    email_smtp_password: str | None = None
-    email_from_email: str | None = None
-    email_to_email: str | None = None
-    email_use_tls: bool = True
-
     # 微博
-    weibo_cookie: str
-    weibo_uids: str  # 逗号分隔的UID列表
+    weibo_cookie: str = ""
+    weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
 
     # 虎牙
-    huya_user_agent: str
-    huya_cookie: str
-    huya_rooms: str  # 逗号分隔的房间号列表
+    huya_user_agent: str = ""
+    huya_cookie: str = ""
+    huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
 
     # 调度器配置
@@ -95,44 +51,13 @@ class AppConfig(BaseModel):
     # 可选配置
     config_json_url: str | None = None
 
-    def get_wechat_config(self) -> WeChatConfig:
-        """获取企业微信配置"""
-        return WeChatConfig(
-            corpid=self.wechat_corpid,
-            secret=self.wechat_secret,
-            agentid=self.wechat_agentid,
-            touser=self.wechat_touser,
-            pushplus=self.wechat_pushplus,
-            enabled=self.wechat_enabled,
-            pushplus_enabled=self.wechat_pushplus_enabled,
-        )
-
-    def get_email_config(self) -> EmailConfig | None:
-        """获取邮件配置"""
-        if not all(
-            [
-                self.email_smtp_host,
-                self.email_smtp_port,
-                self.email_smtp_user,
-                self.email_smtp_password,
-                self.email_from_email,
-                self.email_to_email,
-            ]
-        ):
-            return None
-        return EmailConfig(
-            smtp_host=self.email_smtp_host,
-            smtp_port=self.email_smtp_port,
-            smtp_user=self.email_smtp_user,
-            smtp_password=self.email_smtp_password,
-            from_email=self.email_from_email,
-            to_email=self.email_to_email,
-            use_tls=self.email_use_tls,
-            enabled=self.email_enabled,
-        )
+    # 推送通道配置
+    push_channel_list: list[dict] = []
 
     def get_weibo_config(self) -> WeiboConfig:
         """获取微博配置"""
+        if not self.weibo_uids:
+            raise ValueError("微博配置不完整：weibo.uids 不能为空")
         uids = [uid.strip() for uid in self.weibo_uids.split(",") if uid.strip()]
         return WeiboConfig(
             cookie=self.weibo_cookie,
@@ -142,6 +67,8 @@ class AppConfig(BaseModel):
 
     def get_huya_config(self) -> HuyaConfig:
         """获取虎牙配置"""
+        if not self.huya_rooms:
+            raise ValueError("虎牙配置不完整：huya.rooms 不能为空")
         rooms = [room.strip() for room in self.huya_rooms.split(",") if room.strip()]
         return HuyaConfig(
             user_agent=self.huya_user_agent,
@@ -175,45 +102,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             raise ValueError(f"配置文件 {yml_path} 为空")
 
         # 将嵌套的YAML配置转换为扁平化格式
-        # 企业微信配置
-        if "wechat" in yml_config:
-            wechat = yml_config["wechat"]
-            if "enabled" in wechat:
-                config_dict["wechat_enabled"] = bool(wechat["enabled"])
-            if "corpid" in wechat:
-                config_dict["wechat_corpid"] = str(wechat["corpid"])
-            if "secret" in wechat:
-                config_dict["wechat_secret"] = str(wechat["secret"])
-            if "agentid" in wechat:
-                # agentid在YAML中可能是数字，需要转换为字符串
-                config_dict["wechat_agentid"] = str(wechat["agentid"])
-            if "touser" in wechat:
-                config_dict["wechat_touser"] = str(wechat["touser"])
-            if "pushplus" in wechat and wechat["pushplus"]:
-                config_dict["wechat_pushplus"] = str(wechat["pushplus"])
-            if "pushplus_enabled" in wechat:
-                config_dict["wechat_pushplus_enabled"] = bool(wechat["pushplus_enabled"])
-
-        # 邮件配置
-        if "email" in yml_config:
-            email = yml_config["email"]
-            if "enabled" in email:
-                config_dict["email_enabled"] = bool(email["enabled"])
-            if "smtp_host" in email and email["smtp_host"]:
-                config_dict["email_smtp_host"] = str(email["smtp_host"])
-            if "smtp_port" in email and email["smtp_port"]:
-                config_dict["email_smtp_port"] = int(email["smtp_port"])
-            if "smtp_user" in email and email["smtp_user"]:
-                config_dict["email_smtp_user"] = str(email["smtp_user"])
-            if "smtp_password" in email and email["smtp_password"]:
-                config_dict["email_smtp_password"] = str(email["smtp_password"])
-            if "from_email" in email and email["from_email"]:
-                config_dict["email_from_email"] = str(email["from_email"])
-            if "to_email" in email and email["to_email"]:
-                config_dict["email_to_email"] = str(email["to_email"])
-            if "use_tls" in email:
-                config_dict["email_use_tls"] = bool(email["use_tls"])
-
         # 微博配置
         if "weibo" in yml_config:
             weibo = yml_config["weibo"]
@@ -260,6 +148,10 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             optional = yml_config["optional"]
             if "config_json_url" in optional and optional["config_json_url"]:
                 config_dict["config_json_url"] = optional["config_json_url"]
+
+        # 推送通道配置
+        if "push_channel" in yml_config:
+            config_dict["push_channel_list"] = yml_config["push_channel"]
 
         logger.debug(f"成功从 {yml_path} 加载配置")
         return config_dict

@@ -8,12 +8,8 @@ from aiohttp import ClientSession
 
 from src.config import AppConfig
 from src.database import AsyncDatabase
-from src.push import (
-    AsyncEmailPush,
-    AsyncPushPlusPush,
-    AsyncWeChatPush,
-    UnifiedPushManager,
-)
+from src.push_channel import get_push_channel
+from src.push_channel.manager import UnifiedPushManager
 
 
 class BaseMonitor(ABC):
@@ -48,58 +44,30 @@ class BaseMonitor(ABC):
 
         session = await self._get_session()
 
-        # 初始化各种推送方式
-        wechat_push = None
-        pushplus_push = None
-        email_push = None
+        # 初始化推送通道（新格式）
+        push_channels = []
+        if self.config.push_channel_list:
+            for channel_config in self.config.push_channel_list:
+                # 只处理启用的通道
+                if not channel_config.get("enable", False):
+                    continue
 
-        # 企业微信推送
-        if self.config.wechat_enabled:
-            try:
-                wechat_config = self.config.get_wechat_config()
-                wechat_push = AsyncWeChatPush(wechat_config, session)
-            except Exception as e:
-                self.logger.warning(f"企业微信推送初始化失败: {e}")
-        else:
-            self.logger.debug("企业微信推送已禁用")
-
-        # PushPlus推送
-        if self.config.wechat_pushplus_enabled and self.config.wechat_pushplus:
-            try:
-                pushplus_push = AsyncPushPlusPush(self.config.wechat_pushplus, session)
-            except Exception as e:
-                self.logger.warning(f"PushPlus推送初始化失败: {e}")
-        elif not self.config.wechat_pushplus_enabled:
-            self.logger.debug("PushPlus推送已禁用")
-
-        # 邮件推送
-        if self.config.email_enabled:
-            email_config = self.config.get_email_config()
-            if email_config:
                 try:
-                    email_push = AsyncEmailPush(
-                        smtp_host=email_config.smtp_host,
-                        smtp_port=email_config.smtp_port,
-                        smtp_user=email_config.smtp_user,
-                        smtp_password=email_config.smtp_password,
-                        from_email=email_config.from_email,
-                        to_email=email_config.to_email,
-                        use_tls=email_config.use_tls,
-                    )
+                    channel = get_push_channel(channel_config, session)
+                    push_channels.append(channel)
+                    # 对于需要初始化的通道（如QQBot），执行初始化
+                    if hasattr(channel, "initialize"):
+                        await channel.initialize()
                 except Exception as e:
-                    self.logger.warning(f"邮件推送初始化失败: {e}")
-        else:
-            self.logger.debug("邮件推送已禁用")
+                    self.logger.warning(
+                        f"推送通道 {channel_config.get('name', '未知')} 初始化失败: {e}"
+                    )
 
         # 创建统一的推送管理器
-        if wechat_push or pushplus_push or email_push:
-            self.push = UnifiedPushManager(
-                wechat_push=wechat_push,
-                pushplus_push=pushplus_push,
-                email_push=email_push,
-            )
+        if push_channels:
+            self.push = UnifiedPushManager(push_channels, session)
         else:
-            self.logger.warning("未配置任何推送方式，推送功能将不可用")
+            self.logger.warning("未配置任何推送通道，推送功能将不可用")
 
     async def close(self):
         """关闭资源"""
