@@ -1,7 +1,7 @@
 services:
   web-monitor:
-    image: fengyu666/webmonitor:latest
-    container_name: webmonitor
+    image: fengyu666/webmoniter:latest
+    container_name: webmoniter
     restart: unless-stopped
     volumes:
       - ./config.yml:/app/config.yml:ro
