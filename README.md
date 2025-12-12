@@ -8,7 +8,7 @@
 
 一个基于 Python 的异步 Web 监控系统，支持多平台监控任务（虎牙直播、微博等），使用 APScheduler 进行任务调度，支持企业微信推送和 SQLite 数据存储。
 
-[功能特性](#-功能特性) • [快速开始](#-快速开始) • [配置说明](#-配置说明) • [使用指南](#-使用指南) • [开发指南](#-开发指南)
+[功能特性](#-功能特性) • [快速开始](#-快速开始) • [配置说明](#-配置说明) • [使用指南](#-使用指南) • [Docker 部署](#-使用-docker-运行) • [开发指南](#-开发指南)
 
 </div>
 
@@ -24,6 +24,12 @@
   - [配置设置](#配置设置)
 - [使用指南](#-使用指南)
   - [启动监控系统](#启动监控系统)
+  - [使用 Docker 运行](#使用-docker-运行)
+    - [前置要求](#前置要求)
+    - [使用 Docker Compose（推荐）](#使用-docker compose推荐)
+    - [Docker 常用操作](#docker-常用操作)
+    - [Docker 数据说明](#docker-数据说明)
+    - [Docker 常见问题](#docker-常见问题)
   - [使用 systemd 管理服务](#使用-systemd-管理服务)
   - [监控任务配置](#监控任务配置)
 - [配置说明](#-配置说明)
@@ -140,56 +146,236 @@ nohup uv run python main.py > /dev/null 2>&1 &
 
 ### 使用 Docker 运行
 
-#### 构建镜像
+使用 Docker 运行可以避免环境配置问题，推荐使用 Docker Compose 方式。
+
+#### 前置要求
+
+- 已安装 Docker（[下载地址](https://www.docker.com/get-started)）
+- 已安装 Docker Compose（Docker Desktop 已包含）
+
+#### 使用 Docker Compose（推荐）
+
+使用 Docker Compose 是最简单的部署方式，所有数据都会自动保存，即使删除容器也不会丢失。
+
+**三步快速开始：**
+
+**第一步：准备配置文件**
 
 ```bash
-docker build -t web-monitor:latest .
+# 复制配置文件模板
+cp config.yml.sample config.yml
 ```
 
-#### 运行容器
+然后编辑 `config.yml` 文件，填入你的配置：
+- 微博 Cookie 和要监控的用户ID
+- 虎牙房间号和 Cookie（可选）
+- 推送通道配置（企业微信、钉钉、飞书等）
 
-```bash
-# 创建配置文件目录
-mkdir -p /path/to/config
+> 💡 **提示**：Windows 用户可以用记事本打开编辑，Mac/Linux 用户可以用任意文本编辑器。
 
-# 复制配置文件
-cp config.yml.sample /path/to/config/config.yml
-# 编辑配置文件
-vim /path/to/config/config.yml
+**第二步：修改 Docker 镜像名称（如需要）**
 
-# 运行容器
-docker run -d \
-  --name web-monitor \
-  -v /path/to/config:/app/config \
-  -v /path/to/data:/app/data \
-  -v /path/to/logs:/app/logs \
-  web-monitor:latest
-```
+`docker-compose.yml` 文件已配置好，默认使用 `fengyu666/web-monitor:latest` 镜像。
 
-#### 使用 Docker Compose
-
-创建 `docker-compose.yml`：
+如果需要使用其他镜像，编辑 `docker-compose.yml` 文件，修改 `image` 字段：
 
 ```yaml
-version: '3.8'
-
-services:
-  web-monitor:
-    build: .
-    container_name: web-monitor
-    restart: unless-stopped
-    volumes:
-      - ./config.yml:/app/config.yml:ro
-      - ./data:/app/data
-      - ./logs:/app/logs
-    environment:
-      - PYTHONUNBUFFERED=1
+image: your-username/web-monitor:latest
 ```
 
-运行：
+将 `your-username` 替换为实际的 Docker Hub 用户名。
+
+**docker-compose.yml 配置说明：**
+
+`docker-compose.yml` 文件包含以下配置：
+
+- **image**: Docker 镜像名称，默认使用 `fengyu666/web-monitor:latest`
+- **container_name**: 容器名称，固定为 `web-monitor`
+- **restart**: 自动重启策略，设置为 `unless-stopped`（除非手动停止，否则自动重启）
+- **volumes**: 数据卷挂载配置
+  - `./config.yml:/app/config.yml:ro` - 配置文件（只读挂载，必需）
+  - `./data.db:/app/data.db` - 主数据库文件（自动创建）
+  - `./data.db-journal:/app/data.db-journal` - SQLite 日志文件（自动创建）
+  - `./data.db-wal:/app/data.db-wal` - SQLite WAL 文件（自动创建）
+  - `./data.db-shm:/app/data.db-shm` - SQLite 共享内存文件（自动创建）
+  - `./logs:/app/logs` - 日志目录（自动创建）
+  - `./cookie_cache.json:/app/cookie_cache.json` - Cookie 缓存文件（自动创建）
+- **environment**: 环境变量
+  - `TZ=Asia/Shanghai` - 设置时区为上海时区
+
+所有挂载的文件和目录都会自动创建，无需手动创建。配置文件挂载为只读（`:ro`），确保容器内不会意外修改配置文件。
+
+**第三步：启动服务**
 
 ```bash
-docker-compose up -d
+# 启动服务（后台运行）
+docker compose up -d
+
+# 查看运行日志，确认启动成功
+docker compose logs -f
+```
+
+看到类似以下输出表示启动成功：
+
+```
+web-monitor  | Web监控系统启动
+web-monitor  | 已注册的监控任务:
+web-monitor  |   - huya_monitor: interval[0:01:05]
+web-monitor  |   - weibo_monitor: interval[0:05:00]
+```
+
+按 `Ctrl+C` 退出日志查看，服务会继续在后台运行。
+
+#### Docker 常用操作
+
+**查看服务状态**
+
+```bash
+docker compose ps
+```
+
+正常运行时应该显示 `Up` 状态。
+
+**查看日志**
+
+```bash
+# 查看实时日志
+docker compose logs -f
+
+# 查看最近100行日志
+docker compose logs --tail=100
+
+# 查看特定服务的日志
+docker compose logs -f web-monitor
+```
+
+**停止服务**
+
+```bash
+# 停止服务（数据不会丢失）
+docker compose stop
+
+# 停止并删除容器（数据不会丢失，因为已持久化）
+docker compose down
+```
+
+**重启服务**
+
+```bash
+# 重启服务
+docker compose restart
+
+# 修改配置文件后，需要重启才能生效
+docker compose restart
+```
+
+**更新到最新版本**
+
+```bash
+# 拉取最新镜像
+docker compose pull
+
+# 重启服务使用新版本
+docker compose up -d
+```
+
+#### Docker 数据说明
+
+**哪些数据会被保存？**
+
+以下数据会自动保存到您的电脑上，即使删除容器也不会丢失：
+
+| 数据 | 保存位置 | 说明 |
+|------|---------|------|
+| 配置文件 | `config.yml` | 您的监控配置 |
+| 数据库 | `data.db` | 监控的历史数据 |
+| 日志文件 | `logs/` 目录 | 运行日志，方便排查问题 |
+| Cookie缓存 | `cookie_cache.json` | Cookie 状态缓存 |
+
+**备份数据**
+
+如果需要备份，直接复制以下文件即可：
+
+```bash
+# 备份所有重要数据
+cp config.yml config.yml.backup
+cp data.db data.db.backup
+cp -r logs logs_backup
+```
+
+**恢复数据**
+
+如果需要恢复备份：
+
+```bash
+# 恢复配置文件
+cp config.yml.backup config.yml
+
+# 恢复数据库
+cp data.db.backup data.db
+
+# 重启服务使配置生效
+docker compose restart
+```
+
+#### Docker 常见问题
+
+**1. 容器启动失败**
+
+**问题**：运行 `docker compose up -d` 后容器立即退出
+
+**解决方法**：
+1. 检查配置文件是否存在：`ls config.yml`
+2. 查看错误日志：`docker compose logs`
+3. 确认配置文件格式正确（参考 `config.yml.sample`）
+
+**2. 找不到镜像**
+
+**问题**：提示 `pull access denied` 或 `image not found`
+
+**解决方法**：
+1. 确认 `docker-compose.yml` 中的镜像名称是否正确
+2. 确认该镜像在 Docker Hub 上存在
+3. 如果镜像不存在，需要先构建并推送到 Docker Hub
+
+**3. 修改配置后不生效**
+
+**问题**：修改了 `config.yml` 但监控任务没有变化
+
+**解决方法**：
+```bash
+# 重启服务使配置生效
+docker compose restart
+
+# 查看日志确认配置已加载
+docker compose logs -f
+```
+
+**4. 如何查看监控是否正常工作？**
+
+**方法1：查看日志**
+```bash
+docker compose logs -f
+```
+
+**方法2：检查数据库**
+数据库文件 `data.db` 会记录监控到的数据，可以使用 SQLite 工具查看。
+
+**方法3：查看推送消息**
+如果配置了推送通道（企业微信、钉钉等），监控到变化时会收到推送消息。
+
+**5. 如何完全卸载？**
+
+```bash
+# 停止并删除容器
+docker compose down
+
+# 删除镜像（可选）
+docker rmi fengyu666/web-monitor:latest
+
+# 删除数据文件（可选，会丢失所有数据）
+rm -f data.db* config.yml cookie_cache.json
+rm -rf logs
 ```
 
 ### 使用 GitHub Actions CI/CD 自动构建和推送

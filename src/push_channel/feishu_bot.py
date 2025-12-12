@@ -30,9 +30,7 @@ class FeishuBot(PushChannel):
         """
         timestamp = int(time.time())
         string_to_sign = f"{timestamp}\n{self.sign_secret}"
-        hmac_code = hmac.new(
-            string_to_sign.encode("utf-8"), digestmod=hashlib.sha256
-        ).digest()
+        hmac_code = hmac.new(string_to_sign.encode("utf-8"), digestmod=hashlib.sha256).digest()
         sign = base64.b64encode(hmac_code).decode("utf-8")
         return timestamp, sign
 
