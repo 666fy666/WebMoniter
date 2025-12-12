@@ -1,9 +1,88 @@
 """日志管理模块 - 统一管理日志文件"""
 
 import logging
+import logging.handlers
 import time
 from datetime import datetime
 from pathlib import Path
+
+
+class DailyRotatingFileHandler(logging.FileHandler):
+    """按日期自动轮转的文件处理器
+    
+    每次写入日志时检查当前日期，如果日期变化则切换到新的日志文件
+    """
+
+    def __init__(
+        self,
+        log_dir: Path,
+        name: str,
+        date_format: str = "%Y%m%d",
+        encoding: str = "utf-8",
+    ):
+        """
+        初始化按日期轮转的文件处理器
+
+        Args:
+            log_dir: 日志目录
+            name: 日志文件名前缀
+            date_format: 日期格式
+            encoding: 文件编码
+        """
+        # 先保存自定义属性（使用不同的属性名避免与父类的name属性冲突）
+        self.log_dir = log_dir
+        self.log_name = name  # 使用 log_name 避免与父类的 name 属性冲突
+        self.date_format = date_format
+        self.current_date = None
+        
+        # 初始化当前日期和文件路径
+        today = datetime.now().strftime(self.date_format)
+        self.current_date = today
+        current_file = self.log_dir / f"{self.log_name}_{today}.log"
+        
+        # 确保目录存在
+        current_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 调用父类构造函数
+        super().__init__(str(current_file), encoding=encoding, delay=False)
+
+    def _update_file(self):
+        """更新当前日期和文件路径"""
+        today = datetime.now().strftime(self.date_format)
+        
+        # 如果日期没有变化，不需要更新
+        if today == self.current_date:
+            return
+        
+        # 日期变化了，更新文件路径
+        self.current_date = today
+        new_file = self.log_dir / f"{self.log_name}_{today}.log"
+        new_file_str = str(new_file)
+        
+        # 如果文件路径变化了，需要关闭旧文件并打开新文件
+        if self.baseFilename != new_file_str:
+            # 关闭旧文件
+            if self.stream:
+                self.stream.close()
+                self.stream = None
+            
+            # 更新文件路径
+            self.baseFilename = new_file_str
+            
+            # 确保目录存在
+            new_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 重新打开新文件
+            if not self.delay:
+                self.stream = self._open()
+
+    def emit(self, record):
+        """发送日志记录（在写入前检查日期）"""
+        # 检查日期是否变化
+        self._update_file()
+        
+        # 调用父类的emit方法写入日志
+        super().emit(record)
 
 
 class LogManager:
@@ -43,9 +122,9 @@ class LogManager:
         name: str,
         log_level: str = "INFO",
         date_format: str = "%Y%m%d",
-    ) -> logging.FileHandler:
+    ) -> DailyRotatingFileHandler:
         """
-        设置文件日志处理器
+        设置文件日志处理器（按日期自动轮转）
 
         Args:
             name: 日志文件名前缀
@@ -53,10 +132,16 @@ class LogManager:
             date_format: 日期格式
 
         Returns:
-            文件处理器
+            文件处理器（DailyRotatingFileHandler，每次写入时检查日期并自动切换）
         """
-        log_file = self.get_log_file(name, date_format)
-        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        # 使用自定义的 DailyRotatingFileHandler，每次写入时检查日期
+        file_handler = DailyRotatingFileHandler(
+            log_dir=self.log_dir,
+            name=name,
+            date_format=date_format,
+            encoding="utf-8",
+        )
+        
         file_handler.setLevel(getattr(logging, log_level.upper()))
         file_handler.setFormatter(
             logging.Formatter(
