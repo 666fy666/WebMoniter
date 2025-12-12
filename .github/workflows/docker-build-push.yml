@@ -33,12 +33,15 @@ jobs:
 
       - name: Verify Docker Hub secrets
         if: github.event_name != 'pull_request'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
+          if [ -z "$DOCKER_USERNAME" ]; then
             echo "::error::DOCKER_USERNAME secret is not set"
             exit 1
           fi
-          if [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then
+          if [ -z "$DOCKER_PASSWORD" ]; then
             echo "::error::DOCKER_PASSWORD secret is not set"
             exit 1
           fi
