@@ -1,4 +1,6 @@
 # 使用 Python 3.11 作为基础镜像
+# 支持多平台架构：linux/amd64, linux/arm64
+# Docker Buildx 会自动根据目标平台拉取对应的基础镜像
 FROM python:3.11-slim
 
 # 设置工作目录
