@@ -288,8 +288,9 @@ push_channel:
      enable: true
      type: qq_bot
      base_url: https://api.sgroup.qq.com
-     app_id: your_app_id
-     token: your_token
+     app_id: your_app_id  # 机器人应用的App ID
+     app_secret: your_app_secret  # 机器人应用的App Secret（用于获取AccessToken）
+     # 注意：QQ开放平台已禁用固定Token，必须使用app_secret获取AccessToken
      push_target_list:
        - guild_name: "频道1"
          channel_name_list:

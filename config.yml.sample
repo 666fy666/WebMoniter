@@ -80,13 +80,14 @@ push_channel:
     type: telegram_bot
     api_token:
     chat_id:
-  # QQ机器人
+  # QQ机器人（不推荐，需要使用app_secret获取AccessToken鉴权）
   - name: QQ机器人
     enable: false
     type: qq_bot
     base_url: https://api.sgroup.qq.com
-    app_id:
-    token:
+    app_id:  # 机器人应用的App ID
+    app_secret:  # 机器人应用的App Secret（用于获取AccessToken）
+    # 注意：QQ开放平台已禁用固定Token，必须使用app_secret获取AccessToken
     push_target_list:
       - guild_name: "频道1"
         channel_name_list:
