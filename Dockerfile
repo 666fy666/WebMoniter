@@ -7,9 +7,9 @@ WORKDIR /app
 # 安装 uv
 RUN pip install --no-cache-dir uv
 
-# 1. 先只复制依赖定义文件
-# 这样做的好处是：只要这两个文件没变，Docker 会使用缓存，跳过下面的安装步骤
-COPY pyproject.toml uv.lock ./
+# 1. 先只复制依赖定义文件和 README.md（构建时需要）
+# 这样做的好处是：只要这些文件没变，Docker 会使用缓存，跳过下面的安装步骤
+COPY pyproject.toml uv.lock README.md ./
 
 # 2. 使用 uv 安装依赖
 # --frozen: 严格按照 uv.lock 安装
