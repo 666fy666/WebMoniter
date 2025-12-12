@@ -251,8 +251,11 @@ push_channel:
    - name: 推送通道_钉钉机器人
      enable: true
      type: dingtalk_bot
-     access_token: your_access_token
+     access_token: your_access_token  # 机器人访问令牌
+     secret: your_secret  # 可选：加签密钥（SEC开头的字符串），如果配置了secret则使用加签方式，否则使用普通方式
    ```
+   
+   注意：如果配置了 `secret` 字段，系统会自动使用加签方式发送消息，提高安全性。加签密钥可在钉钉机器人安全设置页面获取。
 
 6. **飞书自建应用** (`feishu_apps`)
    ```yaml
