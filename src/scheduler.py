@@ -123,6 +123,101 @@ class TaskScheduler:
             job_id=job_id,
         )
 
+    def update_interval_job(
+        self,
+        job_id: str,
+        seconds: int | None = None,
+        minutes: int | None = None,
+        hours: int | None = None,
+    ):
+        """
+        更新间隔任务的间隔时间（用于热重载）
+
+        Args:
+            job_id: 任务ID
+            seconds: 间隔秒数（优先级最高）
+            minutes: 间隔分钟数
+            hours: 间隔小时数
+
+        注意：seconds、minutes、hours 至少需要提供一个，如果提供多个，优先级为 seconds > minutes > hours
+        """
+        job = self.scheduler.get_job(job_id)
+        if job is None:
+            self.logger.warning(f"任务 {job_id} 不存在，无法更新间隔时间")
+            return
+
+        # 构建新的触发器参数
+        trigger_kwargs = {}
+        if seconds is not None:
+            trigger_kwargs["seconds"] = seconds
+        elif minutes is not None:
+            trigger_kwargs["minutes"] = minutes
+        elif hours is not None:
+            trigger_kwargs["hours"] = hours
+        else:
+            self.logger.warning(f"未提供有效的间隔时间参数，无法更新任务 {job_id}")
+            return
+
+        # 创建新的触发器
+        new_trigger = IntervalTrigger(**trigger_kwargs)
+
+        # 更新任务的触发器
+        job.reschedule(trigger=new_trigger)
+        self.logger.info(f"已更新任务 {job_id} 的间隔时间: {trigger_kwargs}")
+
+    def update_cron_job(
+        self,
+        job_id: str,
+        minute: str | None = None,
+        hour: str | None = None,
+        day: str | None = None,
+        month: str | None = None,
+        day_of_week: str | None = None,
+    ):
+        """
+        更新Cron任务的执行时间（用于热重载）
+
+        Args:
+            job_id: 任务ID
+            minute: 分钟（cron格式，如 "0" 表示整点）
+            hour: 小时（cron格式，如 "2" 表示2点）
+            day: 日期（cron格式，默认 "*"）
+            month: 月份（cron格式，默认 "*"）
+            day_of_week: 星期几（cron格式，默认 "*"）
+        """
+        job = self.scheduler.get_job(job_id)
+        if job is None:
+            self.logger.warning(f"任务 {job_id} 不存在，无法更新执行时间")
+            return
+
+        # 获取当前触发器的参数
+        current_trigger = job.trigger
+        if not isinstance(current_trigger, CronTrigger):
+            self.logger.warning(f"任务 {job_id} 不是Cron任务，无法更新")
+            return
+
+        # 使用新参数或保留旧参数（通过字符串表示获取）
+        # CronTrigger 的字符串表示格式为: "cron[year='*', month='*', day='*', week='*', day_of_week='*', hour='*', minute='*']"
+        # 简化处理：直接使用提供的参数，未提供的使用默认值 "*"
+        new_minute = minute if minute is not None else "*"
+        new_hour = hour if hour is not None else "*"
+        new_day = day if day is not None else "*"
+        new_month = month if month is not None else "*"
+        new_day_of_week = day_of_week if day_of_week is not None else "*"
+
+        # 创建新的触发器
+        new_trigger = CronTrigger(
+            minute=new_minute,
+            hour=new_hour,
+            day=new_day,
+            month=new_month,
+            day_of_week=new_day_of_week,
+        )
+
+        # 更新任务的触发器
+        job.reschedule(trigger=new_trigger)
+        self.logger.info(f"已更新任务 {job_id} 的执行时间: minute={new_minute}, hour={new_hour}")
+
     def start(self):
         """启动调度器"""
         self.scheduler.start()

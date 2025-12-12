@@ -8,7 +8,8 @@ import logging
 
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
-from src.config import get_config
+from src.config import AppConfig, get_config
+from src.config_watcher import ConfigWatcher
 from src.cookie_cache_manager import cookie_cache
 from src.database import close_shared_connection
 from src.log_manager import LogManager
@@ -101,6 +102,42 @@ async def register_monitors(scheduler: TaskScheduler):
     # )
 
 
+async def on_config_changed(new_config: AppConfig, scheduler: TaskScheduler):
+    """
+    配置变化时的回调函数 - 更新调度器中的任务间隔时间
+
+    Args:
+        new_config: 新的配置对象
+        scheduler: 任务调度器
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("配置已更新，开始更新调度器任务间隔...")
+
+    try:
+        # 更新虎牙监控间隔
+        scheduler.update_interval_job(
+            job_id="huya_monitor",
+            seconds=new_config.huya_monitor_interval_seconds,
+        )
+
+        # 更新微博监控间隔
+        scheduler.update_interval_job(
+            job_id="weibo_monitor",
+            seconds=new_config.weibo_monitor_interval_seconds,
+        )
+
+        # 更新日志清理任务的执行时间
+        scheduler.update_cron_job(
+            job_id="cleanup_logs",
+            minute=str(new_config.cleanup_logs_minute),
+            hour=str(new_config.cleanup_logs_hour),
+        )
+
+        logger.info("调度器任务间隔已更新完成")
+    except Exception as e:
+        logger.error(f"更新调度器任务间隔失败: {e}", exc_info=True)
+
+
 async def main():
     """主函数"""
     # 检测是否为后台运行（非交互式终端）
@@ -145,6 +182,22 @@ async def main():
     for job in scheduler.scheduler.get_jobs():
         logger.info(f"  - {job.id}: {job.trigger}")
 
+    # 创建配置监控器，支持热重载
+    # 使用闭包创建回调函数，捕获 scheduler 引用
+    async def config_changed_callback(cfg: AppConfig):
+        """配置变化回调函数"""
+        await on_config_changed(cfg, scheduler)
+
+    config_watcher = ConfigWatcher(
+        config_path="config.yml",
+        check_interval=5,  # 每5秒检查一次配置文件
+        on_config_changed=config_changed_callback,
+    )
+
+    # 启动配置监控器
+    await config_watcher.start()
+    logger.info("配置文件热重载监控已启动（每5秒检查一次）")
+
     # 运行调度器（阻塞直到收到停止信号）
     try:
         await scheduler.run_forever()
@@ -154,6 +207,8 @@ async def main():
         logger.error(f"调度器运行出错: {e}")
         raise
     finally:
+        # 停止配置监控器
+        await config_watcher.stop()
         # 关闭共享数据库连接
         await close_shared_connection()
         logger.info("程序退出")
