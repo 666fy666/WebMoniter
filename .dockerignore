@@ -1,0 +1,80 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 环境变量
+.env
+.env.local
+
+# 配置文件（运行时需要，但构建时不需要）
+config.yml
+
+# Cookie缓存
+cookie_cache.json
+
+# 日志
+*.log
+logs/
+
+# 数据库
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 文档和示例
+README.md
+*.md
+config.yml.sample
+
+# CI/CD
+.github/
+
+# 其他
+*.ruff_cache/
+.cursorrules

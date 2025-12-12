@@ -138,6 +138,96 @@ nohup uv run python main.py > /dev/null 2>&1 &
 
 后台运行时，日志仅输出到文件。
 
+### 使用 Docker 运行
+
+#### 构建镜像
+
+```bash
+docker build -t web-monitor:latest .
+```
+
+#### 运行容器
+
+```bash
+# 创建配置文件目录
+mkdir -p /path/to/config
+
+# 复制配置文件
+cp config.yml.sample /path/to/config/config.yml
+# 编辑配置文件
+vim /path/to/config/config.yml
+
+# 运行容器
+docker run -d \
+  --name web-monitor \
+  -v /path/to/config:/app/config \
+  -v /path/to/data:/app/data \
+  -v /path/to/logs:/app/logs \
+  web-monitor:latest
+```
+
+#### 使用 Docker Compose
+
+创建 `docker-compose.yml`：
+
+```yaml
+version: '3.8'
+
+services:
+  web-monitor:
+    build: .
+    container_name: web-monitor
+    restart: unless-stopped
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+```
+
+运行：
+
+```bash
+docker-compose up -d
+```
+
+### 使用 GitHub Actions CI/CD 自动构建和推送
+
+项目已配置 GitHub Actions，可以自动构建 Docker 镜像并推送到 Docker Hub。
+
+#### 配置步骤
+
+1. **设置 Docker Hub Secrets**
+
+   在 GitHub 仓库设置中添加以下 Secrets：
+   - `DOCKER_USERNAME`: 你的 Docker Hub 用户名
+   - `DOCKER_PASSWORD`: 你的 Docker Hub 密码或访问令牌（推荐使用访问令牌）
+
+   > **获取访问令牌**：登录 Docker Hub → Account Settings → Security → New Access Token
+
+2. **触发构建**
+
+   - **自动触发**：推送到 `main` 或 `master` 分支时自动构建
+   - **标签触发**：创建以 `v` 开头的标签（如 `v1.0.0`）时自动构建
+   - **手动触发**：在 GitHub Actions 页面点击 "Run workflow" 手动触发
+
+3. **拉取镜像**
+
+   构建完成后，可以从 Docker Hub 拉取镜像：
+
+   ```bash
+   docker pull <your-dockerhub-username>/web-monitor:latest
+   ```
+
+#### 工作流特性
+
+- ✅ 自动构建多架构镜像（amd64, arm64）
+- ✅ 使用构建缓存加速构建
+- ✅ 自动打标签（latest、分支名、SHA、版本号）
+- ✅ PR 时只构建不推送
+- ✅ 支持手动触发
+
 ### 使用 systemd 管理服务
 
 创建 `/etc/systemd/system/web-monitor.service`：
