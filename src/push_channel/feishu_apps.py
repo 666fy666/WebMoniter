@@ -27,6 +27,67 @@ class FeishuApps(PushChannel):
         ):
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
 
+    def _get_error_suggestion(self, error_code: int, error_msg: str) -> str:
+        """根据错误码返回友好的错误提示和解决建议"""
+        error_suggestions = {
+            230006: (
+                "机器人能力未激活",
+                "请在飞书开发者后台启用机器人能力：\n"
+                "1. 登录 https://open.feishu.cn/app\n"
+                "2. 进入应用详情页\n"
+                "3. 在左侧导航栏进入「功能」>「机器人」\n"
+                "4. 启用「机器人」能力\n"
+                "5. 创建并发布新版本使配置生效\n"
+                "参考文档：https://open.feishu.cn/document/uAjLw4CM/ugTN1YjL4UTN24CO1UjN/trouble-shooting/how-to-enable-bot-ability"
+            ),
+            234007: (
+                "应用未启用机器人功能",
+                "请在飞书开发者后台启用机器人能力：\n"
+                "1. 登录 https://open.feishu.cn/app\n"
+                "2. 进入应用详情页\n"
+                "3. 在左侧导航栏进入「功能」>「机器人」\n"
+                "4. 启用「机器人」能力\n"
+                "5. 创建并发布新版本使配置生效\n"
+                "参考文档：https://open.feishu.cn/document/uAjLw4CM/ugTN1YjL4UTN24CO1UjN/trouble-shooting/how-to-enable-bot-ability"
+            ),
+            230013: (
+                "用户不在机器人可用范围内",
+                "请检查应用的可用范围配置：\n"
+                "1. 登录 https://open.feishu.cn/app\n"
+                "2. 进入应用详情页\n"
+                "3. 在左侧导航栏进入「应用发布」>「版本管理与发布」\n"
+                "4. 编辑版本详情，配置「可用范围」\n"
+                "5. 确保目标用户（receive_id）在可用范围内\n"
+                "6. 保存并发布应用"
+            ),
+            230002: (
+                "机器人不在群组中",
+                "请将机器人添加到目标群组：\n"
+                "1. 在飞书客户端中打开目标群组\n"
+                "2. 点击群设置\n"
+                "3. 添加机器人到群组\n"
+                "4. 确保机器人有发言权限"
+            ),
+            230027: (
+                "缺少必要权限",
+                "请检查应用权限配置：\n"
+                "1. 登录 https://open.feishu.cn/app\n"
+                "2. 进入应用详情页\n"
+                "3. 在左侧导航栏进入「权限管理」\n"
+                "4. 确保已申请以下权限：\n"
+                "   - 获取与发送单聊、群组消息(im:message)\n"
+                "   - 以应用的身份发消息(im:message:send_as_bot)\n"
+                "   - 发送消息V2(im:message:send)\n"
+                "5. 创建并发布新版本使权限生效"
+            ),
+        }
+        
+        if error_code in error_suggestions:
+            title, suggestion = error_suggestions[error_code]
+            return f"{title}（错误码：{error_code}）\n错误信息：{error_msg}\n\n解决方案：\n{suggestion}"
+        else:
+            return f"错误码：{error_code}\n错误信息：{error_msg}"
+
     async def _get_tenant_access_token(self):
         """获取飞书 tenant_access_token"""
         current_time = time.time()
@@ -71,8 +132,15 @@ class FeishuApps(PushChannel):
 
                 # 直接读取图片内容为字节
                 image_data = await response.read()
+                
+                # 检查图片大小（飞书限制10MB）
+                image_size_mb = len(image_data) / (1024 * 1024)
+                if image_size_mb > 10:
+                    raise Exception(f"图片大小 {image_size_mb:.2f}MB 超过限制（10MB）")
+                if len(image_data) == 0:
+                    raise Exception("图片大小为0，无法上传")
 
-            self.logger.info(f"【推送_{self.name}】下载图片{pic_url}成功")
+            self.logger.info(f"【推送_{self.name}】下载图片{pic_url}成功，大小: {image_size_mb:.2f}MB")
 
             # 上传图片
             tenant_access_token = await self._get_tenant_access_token()
@@ -89,19 +157,42 @@ class FeishuApps(PushChannel):
                 "image",
                 image_data,
                 filename=f"{uuid.uuid4()}{extension}",
-                content_type=content_type,
+                content_type=content_type or "image/jpeg",
             )
 
             async with session.post(url, headers=headers, data=form_data) as response:
-                response.raise_for_status()
-                result = await response.json()
+                # 读取响应内容
+                response_text = await response.text()
+                
+                # 尝试解析 JSON
+                try:
+                    result = json.loads(response_text)
+                except json.JSONDecodeError:
+                    result = {"code": response.status, "msg": response_text}
+                
+                if response.status != 200:
+                    error_detail = result.get("msg", "未知错误")
+                    error_code = result.get("code", response.status)
+                    suggestion = self._get_error_suggestion(error_code, error_detail)
+                    raise Exception(f"上传图片失败: HTTP {response.status}\n{suggestion}")
 
                 if result.get("code") != 0:
-                    raise Exception(f"上传图片失败: {result.get('msg', '未知错误')}")
+                    error_msg = result.get("msg", "未知错误")
+                    error_code = result.get("code", "未知")
+                    suggestion = self._get_error_suggestion(error_code, error_msg)
+                    raise Exception(f"上传图片失败\n{suggestion}")
 
                 img_key = result["data"]["image_key"]
                 self.logger.info(f"【推送_{self.name}】上传图片成功，img_key: {img_key}")
                 return img_key
+        except ClientResponseError as e:
+            error_detail = f"HTTP {e.status}, message='{e.message}', url='{e.request_info.url}'"
+            self.logger.error(f"【推送_{self.name}】处理图片失败: {error_detail}")
+            # 尝试从错误消息中提取错误码
+            if e.status == 400:
+                suggestion = self._get_error_suggestion(230006, e.message)
+                self.logger.error(f"【推送_{self.name}】{suggestion}")
+            return None
         except Exception as e:
             self.logger.error(f"【推送_{self.name}】处理图片失败: {e}")
             return None
@@ -114,11 +205,12 @@ class FeishuApps(PushChannel):
 
         url = f"https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type={self.receive_id_type}"
         headers = {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "Authorization": f"Bearer {tenant_access_token}",
         }
-        card_elements = [{"tag": "markdown", "content": content}]
+        card_elements = []
 
+        # 先添加图片（如果有），图片会显示在顶部
         if pic_url is not None:
             img_key = await self._get_img_key(pic_url)
             if img_key is not None:
@@ -129,6 +221,9 @@ class FeishuApps(PushChannel):
                         "tag": "img",
                     }
                 )
+
+        # 然后添加 markdown 内容
+        card_elements.append({"tag": "markdown", "content": content})
 
         if jump_url:
             card_elements.append(
@@ -162,18 +257,44 @@ class FeishuApps(PushChannel):
         try:
             session = await self._get_session()
             async with session.post(url, headers=headers, json=body) as response:
-                response.raise_for_status()
-                result = await response.json()
+                # 读取响应内容
+                response_text = await response.text()
+                
+                # 尝试解析 JSON
+                try:
+                    result = json.loads(response_text)
+                except json.JSONDecodeError:
+                    result = {"code": response.status, "msg": response_text}
+                
+                if response.status != 200:
+                    error_detail = result.get("msg", "未知错误")
+                    error_code = result.get("code", response.status)
+                    suggestion = self._get_error_suggestion(error_code, error_detail)
+                    error_info = f"HTTP {response.status}, code={error_code}, message='{error_detail}'"
+                    self.logger.error(f"【推送_{self.name}】请求失败: {error_info}")
+                    self.logger.error(f"【推送_{self.name}】{suggestion}")
+                    raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
 
                 if result.get("code") != 0:
                     error_msg = result.get("msg", "未知错误")
-                    raise Exception(f"推送失败: {error_msg}")
+                    error_code = result.get("code", "未知")
+                    suggestion = self._get_error_suggestion(error_code, error_msg)
+                    error_info = f"code={error_code}, msg={error_msg}"
+                    self.logger.error(f"【推送_{self.name}】推送失败: {error_info}")
+                    self.logger.error(f"【推送_{self.name}】{suggestion}")
+                    raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
 
                 self.logger.info(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
-            self.logger.error(f"【推送_{self.name}】请求失败: {e}")
-            raise
+            error_info = f"HTTP {e.status}, message='{e.message}', url='{e.request_info.url}'"
+            self.logger.error(f"【推送_{self.name}】请求失败: {error_info}")
+            # 尝试从错误消息中提取错误码（常见错误码）
+            if e.status == 400:
+                suggestion = self._get_error_suggestion(230006, e.message)
+                self.logger.error(f"【推送_{self.name}】{suggestion}")
+                raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
+            raise Exception(f"飞书自建应用推送失败: {error_info}")
         except Exception as e:
             self.logger.error(f"【推送_{self.name}】推送失败: {e}")
             raise
