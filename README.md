@@ -113,7 +113,7 @@ docker compose pull && docker compose up -d  # 更新到最新版本
 # 完全卸载
 docker compose down
 docker rmi fengyu666/web-monitor:latest
-rm -f data.db* config.yml cookie_cache.json && rm -rf logs
+rm -f data.db* config.yml cookie_cache.json && rm -rf logs data
 ```
 
 ### 其他部署方式

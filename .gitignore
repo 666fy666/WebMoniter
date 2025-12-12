@@ -48,7 +48,8 @@ cookie_cache.json
 *.log
 logs/
 
-# 数据库
+# 数据库和数据目录
+data/
 *.db
 *.db-journal
 *.db-wal
@@ -58,6 +59,7 @@ logs/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+*.json
 
 # 操作系统
 .DS_Store

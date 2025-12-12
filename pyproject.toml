@@ -1,8 +1,7 @@
 [project]
 name = "web-monitor"
 version = "2.0.0"
-description = "异步Web监控系统 - 虎牙直播和微博监控"
-readme = "README.md"
+description = "Web监控系统"
 requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9.0",

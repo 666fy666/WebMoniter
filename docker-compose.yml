@@ -5,11 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config.yml:/app/config.yml:ro
-      - ./data.db:/app/data.db
-      - ./data.db-journal:/app/data.db-journal
-      - ./data.db-wal:/app/data.db-wal
-      - ./data.db-shm:/app/data.db-shm
+      - ./data:/app/data
       - ./logs:/app/logs
-      - ./cookie_cache.json:/app/cookie_cache.json
     environment:
       - TZ=Asia/Shanghai

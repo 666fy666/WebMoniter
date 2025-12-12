@@ -11,14 +11,24 @@ logger = logging.getLogger(__name__)
 class CookieCache:
     """Cookie缓存管理器"""
 
-    def __init__(self, cache_file: str = "cookie_cache.json"):
+    def __init__(self, cache_file: str | None = None):
         """
         初始化Cookie缓存管理器
 
         Args:
-            cache_file: 缓存文件路径，默认为项目根目录下的cookie_cache.json
+            cache_file: 缓存文件路径，如果为 None 则使用 data/cookie_cache.json（目录不存在则自动创建）
         """
-        self.cache_file = Path(cache_file)
+        if cache_file is None:
+            # 始终使用 data 目录
+            # Docker 环境：如果宿主机没有 ./data 目录，Docker 会自动创建空目录并挂载
+            # 本地环境：如果 data 目录不存在，程序会自动创建
+            _base_path = Path(__file__).parent.parent
+            _data_dir = _base_path / "data"
+            # 确保 data 目录存在（Docker 挂载时已存在也不会报错，exist_ok=True）
+            _data_dir.mkdir(parents=True, exist_ok=True)
+            self.cache_file = _data_dir / "cookie_cache.json"
+        else:
+            self.cache_file = Path(cache_file)
         # 缓存结构: {platform: {"valid": bool, "notified": bool}}
         self._cache: dict[str, dict] = {}
         # 异步锁保护文件操作
