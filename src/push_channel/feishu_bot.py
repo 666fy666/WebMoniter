@@ -1,4 +1,8 @@
+import base64
+import hashlib
+import hmac
 import json
+import time
 
 from aiohttp import ClientResponseError
 
@@ -11,8 +15,26 @@ class FeishuBot(PushChannel):
     def __init__(self, config, session=None):
         super().__init__(config, session)
         self.webhook_key = str(config.get("webhook_key", ""))
+        self.sign_secret = str(config.get("sign_secret", "")).strip()
         if self.webhook_key == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
+
+    def _generate_sign(self) -> tuple[int, str]:
+        """
+        生成飞书机器人签名
+        签名算法：timestamp + "\\n" + sign_secret，然后使用 HMAC-SHA256 加密，最后 Base64 编码
+        参考：https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN
+
+        Returns:
+            (timestamp, sign): 时间戳和签名的元组
+        """
+        timestamp = int(time.time())
+        string_to_sign = f"{timestamp}\n{self.sign_secret}"
+        hmac_code = hmac.new(
+            string_to_sign.encode("utf-8"), digestmod=hashlib.sha256
+        ).digest()
+        sign = base64.b64encode(hmac_code).decode("utf-8")
+        return timestamp, sign
 
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):
         """推送消息"""
@@ -57,6 +79,12 @@ class FeishuBot(PushChannel):
                 "elements": card_elements,
             },
         }
+
+        # 如果配置了签名密钥，则添加签名校验信息
+        if self.sign_secret:
+            timestamp, sign = self._generate_sign()
+            body["timestamp"] = timestamp
+            body["sign"] = sign
 
         try:
             session = await self._get_session()

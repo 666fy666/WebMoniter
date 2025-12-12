@@ -1,7 +1,5 @@
 import json
 import mimetypes
-import os
-import tempfile
 import time
 import uuid
 
@@ -62,7 +60,6 @@ class FeishuApps(PushChannel):
         """下载并上传图片到飞书，返回img_key"""
         # 下载图片
         self.logger.info(f"【推送_{self.name}】开始下载图片：{pic_url}")
-        temp_file = None
         try:
             session = await self._get_session()
             async with session.get(pic_url, ssl=False) as response:
@@ -72,19 +69,14 @@ class FeishuApps(PushChannel):
                 if not extension:
                     extension = ".jpg"
 
-                # 创建临时文件
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=extension)
-                async for chunk in response.content.iter_chunked(8192):
-                    temp_file.write(chunk)
-                temp_file.close()
+                # 直接读取图片内容为字节
+                image_data = await response.read()
 
             self.logger.info(f"【推送_{self.name}】下载图片{pic_url}成功")
 
             # 上传图片
             tenant_access_token = await self._get_tenant_access_token()
             if tenant_access_token is None:
-                if temp_file:
-                    os.unlink(temp_file.name)
                 return None
 
             url = "https://open.feishu.cn/open-apis/im/v1/images"
@@ -95,7 +87,7 @@ class FeishuApps(PushChannel):
             form_data.add_field("image_type", "message")
             form_data.add_field(
                 "image",
-                open(temp_file.name, "rb"),
+                image_data,
                 filename=f"{uuid.uuid4()}{extension}",
                 content_type=content_type,
             )
@@ -113,10 +105,6 @@ class FeishuApps(PushChannel):
         except Exception as e:
             self.logger.error(f"【推送_{self.name}】处理图片失败: {e}")
             return None
-        finally:
-            # 删除临时文件
-            if temp_file and os.path.exists(temp_file.name):
-                os.unlink(temp_file.name)
 
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):
         """推送消息"""

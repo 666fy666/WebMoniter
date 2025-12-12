@@ -74,7 +74,8 @@ push_channel:
   - name: 飞书机器人
     enable: false
     type: feishu_bot
-    webhook_key:
+    webhook_key:  # 机器人Webhook Key
+    sign_secret:  # 可选：签名密钥，如果配置了sign_secret则使用签名校验方式，否则使用普通方式
   # Telegram机器人
   - name: Telegram机器人
     enable: false
