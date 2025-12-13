@@ -24,9 +24,13 @@ scheduler:
   cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
   cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
 
-# 可选配置
-optional:
-  config_json_url: null  # 可选：远程配置URL
+# 免打扰时段配置
+# ⚠️ 注意：开启此功能后，在免打扰时段内的监控任务将继续执行，但不会推送通知给用户
+# 这可能会导致您在免打扰时段内遗漏重要消息，请谨慎使用
+quiet_hours:
+  enable: false  # 是否启用免打扰时段，默认false
+  start: "03:00"  # 免打扰时段开始时间（24小时制，格式：HH:MM），例如：22:00 表示晚上10点
+  end: "08:00"  # 免打扰时段结束时间（24小时制，格式：HH:MM），例如：08:00 表示早上8点
 
 # 推送通道配置
 # 通道名称，唯一，可自定义不要纯数字，对应 query_task 中的 target_push_name_list

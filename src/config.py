@@ -1,9 +1,9 @@
 """配置管理模块 - 从YAML配置文件读取配置"""
 
 import logging
+from datetime import datetime, time
 from pathlib import Path
 
-import aiohttp
 import yaml
 from pydantic import BaseModel
 
@@ -48,11 +48,13 @@ class AppConfig(BaseModel):
     cleanup_logs_hour: int = 2  # 日志清理时间（小时），默认2点
     cleanup_logs_minute: int = 0  # 日志清理时间（分钟），默认0分
 
-    # 可选配置
-    config_json_url: str | None = None
-
     # 推送通道配置
     push_channel_list: list[dict] = []
+
+    # 免打扰时段配置
+    quiet_hours_enable: bool = False  # 是否启用免打扰时段
+    quiet_hours_start: str = "22:00"  # 免打扰时段开始时间（格式：HH:MM）
+    quiet_hours_end: str = "08:00"  # 免打扰时段结束时间（格式：HH:MM）
 
     def get_weibo_config(self) -> WeiboConfig:
         """获取微博配置"""
@@ -143,15 +145,19 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             if "cleanup_logs_minute" in scheduler:
                 config_dict["cleanup_logs_minute"] = scheduler["cleanup_logs_minute"]
 
-        # 可选配置
-        if "optional" in yml_config:
-            optional = yml_config["optional"]
-            if "config_json_url" in optional and optional["config_json_url"]:
-                config_dict["config_json_url"] = optional["config_json_url"]
-
         # 推送通道配置
         if "push_channel" in yml_config:
             config_dict["push_channel_list"] = yml_config["push_channel"]
+
+        # 免打扰时段配置
+        if "quiet_hours" in yml_config:
+            quiet_hours = yml_config["quiet_hours"]
+            if "enable" in quiet_hours:
+                config_dict["quiet_hours_enable"] = quiet_hours["enable"]
+            if "start" in quiet_hours:
+                config_dict["quiet_hours_start"] = quiet_hours["start"]
+            if "end" in quiet_hours:
+                config_dict["quiet_hours_end"] = quiet_hours["end"]
 
         logger.debug(f"成功从 {yml_path} 加载配置")
         return config_dict
@@ -160,18 +166,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         raise
     except Exception as e:
         raise ValueError(f"加载配置文件 {yml_path} 失败: {e}") from e
-
-
-async def load_config_from_url(url: str) -> dict | None:
-    """从远程URL异步加载配置"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                response.raise_for_status()
-                return await response.json()
-    except Exception as e:
-        print(f"从远程URL加载配置失败: {e}")
-        return None
 
 
 # 全局配置缓存，用于热重载时检测变化
@@ -245,3 +239,43 @@ def get_config(reload: bool = False) -> AppConfig:
         logger.debug("虎牙Cookie未变更")
 
     return config
+
+
+def is_in_quiet_hours(config: AppConfig) -> bool:
+    """
+    检查当前时间是否在免打扰时段内
+
+    Args:
+        config: 应用配置实例
+
+    Returns:
+        如果当前时间在免打扰时段内返回True，否则返回False
+    """
+    if not config.quiet_hours_enable:
+        return False
+
+    try:
+        # 解析时间字符串（格式：HH:MM）
+        start_time_str = config.quiet_hours_start
+        end_time_str = config.quiet_hours_end
+
+        # 解析开始和结束时间
+        start_hour, start_minute = map(int, start_time_str.split(":"))
+        end_hour, end_minute = map(int, end_time_str.split(":"))
+
+        start_time = time(start_hour, start_minute)
+        end_time = time(end_hour, end_minute)
+
+        # 获取当前时间
+        now = datetime.now().time()
+
+        # 判断是否跨天（例如：22:00 到 08:00）
+        if start_time > end_time:
+            # 跨天情况：当前时间 >= 开始时间 或 当前时间 <= 结束时间
+            return now >= start_time or now <= end_time
+        else:
+            # 不跨天情况：开始时间 <= 当前时间 <= 结束时间
+            return start_time <= now <= end_time
+    except Exception as e:
+        logger.warning(f"检查免打扰时段时出错: {e}，默认返回False")
+        return False

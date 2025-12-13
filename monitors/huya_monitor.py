@@ -8,7 +8,7 @@ from datetime import datetime
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
-from src.config import AppConfig, get_config
+from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.cookie_cache_manager import cookie_cache
 from src.monitor import BaseMonitor
 
@@ -164,12 +164,21 @@ class HuyaMonitor(BaseMonitor):
 
     async def push_notification(self, data: dict, res: int):
         """发送推送通知"""
+        # 检查是否在免打扰时段内
+        if is_in_quiet_hours(self.config):
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            status_text = "开播了🐯🐯🐯" if res == 1 else "下播了🐟🐟🐟"
+            self.logger.info(
+                f"[免打扰时段] {data['name']} {status_text}（{timestamp}），已跳过推送"
+            )
+            return
+
         # 异步获取语录
         quote = " "
         try:
             session = await self._get_session()
             async with session.get(
-                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=3)
+                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=10)
             ) as resp:
                 if resp.status == 200:
                     hitokoto = await resp.json()
@@ -301,6 +310,12 @@ class HuyaMonitor(BaseMonitor):
                 self.logger.info("─" * 30)
                 return
         try:
+            # 检查是否有房间需要监控
+            if not self.huya_config.rooms:
+                self.logger.warning(f"{self.monitor_name} 没有配置房间ID，跳过本次执行")
+                self.logger.info("─" * 30)
+                return
+
             # 创建信号量控制并发数
             semaphore = asyncio.Semaphore(self.huya_config.concurrency)
 
@@ -310,7 +325,12 @@ class HuyaMonitor(BaseMonitor):
                     return await self.process_room(room_id)
 
             tasks = [process_with_semaphore(room_id) for room_id in self.huya_config.rooms]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 检查并记录异常
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    self.logger.error(f"处理房间 {self.huya_config.rooms[i]} 时出错: {result}")
         except Exception as e:
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
             raise

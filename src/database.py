@@ -124,7 +124,7 @@ class AsyncDatabase:
             async with self._conn.execute("SELECT 1") as cursor:
                 await cursor.fetchone()
             return True
-        except (aiosqlite.OperationalError, aiosqlite.ProgrammingError, AttributeError) as e:
+        except (aiosqlite.OperationalError, aiosqlite.ProgrammingError, AttributeError, RuntimeError) as e:
             _logger.debug(f"数据库连接健康检查失败: {e}")
             return False
         except Exception as e:
@@ -203,6 +203,8 @@ class AsyncDatabase:
                 if _connection_ref_count > 0:
                     _connection_ref_count -= 1
                     _logger.debug(f"数据库连接引用计数: {_connection_ref_count}")
+                else:
+                    _logger.warning("数据库连接引用计数已为0，可能存在重复关闭")
                 # 共享连接不在这里关闭，由全局清理函数处理
                 self._conn = None
         else:

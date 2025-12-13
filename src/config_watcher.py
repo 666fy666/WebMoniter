@@ -65,6 +65,8 @@ class ConfigWatcher:
                 await self._task
             except asyncio.CancelledError:
                 pass
+            except Exception as e:
+                logger.error(f"停止配置监控器时出错: {e}", exc_info=True)
         logger.info("配置监控器已停止")
 
     async def _watch_loop(self):

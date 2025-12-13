@@ -1,11 +1,12 @@
 """微博监控模块"""
 
 import asyncio
+from datetime import datetime
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
-from src.config import AppConfig, get_config
+from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.cookie_cache_manager import cookie_cache
 from src.monitor import BaseMonitor
 
@@ -214,6 +215,16 @@ class WeiboMonitor(BaseMonitor):
 
     async def push_notification(self, data: dict, diff: int):
         """发送推送通知"""
+        # 检查是否在免打扰时段内
+        if is_in_quiet_hours(self.config):
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            action = "发布" if diff > 0 else "删除"
+            count = abs(diff)
+            self.logger.info(
+                f"[免打扰时段] {data['用户名']} {action}了{count}条weibo（{timestamp}），已跳过推送"
+            )
+            return
+
         action = "发布" if diff > 0 else "删除"
         count = abs(diff)
 
@@ -334,6 +345,12 @@ class WeiboMonitor(BaseMonitor):
                 self.logger.info("─" * 30)
                 return
         try:
+            # 检查是否有用户需要监控
+            if not self.weibo_config.uids:
+                self.logger.warning(f"{self.monitor_name} 没有配置用户ID，跳过本次执行")
+                self.logger.info("─" * 30)
+                return
+
             # 创建信号量控制并发数
             semaphore = asyncio.Semaphore(self.weibo_config.concurrency)
 
@@ -343,7 +360,12 @@ class WeiboMonitor(BaseMonitor):
                     return await self.process_user(uid)
 
             tasks = [process_with_semaphore(uid) for uid in self.weibo_config.uids]
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 检查并记录异常
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    self.logger.error(f"处理用户 {self.weibo_config.uids[i]} 时出错: {result}")
         except Exception as e:
             self.logger.error(f"{self.monitor_name}执行失败: {e}")
             raise
