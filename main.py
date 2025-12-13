@@ -40,7 +40,9 @@ async def run_weibo_monitor():
 
 async def cleanup_logs():
     """清理旧日志文件任务"""
-    log_manager = LogManager(retention_days=3)
+    # 从配置文件读取日志保留天数
+    config = get_config(reload=True)
+    log_manager = LogManager(retention_days=config.retention_days)
     log_manager.cleanup_old_logs()
 
 

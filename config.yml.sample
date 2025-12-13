@@ -23,6 +23,7 @@ scheduler:
   weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认300秒（5分钟）
   cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
   cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
+  retention_days: 3  # 日志保留天数，默认3天
 
 # 免打扰时段配置
 # ⚠️ 注意：开启此功能后，在免打扰时段内的监控任务将继续执行，但不会推送通知给用户

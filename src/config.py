@@ -47,6 +47,7 @@ class AppConfig(BaseModel):
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
     cleanup_logs_hour: int = 2  # 日志清理时间（小时），默认2点
     cleanup_logs_minute: int = 0  # 日志清理时间（分钟），默认0分
+    retention_days: int = 3  # 日志保留天数，默认3天
 
     # 推送通道配置
     push_channel_list: list[dict] = []
@@ -144,6 +145,8 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["cleanup_logs_hour"] = scheduler["cleanup_logs_hour"]
             if "cleanup_logs_minute" in scheduler:
                 config_dict["cleanup_logs_minute"] = scheduler["cleanup_logs_minute"]
+            if "retention_days" in scheduler:
+                config_dict["retention_days"] = scheduler["retention_days"]
 
         # 推送通道配置
         if "push_channel" in yml_config:
