@@ -178,7 +178,7 @@ class HuyaMonitor(BaseMonitor):
         try:
             session = await self._get_session()
             async with session.get(
-                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=60)
+                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=30)
             ) as resp:
                 if resp.status == 200:
                     hitokoto = await resp.json()
