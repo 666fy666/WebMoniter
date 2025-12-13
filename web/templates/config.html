@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置管理 - Web监控系统</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Web监控系统</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/config" class="nav-item active">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">配置管理</span>
+            </a>
+            <a href="/data" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">数据展示</span>
+            </a>
+            <a href="/logs" class="nav-item">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">日志查看</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="content-header">
+            <h1>配置管理</h1>
+            <p class="subtitle">修改配置文件，保存后会自动热重载生效</p>
+        </div>
+        <div class="content-body">
+            <div id="configMessage" class="message"></div>
+            
+            <!-- 视图切换标签 -->
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-btn active" data-view="table">表格视图</button>
+                <button class="tab-btn" data-view="text">文本视图</button>
+            </div>
+            
+            <!-- 表格视图容器 -->
+            <div id="tableView" class="view-container">
+            <!-- 微博监控配置 -->
+            <div class="card config-section" data-section="weibo">
+                <div class="card-header">
+                    <h2>📱 微博监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">Cookie</td>
+                            <td><input type="text" id="weibo_cookie" class="form-input" placeholder="请输入微博Cookie"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">UID列表</td>
+                            <td><textarea id="weibo_uids" class="form-textarea" rows="3" placeholder="请输入UID列表，逗号分隔"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="weibo_concurrency" class="form-input" min="1" max="10" placeholder="建议2-5"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 虎牙监控配置 -->
+            <div class="card config-section" data-section="huya">
+                <div class="card-header">
+                    <h2>🎮 虎牙监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">User-Agent</td>
+                            <td><input type="text" id="huya_user_agent" class="form-input" placeholder="请输入User-Agent"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie</td>
+                            <td><input type="text" id="huya_cookie" class="form-input" placeholder="可选，没有可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">房间号列表</td>
+                            <td><textarea id="huya_rooms" class="form-textarea" rows="3" placeholder="请输入房间号列表，逗号分隔"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="huya_concurrency" class="form-input" min="1" max="20" placeholder="建议5-10"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 调度器配置 -->
+            <div class="card config-section" data-section="scheduler">
+                <div class="card-header">
+                    <h2>⏰ 调度器配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">虎牙监控间隔（秒）</td>
+                            <td><input type="number" id="huya_monitor_interval_seconds" class="form-input" min="1" placeholder="默认65秒"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">微博监控间隔（秒）</td>
+                            <td><input type="number" id="weibo_monitor_interval_seconds" class="form-input" min="1" placeholder="默认300秒（5分钟）"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">日志清理时间（小时）</td>
+                            <td><input type="number" id="cleanup_logs_hour" class="form-input" min="0" max="23" placeholder="默认2点"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">日志清理时间（分钟）</td>
+                            <td><input type="number" id="cleanup_logs_minute" class="form-input" min="0" max="59" placeholder="默认0分"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">日志保留天数</td>
+                            <td><input type="number" id="retention_days" class="form-input" min="1" placeholder="默认3天"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 免打扰时段配置 -->
+            <div class="card config-section" data-section="quiet_hours">
+                <div class="card-header">
+                    <h2>🔕 免打扰时段配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用免打扰时段</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="quiet_hours_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="quiet_hours_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">开始时间</td>
+                            <td><input type="time" id="quiet_hours_start" class="form-input" placeholder="HH:MM"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">结束时间</td>
+                            <td><input type="time" id="quiet_hours_end" class="form-input" placeholder="HH:MM"></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 15px;">
+                        <p class="warning">⚠️ 开启此功能后，在免打扰时段内的监控任务将继续执行，但不会推送通知给用户</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推送通道配置 -->
+            <div class="card config-section" data-section="push_channel">
+                <div class="card-header">
+                    <h2>📢 推送通道配置</h2>
+                </div>
+                <div class="card-body">
+                    <div id="pushChannelsContainer">
+                        <!-- 推送通道将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+            </div>
+            
+            <!-- 文本视图容器 -->
+            <div id="textView" class="view-container" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>配置文件（YAML格式）</h2>
+                        <div class="card-actions">
+                            <button id="reloadYamlBtn" class="btn btn-secondary">重新加载</button>
+                            <button id="saveYamlBtn" class="btn btn-primary">保存配置</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="yamlEditor" class="yaml-editor" placeholder="加载配置文件中..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/config.js"></script>
+</body>
+</html>

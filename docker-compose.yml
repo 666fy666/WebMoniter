@@ -8,9 +8,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 1536M
         reservations:
-          memory: 512M
+          memory: 768M
+    ports:
+      - "8866:8866"
     volumes:
       - ./config.yml:/app/config.yml:ro
       - ./data:/app/data

@@ -11,7 +11,9 @@ class WxPusher(PushChannel):
         self.app_token = str(config.get("app_token", ""))
         self.uids = config.get("uids", "")  # 用户ID列表，逗号分隔（可选）
         self.topic_ids = config.get("topic_ids", "")  # 主题ID列表，逗号分隔（可选）
-        self.content_type = config.get("content_type", 1)  # 内容类型：1-文本，2-html，3-markdown，默认1
+        self.content_type = config.get(
+            "content_type", 1
+        )  # 内容类型：1-文本，2-html，3-markdown，默认1
         if self.app_token == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
 
@@ -65,9 +67,7 @@ class WxPusher(PushChannel):
                     if topic_id.strip()
                 ]
             except ValueError:
-                self.logger.warning(
-                    f"【推送_{self.name}】topic_ids 格式错误，应为数字列表"
-                )
+                self.logger.warning(f"【推送_{self.name}】topic_ids 格式错误，应为数字列表")
 
         if uids_list:
             payload["uids"] = uids_list
@@ -76,9 +76,7 @@ class WxPusher(PushChannel):
 
         # 如果既没有uids也没有topicIds，记录警告
         if not uids_list and not topic_ids_list:
-            self.logger.warning(
-                f"【推送_{self.name}】未配置uids或topicIds，消息可能无法发送"
-            )
+            self.logger.warning(f"【推送_{self.name}】未配置uids或topicIds，消息可能无法发送")
 
         try:
             session = await self._get_session()

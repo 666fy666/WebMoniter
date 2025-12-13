@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>控制台 - Web监控系统</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Web监控系统</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/config" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">配置管理</span>
+            </a>
+            <a href="/data" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">数据展示</span>
+            </a>
+            <a href="/logs" class="nav-item">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">日志查看</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="content-header">
+            <h1>控制台</h1>
+        </div>
+        <div class="content-body">
+            <div class="welcome-card">
+                <h2>欢迎使用Web监控系统</h2>
+                <p>请从左侧导航栏选择功能模块</p>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

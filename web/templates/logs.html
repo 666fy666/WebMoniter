@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志查看 - Web监控系统</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Web监控系统</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/config" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">配置管理</span>
+            </a>
+            <a href="/data" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">数据展示</span>
+            </a>
+            <a href="/logs" class="nav-item active">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">日志查看</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="content-header">
+            <h1>日志查看</h1>
+            <p class="subtitle">实时查看当天日志内容</p>
+        </div>
+        <div class="content-body">
+            <div class="card">
+                <div class="card-header">
+                    <h2>今日日志</h2>
+                    <div class="card-actions">
+                        <label>
+                            <input type="checkbox" id="autoScroll" checked> 自动滚动
+                        </label>
+                        <button id="refreshLogsBtn" class="btn btn-secondary">刷新</button>
+                        <button id="clearLogsBtn" class="btn btn-secondary">清空显示</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="logsContainer" class="logs-container">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/logs.js"></script>
+</body>
+</html>

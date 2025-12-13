@@ -326,7 +326,7 @@ class HuyaMonitor(BaseMonitor):
 
             tasks = [process_with_semaphore(room_id) for room_id in self.huya_config.rooms]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             # 检查并记录异常
             for i, result in enumerate(results):
                 if isinstance(result, Exception):

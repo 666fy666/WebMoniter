@@ -124,7 +124,12 @@ class AsyncDatabase:
             async with self._conn.execute("SELECT 1") as cursor:
                 await cursor.fetchone()
             return True
-        except (aiosqlite.OperationalError, aiosqlite.ProgrammingError, AttributeError, RuntimeError) as e:
+        except (
+            aiosqlite.OperationalError,
+            aiosqlite.ProgrammingError,
+            AttributeError,
+            RuntimeError,
+        ) as e:
             _logger.debug(f"数据库连接健康检查失败: {e}")
             return False
         except Exception as e:

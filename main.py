@@ -104,38 +104,62 @@ async def register_monitors(scheduler: TaskScheduler):
     # )
 
 
-async def on_config_changed(new_config: AppConfig, scheduler: TaskScheduler):
+async def on_config_changed(
+    old_config: AppConfig | None, new_config: AppConfig, scheduler: TaskScheduler
+):
     """
     配置变化时的回调函数 - 更新调度器中的任务间隔时间
 
     Args:
+        old_config: 旧的配置对象（首次加载时为None）
         new_config: 新的配置对象
         scheduler: 任务调度器
     """
     logger = logging.getLogger(__name__)
-    logger.info("配置已更新，开始更新调度器任务间隔...")
 
     try:
+        updates = []
+
         # 更新虎牙监控间隔
-        scheduler.update_interval_job(
+        update_info = scheduler.update_interval_job(
             job_id="huya_monitor",
             seconds=new_config.huya_monitor_interval_seconds,
         )
+        if update_info:
+            updates.append(update_info)
 
         # 更新微博监控间隔
-        scheduler.update_interval_job(
+        update_info = scheduler.update_interval_job(
             job_id="weibo_monitor",
             seconds=new_config.weibo_monitor_interval_seconds,
         )
+        if update_info:
+            updates.append(update_info)
 
         # 更新日志清理任务的执行时间
-        scheduler.update_cron_job(
+        update_info = scheduler.update_cron_job(
             job_id="cleanup_logs",
             minute=str(new_config.cleanup_logs_minute),
             hour=str(new_config.cleanup_logs_hour),
         )
+        if update_info:
+            updates.append(update_info)
 
-        logger.info("调度器任务间隔已更新完成")
+        # 检查免打扰时段配置是否更新
+        if old_config is not None:
+            if (
+                old_config.quiet_hours_enable != new_config.quiet_hours_enable
+                or old_config.quiet_hours_start != new_config.quiet_hours_start
+                or old_config.quiet_hours_end != new_config.quiet_hours_end
+            ):
+                status = "启用" if new_config.quiet_hours_enable else "禁用"
+                updates.append(
+                    f"免打扰时段({status}, {new_config.quiet_hours_start}-{new_config.quiet_hours_end})"
+                )
+
+        # 只输出一条汇总日志
+        if updates:
+            logger.info(f"配置已更新: {', '.join(updates)}")
     except Exception as e:
         logger.error(f"更新调度器任务间隔失败: {e}", exc_info=True)
 
@@ -150,6 +174,36 @@ async def main():
     # 设置日志：后台运行时只输出到文件，前台运行时同时输出到控制台和文件
     setup_logging(log_level="INFO", console_output=not is_background)
     logger = logging.getLogger(__name__)
+
+    # 启动Web服务器（在后台运行）
+    import uvicorn
+
+    from src.web_server import create_web_app
+
+    web_app = create_web_app()
+
+    # 创建uvicorn服务器配置
+    server_config = uvicorn.Config(
+        app=web_app,
+        host="0.0.0.0",
+        port=8866,
+        log_level="info",
+        access_log=False,  # 减少日志输出
+    )
+    server = uvicorn.Server(server_config)
+
+    # 在后台启动Web服务器
+    async def run_web_server():
+        try:
+            await server.serve()
+        except asyncio.CancelledError:
+            # 正常取消，不需要记录错误
+            pass
+        except Exception as e:
+            logger.error(f"Web服务器运行出错: {e}", exc_info=True)
+
+    web_task = asyncio.create_task(run_web_server())
+    logger.info("Web服务器已启动，访问地址: http://0.0.0.0:8866")
 
     # 设置文件日志
     log_manager = LogManager()
@@ -186,9 +240,9 @@ async def main():
 
     # 创建配置监控器，支持热重载
     # 使用闭包创建回调函数，捕获 scheduler 引用
-    async def config_changed_callback(cfg: AppConfig):
+    async def config_changed_callback(old_cfg: AppConfig | None, new_cfg: AppConfig):
         """配置变化回调函数"""
-        await on_config_changed(cfg, scheduler)
+        await on_config_changed(old_cfg, new_cfg, scheduler)
 
     config_watcher = ConfigWatcher(
         config_path="config.yml",
@@ -200,15 +254,43 @@ async def main():
     await config_watcher.start()
     logger.info("配置文件热重载监控已启动（每5秒检查一次）")
 
-    # 运行调度器（阻塞直到收到停止信号）
+    # 运行调度器和Web服务器（阻塞直到收到停止信号）
     try:
         await scheduler.run_forever()
     except KeyboardInterrupt:
         logger.info("收到中断信号，正在关闭...")
     except Exception as e:
-        logger.error(f"调度器运行出错: {e}")
+        logger.error(f"程序运行出错: {e}")
         raise
     finally:
+        # 停止Web服务器 - 优雅关闭
+        if "server" in locals():
+            try:
+                # 设置服务器退出标志，优雅关闭
+                server.should_exit = True
+                # 等待服务器关闭（最多等待5秒）
+                if "web_task" in locals() and not web_task.done():
+                    try:
+                        await asyncio.wait_for(web_task, timeout=5.0)
+                    except asyncio.TimeoutError:
+                        logger.debug("Web服务器关闭超时，强制取消")
+                        web_task.cancel()
+                        try:
+                            await web_task
+                        except (asyncio.CancelledError, Exception):
+                            pass
+                    except (asyncio.CancelledError, Exception):
+                        # CancelledError 是正常的，其他异常也忽略
+                        pass
+            except Exception as e:
+                logger.debug(f"停止Web服务器时出错（可忽略）: {e}")
+        elif "web_task" in locals() and not web_task.done():
+            # 如果没有server对象，直接取消任务
+            web_task.cancel()
+            try:
+                await web_task
+            except (asyncio.CancelledError, Exception):
+                pass
         # 停止配置监控器
         await config_watcher.stop()
         # 关闭共享数据库连接

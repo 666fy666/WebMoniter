@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="url(#grad)"/>
+  <!-- Monitor eye icon - outer -->
+  <ellipse cx="32" cy="28" rx="18" ry="12" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Monitor eye icon - middle -->
+  <ellipse cx="32" cy="28" rx="12" ry="8" fill="#4A90E2"/>
+  <!-- Monitor eye icon - pupil -->
+  <circle cx="32" cy="28" r="6" fill="#FFFFFF"/>
+  <!-- Highlight -->
+  <circle cx="30" cy="26" r="2" fill="#FFFFFF" opacity="0.8"/>
+  <!-- Bottom decoration -->
+  <path d="M 20 40 Q 32 45 44 40" stroke="#FFFFFF" stroke-width="2.5" fill="none" opacity="0.9" stroke-linecap="round"/>
+</svg>

@@ -361,7 +361,7 @@ class WeiboMonitor(BaseMonitor):
 
             tasks = [process_with_semaphore(uid) for uid in self.weibo_config.uids]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             # 检查并记录异常
             for i, result in enumerate(results):
                 if isinstance(result, Exception):

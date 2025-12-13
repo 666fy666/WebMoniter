@@ -1,0 +1,458 @@
+"""Web服务器模块 - 提供Web界面和API接口"""
+
+import logging
+import secrets
+from datetime import datetime
+from pathlib import Path
+
+import yaml
+from fastapi import FastAPI, Form, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+
+from src.config import get_config, load_config_from_yml
+from src.database import AsyncDatabase
+
+# 尝试导入 ruamel.yaml 以保留注释
+try:
+    from ruamel.yaml import YAML as RUAMEL_YAML
+
+    RUAMEL_AVAILABLE = True
+except ImportError:
+    RUAMEL_AVAILABLE = False
+    RUAMEL_YAML = None
+
+logger = logging.getLogger(__name__)
+
+# 创建FastAPI应用
+app = FastAPI(title="Web监控系统", description="Web监控系统管理界面")
+
+# 会话密钥
+SECRET_KEY = secrets.token_urlsafe(32)
+
+# 添加会话中间件
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+# 模板目录
+templates = Jinja2Templates(directory="web/templates")
+
+# 静态文件目录
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
+
+# 登录凭据
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "123"
+
+# 存储登录会话
+active_sessions: set[str] = set()
+
+
+def check_login(session_id: str | None) -> bool:
+    """检查用户是否已登录"""
+    return session_id is not None and session_id in active_sessions
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    """首页 - 重定向到配置管理页"""
+    session_id = request.session.get("session_id")
+    if check_login(session_id):
+        return templates.TemplateResponse("config.html", {"request": request})
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """登录页面"""
+    session_id = request.session.get("session_id")
+    if check_login(session_id):
+        return templates.TemplateResponse("config.html", {"request": request})
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.post("/api/login")
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    """登录接口"""
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        session_id = secrets.token_urlsafe(32)
+        request.session["session_id"] = session_id
+        active_sessions.add(session_id)
+        return JSONResponse({"success": True, "message": "登录成功"})
+    return JSONResponse(
+        {"success": False, "message": "用户名或密码错误"}, status_code=status.HTTP_401_UNAUTHORIZED
+    )
+
+
+@app.post("/api/logout")
+async def logout(request: Request):
+    """登出接口"""
+    session_id = request.session.get("session_id")
+    if session_id:
+        active_sessions.discard(session_id)
+        request.session.clear()
+    return JSONResponse({"success": True, "message": "已登出"})
+
+
+@app.get("/api/check-auth")
+async def check_auth(request: Request):
+    """检查认证状态"""
+    session_id = request.session.get("session_id")
+    if check_login(session_id):
+        return JSONResponse({"authenticated": True})
+    return JSONResponse({"authenticated": False}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+@app.get("/config", response_class=HTMLResponse)
+async def config_page(request: Request):
+    """配置管理页面"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("config.html", {"request": request})
+
+
+@app.get("/data", response_class=HTMLResponse)
+async def data_page(request: Request):
+    """数据展示页面"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("data.html", {"request": request})
+
+
+@app.get("/logs", response_class=HTMLResponse)
+async def logs_page(request: Request):
+    """日志展示页面"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("logs.html", {"request": request})
+
+
+@app.get("/api/config")
+async def get_config_api(request: Request, format: str = "json"):
+    """获取配置文件内容"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        config_path = Path("config.yml")
+        if not config_path.exists():
+            return JSONResponse({"error": "配置文件不存在"}, status_code=404)
+
+        # 如果请求YAML格式，直接返回文本
+        if format == "yaml":
+            with open(config_path, encoding="utf-8") as f:
+                content = f.read()
+            return JSONResponse({"content": content})
+
+        # 否则返回JSON格式
+        with open(config_path, encoding="utf-8") as f:
+            yaml_data = yaml.safe_load(f)
+
+        return JSONResponse({"config": yaml_data})
+    except Exception as e:
+        logger.error(f"读取配置文件失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/config")
+async def save_config_api(request: Request):
+    """保存配置文件"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        # 尝试获取JSON格式的配置数据
+        try:
+            json_data = await request.json()
+
+            # 如果提供了content字段（YAML文本），直接使用
+            if "content" in json_data:
+                yaml_content = json_data["content"]
+                # 验证YAML格式
+                try:
+                    yaml.safe_load(yaml_content)
+                except yaml.YAMLError as e:
+                    return JSONResponse({"error": f"YAML格式错误: {str(e)}"}, status_code=400)
+            else:
+                config_data = json_data.get("config")
+                if config_data is None:
+                    # 如果没有config字段，尝试直接使用请求体
+                    config_data = json_data
+
+                if not config_data:
+                    return JSONResponse({"error": "配置数据为空"}, status_code=400)
+
+                # 尝试保留原始YAML文件的注释
+                config_path = Path("config.yml")
+                if RUAMEL_AVAILABLE and config_path.exists():
+                    try:
+                        # 使用 ruamel.yaml 读取原始文件（保留注释）
+                        ruamel_yaml = RUAMEL_YAML()
+                        ruamel_yaml.preserve_quotes = True
+                        ruamel_yaml.width = 4096  # 设置宽度以避免换行
+                        ruamel_yaml.indent(mapping=2, sequence=4, offset=2)  # 设置缩进
+
+                        with open(config_path, encoding="utf-8") as f:
+                            original_yaml = ruamel_yaml.load(f)
+
+                        if original_yaml is None:
+                            # 如果文件为空，使用新配置
+                            original_yaml = {}
+
+                        # 更新配置数据
+                        def update_dict(target, source):
+                            """递归更新字典，保留原始结构"""
+                            for key, value in source.items():
+                                if key not in target:
+                                    # 新键，直接添加
+                                    target[key] = value
+                                elif isinstance(target[key], dict) and isinstance(value, dict):
+                                    # 都是字典，递归更新
+                                    update_dict(target[key], value)
+                                elif isinstance(target[key], list) and isinstance(value, list):
+                                    # 都是列表，直接替换（保留原始列表的注释结构）
+                                    target[key] = value
+                                else:
+                                    # 其他情况，直接替换
+                                    target[key] = value
+
+                        update_dict(original_yaml, config_data)
+
+                        # 将更新后的配置写回字符串（保留注释）
+                        from io import StringIO
+
+                        output = StringIO()
+                        ruamel_yaml.dump(original_yaml, output)
+                        yaml_content = output.getvalue()
+                    except Exception as e:
+                        logger.warning(f"使用 ruamel.yaml 保留注释失败，回退到标准方式: {e}")
+                        # 回退到标准方式
+                        yaml_content = yaml.dump(
+                            config_data,
+                            allow_unicode=True,
+                            default_flow_style=False,
+                            sort_keys=False,
+                        )
+                else:
+                    # 使用标准 yaml.dump（没有 ruamel.yaml 或文件不存在）
+                    try:
+                        yaml_content = yaml.dump(
+                            config_data,
+                            allow_unicode=True,
+                            default_flow_style=False,
+                            sort_keys=False,
+                        )
+                    except Exception as e:
+                        return JSONResponse({"error": f"转换YAML失败: {str(e)}"}, status_code=400)
+        except Exception:
+            # 如果不是JSON，尝试获取Form数据（兼容旧版本）
+            form_data = await request.form()
+            content = form_data.get("content")
+            if content:
+                yaml_content = content
+                # 验证YAML格式
+                try:
+                    yaml.safe_load(yaml_content)
+                except yaml.YAMLError as e:
+                    return JSONResponse({"error": f"YAML格式错误: {str(e)}"}, status_code=400)
+            else:
+                return JSONResponse({"error": "未提供配置数据"}, status_code=400)
+
+        # 验证配置内容（使用临时文件）
+        import tempfile
+
+        temp_file = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yml", delete=False, encoding="utf-8"
+            ) as tmp:
+                tmp.write(yaml_content)
+                temp_file = tmp.name
+
+            # 尝试加载配置验证
+            try:
+                test_config_dict = load_config_from_yml(temp_file)
+                # 尝试创建AppConfig验证
+                from src.config import AppConfig
+
+                AppConfig(**test_config_dict)
+            except Exception as e:
+                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+            finally:
+                if temp_file and Path(temp_file).exists():
+                    Path(temp_file).unlink()
+        except Exception as e:
+            if temp_file and Path(temp_file).exists():
+                Path(temp_file).unlink()
+            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+
+        # 保存配置文件
+        config_path = Path("config.yml")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(yaml_content)
+
+        # 触发热重载（通过重新加载配置）
+        try:
+            get_config(reload=True)
+            # 日志由配置监控器统一输出，这里不输出
+        except Exception as e:
+            logger.warning(f"热重载失败: {e}")
+
+        return JSONResponse({"success": True, "message": "配置已保存并应用"})
+    except Exception as e:
+        logger.error(f"保存配置文件失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/data/{table_name}")
+async def get_table_data(request: Request, table_name: str, page: int = 1, page_size: int = 100):
+    """获取数据库表数据"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    if table_name not in ["weibo", "huya"]:
+        return JSONResponse({"error": "无效的表名"}, status_code=400)
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        # 获取总数
+        count_sql = f"SELECT COUNT(*) FROM {table_name}"
+        count_result = await db.execute_query(count_sql)
+        total = count_result[0][0] if count_result else 0
+
+        # 获取分页数据
+        offset = (page - 1) * page_size
+        if table_name == "weibo":
+            sql = (
+                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid "
+                f"FROM {table_name} LIMIT {page_size} OFFSET {offset}"
+            )
+        else:  # huya
+            sql = (
+                f"SELECT room, name, is_live FROM {table_name} "
+                f"LIMIT {page_size} OFFSET {offset}"
+            )
+
+        rows = await db.execute_query(sql)
+
+        # 转换为字典格式
+        if table_name == "weibo":
+            data = [
+                {
+                    "UID": row[0],
+                    "用户名": row[1],
+                    "认证信息": row[2],
+                    "简介": row[3],
+                    "粉丝数": row[4],
+                    "微博数": row[5],
+                    "文本": row[6],
+                    "mid": row[7],
+                }
+                for row in rows
+            ]
+        else:  # huya
+            data = [{"room": row[0], "name": row[1], "is_live": row[2]} for row in rows]
+
+        await db.close()
+
+        return JSONResponse(
+            {
+                "data": data,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (total + page_size - 1) // page_size,
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取表数据失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/logs")
+async def get_logs(request: Request, lines: int = 100):
+    """获取日志内容"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        from src.log_manager import LogManager
+
+        log_manager = LogManager()
+        log_file = log_manager.get_log_file("main", date_format="%Y%m%d")
+
+        if not log_file.exists():
+            return JSONResponse({"logs": [], "message": "今日暂无日志"})
+
+        # 读取最后N行
+        with open(log_file, encoding="utf-8") as f:
+            all_lines = f.readlines()
+            # 只返回最后N行
+            recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+
+        return JSONResponse({"logs": recent_lines, "total_lines": len(all_lines)})
+    except Exception as e:
+        logger.error(f"读取日志失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/monitor-status")
+async def get_monitor_status(request: Request):
+    """获取监控任务状态（API接口，无需登录）"""
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        # 获取weibo表数据
+        weibo_sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
+        weibo_rows = await db.execute_query(weibo_sql)
+        weibo_data = [
+            {
+                "UID": row[0],
+                "用户名": row[1],
+                "认证信息": row[2],
+                "简介": row[3],
+                "粉丝数": row[4],
+                "微博数": row[5],
+                "文本": row[6],
+                "mid": row[7],
+            }
+            for row in weibo_rows
+        ]
+
+        # 获取huya表数据
+        huya_sql = "SELECT room, name, is_live FROM huya"
+        huya_rows = await db.execute_query(huya_sql)
+        huya_data = [{"room": row[0], "name": row[1], "is_live": row[2]} for row in huya_rows]
+
+        await db.close()
+
+        return JSONResponse(
+            {
+                "success": True,
+                "data": {
+                    "weibo": weibo_data,
+                    "huya": huya_data,
+                },
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取监控状态失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def create_web_app():
+    """创建Web应用实例"""
+    return app

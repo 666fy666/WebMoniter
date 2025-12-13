@@ -140,11 +140,14 @@ class TaskScheduler:
             hours: 间隔小时数
 
         注意：seconds、minutes、hours 至少需要提供一个，如果提供多个，优先级为 seconds > minutes > hours
+
+        Returns:
+            更新信息字符串，如果更新失败返回None
         """
         job = self.scheduler.get_job(job_id)
         if job is None:
             self.logger.warning(f"任务 {job_id} 不存在，无法更新间隔时间")
-            return
+            return None
 
         # 构建新的触发器参数
         trigger_kwargs = {}
@@ -156,14 +159,21 @@ class TaskScheduler:
             trigger_kwargs["hours"] = hours
         else:
             self.logger.warning(f"未提供有效的间隔时间参数，无法更新任务 {job_id}")
-            return
+            return None
 
         # 创建新的触发器
         new_trigger = IntervalTrigger(**trigger_kwargs)
 
         # 更新任务的触发器
         job.reschedule(trigger=new_trigger)
-        self.logger.info(f"已更新任务 {job_id} 的间隔时间: {trigger_kwargs}")
+        # 返回更新信息，不直接输出日志
+        if seconds is not None:
+            return f"{job_id}(间隔: {seconds}秒)"
+        if minutes is not None:
+            return f"{job_id}(间隔: {minutes}分钟)"
+        if hours is not None:
+            return f"{job_id}(间隔: {hours}小时)"
+        return None
 
     def update_cron_job(
         self,
@@ -184,17 +194,20 @@ class TaskScheduler:
             day: 日期（cron格式，默认 "*"）
             month: 月份（cron格式，默认 "*"）
             day_of_week: 星期几（cron格式，默认 "*"）
+
+        Returns:
+            更新信息字符串，如果更新失败返回None
         """
         job = self.scheduler.get_job(job_id)
         if job is None:
             self.logger.warning(f"任务 {job_id} 不存在，无法更新执行时间")
-            return
+            return None
 
         # 获取当前触发器的参数
         current_trigger = job.trigger
         if not isinstance(current_trigger, CronTrigger):
             self.logger.warning(f"任务 {job_id} 不是Cron任务，无法更新")
-            return
+            return None
 
         # 使用新参数或保留旧参数（通过字符串表示获取）
         # CronTrigger 的字符串表示格式为: "cron[year='*', month='*', day='*', week='*', day_of_week='*', hour='*', minute='*']"
@@ -216,7 +229,8 @@ class TaskScheduler:
 
         # 更新任务的触发器
         job.reschedule(trigger=new_trigger)
-        self.logger.info(f"已更新任务 {job_id} 的执行时间: minute={new_minute}, hour={new_hour}")
+        # 返回更新信息，不直接输出日志
+        return f"{job_id}(执行时间: {new_hour}:{new_minute})"
 
     def start(self):
         """启动调度器"""

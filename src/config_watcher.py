@@ -17,7 +17,7 @@ class ConfigWatcher:
         self,
         config_path: str = "config.yml",
         check_interval: int = 5,
-        on_config_changed: Callable[[AppConfig], Awaitable[None] | None] | None = None,
+        on_config_changed: Callable[[AppConfig, AppConfig], Awaitable[None] | None] | None = None,
     ):
         """
         初始化配置监控器
@@ -25,7 +25,7 @@ class ConfigWatcher:
         Args:
             config_path: 配置文件路径
             check_interval: 检查间隔（秒），默认5秒
-            on_config_changed: 配置变化时的回调函数，接收新的 AppConfig 作为参数
+            on_config_changed: 配置变化时的回调函数，接收旧配置和新配置作为参数
         """
         self.config_path = Path(config_path)
         self.check_interval = check_interval
@@ -83,22 +83,21 @@ class ConfigWatcher:
 
                 # 检查文件是否被修改
                 if current_mtime > self._last_mtime:
-                    logger.info("检测到配置文件已修改，开始重新加载...")
-
                     try:
                         # 重新加载配置
                         new_config = get_config(reload=True)
 
                         # 检查配置是否真的发生了变化（避免因文件保存但内容未变而触发）
                         if self._config_changed(self._last_config, new_config):
-                            logger.info("配置内容已更新，触发热重载")
+                            # 保存旧配置的引用（在更新之前）
+                            old_config = self._last_config
                             self._last_mtime = current_mtime
                             self._last_config = new_config
 
                             # 调用回调函数
                             if self.on_config_changed:
                                 try:
-                                    await self._call_callback(new_config)
+                                    await self._call_callback(old_config, new_config)
                                 except Exception as e:
                                     logger.error(f"执行配置变化回调失败: {e}", exc_info=True)
                         else:
@@ -168,17 +167,25 @@ class ConfigWatcher:
         if old_channels_str != new_channels_str:
             return True
 
+        # 免打扰时段配置
+        if (
+            old_config.quiet_hours_enable != new_config.quiet_hours_enable
+            or old_config.quiet_hours_start != new_config.quiet_hours_start
+            or old_config.quiet_hours_end != new_config.quiet_hours_end
+        ):
+            return True
+
         return False
 
-    async def _call_callback(self, new_config: AppConfig):
+    async def _call_callback(self, old_config: AppConfig | None, new_config: AppConfig):
         """调用回调函数（支持同步和异步回调）"""
         if self.on_config_changed is None:
             return
 
         # 检查回调函数是否是协程函数
         if asyncio.iscoroutinefunction(self.on_config_changed):
-            await self.on_config_changed(new_config)
+            await self.on_config_changed(old_config, new_config)
         else:
             # 同步函数，在线程池中执行
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.on_config_changed, new_config)
+            await loop.run_in_executor(None, self.on_config_changed, old_config, new_config)

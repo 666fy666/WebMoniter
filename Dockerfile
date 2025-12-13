@@ -39,6 +39,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY main.py ./
 COPY monitors/ ./monitors/
 COPY src/ ./src/
+COPY web/ ./web/
 
 # 设置环境变量
 # PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块
