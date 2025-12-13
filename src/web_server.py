@@ -197,6 +197,8 @@ async def save_config_api(request: Request):
                         ruamel_yaml.preserve_quotes = True
                         ruamel_yaml.width = 4096  # 设置宽度以避免换行
                         ruamel_yaml.indent(mapping=2, sequence=4, offset=2)  # 设置缩进
+                        ruamel_yaml.default_flow_style = False  # 不使用流式风格
+                        ruamel_yaml.allow_unicode = True  # 允许Unicode
 
                         with open(config_path, encoding="utf-8") as f:
                             original_yaml = ruamel_yaml.load(f)
@@ -216,8 +218,38 @@ async def save_config_api(request: Request):
                                     # 都是字典，递归更新
                                     update_dict(target[key], value)
                                 elif isinstance(target[key], list) and isinstance(value, list):
-                                    # 都是列表，直接替换（保留原始列表的注释结构）
-                                    target[key] = value
+                                    # 对于列表，尝试智能合并以保留注释
+                                    # 对于 push_channel，使用 name 字段匹配
+                                    if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
+                                        # 创建以 name 为键的映射，记录原始位置
+                                        existing_map = {}
+                                        for idx, item in enumerate(target[key]):
+                                            if isinstance(item, dict) and "name" in item:
+                                                existing_map[item["name"]] = idx
+                                        
+                                        # 收集新列表中的所有 name
+                                        new_names = {item.get("name") for item in value if isinstance(item, dict) and "name" in item}
+                                        
+                                        # 更新或添加通道
+                                        for new_item in value:
+                                            if isinstance(new_item, dict) and "name" in new_item:
+                                                name = new_item["name"]
+                                                if name in existing_map:
+                                                    # 更新现有通道（保留原始位置和注释）
+                                                    idx = existing_map[name]
+                                                    update_dict(target[key][idx], new_item)
+                                                else:
+                                                    # 添加新通道到末尾
+                                                    target[key].append(new_item)
+                                        
+                                        # 移除已删除的通道（保留顺序和注释）
+                                        target[key][:] = [
+                                            item for item in target[key]
+                                            if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
+                                        ]
+                                    else:
+                                        # 其他列表，直接替换
+                                        target[key] = value
                                 else:
                                     # 其他情况，直接替换
                                     target[key] = value
