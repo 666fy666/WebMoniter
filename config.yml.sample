@@ -146,4 +146,12 @@ push_channel:
     sender_email:
     sender_password:
     receiver_email:
+  # WxPusher
+  - name: WxPusher
+    enable: false
+    type: wxpusher
+    app_token:  # 应用令牌，在WxPusher后台创建应用后获取
+    uids:  # 用户ID列表，逗号分隔（可选，与topic_ids二选一）
+    topic_ids:  # 主题ID列表，逗号分隔（可选，与uids二选一）
+    content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
 

@@ -82,6 +82,7 @@
 | Gotify             | gotify            | ❌           | 🖥️适合自建服务器👉[官网](https://gotify.net)                                                                 |
 | Webhook            | webhook           | ✅(POST)     | ⚡️通用的方式，请求格式详见[附录](#webhook-支持的请求格式)                                                   |
 | PushPlus           | pushplus          | ✅           | 📱支持多种推送渠道（微信、邮件、Webhook等）👉[官网](https://www.pushplus.plus/)                              |
+| WxPusher           | wxpusher          | ✅           | 📱推荐,微信消息实时推送服务，可通过API实时给个人微信推送消息👉[官网](https://wxpusher.zjiecode.com/)              |
 | 电子邮件           | email             | ✅           | 📧通用的方式                                                                                                  |
 
 ---
@@ -447,6 +448,15 @@ push_channel:
     enable: false
     type: serverChan_turbo
     send_key: your_send_key
+  
+  # WxPusher
+  - name: WxPusher
+    enable: false
+    type: wxpusher
+    app_token: your_app_token  # 应用令牌，在WxPusher后台创建应用后获取
+    uids: uid1,uid2  # 用户ID列表，逗号分隔（可选，与topic_ids二选一）
+    topic_ids:  # 主题ID列表，逗号分隔（可选，与uids二选一）
+    content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
 ```
 
 详细配置示例请参考 `config.yml.sample` 文件。

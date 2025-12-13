@@ -233,7 +233,7 @@ class WeiboMonitor(BaseMonitor):
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description=(
                     f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 32}\n"
+                    f"{'=' * 30}\n"
                     f"认证:{data['认证信息']}\n\n"
                     f"简介:{data['简介']}"
                 ),
