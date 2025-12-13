@@ -1,36 +1,50 @@
-# 使用 Python 3.11 作为基础镜像
-# 支持多平台架构：linux/amd64, linux/arm64
-# Docker Buildx 会自动根据目标平台拉取对应的基础镜像
+# ============================================
+# 构建阶段：安装依赖
+# ============================================
+FROM python:3.11-slim AS builder
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装 uv（合并命令减少层数，清理缓存）
+RUN pip install --no-cache-dir uv && \
+    rm -rf /root/.cache/pip
+
+# 先只复制依赖定义文件（利用 Docker 缓存）
+COPY pyproject.toml uv.lock ./
+
+# 使用 uv 安装依赖到虚拟环境
+# --frozen: 严格按照 uv.lock 安装
+# --no-dev: 不安装开发环境依赖
+# --no-install-project: 不将当前项目作为包安装
+RUN uv sync --frozen --no-dev --no-install-project && \
+    # 清理 uv 缓存和临时文件
+    rm -rf /root/.cache/uv && \
+    find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type f -name "*.pyc" -delete && \
+    find /app/.venv -type f -name "*.pyo" -delete
+
+# ============================================
+# 运行阶段：最小化镜像
+# ============================================
 FROM python:3.11-slim
 
 # 设置工作目录
 WORKDIR /app
 
-# 安装 uv
-RUN pip install --no-cache-dir uv
+# 从构建阶段复制虚拟环境（只复制必要的文件）
+COPY --from=builder /app/.venv /app/.venv
 
-# 1. 先只复制依赖定义文件
-# 这样做的好处是：只要这些文件没变，Docker 会使用缓存，跳过下面的安装步骤
-COPY pyproject.toml uv.lock ./
-
-# 2. 使用 uv 安装依赖
-# --frozen: 严格按照 uv.lock 安装
-# --no-dev: 不安装开发环境依赖
-# --no-install-project: 【关键修改】不将当前项目作为包安装，解决找不到 README.md 的问题
-RUN uv sync --frozen --no-dev --no-install-project
-
-# 3. 依赖安装完成后，再复制项目的其余源代码
-COPY . .
+# 复制项目源代码（只复制运行时需要的文件）
+COPY main.py ./
+COPY monitors/ ./monitors/
+COPY src/ ./src/
 
 # 设置环境变量
-# PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块，
-# 因为我们使用了 --no-install-project，项目本身没有被安装到 site-packages 里
+# PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PATH="/app/.venv/bin:$PATH"
 
-# 暴露端口（如果需要）
-# EXPOSE 8000
-
-# 运行主程序
-# 依然使用 uv run，它会自动使用刚才创建的虚拟环境
-CMD ["uv", "run", "python", "main.py"]
+# 运行主程序（直接使用 venv 中的 python，避免 uv run 的开销）
+CMD ["python", "main.py"]

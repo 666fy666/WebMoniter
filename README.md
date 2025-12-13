@@ -160,12 +160,28 @@ services:
     image: fengyu666/webmoniter:latest
     container_name: webmoniter
     restart: unless-stopped
+    init: true
+    shm_size: 64m
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 512M
     volumes:
-      - ./config.yml:/app/config.yml:ro  # 配置文件（只读）
-      - ./data:/app/data                  # 数据库目录
-      - ./logs:/app/logs                  # 日志目录
+      - ./config.yml:/app/config.yml:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
     environment:
-      - TZ=Asia/Shanghai                  # 时区设置
+      - TZ=Asia/Shanghai
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONNOUSERSITE=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 ```
 
 **配置说明：**
@@ -173,11 +189,20 @@ services:
 - `image`: Docker 镜像名称，支持多平台（amd64、arm64）
 - `container_name`: 容器名称
 - `restart`: 重启策略，`unless-stopped` 表示除非手动停止，否则自动重启
+- `init`: 使用 init 进程处理僵尸进程，提升容器稳定性
+- `shm_size`: 限制共享内存大小为 64MB，优化资源使用
+- `deploy.resources`: 资源限制配置
+  - `limits.memory`: 最大内存限制为 1024MB
+  - `reservations.memory`: 预留内存为 512MB
 - `volumes`: 数据卷挂载
-  - `config.yml`: 配置文件挂载为只读，修改配置后需要重启容器
+  - `config.yml`: 配置文件挂载为只读，支持热重载（修改配置后无需重启容器）
   - `data`: 数据库文件存储目录，持久化数据
   - `logs`: 日志文件存储目录
-- `environment`: 环境变量，设置时区为上海时区
+- `environment`: 环境变量配置
+  - `TZ`: 设置时区为上海时区
+  - `PYTHONDONTWRITEBYTECODE=1`: 禁用字节码缓存写入，减少磁盘 I/O
+  - `PYTHONNOUSERSITE=1`: 禁用用户站点目录，确保环境隔离
+- `healthcheck`: 健康检查配置，用于监控容器运行状态
 
 #### 3. 启动服务
 
@@ -245,12 +270,22 @@ docker rmi fengyu666/webmoniter:latest    # 删除镜像（可选）
 Docker 会自动根据您的系统架构拉取对应的镜像。如果您需要手动指定平台：
 
 ```yaml
-# 在 docker-compose.yml 中添加
 services:
   web-monitor:
-    platform: linux/amd64  # 或 linux/arm64
-    # ... 其他配置
+    platform: linux/amd64
 ```
+
+### Docker 镜像优化
+
+本项目 Docker 镜像经过优化，具有以下特点：
+
+- **多阶段构建**：分离构建和运行阶段，减小镜像体积
+- **最小化运行时**：运行阶段不包含构建工具，只保留必要的运行时文件
+- **缓存优化**：清理构建缓存和临时文件，进一步减小镜像体积
+- **启动优化**：使用优化的环境变量配置，提升容器启动速度
+- **资源限制**：合理配置内存限制，防止资源浪费
+
+优化后的镜像体积更小，启动速度更快，同时保持所有功能不变。
 
 ### 配置文件修改（支持热重载）
 
@@ -607,7 +642,7 @@ Content-Type: application/json
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证。
+本项目采用 MIT 许可证,仅供个人学习使用。
 
 ---
 

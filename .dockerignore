@@ -2,6 +2,7 @@
 .git/
 .gitignore
 .gitattributes
+.git/
 
 # Python
 __pycache__/
@@ -24,12 +25,18 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
 
 # 虚拟环境
 venv/
 env/
 ENV/
 .venv/
+.uv/
 
 # IDE
 .vscode/
@@ -37,10 +44,12 @@ ENV/
 *.swp
 *.swo
 *~
+.cursorrules
 
 # 环境变量
 .env
 .env.local
+.env.*
 
 # 配置文件（运行时需要，但构建时不需要）
 # 注意：config.yml 通过 volume 挂载，构建时不需要
@@ -66,15 +75,36 @@ logs/
 # 操作系统
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # 文档和示例
 README.md
 *.md
+docs/
 config.yml.sample
 
 # CI/CD
 .github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# 测试
+tests/
+test_*.py
+*_test.py
+.pytest_cache/
+.coverage
+htmlcov/
 
 # 其他
 *.ruff_cache/
-.cursorrules
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

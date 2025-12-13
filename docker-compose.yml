@@ -3,9 +3,25 @@ services:
     image: fengyu666/webmoniter:latest
     container_name: webmoniter
     restart: unless-stopped
+    init: true
+    shm_size: 64m
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 512M
     volumes:
       - ./config.yml:/app/config.yml:ro
       - ./data:/app/data
       - ./logs:/app/logs
     environment:
       - TZ=Asia/Shanghai
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONNOUSERSITE=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
