@@ -53,6 +53,66 @@ function formatDateTime(dateString) {
     return date.toLocaleString('zh-CN');
 }
 
+// 移动端菜单切换
+function initMobileMenu() {
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    if (!mobileMenuBtn || !sidebar || !sidebarOverlay) {
+        return; // 登录页面没有这些元素
+    }
+
+    // 切换菜单显示/隐藏
+    function toggleMenu() {
+        const isOpen = sidebar.classList.contains('show');
+        if (isOpen) {
+            sidebar.classList.remove('show');
+            sidebarOverlay.classList.remove('show');
+            mobileMenuBtn.classList.remove('active');
+            document.body.style.overflow = ''; // 恢复滚动
+        } else {
+            sidebar.classList.add('show');
+            sidebarOverlay.classList.add('show');
+            mobileMenuBtn.classList.add('active');
+            document.body.style.overflow = 'hidden'; // 禁止背景滚动
+        }
+    }
+
+    // 关闭菜单
+    function closeMenu() {
+        sidebar.classList.remove('show');
+        sidebarOverlay.classList.remove('show');
+        mobileMenuBtn.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // 绑定事件
+    mobileMenuBtn.addEventListener('click', toggleMenu);
+    sidebarOverlay.addEventListener('click', closeMenu);
+
+    // 点击导航项后关闭菜单（移动端）
+    const navItems = sidebar.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                closeMenu();
+            }
+        });
+    });
+
+    // 窗口大小改变时，如果切换到桌面端，自动关闭移动端菜单
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        }, 250);
+    });
+}
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
     // 如果不是登录页，检查认证
@@ -65,4 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
+
+    // 初始化移动端菜单
+    initMobileMenu();
 });

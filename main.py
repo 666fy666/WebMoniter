@@ -182,6 +182,21 @@ async def main():
 
     web_app = create_web_app()
 
+    # 配置 uvicorn 日志，过滤无效请求警告
+    uvicorn_logger = logging.getLogger("uvicorn.error")
+    
+    # 创建自定义过滤器，过滤无效HTTP请求警告
+    class InvalidRequestFilter(logging.Filter):
+        def filter(self, record):
+            # 过滤掉 "Invalid HTTP request" 警告
+            if "Invalid HTTP request" in str(record.getMessage()):
+                return False
+            return True
+    
+    # 添加过滤器
+    invalid_request_filter = InvalidRequestFilter()
+    uvicorn_logger.addFilter(invalid_request_filter)
+    
     # 创建uvicorn服务器配置
     server_config = uvicorn.Config(
         app=web_app,

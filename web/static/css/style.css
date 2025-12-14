@@ -71,14 +71,21 @@ body {
 .error-message {
     color: #e74c3c;
     margin-bottom: 15px;
-    padding: 10px;
+    padding: 15px;
     background-color: #fee;
     border-radius: 5px;
     display: none;
+    border: 1px solid #f5c6cb;
+    word-wrap: break-word;
+    word-break: break-all;
 }
 
 .error-message.show {
     display: block;
+}
+
+.error-message button {
+    margin-top: 10px;
 }
 
 /* 侧边栏 */
@@ -436,6 +443,23 @@ table tr:hover {
     word-wrap: break-word;
 }
 
+/* 缓存提示样式 */
+.cache-notice {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #856404;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.cache-notice span {
+    font-weight: bold;
+}
+
 .log-line {
     margin-bottom: 2px;
 }
@@ -463,26 +487,362 @@ table tr:hover {
     color: #7f8c8d;
 }
 
+/* 移动端菜单按钮 */
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s;
+}
+
+.mobile-menu-btn:hover {
+    background-color: #34495e;
+}
+
+.mobile-menu-btn.active {
+    background-color: #667eea;
+}
+
+/* 移动端遮罩层 */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sidebar-overlay.show {
+    display: block;
+    opacity: 1;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
+    /* 移动端菜单按钮显示 */
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    /* 侧边栏在移动端默认隐藏，点击后显示 */
     .sidebar {
-        width: 200px;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
     }
 
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    /* 主内容区在移动端占满全宽 */
     .main-content {
-        margin-left: 200px;
-        padding: 20px;
+        margin-left: 0;
+        padding: 60px 15px 20px;
     }
 
+    /* 内容标题 */
+    .content-header h1 {
+        font-size: 24px;
+    }
+
+    .subtitle {
+        font-size: 13px;
+    }
+
+    /* 卡片头部在移动端垂直排列 */
     .card-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
+        padding: 15px;
+    }
+
+    .card-header h2 {
+        font-size: 18px;
+        width: 100%;
     }
 
     .card-actions {
         width: 100%;
         flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    /* 按钮在移动端全宽或适当大小 */
+    .btn {
+        padding: 12px 16px;
+        font-size: 14px;
+        min-height: 44px; /* 触摸友好的最小高度 */
+    }
+
+    .card-actions .btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* 侧边栏导航项 */
+    .nav-item {
+        padding: 18px 20px;
+        font-size: 16px;
+    }
+
+    .nav-icon {
+        font-size: 20px;
+    }
+
+    /* 配置表格在移动端改为垂直布局 */
+    .config-table {
+        display: block;
+    }
+
+    .config-table tr {
+        display: block;
+        border-bottom: 2px solid #eee;
+        padding: 15px 0;
+        margin-bottom: 10px;
+    }
+
+    .config-table tr:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .config-table td {
+        display: block;
+        padding: 8px 0;
+        width: 100%;
+        border: none;
+    }
+
+    .config-label {
+        width: 100%;
+        padding: 0;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .config-table td:last-child {
+        padding: 0;
+    }
+
+    /* 表单输入框 */
+    .form-input,
+    .form-textarea {
+        font-size: 16px; /* 防止iOS自动缩放 */
+        padding: 12px;
+    }
+
+    /* 表格容器在移动端横向滚动 */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: 500px;
+    }
+
+    table {
+        min-width: 600px; /* 确保表格可以横向滚动 */
+        font-size: 13px;
+    }
+
+    table th,
+    table td {
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+
+    /* 标签页在移动端可滚动 */
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        margin-bottom: 15px;
+    }
+
+    .tab-btn {
+        padding: 12px 16px;
+        font-size: 14px;
+        white-space: nowrap;
+        min-width: fit-content;
+    }
+
+    /* 分页按钮 */
+    .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .pagination button {
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+
+    /* 日志容器 */
+    .logs-container {
+        font-size: 12px;
+        padding: 15px;
+        max-height: 500px;
+    }
+
+    /* 缓存提示在移动端优化 */
+    .cache-notice {
+        padding: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    /* 错误消息在移动端优化 */
+    .error-message {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .error-message button {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* YAML编辑器 */
+    .yaml-editor {
+        font-size: 12px;
+        min-height: 400px;
+        padding: 12px;
+    }
+
+    /* 推送通道配置 */
+    .push-channel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .push-channel-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .push-channel-table {
+        display: block;
+    }
+
+    .push-channel-table tr {
+        display: block;
+        border-bottom: 2px solid #eee;
+        padding: 12px 0;
+        margin-bottom: 8px;
+    }
+
+    .push-channel-table tr:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .push-channel-table td {
+        display: block;
+        padding: 6px 0;
+        width: 100%;
+    }
+
+    .push-channel-table .config-label {
+        width: 100%;
+        padding: 0;
+        margin-bottom: 6px;
+    }
+
+    /* 欢迎卡片 */
+    .welcome-card {
+        padding: 30px 20px;
+    }
+
+    .welcome-card h2 {
+        font-size: 20px;
+    }
+
+    /* 登录页面 */
+    .login-container {
+        padding: 15px;
+    }
+
+    .login-box {
+        padding: 30px 20px;
+    }
+
+    .login-box h1 {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+
+    /* 开关样式在移动端 */
+    .switch {
+        width: 54px;
+        height: 28px;
+    }
+
+    .slider:before {
+        height: 22px;
+        width: 22px;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 60px 10px 15px;
+    }
+
+    .card-header,
+    .card-body {
+        padding: 12px;
+    }
+
+    .content-header h1 {
+        font-size: 20px;
+    }
+
+    .sidebar {
+        width: 260px;
+    }
+
+    table {
+        min-width: 500px;
+        font-size: 12px;
+    }
+
+    table th,
+    table td {
+        padding: 8px 6px;
+    }
+
+    .btn {
+        padding: 10px 14px;
+        font-size: 13px;
     }
 }
 

@@ -1,5 +1,6 @@
 """Web服务器模块 - 提供Web界面和API接口"""
 
+import asyncio
 import logging
 import secrets
 from datetime import datetime
@@ -11,6 +12,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
 from src.config import get_config, load_config_from_yml
 from src.database import AsyncDatabase
@@ -31,6 +35,7 @@ app = FastAPI(title="Web监控系统", description="Web监控系统管理界面"
 
 # 会话密钥
 SECRET_KEY = secrets.token_urlsafe(32)
+
 
 # 添加会话中间件
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
@@ -220,16 +225,24 @@ async def save_config_api(request: Request):
                                 elif isinstance(target[key], list) and isinstance(value, list):
                                     # 对于列表，尝试智能合并以保留注释
                                     # 对于 push_channel，使用 name 字段匹配
-                                    if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
+                                    if (
+                                        key == "push_channel"
+                                        and len(target[key]) > 0
+                                        and len(value) > 0
+                                    ):
                                         # 创建以 name 为键的映射，记录原始位置
                                         existing_map = {}
                                         for idx, item in enumerate(target[key]):
                                             if isinstance(item, dict) and "name" in item:
                                                 existing_map[item["name"]] = idx
-                                        
+
                                         # 收集新列表中的所有 name
-                                        new_names = {item.get("name") for item in value if isinstance(item, dict) and "name" in item}
-                                        
+                                        new_names = {
+                                            item.get("name")
+                                            for item in value
+                                            if isinstance(item, dict) and "name" in item
+                                        }
+
                                         # 更新或添加通道
                                         for new_item in value:
                                             if isinstance(new_item, dict) and "name" in new_item:
@@ -241,11 +254,14 @@ async def save_config_api(request: Request):
                                                 else:
                                                     # 添加新通道到末尾
                                                     target[key].append(new_item)
-                                        
+
                                         # 移除已删除的通道（保留顺序和注释）
                                         target[key][:] = [
-                                            item for item in target[key]
-                                            if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
+                                            item
+                                            for item in target[key]
+                                            if not isinstance(item, dict)
+                                            or "name" not in item
+                                            or item["name"] in new_names
                                         ]
                                     else:
                                         # 其他列表，直接替换
@@ -426,16 +442,109 @@ async def get_logs(request: Request, lines: int = 100):
         if not log_file.exists():
             return JSONResponse({"logs": [], "message": "今日暂无日志"})
 
-        # 读取最后N行
-        with open(log_file, encoding="utf-8") as f:
-            all_lines = f.readlines()
-            # 只返回最后N行
-            recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+        # 使用异步方式读取文件，避免阻塞事件循环
+        def read_log_file(file_path: Path, num_lines: int):
+            """同步读取日志文件的辅助函数，处理文件写入时的读取冲突
+            使用更健壮的方式读取正在写入的文件，避免手机端网络延迟导致的读取失败
+            """
+            import time
+            import os
+            
+            max_retries = 5  # 增加重试次数，适应手机端网络延迟
+            retry_delay = 0.2  # 200ms基础延迟
+            
+            for attempt in range(max_retries):
+                try:
+                    # 方法1: 尝试直接读取（大多数情况下可以成功）
+                    # 在Linux系统上，即使文件正在被写入，读取操作通常也不会失败
+                    try:
+                        with open(file_path, 'r', encoding="utf-8", errors='ignore') as f:
+                            # 先尝试获取文件大小
+                            f.seek(0, os.SEEK_END)
+                            file_size = f.tell()
+                            
+                            # 如果文件很小，直接读取全部
+                            if file_size < 1024 * 1024:  # 小于1MB
+                                f.seek(0)
+                                all_lines = f.readlines()
+                            else:
+                                # 大文件：从末尾读取，更高效且更安全
+                                # 估算需要读取的字节数（假设平均每行100字符）
+                                estimated_bytes = num_lines * 200
+                                read_start = max(0, file_size - estimated_bytes)
+                                f.seek(read_start)
+                                
+                                # 跳过可能不完整的首行
+                                if read_start > 0:
+                                    f.readline()
+                                
+                                # 读取剩余行
+                                all_lines = f.readlines()
+                            
+                            # 只返回最后N行
+                            if len(all_lines) > num_lines:
+                                recent_lines = all_lines[-num_lines:]
+                            else:
+                                recent_lines = all_lines
+                            
+                            return recent_lines, len(all_lines)
+                            
+                    except (IOError, OSError, PermissionError) as e:
+                        # 文件可能正在被写入或被锁定，等待后重试
+                        if attempt < max_retries - 1:
+                            # 递增延迟：200ms, 400ms, 600ms, 800ms
+                            time.sleep(retry_delay * (attempt + 1))
+                            continue
+                        else:
+                            # 最后一次尝试：使用备用方法
+                            raise
+                            
+                except (IOError, OSError, PermissionError) as e:
+                    # 如果直接读取失败，尝试备用方法：分块读取
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))
+                        continue
+                    else:
+                        # 最后一次尝试：使用最简单的读取方式
+                        try:
+                            with open(file_path, 'rb') as f:
+                                # 读取二进制内容，然后解码
+                                content = f.read()
+                                text = content.decode('utf-8', errors='ignore')
+                                all_lines = text.splitlines(keepends=True)
+                                
+                                if len(all_lines) > num_lines:
+                                    recent_lines = all_lines[-num_lines:]
+                                else:
+                                    recent_lines = all_lines
+                                
+                                return recent_lines, len(all_lines)
+                        except Exception as final_e:
+                            logger.error(f"读取日志文件失败（所有方法都失败）: {final_e}")
+                            raise
+                            
+                except Exception as e:
+                    logger.error(f"读取日志文件时发生未知错误: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))
+                        continue
+                    else:
+                        raise
 
-        return JSONResponse({"logs": recent_lines, "total_lines": len(all_lines)})
+        # 在线程池中执行文件读取操作，增加超时保护
+        try:
+            recent_lines, total_lines = await asyncio.wait_for(
+                asyncio.to_thread(read_log_file, log_file, lines),
+                timeout=10.0  # 10秒超时，适应手机端网络延迟
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"读取日志文件超时: {log_file}")
+            return JSONResponse({"error": "读取日志超时，请稍后重试"}, status_code=504)
+
+        return JSONResponse({"logs": recent_lines, "total_lines": total_lines})
     except Exception as e:
-        logger.error(f"读取日志失败: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        logger.error(f"读取日志失败: {e}", exc_info=True)
+        return JSONResponse({"error": f"读取日志失败: {str(e)}"}, status_code=500)
 
 
 @app.get("/api/monitor-status")
