@@ -12,8 +12,6 @@ weibo:
 
 # 虎牙监控配置
 huya:
-  user_agent: your_user_agent
-  cookie: your_huya_cookie  # 可选，没有可不填
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
   concurrency: 10  # 并发数，建议5-10
 

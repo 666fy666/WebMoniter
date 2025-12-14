@@ -397,8 +397,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'huya':
                 if (config.huya) {
-                    document.getElementById('huya_user_agent').value = config.huya.user_agent || '';
-                    document.getElementById('huya_cookie').value = config.huya.cookie || '';
                     document.getElementById('huya_rooms').value = typeof config.huya.rooms === 'string' 
                         ? config.huya.rooms 
                         : (Array.isArray(config.huya.rooms) ? config.huya.rooms.join(',') : '');
@@ -443,8 +441,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'huya':
                 config.huya = {
-                    user_agent: document.getElementById('huya_user_agent').value.trim(),
-                    cookie: document.getElementById('huya_cookie').value.trim(),
                     rooms: document.getElementById('huya_rooms').value.trim(),
                     concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7
                 };
@@ -521,8 +517,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 虎牙配置
         config.huya = {
-            user_agent: document.getElementById('huya_user_agent').value.trim(),
-            cookie: document.getElementById('huya_cookie').value.trim(),
             rooms: document.getElementById('huya_rooms').value.trim(),
             concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7
         };

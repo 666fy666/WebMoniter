@@ -18,10 +18,10 @@ from src.scheduler import TaskScheduler, setup_logging
 
 async def run_huya_monitor():
     """运行虎牙监控任务（支持配置热重载）"""
-    # 重新加载配置文件，获取最新的cookie
+    # 重新加载配置文件
     config = get_config(reload=True)
     logger = logging.getLogger(__name__)
-    logger.debug(f"虎牙监控：已重新加载配置文件 (Cookie长度: {len(config.huya_cookie)} 字符)")
+    logger.debug("虎牙监控：已重新加载配置文件")
 
     async with HuyaMonitor(config) as monitor:
         await monitor.run()

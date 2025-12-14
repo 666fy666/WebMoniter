@@ -12,6 +12,11 @@ from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.cookie_cache_manager import cookie_cache
 from src.monitor import BaseMonitor
 
+# 硬编码的 User-Agent
+HUYA_USER_AGENT = "Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Mobile Safari/537.36"
+# 硬编码的 Cookie（空字符串，不需要 cookie）
+HUYA_COOKIE = ""
+
 
 class CookieExpiredError(Exception):
     """Cookie失效异常"""
@@ -44,16 +49,16 @@ class HuyaMonitor(BaseMonitor):
         if self.session is None:
             self.session = aiohttp.ClientSession(
                 headers={
-                    "User-Agent": self.huya_config.user_agent,
-                    "Cookie": self.huya_config.cookie,
+                    "User-Agent": HUYA_USER_AGENT,
+                    "Cookie": HUYA_COOKIE,
                 },
                 timeout=ClientTimeout(total=10),
             )
             self._own_session = True
         else:
-            # 如果session已存在，更新Cookie和User-Agent（用于热重载）
-            self.session.headers["Cookie"] = self.huya_config.cookie
-            self.session.headers["User-Agent"] = self.huya_config.user_agent
+            # 如果session已存在，更新User-Agent（用于热重载）
+            self.session.headers["User-Agent"] = HUYA_USER_AGENT
+            self.session.headers["Cookie"] = HUYA_COOKIE
         return self.session
 
     async def load_old_info(self):
@@ -223,39 +228,14 @@ class HuyaMonitor(BaseMonitor):
     async def run(self):
         """运行监控"""
         # 热重载：重新加载config.yml文件中的配置（如果文件被修改）
-        old_cookie = self.huya_config.cookie
-        old_user_agent = self.huya_config.user_agent
         new_config = get_config(reload=False)  # 使用自动检测，不需要强制重载
         self.config = new_config
         self.huya_config = new_config.get_huya_config()
-        new_cookie = self.huya_config.cookie
-        new_user_agent = self.huya_config.user_agent
 
-        # 检测Cookie或User-Agent是否变化
-        cookie_changed = old_cookie != new_cookie
-        user_agent_changed = old_user_agent != new_user_agent
-
-        if cookie_changed or user_agent_changed:
-            changes = []
-            if cookie_changed:
-                changes.append(f"Cookie (旧长度: {len(old_cookie)}, 新长度: {len(new_cookie)})")
-            if user_agent_changed:
-                changes.append(
-                    f"User-Agent (旧: {old_user_agent[:30]}..., 新: {new_user_agent[:30]}...)"
-                )
-            self.logger.info(f"检测到配置已更新: {', '.join(changes)}")
-            # Cookie更新后，重置过期状态和提醒状态
-            # mark_valid会自动重置notified标志
-            await cookie_cache.mark_valid("huya")
-            # 如果session已存在，更新headers中的Cookie和User-Agent
-            if self.session is not None:
-                self.session.headers["Cookie"] = new_cookie
-                self.session.headers["User-Agent"] = new_user_agent
-                self.logger.debug("已更新session headers中的Cookie和User-Agent")
-        else:
-            self.logger.debug(
-                f"配置未变化 (Cookie长度: {len(old_cookie)}, User-Agent: {old_user_agent[:30]}...)"
-            )
+        # 如果session已存在，确保headers中的User-Agent和Cookie是最新的
+        if self.session is not None:
+            self.session.headers["User-Agent"] = HUYA_USER_AGENT
+            self.session.headers["Cookie"] = HUYA_COOKIE
 
         self.logger.info(f"开始执行{self.monitor_name}")
 

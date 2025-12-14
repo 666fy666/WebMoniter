@@ -138,9 +138,7 @@ class ConfigWatcher:
 
         # 虎牙配置
         if (
-            old_config.huya_cookie != new_config.huya_cookie
-            or old_config.huya_user_agent != new_config.huya_user_agent
-            or old_config.huya_rooms != new_config.huya_rooms
+            old_config.huya_rooms != new_config.huya_rooms
             or old_config.huya_concurrency != new_config.huya_concurrency
         ):
             return True

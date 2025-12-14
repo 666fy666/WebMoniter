@@ -14,7 +14,7 @@ services:
     ports:
       - "8866:8866"
     volumes:
-      - ./config.yml:/app/config.yml:ro
+      - ./config.yml:/app/config.yml
       - ./data:/app/data
       - ./logs:/app/logs
     environment:

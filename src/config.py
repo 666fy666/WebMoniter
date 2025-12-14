@@ -22,8 +22,6 @@ class WeiboConfig(BaseModel):
 class HuyaConfig(BaseModel):
     """虎牙配置"""
 
-    user_agent: str
-    cookie: str
     rooms: list[str]
     concurrency: int = 7  # 并发数，默认7，建议5-10
 
@@ -37,8 +35,6 @@ class AppConfig(BaseModel):
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
 
     # 虎牙
-    huya_user_agent: str = ""
-    huya_cookie: str = ""
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
 
@@ -74,8 +70,6 @@ class AppConfig(BaseModel):
             raise ValueError("虎牙配置不完整：huya.rooms 不能为空")
         rooms = [room.strip() for room in self.huya_rooms.split(",") if room.strip()]
         return HuyaConfig(
-            user_agent=self.huya_user_agent,
-            cookie=self.huya_cookie,
             rooms=rooms,
             concurrency=self.huya_concurrency,
         )
@@ -118,13 +112,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 虎牙配置
         if "huya" in yml_config:
             huya = yml_config["huya"]
-            if "user_agent" in huya:
-                config_dict["huya_user_agent"] = huya["user_agent"]
-            # cookie是可选的，如果不存在或为null，使用空字符串
-            if "cookie" in huya:
-                config_dict["huya_cookie"] = huya["cookie"] or ""
-            else:
-                config_dict["huya_cookie"] = ""
             if "rooms" in huya:
                 config_dict["huya_rooms"] = huya["rooms"]
             if "concurrency" in huya:
@@ -191,10 +178,8 @@ def get_config(reload: bool = False) -> AppConfig:
 
     # 记录原始值（如果存在，用于检测变化）
     old_weibo_cookie = None
-    old_huya_cookie = None
     if _config_cache is not None:
         old_weibo_cookie = _config_cache.weibo_cookie
-        old_huya_cookie = _config_cache.huya_cookie
 
     # 检查配置文件修改时间（优化热重载效率）
     config_file_path = Path("config.yml")
@@ -227,7 +212,6 @@ def get_config(reload: bool = False) -> AppConfig:
 
     # 记录新值并检测变化
     new_weibo_cookie = config.weibo_cookie
-    new_huya_cookie = config.huya_cookie
 
     logger.debug("配置加载完成")
     # 只在Cookie真正变化时才记录INFO级别的日志
@@ -235,11 +219,6 @@ def get_config(reload: bool = False) -> AppConfig:
         logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
     else:
         logger.debug("微博Cookie未变更")
-
-    if old_huya_cookie is not None and old_huya_cookie != new_huya_cookie:
-        logger.info(f"虎牙Cookie已更新 (长度: {len(new_huya_cookie or '')} 字符)")
-    else:
-        logger.debug("虎牙Cookie未变更")
 
     return config
 
