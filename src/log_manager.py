@@ -2,6 +2,7 @@
 
 import logging
 import logging.handlers
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -161,7 +162,7 @@ class LogManager:
         self.logger.info(f"开始清理超过{self.retention_days}天的日志文件...")
 
         deleted_count = 0
-        cutoff_time = time.time() - (self.retention_days * 24 * 3600)
+        today = datetime.now().date()
 
         try:
             for log_file in self.log_dir.glob("*.log"):
@@ -170,11 +171,41 @@ class LogManager:
                     continue
 
                 try:
-                    # 检查文件修改时间
-                    if log_file.stat().st_mtime < cutoff_time:
-                        log_file.unlink()
-                        deleted_count += 1
-                        self.logger.debug(f"已删除: {log_file.name}")
+                    # 从文件名中提取日期（格式：name_YYYYMMDD.log）
+                    # 尝试匹配日期格式 YYYYMMDD
+                    date_match = re.search(r"(\d{8})", log_file.name)
+                    if date_match:
+                        date_str = date_match.group(1)
+                        try:
+                            file_date = datetime.strptime(date_str, "%Y%m%d").date()
+                            # 计算文件日期距离今天的天数
+                            days_ago = (today - file_date).days
+                            # 如果超过保留天数，删除文件
+                            # 保留N天意味着保留今天、昨天、...、N-1天前，所以删除 >= N 天的
+                            if days_ago >= self.retention_days:
+                                log_file.unlink()
+                                deleted_count += 1
+                                self.logger.debug(
+                                    f"已删除: {log_file.name} (文件日期: {file_date}, 距今{days_ago}天)"
+                                )
+                        except ValueError:
+                            # 如果日期格式解析失败，使用文件修改时间作为备选方案
+                            cutoff_time = time.time() - (self.retention_days * 24 * 3600)
+                            if log_file.stat().st_mtime < cutoff_time:
+                                log_file.unlink()
+                                deleted_count += 1
+                                self.logger.debug(
+                                    f"已删除: {log_file.name} (无法解析日期，使用修改时间)"
+                                )
+                    else:
+                        # 如果文件名中没有日期格式，使用文件修改时间作为备选方案
+                        cutoff_time = time.time() - (self.retention_days * 24 * 3600)
+                        if log_file.stat().st_mtime < cutoff_time:
+                            log_file.unlink()
+                            deleted_count += 1
+                            self.logger.debug(
+                                f"已删除: {log_file.name} (文件名无日期格式，使用修改时间)"
+                            )
                 except Exception as e:
                     self.logger.warning(f"删除日志文件失败 {log_file.name}: {e}")
 
