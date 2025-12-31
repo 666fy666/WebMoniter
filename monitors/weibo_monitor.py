@@ -127,7 +127,7 @@ class WeiboMonitor(BaseMonitor):
         if url_struct:
             text += f"{spacing}#{url_struct[0]['url_title']}#"
 
-        text += f"{spacing}           {target_wb['created_at']}"
+        text += f"\n{target_wb['created_at']}"
 
         data["文本"] = text
         data["mid"] = str(target_wb["mid"])
