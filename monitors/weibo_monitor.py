@@ -127,7 +127,7 @@ class WeiboMonitor(BaseMonitor):
         if url_struct:
             text += f"{spacing}#{url_struct[0]['url_title']}#"
 
-        text += f"\n{target_wb['created_at']}"
+        text += f"\n\n{target_wb['created_at']}"
 
         data["文本"] = text
         data["mid"] = str(target_wb["mid"])
@@ -229,11 +229,23 @@ class WeiboMonitor(BaseMonitor):
         count = abs(diff)
 
         try:
+            # 截断 data['文本']，不超过400个字节（utf-8下兼容中文多字节情况）
+            text = data.get("文本", "")
+            encoded = text.encode("utf-8")
+            if len(encoded) > 400:
+                # 截到<=400字节
+                short_encoded = encoded[:400]
+                # 有可能截断在非完整字符，decode时忽略不完整尾部
+                short_text = short_encoded.decode("utf-8", errors="ignore")
+                text = short_text + "     " + "……"
+            else:
+                text = text
+
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description=(
-                    f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 30}\n"
+                    f"Ta说:👇\n{text}\n"
+                    f"{'=' * 28}\n"
                     f"认证:{data['认证信息']}\n\n"
                     f"简介:{data['简介']}"
                 ),
