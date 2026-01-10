@@ -29,6 +29,7 @@ class UnifiedPushManager:
         picurl: str = "",
         btntxt: str = "阅读全文",
         author: str = "FengYu",
+        description_func=None,
         **kwargs,
     ) -> dict:
         """
@@ -36,11 +37,12 @@ class UnifiedPushManager:
 
         Args:
             title: 标题
-            description: 内容描述
+            description: 内容描述（默认值，如果 description_func 不为 None，则会被忽略）
             to_url: 跳转链接
             picurl: 图片URL
             btntxt: 按钮文本
             author: 作者
+            description_func: 可选的函数，接收 channel 参数，返回该通道的 description
 
         Returns:
             包含所有推送结果的字典
@@ -61,11 +63,13 @@ class UnifiedPushManager:
 
         for channel in enabled_channels:
             channel_names.append(channel.name)
+            # 如果提供了 description_func，则使用它来生成该通道的 description
+            channel_description = description_func(channel) if description_func else description
             tasks.append(
                 self._send_with_error_handling(
                     channel,
                     title,
-                    description,
+                    channel_description,
                     to_url,
                     picurl,
                     btntxt,

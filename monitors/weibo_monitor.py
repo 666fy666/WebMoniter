@@ -67,6 +67,81 @@ class WeiboMonitor(BaseMonitor):
             self.old_data_dict = {}
             self._is_first_time = True  # 出错时也认为是首次创建
 
+    def _has_wecom_apps_channel(self) -> bool:
+        """检查是否有企业微信应用推送通道"""
+        if not self.push:
+            return False
+        # 检查 UnifiedPushManager 中是否有启用的企业微信应用推送通道
+        for channel in getattr(self.push, "push_channels", []):
+            if channel.enable and channel.type == "wecom_apps":
+                return True
+        return False
+
+    def _calculate_content_length(
+        self, text_raw: str, pic_ids: list, url_struct: list, created_at: str, verified_reason: str, description: str
+    ) -> int:
+        """计算完整推送内容的字节长度"""
+        spacing = "\n          "
+        
+        # 构建固定前缀部分
+        prefix = "          "
+        
+        # 构建图片信息部分
+        pic_info = ""
+        if pic_ids:
+            pic_info = f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
+        
+        # 构建URL信息部分
+        url_info = ""
+        if url_struct:
+            url_info = f"{spacing}#{url_struct[0]['url_title']}#"
+        
+        # 构建时间戳部分
+        timestamp = f"\n\n{created_at}"
+        
+        # 构建推送时的description固定部分
+        push_prefix = "Ta说:👇\n"
+        push_separator = "\n" + "=" * 28 + "\n认证:"
+        push_verified = verified_reason
+        push_description_prefix = "\n\n简介:"
+        push_description = description
+        
+        # 计算完整content长度（正文部分使用text_raw）
+        full_content = (
+            push_prefix
+            + prefix
+            + text_raw
+            + pic_info
+            + url_info
+            + timestamp
+            + push_separator
+            + push_verified
+            + push_description_prefix
+            + push_description
+        )
+        
+        return len(full_content.encode("utf-8"))
+
+    def _truncate_text_for_wecom(self, text_raw: str, max_bytes: int) -> str:
+        """为企业微信应用推送截断文本到指定字节数"""
+        encoded = text_raw.encode("utf-8")
+        if len(encoded) <= max_bytes:
+            return text_raw
+        
+        # 预留 "......" 后缀的字节数（6个字节）
+        ellipsis_bytes = len("......".encode("utf-8"))
+        available_bytes = max_bytes - ellipsis_bytes
+        
+        # 如果可用字节数太小，至少保留一些内容
+        if available_bytes < 10:
+            available_bytes = 10
+        
+        # 截断到可用字节数
+        truncated_encoded = encoded[:available_bytes]
+        # 有可能截断在非完整字符，decode时忽略不完整尾部
+        truncated_text = truncated_encoded.decode("utf-8", errors="ignore")
+        return truncated_text + "......"
+
     async def get_info(self, uid: str) -> dict:
         """获取微博信息"""
         session = await self._get_session()
@@ -87,11 +162,13 @@ class WeiboMonitor(BaseMonitor):
 
         # 解析用户信息
         user_info = res_info["data"]["user"]
+        verified_reason = user_info.get("verified_reason", "人气博主")
+        user_description = user_info["description"] if user_info["description"] else "peace and love"
         data = {
             "UID": user_info["idstr"],
             "用户名": user_info["screen_name"],
-            "认证信息": user_info.get("verified_reason", "人气博主"),
-            "简介": user_info["description"] if user_info["description"] else "peace and love",
+            "认证信息": verified_reason,
+            "简介": user_description,
             "粉丝数": user_info["followers_count_str"],
             "微博数": str(user_info["statuses_count"]),
         }
@@ -113,32 +190,34 @@ class WeiboMonitor(BaseMonitor):
                 break
 
         target_wb = wb_list[target_idx]
+        text_raw = target_wb["text_raw"]
+        pic_ids = target_wb.get("pic_ids", [])
+        url_struct = target_wb.get("url_struct", [])
+        created_at = target_wb["created_at"]
 
         spacing = "\n          "
-        text = "          " + target_wb["text_raw"]
-
-        encoded = text.encode("utf-8")
-        if len(encoded) > 250:
-            # 截到<=250字节(企业微信要求不超过250字节)
-            short_encoded = encoded[:250]
-            # 有可能截断在非完整字符，decode时忽略不完整尾部
-            short_text = short_encoded.decode("utf-8", errors="ignore")
-            text = short_text + "       " + "......"
+        prefix = "          "
+        
+        # 保留完整的正文，不进行截断（截断逻辑移到推送时处理）
+        text = prefix + text_raw
 
         # 图片处理
-        pic_ids = target_wb.get("pic_ids", [])
         if pic_ids:
             text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
 
         # URL 结构处理
-        url_struct = target_wb.get("url_struct", [])
         if url_struct:
             text += f"{spacing}#{url_struct[0]['url_title']}#"
 
-        text += f"\n\n{target_wb['created_at']}"
+        text += f"\n\n{created_at}"
 
         data["文本"] = text
         data["mid"] = str(target_wb["mid"])
+        # 保存原始数据，用于推送时动态处理
+        data["_text_raw"] = text_raw
+        data["_pic_ids"] = pic_ids
+        data["_url_struct"] = url_struct
+        data["_created_at"] = created_at
 
         return data
 
@@ -221,6 +300,86 @@ class WeiboMonitor(BaseMonitor):
                 self.logger.info(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
                 await self.push_notification(new_data, 1)
 
+    def _build_description_for_channel(self, channel, data: dict) -> str:
+        """根据通道类型构建推送描述内容"""
+        # 如果是企业微信应用推送，需要限制长度
+        if channel.type == "wecom_apps":
+            # 获取原始数据（如果存在，说明是新数据；否则使用 data['文本'] 作为后备）
+            text_raw = data.get("_text_raw")
+            pic_ids = data.get("_pic_ids")
+            url_struct = data.get("_url_struct")
+            created_at = data.get("_created_at")
+            
+            # 如果没有原始数据字段，说明可能是旧数据，直接使用完整文本
+            if text_raw is None or pic_ids is None or url_struct is None or created_at is None:
+                # 使用完整内容（旧数据或没有原始数据的情况）
+                description = (
+                    f"Ta说:👇\n{data['文本']}\n"
+                    f"{'=' * 28}\n"
+                    f"认证:{data['认证信息']}\n\n"
+                    f"简介:{data['简介']}"
+                )
+                # 检查长度，如果超过500字节，进行截断
+                encoded = description.encode("utf-8")
+                if len(encoded) > 500:
+                    # 简单截断：保留前面的内容
+                    truncated_encoded = encoded[:500]
+                    description = truncated_encoded.decode("utf-8", errors="ignore") + "......"
+                return description
+            
+            verified_reason = data.get("认证信息", "人气博主")
+            user_description = data.get("简介", "peace and love")
+            
+            spacing = "\n          "
+            prefix = "          "
+            
+            # 计算除了正文之外的所有固定内容的字节数
+            test_text_raw = ""  # 用于计算固定部分长度
+            fixed_parts_length = self._calculate_content_length(
+                test_text_raw, pic_ids, url_struct, created_at, verified_reason, user_description
+            )
+            
+            # 计算正文部分可用的最大字节数（500字节限制）
+            max_text_bytes = 500 - fixed_parts_length
+            
+            # 如果固定部分已经超过500字节，至少保留一些正文内容
+            if max_text_bytes < 50:  # 至少保留50字节给正文
+                max_text_bytes = 50
+            
+            # 截断正文
+            truncated_text_raw = self._truncate_text_for_wecom(text_raw, max_text_bytes)
+            
+            # 构建文本内容
+            text = prefix + truncated_text_raw
+            
+            # 图片处理
+            if pic_ids:
+                text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
+            
+            # URL 结构处理
+            if url_struct:
+                text += f"{spacing}#{url_struct[0]['url_title']}#"
+            
+            text += f"\n\n{created_at}"
+            
+            # 构建完整的推送描述
+            description = (
+                f"Ta说:👇\n{text}\n"
+                f"{'=' * 28}\n"
+                f"认证:{verified_reason}\n\n"
+                f"简介:{user_description}"
+            )
+        else:
+            # 其他通道使用完整内容
+            description = (
+                f"Ta说:👇\n{data['文本']}\n"
+                f"{'=' * 28}\n"
+                f"认证:{data['认证信息']}\n\n"
+                f"简介:{data['简介']}"
+            )
+        
+        return description
+
     async def push_notification(self, data: dict, diff: int):
         """发送推送通知"""
         # 检查是否在免打扰时段内
@@ -237,14 +396,11 @@ class WeiboMonitor(BaseMonitor):
         count = abs(diff)
 
         try:
+            # 使用 description_func 来为不同通道生成不同的内容
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
-                description=(
-                    f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 28}\n"
-                    f"认证:{data['认证信息']}\n\n"
-                    f"简介:{data['简介']}"
-                ),
+                description="",  # 这个值会被 description_func 覆盖
+                description_func=lambda channel: self._build_description_for_channel(channel, data),
                 picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url=f"https://m.weibo.cn/detail/{data['mid']}",
                 btntxt="阅读全文",

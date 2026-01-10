@@ -27,13 +27,10 @@ class WxPusher(PushChannel):
             message_content = f"""<div style="font-family: Arial, sans-serif;">
 <h2>{title}</h2>
 <p style="white-space: pre-wrap;">{content}</p>
-{f'<img src="{pic_url}" alt="图片" style="max-width: 100%;" />' if pic_url else ''}
 {f'<p><a href="{jump_url}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">阅读全文</a></p>' if jump_url else ''}
 </div>"""
         elif self.content_type == 3:  # Markdown格式
             message_content = f"## {title}\n\n{content}"
-            if pic_url:
-                message_content += f"\n\n![图片]({pic_url})"
             if jump_url:
                 message_content += f"\n\n[阅读全文]({jump_url})"
         else:  # 文本格式（默认）
