@@ -16,7 +16,8 @@ _base_path = Path(__file__).resolve().parent.parent
 _data_dir = _base_path / "data"
 # 确保 data 目录存在（Docker 挂载时已存在也不会报错，exist_ok=True）
 _data_dir.mkdir(parents=True, exist_ok=True)
-DB_PATH = _data_dir / "data.db"
+# 确保 DB_PATH 是绝对路径，避免因工作目录不同导致在根目录创建数据库文件
+DB_PATH = (_data_dir / "data.db").resolve()
 
 # 全局单例数据库连接
 _shared_connection: aiosqlite.Connection | None = None
@@ -46,8 +47,9 @@ class AsyncDatabase:
                     self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
                     # 创建数据库连接，启用 WAL 模式提高并发性能
+                    # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
                     _shared_connection = await aiosqlite.connect(
-                        str(self.db_path), timeout=30.0  # 增加超时时间
+                        str(self.db_path.resolve()), timeout=30.0  # 增加超时时间
                     )
                     # 设置行工厂，返回字典格式的结果
                     _shared_connection.row_factory = aiosqlite.Row
@@ -70,7 +72,8 @@ class AsyncDatabase:
             # 使用独立连接（不推荐，仅用于特殊场景）
             if self._conn is None:
                 self.db_path.parent.mkdir(parents=True, exist_ok=True)
-                self._conn = await aiosqlite.connect(str(self.db_path), timeout=30.0)
+                # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
+                self._conn = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
                 self._conn.row_factory = aiosqlite.Row
                 await self._conn.execute("PRAGMA journal_mode=WAL")
                 await self._conn.execute("PRAGMA synchronous=NORMAL")
@@ -169,7 +172,8 @@ class AsyncDatabase:
 
             # 重新创建连接
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            _shared_connection = await aiosqlite.connect(str(self.db_path), timeout=30.0)
+            # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
+            _shared_connection = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
             _shared_connection.row_factory = aiosqlite.Row
 
             # 重新设置 WAL 模式
