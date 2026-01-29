@@ -1,20 +1,34 @@
 #!/usr/bin/env python3
 """
 Web监控系统主入口
-使用APScheduler进行任务调度，支持多平台监控任务
+使用APScheduler进行任务调度，支持多平台监控和定时任务
 """
 import asyncio
 import logging
 
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
-from src.checkin import run_checkin_once
+from tasks import cleanup_logs, run_checkin_once
 from src.config import AppConfig, get_config
 from src.config_watcher import ConfigWatcher
 from src.cookie_cache_manager import cookie_cache
 from src.database import close_shared_connection
 from src.log_manager import LogManager
 from src.scheduler import TaskScheduler, setup_logging
+
+
+def _parse_checkin_time(checkin_time: str) -> tuple[str, str]:
+    """解析签到时间配置（HH:MM）为 cron 的 hour、minute。无效时默认 08:00。"""
+    raw = (checkin_time or "08:00").strip()
+    parts = raw.split(":", 1)
+    try:
+        h = int(parts[0].strip()) if parts else 8
+        m = int(parts[1].strip()) if len(parts) > 1 else 0
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            return str(h), str(m)
+    except (ValueError, IndexError):
+        pass
+    return "8", "0"
 
 
 async def run_huya_monitor():
@@ -37,14 +51,6 @@ async def run_weibo_monitor():
 
     async with WeiboMonitor(config) as monitor:
         await monitor.run()
-
-
-async def cleanup_logs():
-    """清理旧日志文件任务"""
-    # 从配置文件读取日志保留天数
-    config = get_config(reload=True)
-    log_manager = LogManager(retention_days=config.retention_days)
-    log_manager.cleanup_old_logs()
 
 
 async def register_monitors(scheduler: TaskScheduler):
@@ -81,12 +87,12 @@ async def register_monitors(scheduler: TaskScheduler):
         job_id="cleanup_logs",
     )
 
-    # 每日签到任务 - 默认每天早上 8 点执行一次
-    # 实际执行时会在任务内部重新读取配置，支持热重载
+    # 每日签到任务 - 执行时间从配置 checkin.time 读取，支持热重载
+    checkin_minute, checkin_hour = _parse_checkin_time(config.checkin_time)
     scheduler.add_cron_job(
         func=run_checkin_once,
-        minute="0",
-        hour="8",
+        minute=checkin_minute,
+        hour=checkin_hour,
         job_id="daily_checkin",
     )
 
@@ -157,6 +163,16 @@ async def on_config_changed(
             job_id="cleanup_logs",
             minute=str(new_config.cleanup_logs_minute),
             hour=str(new_config.cleanup_logs_hour),
+        )
+        if update_info:
+            updates.append(update_info)
+
+        # 更新每日签到任务的执行时间
+        checkin_minute, checkin_hour = _parse_checkin_time(new_config.checkin_time)
+        update_info = scheduler.update_cron_job(
+            job_id="daily_checkin",
+            minute=checkin_minute,
+            hour=checkin_hour,
         )
         if update_info:
             updates.append(update_info)
@@ -234,7 +250,7 @@ async def main():
             logger.error(f"Web服务器运行出错: {e}", exc_info=True)
 
     web_task = asyncio.create_task(run_web_server())
-    logger.info("Web服务器已启动，访问地址: http://0.0.0.0:8866")
+    logger.info("Web: http://0.0.0.0:8866")
 
     # 设置文件日志
     log_manager = LogManager()
@@ -242,32 +258,19 @@ async def main():
     logging.root.addHandler(file_handler)
 
     try:
-        # 加载配置
         config = get_config()
-        logger.info("配置加载成功")
     except Exception as e:
         logger.error(f"配置加载失败: {e}")
         logger.error("请确保已创建config.yml文件并配置了必要的配置项")
         logger.error("参考config.yml.sample文件")
         sys.exit(1)
 
-    # 初始化Cookie缓存：项目启动时重置所有Cookie状态为有效
     await cookie_cache.reset_all()
-    logger.info("Cookie缓存已初始化，所有Cookie状态已重置为有效")
 
-    # 创建调度器
     scheduler = TaskScheduler(config)
-
-    logger.info("=" * 50)
-    logger.info("Web监控系统启动")
-    logger.info("=" * 50)
-    logger.info("开始注册所有监控任务（启动时将立即执行一次）...")
-
     await register_monitors(scheduler)
-
-    logger.info("已注册的监控任务:")
-    for job in scheduler.scheduler.get_jobs():
-        logger.info(f"  - {job.id}: {job.trigger}")
+    jobs = scheduler.scheduler.get_jobs()
+    logger.info("Web监控系统已启动，已注册 %d 个任务", len(jobs))
 
     # 创建配置监控器，支持热重载
     # 使用闭包创建回调函数，捕获 scheduler 引用
@@ -281,15 +284,12 @@ async def main():
         on_config_changed=config_changed_callback,
     )
 
-    # 启动配置监控器
     await config_watcher.start()
-    logger.info("配置文件热重载监控已启动（每5秒检查一次）")
 
-    # 运行调度器和Web服务器（阻塞直到收到停止信号）
     try:
         await scheduler.run_forever()
     except KeyboardInterrupt:
-        logger.info("收到中断信号，正在关闭...")
+        logger.info("正在关闭...")
     except Exception as e:
         logger.error(f"程序运行出错: {e}")
         raise
@@ -322,11 +322,8 @@ async def main():
                 await web_task
             except (asyncio.CancelledError, Exception):
                 pass
-        # 停止配置监控器
         await config_watcher.stop()
-        # 关闭共享数据库连接
         await close_shared_connection()
-        logger.info("程序退出")
 
 
 if __name__ == "__main__":

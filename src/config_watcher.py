@@ -46,7 +46,7 @@ class ConfigWatcher:
             self._last_mtime = self.config_path.stat().st_mtime
             try:
                 self._last_config = get_config(reload=True)
-                logger.info(f"配置监控器已启动，监控文件: {self.config_path}")
+                logger.debug("配置监控器已启动: %s", self.config_path)
             except Exception as e:
                 logger.error(f"初始化配置监控器失败: {e}")
 
@@ -67,7 +67,7 @@ class ConfigWatcher:
                 pass
             except Exception as e:
                 logger.error(f"停止配置监控器时出错: {e}", exc_info=True)
-        logger.info("配置监控器已停止")
+        logger.debug("配置监控器已停止")
 
     async def _watch_loop(self):
         """监控循环"""

@@ -49,7 +49,7 @@ class CookieCache:
                         else:
                             # 旧格式：只有bool值，转换为新格式
                             self._cache[platform] = {"valid": value, "notified": False}
-                logger.info(f"已加载Cookie缓存: {self._cache}")
+                logger.debug("已加载Cookie缓存: %s", self._cache)
             else:
                 # 文件不存在，初始化为空字典并创建文件
                 self._cache = {}
@@ -132,7 +132,7 @@ class CookieCache:
                     # Cookie恢复有效时，重置提醒标记，以便下次过期时能再次提醒
                     self._cache[platform]["notified"] = False
                 self._save_cache()
-                logger.info(f"已标记 {platform} Cookie为有效状态")
+                logger.debug("已标记 %s Cookie为有效状态", platform)
 
     async def reset_all(self):
         """重置所有Cookie状态为有效（项目启动时调用，异步方法，带锁保护）"""
@@ -153,7 +153,7 @@ class CookieCache:
             # 即使没有更新，也保存一次以确保文件存在
             self._save_cache()
             if updated:
-                logger.info("已重置所有Cookie状态为有效")
+                logger.debug("已重置所有Cookie状态为有效")
             else:
                 logger.debug("Cookie缓存文件已更新")
 

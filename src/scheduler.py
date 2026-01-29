@@ -50,7 +50,7 @@ class TaskScheduler:
             id=job_id,
             **kwargs,
         )
-        self.logger.info(f"已添加任务: {job_id or func.__name__}")
+        self.logger.debug("已添加任务: %s", job_id or func.__name__)
 
     def add_interval_job(
         self,
@@ -235,7 +235,7 @@ class TaskScheduler:
     def start(self):
         """启动调度器"""
         self.scheduler.start()
-        self.logger.info("任务调度器已启动")
+        self.logger.debug("调度器已启动")
 
     def shutdown(self, wait: bool = True):
         """
@@ -245,14 +245,13 @@ class TaskScheduler:
             wait: 是否等待正在执行的任务完成
         """
         self.scheduler.shutdown(wait=wait)
-        self.logger.info("任务调度器已关闭")
+        self.logger.debug("调度器已关闭")
 
     async def run_forever(self):
         """运行调度器直到收到停止信号"""
 
-        # 设置信号处理
         def signal_handler(signum, frame):
-            self.logger.info(f"收到信号 {signum}，准备关闭...")
+            self.logger.debug("收到信号 %s，准备关闭", signum)
             self._shutdown_event.set()
 
         # Windows平台不支持SIGTERM，需要检查平台
@@ -267,9 +266,7 @@ class TaskScheduler:
             # 等待关闭信号
             await self._shutdown_event.wait()
         finally:
-            # 关闭调度器
             self.shutdown(wait=True)
-            self.logger.info("调度器已完全关闭")
 
 
 def setup_logging(log_level: str = "INFO", console_output: bool = None):

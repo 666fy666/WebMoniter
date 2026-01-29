@@ -1,6 +1,6 @@
-"""每日签到任务模块
+"""iKuuu/SSPanel 每日签到任务模块
 
-参考原有的 SSPanel / iKuuu 自动签到脚本，将其集成进本项目：
+iKuuu 自动签到脚本：
 - 使用配置文件中的登录地址、签到地址、账号、密码等参数
 - 支持每天固定时间（默认 08:00）自动签到
 - 项目启动时也会执行一次签到
@@ -85,7 +85,7 @@ def _mask_email(email: str) -> str:
 
 async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConfig) -> str | None:
     """登录站点并获取 Cookie"""
-    logger.info("每日签到：正在使用账号 %s 登录...", _mask_email(cfg.email))
+    logger.debug("每日签到：使用账号 %s 登录", _mask_email(cfg.email))
 
     # 从登录地址中推导出站点根地址，用于设置 Referer / Origin
     try:
@@ -144,7 +144,7 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
             # 1. 一些站点登录成功会跳转到 /user 等页面
             # 2. 有些返回 JSON: {"ret": 1, "msg": "..."}
             if "user" in resp_url or (json_data and json_data.get("ret") == 1):
-                logger.info("每日签到：登录成功")
+                logger.debug("每日签到：登录成功")
                 # 从 session 中提取 Cookie
                 cookie_jar = session.cookie_jar
                 cookies = cookie_jar.filter_cookies(base_origin)
@@ -244,11 +244,8 @@ async def _get_user_traffic(
 
         traffic_cards = soup.find_all("div", class_="card-statistic-2")
         if not traffic_cards:
-            logger.info("每日签到：未找到流量统计信息（可能站点样式已更新）")
+            logger.debug("每日签到：未找到流量统计信息")
             return None
-
-        logger.info("每日签到：📊 流量使用情况：")
-        logger.info("=" * 50)
 
         lines: list[str] = []
         for card in traffic_cards:
@@ -257,7 +254,7 @@ async def _get_user_traffic(
                 body = card.find("div", class_="card-body")
                 if body:
                     remaining_traffic = re.sub(r"\s+", " ", body.get_text(strip=True))
-                    logger.info("每日签到：📈 剩余流量：%s", remaining_traffic)
+                    logger.debug("每日签到：剩余流量 %s", remaining_traffic)
                     lines.append(f"📈 剩余流量：{remaining_traffic}")
 
                 stats = card.find("div", class_="card-stats-title")
@@ -266,13 +263,12 @@ async def _get_user_traffic(
                     match = re.search(r":\s*(.+)", today_used_text)
                     if match:
                         today_used = match.group(1).strip()
-                        logger.info("每日签到：📊 今日已用：%s", today_used)
+                        logger.debug("每日签到：今日已用 %s", today_used)
                         lines.append(f"📊 今日已用：{today_used}")
                     else:
-                        logger.info("每日签到：📊 今日使用情况：%s", today_used_text)
+                        logger.debug("每日签到：今日使用 %s", today_used_text)
                         lines.append(f"📊 今日使用情况：{today_used_text}")
 
-        logger.info("=" * 50)
         return "\n".join(lines) if lines else None
 
     except Exception as exc:  # noqa: BLE001
@@ -281,7 +277,7 @@ async def _get_user_traffic(
 
 
 async def run_checkin_once() -> None:
-    """执行一次完整的签到流程（登录 → 签到 → 获取流量信息）"""
+    """执行一次完整的 iKuuu/SSPanel 签到流程（登录 → 签到 → 获取流量信息）"""
     # 每次执行时重新加载配置，确保支持热重载
     app_config = get_config(reload=True)
     cfg = CheckinConfig.from_app_config(app_config)
@@ -289,9 +285,7 @@ async def run_checkin_once() -> None:
     if not cfg.validate():
         return
 
-    logger.info("=" * 60)
-    logger.info("每日签到：🚀 自动签到任务开始执行")
-    logger.info("=" * 60)
+    logger.info("每日签到：开始执行")
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         # 准备推送通道（与监控任务保持一致）
@@ -340,9 +334,7 @@ async def run_checkin_once() -> None:
         if push_manager is not None:
             await push_manager.close()
 
-    logger.info("=" * 60)
-    logger.info("每日签到：✨ 本次签到流程结束（成功：%s）", ok)
-    logger.info("=" * 60)
+    logger.info("每日签到：结束（成功：%s）", ok)
 
 
 async def _send_checkin_push(
@@ -360,7 +352,7 @@ async def _send_checkin_push(
     # 免打扰时段内只记录日志，不推送
     app_cfg = get_config()
     if is_in_quiet_hours(app_cfg):
-        logger.info("每日签到：当前处于免打扰时段，仅记录签到结果日志，不发送推送。")
+        logger.debug("每日签到：免打扰时段，不发送推送")
         return
 
     masked_email = _mask_email(cfg.email)

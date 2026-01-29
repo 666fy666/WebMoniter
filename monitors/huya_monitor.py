@@ -237,7 +237,7 @@ class HuyaMonitor(BaseMonitor):
             self.session.headers["User-Agent"] = HUYA_USER_AGENT
             self.session.headers["Cookie"] = HUYA_COOKIE
 
-        self.logger.info(f"开始执行{self.monitor_name}")
+        self.logger.debug("开始执行 %s", self.monitor_name)
 
         # 在执行任务前检查Cookie状态
         # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
@@ -263,37 +263,35 @@ class HuyaMonitor(BaseMonitor):
                         # 如果所有验证都失败，才跳过执行
                         if verification_errors >= max_verification_attempts:
                             self.logger.warning(
-                                f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行"
+                                "%s Cookie验证失败（已尝试%d个房间），跳过本次执行",
+                                self.monitor_name,
+                                verification_errors,
                             )
-                            self.logger.info("─" * 30)
                             return
                     except Exception as e:
-                        # 其他错误（如网络错误），不立即跳过，继续尝试下一个房间
                         self.logger.debug(
-                            f"Cookie验证时发生错误（房间{self.huya_config.rooms[i]}）: {e}，继续尝试..."
+                            "Cookie验证时发生错误（房间%s）: %s，继续尝试",
+                            self.huya_config.rooms[i],
+                            e,
                         )
                         verification_errors += 1
                         if verification_errors >= max_verification_attempts:
                             self.logger.warning(
-                                f"{self.monitor_name} Cookie验证失败（已尝试{verification_errors}个房间），跳过本次执行"
+                                "%s Cookie验证失败（已尝试%d个房间），跳过本次执行",
+                                self.monitor_name,
+                                verification_errors,
                             )
-                            self.logger.info("─" * 30)
                             return
 
                 if not verification_success:
-                    self.logger.warning(f"{self.monitor_name} Cookie验证未成功，跳过本次执行")
-                    self.logger.info("─" * 30)
+                    self.logger.warning("%s Cookie验证未成功，跳过本次执行", self.monitor_name)
                     return
             else:
-                # 没有房间ID，无法验证，跳过执行
-                self.logger.warning(f"{self.monitor_name} 无房间ID，跳过本次执行")
-                self.logger.info("─" * 30)
+                self.logger.warning("%s 无房间ID，跳过本次执行", self.monitor_name)
                 return
         try:
-            # 检查是否有房间需要监控
             if not self.huya_config.rooms:
-                self.logger.warning(f"{self.monitor_name} 没有配置房间ID，跳过本次执行")
-                self.logger.info("─" * 30)
+                self.logger.warning("%s 没有配置房间ID，跳过本次执行", self.monitor_name)
                 return
 
             # 创建信号量控制并发数
@@ -312,11 +310,10 @@ class HuyaMonitor(BaseMonitor):
                 if isinstance(result, Exception):
                     self.logger.error(f"处理房间 {self.huya_config.rooms[i]} 时出错: {result}")
         except Exception as e:
-            self.logger.error(f"{self.monitor_name}执行失败: {e}")
+            self.logger.error("%s 执行失败: %s", self.monitor_name, e)
             raise
         finally:
-            self.logger.info(f"执行完成{self.monitor_name}")
-            self.logger.info("─" * 30)
+            self.logger.debug("执行完成 %s", self.monitor_name)
 
     @property
     def monitor_name(self) -> str:

@@ -159,7 +159,7 @@ class LogManager:
         Args:
             cleanup_log_name: 清理日志的文件名前缀
         """
-        self.logger.info(f"开始清理超过{self.retention_days}天的日志文件...")
+        self.logger.debug("开始清理超过 %s 天的日志文件", self.retention_days)
 
         deleted_count = 0
         today = datetime.now().date()
@@ -209,10 +209,8 @@ class LogManager:
                 except Exception as e:
                     self.logger.warning(f"删除日志文件失败 {log_file.name}: {e}")
 
-            if deleted_count == 0:
-                self.logger.info("清理完成: 没有需要删除的日志文件")
-            else:
-                self.logger.info(f"清理完成: 共删除 {deleted_count} 个日志文件")
+            if deleted_count > 0:
+                self.logger.info("日志清理: 删除 %d 个文件", deleted_count)
 
         except Exception as e:
             self.logger.error(f"清理日志文件时出错: {e}")

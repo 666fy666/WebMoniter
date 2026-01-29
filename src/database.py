@@ -63,7 +63,7 @@ class AsyncDatabase:
                     # 初始化表结构
                     await self._init_tables(_shared_connection)
 
-                    _logger.info("数据库连接已创建（WAL模式）")
+                    _logger.debug("数据库连接已创建（WAL模式）")
 
                 self._conn = _shared_connection
                 _connection_ref_count += 1
