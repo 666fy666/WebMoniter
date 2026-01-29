@@ -39,6 +39,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY main.py ./
 COPY monitors/ ./monitors/
 COPY src/ ./src/
+COPY tasks/ ./tasks/
 COPY web/ ./web/
 
 # 设置环境变量
