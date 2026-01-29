@@ -2,7 +2,9 @@
 
 import asyncio
 import logging
+import os
 import secrets
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -436,6 +438,68 @@ async def get_table_data(request: Request, table_name: str, page: int = 1, page_
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
+    """同步读取日志文件最后 N 行。处理文件写入时的读取冲突，带重试。返回 (最近行列表, 总行数)。"""
+    max_retries = 5
+    retry_delay = 0.2
+
+    for attempt in range(max_retries):
+        try:
+            try:
+                with open(file_path, encoding="utf-8", errors="ignore") as f:
+                    f.seek(0, os.SEEK_END)
+                    file_size = f.tell()
+
+                    if file_size < 1024 * 1024:  # 小于1MB
+                        f.seek(0)
+                        all_lines = f.readlines()
+                    else:
+                        estimated_bytes = num_lines * 200
+                        read_start = max(0, file_size - estimated_bytes)
+                        f.seek(read_start)
+                        if read_start > 0:
+                            f.readline()
+                        all_lines = f.readlines()
+
+                    if len(all_lines) > num_lines:
+                        recent_lines = all_lines[-num_lines:]
+                    else:
+                        recent_lines = all_lines
+                    return recent_lines, len(all_lines)
+
+            except (OSError, PermissionError):
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                raise
+
+        except (OSError, PermissionError):
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            try:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                    text = content.decode("utf-8", errors="ignore")
+                    all_lines = text.splitlines(keepends=True)
+                    if len(all_lines) > num_lines:
+                        recent_lines = all_lines[-num_lines:]
+                    else:
+                        recent_lines = all_lines
+                    return recent_lines, len(all_lines)
+            except Exception as final_e:
+                logger.error(f"读取日志文件失败（所有方法都失败）: {final_e}")
+                raise
+
+        except Exception as e:
+            logger.error(f"读取日志文件时发生未知错误: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            raise
+    return [], 0  # 不应到达，满足类型与返回值约定
+
+
 @app.get("/api/logs")
 async def get_logs(request: Request, lines: int = 100):
     """获取日志内容"""
@@ -452,100 +516,10 @@ async def get_logs(request: Request, lines: int = 100):
         if not log_file.exists():
             return JSONResponse({"logs": [], "message": "今日暂无日志"})
 
-        # 使用异步方式读取文件，避免阻塞事件循环
-        def read_log_file(file_path: Path, num_lines: int):
-            """同步读取日志文件的辅助函数，处理文件写入时的读取冲突
-            使用更健壮的方式读取正在写入的文件，避免手机端网络延迟导致的读取失败
-            """
-            import os
-            import time
-
-            max_retries = 5  # 增加重试次数，适应手机端网络延迟
-            retry_delay = 0.2  # 200ms基础延迟
-
-            for attempt in range(max_retries):
-                try:
-                    # 方法1: 尝试直接读取（大多数情况下可以成功）
-                    # 在Linux系统上，即使文件正在被写入，读取操作通常也不会失败
-                    try:
-                        with open(file_path, encoding="utf-8", errors="ignore") as f:
-                            # 先尝试获取文件大小
-                            f.seek(0, os.SEEK_END)
-                            file_size = f.tell()
-
-                            # 如果文件很小，直接读取全部
-                            if file_size < 1024 * 1024:  # 小于1MB
-                                f.seek(0)
-                                all_lines = f.readlines()
-                            else:
-                                # 大文件：从末尾读取，更高效且更安全
-                                # 估算需要读取的字节数（假设平均每行100字符）
-                                estimated_bytes = num_lines * 200
-                                read_start = max(0, file_size - estimated_bytes)
-                                f.seek(read_start)
-
-                                # 跳过可能不完整的首行
-                                if read_start > 0:
-                                    f.readline()
-
-                                # 读取剩余行
-                                all_lines = f.readlines()
-
-                            # 只返回最后N行
-                            if len(all_lines) > num_lines:
-                                recent_lines = all_lines[-num_lines:]
-                            else:
-                                recent_lines = all_lines
-
-                            return recent_lines, len(all_lines)
-
-                    except (OSError, PermissionError):
-                        # 文件可能正在被写入或被锁定，等待后重试
-                        if attempt < max_retries - 1:
-                            # 递增延迟：200ms, 400ms, 600ms, 800ms
-                            time.sleep(retry_delay * (attempt + 1))
-                            continue
-                        else:
-                            # 最后一次尝试：使用备用方法
-                            raise
-
-                except (OSError, PermissionError):
-                    # 如果直接读取失败，尝试备用方法：分块读取
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (attempt + 1))
-                        continue
-                    else:
-                        # 最后一次尝试：使用最简单的读取方式
-                        try:
-                            with open(file_path, "rb") as f:
-                                # 读取二进制内容，然后解码
-                                content = f.read()
-                                text = content.decode("utf-8", errors="ignore")
-                                all_lines = text.splitlines(keepends=True)
-
-                                if len(all_lines) > num_lines:
-                                    recent_lines = all_lines[-num_lines:]
-                                else:
-                                    recent_lines = all_lines
-
-                                return recent_lines, len(all_lines)
-                        except Exception as final_e:
-                            logger.error(f"读取日志文件失败（所有方法都失败）: {final_e}")
-                            raise
-
-                except Exception as e:
-                    logger.error(f"读取日志文件时发生未知错误: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (attempt + 1))
-                        continue
-                    else:
-                        raise
-
-        # 在线程池中执行文件读取操作，增加超时保护
         try:
             recent_lines, total_lines = await asyncio.wait_for(
-                asyncio.to_thread(read_log_file, log_file, lines),
-                timeout=10.0,  # 10秒超时，适应手机端网络延迟
+                asyncio.to_thread(_read_log_file_sync, log_file, lines),
+                timeout=10.0,
             )
         except asyncio.TimeoutError:
             logger.error(f"读取日志文件超时: {log_file}")

@@ -5,6 +5,48 @@ import logging
 
 from aiohttp import ClientSession
 
+from src.push_channel import get_push_channel
+
+
+async def build_push_manager(
+    push_channel_list: list[dict] | None,
+    session: ClientSession,
+    logger: logging.Logger,
+    *,
+    init_fail_prefix: str = "",
+) -> "UnifiedPushManager | None":
+    """
+    根据配置构建 UnifiedPushManager（仅包含 enable=true 的通道）。
+
+    说明：
+    - 行为保持与原逻辑一致：逐个创建通道、可选执行 initialize、失败则跳过该通道。
+    - 仅做代码复用，避免在监控与签到中重复实现初始化逻辑。
+    """
+    if not push_channel_list:
+        return None
+
+    push_channels = []
+    for channel_config in push_channel_list:
+        # 只处理启用的通道
+        if not channel_config.get("enable", False):
+            continue
+
+        try:
+            channel = get_push_channel(channel_config, session)
+            push_channels.append(channel)
+            # 对于需要初始化的通道（如 QQBot），执行初始化
+            if hasattr(channel, "initialize"):
+                await channel.initialize()
+        except Exception as e:  # noqa: BLE001
+            name = channel_config.get("name", "未知")
+            # 保持日志信息风格可由调用方通过前缀控制
+            logger.warning(f"{init_fail_prefix}推送通道 {name} 初始化失败: {e}")
+
+    if not push_channels:
+        return None
+
+    return UnifiedPushManager(push_channels, session)
+
 
 class UnifiedPushManager:
     """统一的推送管理器 - 支持多种推送方式同时发送"""

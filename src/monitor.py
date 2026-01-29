@@ -8,8 +8,7 @@ from aiohttp import ClientSession
 
 from src.config import AppConfig
 from src.database import AsyncDatabase
-from src.push_channel import get_push_channel
-from src.push_channel.manager import UnifiedPushManager
+from src.push_channel.manager import UnifiedPushManager, build_push_manager
 
 
 class BaseMonitor(ABC):
@@ -45,28 +44,8 @@ class BaseMonitor(ABC):
         session = await self._get_session()
 
         # 初始化推送通道（新格式）
-        push_channels = []
-        if self.config.push_channel_list:
-            for channel_config in self.config.push_channel_list:
-                # 只处理启用的通道
-                if not channel_config.get("enable", False):
-                    continue
-
-                try:
-                    channel = get_push_channel(channel_config, session)
-                    push_channels.append(channel)
-                    # 对于需要初始化的通道（如QQBot），执行初始化
-                    if hasattr(channel, "initialize"):
-                        await channel.initialize()
-                except Exception as e:
-                    self.logger.warning(
-                        f"推送通道 {channel_config.get('name', '未知')} 初始化失败: {e}"
-                    )
-
-        # 创建统一的推送管理器
-        if push_channels:
-            self.push = UnifiedPushManager(push_channels, session)
-        else:
+        self.push = await build_push_manager(self.config.push_channel_list, session, self.logger)
+        if self.push is None:
             self.logger.warning("未配置任何推送通道，推送功能将不可用")
 
     async def close(self):

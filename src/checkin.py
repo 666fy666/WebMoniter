@@ -19,8 +19,7 @@ from bs4 import BeautifulSoup
 from yarl import URL
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
-from src.push_channel import get_push_channel
-from src.push_channel.manager import UnifiedPushManager
+from src.push_channel.manager import UnifiedPushManager, build_push_manager
 
 logger = logging.getLogger(__name__)
 
@@ -296,27 +295,13 @@ async def run_checkin_once() -> None:
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         # 准备推送通道（与监控任务保持一致）
-        push_channels = []
-        if app_config.push_channel_list:
-            for channel_config in app_config.push_channel_list:
-                if not channel_config.get("enable", False):
-                    continue
-                try:
-                    channel = get_push_channel(channel_config, session)
-                    push_channels.append(channel)
-                    if hasattr(channel, "initialize"):
-                        await channel.initialize()
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning(
-                        "每日签到：推送通道 %s 初始化失败：%s",
-                        channel_config.get("name", "未知"),
-                        exc,
-                    )
-
-        push_manager: UnifiedPushManager | None = None
-        if push_channels:
-            push_manager = UnifiedPushManager(push_channels, session)
-        else:
+        push_manager: UnifiedPushManager | None = await build_push_manager(
+            app_config.push_channel_list,
+            session,
+            logger,
+            init_fail_prefix="每日签到：",
+        )
+        if push_manager is None:
             logger.warning("每日签到：未配置任何启用的推送通道，将仅在日志中记录结果")
 
         # 登录获取 Cookie
