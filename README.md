@@ -1,14 +1,29 @@
-# 多平台监控工具（虎牙直播、微博等）
+<div align="center">
+
+# <img src="web/static/favicon.svg" width="48" height="48" alt="Logo"/> WebMoniter
+
+**多平台监控签到 · 开播提醒 · 多渠道推送**
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
+[![Docker](https://img.shields.io/badge/docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![APScheduler](https://img.shields.io/badge/scheduler-APScheduler-red?style=flat-square)](https://apscheduler.readthedocs.io/)
+
+</div>
 
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Docker](https://img.shields.io/badge/docker-multi--platform-blue.svg)
+一个支持 **虎牙直播、微博、ikuuu** 等多平台的监控与签到工具。  
+使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、钉钉、Telegram、Bark、邮件等），配置热重载，开箱即用。
 
-一个支持多平台监控工具（虎牙直播、微博等），使用 APScheduler 进行任务调度，支持多渠道推送。
+</div>
 
-[快速开始](#-快速开始) • [Docker 部署](#-docker-部署推荐) • [Web管理界面](#-web管理界面) • [配置说明](#-配置说明) • [API 调用](#-api-调用) • [开发指南](#-开发指南)
+<br/>
+
+<div align="center">
+
+| [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](#-api-调用) | [🛠 开发指南](#-开发指南) |
+|:---:|:---:|:---:|:---:|:---:|:---:|
 
 </div>
 
@@ -65,7 +80,7 @@
 
 ### 🐳 Docker 部署（推荐）
 
-本项目推荐使用 Docker Compose 进行部署，支持多平台架构（amd64、arm64），部署简单、管理方便。
+本项目推荐使用 Docker Compose 进行部署，支持多平台架构（amd64、arm64）。
 
 #### 前置要求
 
@@ -77,8 +92,8 @@
 **1. 准备配置文件**
 
 ```bash
-# 克隆项目（如果还没有）
-git clone <repository-url>
+# 克隆项目
+git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
 # 复制配置文件模板
@@ -149,7 +164,7 @@ docker compose down                        # 停止并删除容器
 
 ## 🌐 Web管理界面
 
-系统提供了Web管理界面，支持PC端和移动端访问，方便用户进行配置管理和数据查看。
+系统提供了Web管理界面，支持PC端和移动端访问。
 
 ### 访问地址
 
@@ -162,6 +177,9 @@ docker compose down                        # 停止并删除容器
 - **用户名**: `admin`
 - **密码**: `123`
 
+<img src="web/static/web首页.png" alt="首页截图" width="600">
+
+---
 > ⚠️ **安全提示**：默认账号密码仅用于开发测试，生产环境建议修改登录凭据。
 
 ---
@@ -177,7 +195,7 @@ docker compose down                        # 停止并删除容器
 
 ```bash
 # 1. 克隆项目
-git clone <repository-url>
+git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
 # 2. 安装 uv（如果尚未安装）
@@ -251,14 +269,14 @@ huya:
 
 #### 每日签到配置
 
-系统支持将类似 SSPanel / iKuuu 的签到逻辑集成到本项目中，按照配置每天自动签到一次，并在项目启动时先执行一次签到。
+系统支持iKuuu 的签到，按照配置每天自动签到一次，并在项目启动时先执行一次签到。
 
 ```yaml
 checkin:
   enable: true                         # 是否启用每日签到
-  login_url: https://ikuuu.de/auth/login   # 登录地址
-  checkin_url: https://ikuuu.de/user/checkin  # 签到接口地址
-  user_page_url: https://ikuuu.de/user       # 用户信息页地址（用于解析剩余流量，可选）
+  login_url: https://ikuuu.nl/auth/login   # 登录地址
+  checkin_url: https://ikuuu.nl/user/checkin  # 签到接口地址
+  user_page_url: https://ikuuu.nl/user       # 用户信息页地址（用于解析剩余流量，可选）
   email: your_email@example.com        # 登录账号
   password: your_password              # 登录密码
   time: "08:00"                        # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
@@ -644,13 +662,22 @@ Content-Type: application/json
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证,仅供个人学习使用。
+本项目采用 [MIT License](./LICENSE) 许可，允许用于学习、研究和非商业用途。有关详细条款，请查阅 LICENSE 文件。
+
+## Contributors
+
+<a href="https://github.com/666fy666/WebMoniter/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=666fy666/WebMoniter" />
+</a>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=666fy666/WebMoniter&type=Date)](https://star-history.com/#666fy666/WebMoniter&Date)
 
 ---
-
 <div align="center">
 
-**如果这个项目对你有帮助，请给一个 ⭐ Star！**
+**最后，如果这个项目对你有帮助，请给个 ⭐ Star呀！**
 
 Made with ❤️ by [FY]
 
