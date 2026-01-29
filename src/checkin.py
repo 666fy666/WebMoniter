@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from dataclasses import dataclass
@@ -207,11 +208,11 @@ async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: s
 
 async def _get_user_traffic(
     session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str
-) -> None:
-    """获取并输出流量信息（可选）"""
+) -> str | None:
+    """获取并输出流量信息（可选），返回用于推送的流量摘要文本，失败或无配置则返回 None。"""
     if not cfg.user_page_url:
         # 用户未配置用户信息页地址，直接跳过
-        return
+        return None
 
     headers = {
         "User-Agent": (
@@ -227,16 +228,32 @@ async def _get_user_traffic(
         async with session.get(cfg.user_page_url, headers=headers) as resp:
             text = await resp.text()
 
-        soup = BeautifulSoup(text, "html.parser")
+        # 部分站点将正文放在 script 的 base64(originBody) 中，需先解码再解析
+        html_to_parse = text
+        origin_body_match = re.search(
+            r'originBody\s*=\s*"([A-Za-z0-9+/=]+)"',
+            text,
+            re.DOTALL,
+        )
+        if origin_body_match:
+            try:
+                decoded = base64.b64decode(origin_body_match.group(1)).decode("utf-8")
+                if "card-statistic-2" in decoded or "剩余流量" in decoded:
+                    html_to_parse = decoded
+            except Exception:  # 解码失败则仍用原始 HTML
+                pass
+
+        soup = BeautifulSoup(html_to_parse, "html.parser")
 
         traffic_cards = soup.find_all("div", class_="card-statistic-2")
         if not traffic_cards:
             logger.info("每日签到：未找到流量统计信息（可能站点样式已更新）")
-            return
+            return None
 
         logger.info("每日签到：📊 流量使用情况：")
         logger.info("=" * 50)
 
+        lines: list[str] = []
         for card in traffic_cards:
             header = card.find("h4")
             if header and "剩余流量" in header.text:
@@ -244,6 +261,7 @@ async def _get_user_traffic(
                 if body:
                     remaining_traffic = re.sub(r"\s+", " ", body.get_text(strip=True))
                     logger.info("每日签到：📈 剩余流量：%s", remaining_traffic)
+                    lines.append(f"📈 剩余流量：{remaining_traffic}")
 
                 stats = card.find("div", class_="card-stats-title")
                 if stats:
@@ -252,13 +270,17 @@ async def _get_user_traffic(
                     if match:
                         today_used = match.group(1).strip()
                         logger.info("每日签到：📊 今日已用：%s", today_used)
+                        lines.append(f"📊 今日已用：{today_used}")
                     else:
                         logger.info("每日签到：📊 今日使用情况：%s", today_used_text)
+                        lines.append(f"📊 今日使用情况：{today_used_text}")
 
         logger.info("=" * 50)
+        return "\n".join(lines) if lines else None
 
     except Exception as exc:  # noqa: BLE001
         logger.error("每日签到：获取流量信息失败：%s", exc, exc_info=True)
+        return None
 
 
 async def run_checkin_once() -> None:
@@ -318,10 +340,10 @@ async def run_checkin_once() -> None:
         # 执行签到
         ok = await _checkin(session, cfg, cookie)
 
-        # 获取流量信息（即使签到失败，也可以尝试获取流量信息）
-        await _get_user_traffic(session, cfg, cookie)
+        # 获取流量信息（即使签到失败，也可以尝试获取流量信息），并用于推送
+        traffic_info = await _get_user_traffic(session, cfg, cookie)
 
-        # 发送统一推送
+        # 发送统一推送（含流量信息）
         title = "每日签到成功" if ok else "每日签到失败"
         msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
         await _send_checkin_push(
@@ -330,6 +352,7 @@ async def run_checkin_once() -> None:
             msg=msg,
             success=ok,
             cfg=cfg,
+            traffic_info=traffic_info,
         )
 
         # 关闭推送通道
@@ -347,8 +370,9 @@ async def _send_checkin_push(
     msg: str,
     success: bool,
     cfg: CheckinConfig,
+    traffic_info: str | None = None,
 ) -> None:
-    """通过统一推送通道发送签到结果"""
+    """通过统一推送通道发送签到结果，可选附带流量信息。"""
     if push_manager is None:
         return
 
@@ -362,8 +386,12 @@ async def _send_checkin_push(
     status_emoji = "✅" if success else "❌"
     description = (
         f"{status_emoji} 账号：{masked_email}\n"
-        f"{msg}\n\n"
-        f"登录地址：{cfg.login_url}\n"
+        f"{msg}\n"
+    )
+    if traffic_info:
+        description += f"\n【流量信息】\n{traffic_info}\n"
+    description += (
+        f"\n登录地址：{cfg.login_url}\n"
         f"签到接口：{cfg.checkin_url}"
     )
 
