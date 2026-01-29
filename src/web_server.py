@@ -389,7 +389,7 @@ async def get_table_data(request: Request, table_name: str, page: int = 1, page_
 
         rows = await db.execute_query(sql)
 
-        # 转换为字典格式
+        # 转换为字典格式，并添加跳转链接
         if table_name == "weibo":
             data = [
                 {
@@ -401,11 +401,24 @@ async def get_table_data(request: Request, table_name: str, page: int = 1, page_
                     "微博数": row[5],
                     "文本": row[6],
                     "mid": row[7],
+                    "url": (
+                        f"https://m.weibo.cn/detail/{row[7]}"
+                        if row[7]
+                        else f"https://www.weibo.com/u/{row[0]}"
+                    ),
                 }
                 for row in rows
             ]
         else:  # huya
-            data = [{"room": row[0], "name": row[1], "is_live": row[2]} for row in rows]
+            data = [
+                {
+                    "room": row[0],
+                    "name": row[1],
+                    "is_live": row[2],
+                    "url": f"https://www.huya.com/{row[0]}",
+                }
+                for row in rows
+            ]
 
         await db.close()
 

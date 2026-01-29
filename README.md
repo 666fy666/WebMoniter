@@ -677,8 +677,7 @@ Content-Type: application/json
 ---
 <div align="center">
 
-**最后，如果这个项目对你有帮助，请给个 ⭐ Star呀！**
-
-Made with ❤️ by [FY]
-
+**最后，如果这个项目对你有帮助**  
+**请给个 ⭐ Star 呀！**  
+**Made with ❤️ by [FY]**
 </div>

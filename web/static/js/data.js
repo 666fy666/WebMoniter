@@ -1,6 +1,6 @@
 // 数据展示页面JavaScript
 
-let currentTable = 'weibo';
+let currentTable = 'huya';
 let currentPage = 1;
 const pageSize = 100;
 
@@ -63,7 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
             html += '<th>UID</th><th>用户名</th><th>认证信息</th><th>简介</th><th>粉丝数</th><th>微博数</th><th>文本</th><th>MID</th>';
             html += '</tr></thead><tbody>';
             rows.forEach(row => {
-                html += `<tr>
+                const url = row.url || (row.mid ? `https://m.weibo.cn/detail/${row.mid}` : `https://www.weibo.com/u/${row.UID}`);
+                html += `<tr class="data-row-link" data-href="${escapeAttr(url)}" title="点击跳转到微博">
                     <td>${escapeHtml(row.UID)}</td>
                     <td>${escapeHtml(row.用户名)}</td>
                     <td>${escapeHtml(row.认证信息)}</td>
@@ -79,7 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
             html += '</tr></thead><tbody>';
             rows.forEach(row => {
                 const statusText = row.is_live === '1' ? '<span style="color: #e74c3c;">🔴 直播中</span>' : '<span style="color: #95a5a6;">⚫ 未开播</span>';
-                html += `<tr>
+                const url = row.url || `https://www.huya.com/${row.room}`;
+                html += `<tr class="data-row-link" data-href="${escapeAttr(url)}" title="点击跳转到虎牙直播间">
                     <td>${escapeHtml(row.room)}</td>
                     <td>${escapeHtml(row.name)}</td>
                     <td>${statusText}</td>
@@ -89,6 +91,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         html += '</tbody></table>';
         dataTableContainer.innerHTML = html;
+
+        // 行点击跳转
+        dataTableContainer.querySelectorAll('.data-row-link').forEach(tr => {
+            tr.addEventListener('click', function (e) {
+                // 若点击的是表格内的链接，不拦截
+                if (e.target.tagName === 'A' && e.target.href) return;
+                const href = this.getAttribute('data-href');
+                if (href) window.open(href, '_blank', 'noopener,noreferrer');
+            });
+        });
+    }
+
+    // 属性转义（用于 data-href 等）
+    function escapeAttr(text) {
+        if (text == null) return '';
+        const s = String(text);
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML.replace(/"/g, '&quot;');
     }
 
     // 渲染分页

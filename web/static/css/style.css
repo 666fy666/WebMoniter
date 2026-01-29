@@ -363,6 +363,19 @@ table tr:hover {
     background-color: #f8f9fa;
 }
 
+/* 数据行可点击跳转 */
+table tr.data-row-link {
+    cursor: pointer;
+}
+
+table tr.data-row-link td {
+    cursor: pointer;
+}
+
+table tr.data-row-link:hover {
+    background-color: #e8f4fd;
+}
+
 /* 标签页 */
 .tabs {
     display: flex;

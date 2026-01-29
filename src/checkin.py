@@ -38,7 +38,7 @@ class CheckinConfig:
     time: str
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "CheckinConfig":
+    def from_app_config(cls, config: AppConfig) -> CheckinConfig:
         return cls(
             enable=config.checkin_enable,
             login_url=config.checkin_login_url.strip(),
@@ -66,9 +66,7 @@ class CheckinConfig:
             missing_fields.append("checkin.password")
 
         if missing_fields:
-            logger.error(
-                "每日签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields)
-            )
+            logger.error("每日签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields))
             return False
 
         return True
@@ -86,9 +84,7 @@ def _mask_email(email: str) -> str:
     return f"{masked_name}@{domain}"
 
 
-async def _login_and_get_cookie(
-    session: aiohttp.ClientSession, cfg: CheckinConfig
-) -> str | None:
+async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConfig) -> str | None:
     """登录站点并获取 Cookie"""
     logger.info("每日签到：正在使用账号 %s 登录...", _mask_email(cfg.email))
 
@@ -177,7 +173,9 @@ async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: s
             "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
         ),
         "Origin": cfg.checkin_url.rsplit("/user", 1)[0] if "/user" in cfg.checkin_url else "",
-        "Referer": cfg.checkin_url.rsplit("/checkin", 1)[0] if "/checkin" in cfg.checkin_url else "",
+        "Referer": (
+            cfg.checkin_url.rsplit("/checkin", 1)[0] if "/checkin" in cfg.checkin_url else ""
+        ),
         "Cookie": cookie,
     }
 
@@ -296,9 +294,7 @@ async def run_checkin_once() -> None:
     logger.info("每日签到：🚀 自动签到任务开始执行")
     logger.info("=" * 60)
 
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=20)
-    ) as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         # 准备推送通道（与监控任务保持一致）
         push_channels = []
         if app_config.push_channel_list:
@@ -384,16 +380,10 @@ async def _send_checkin_push(
 
     masked_email = _mask_email(cfg.email)
     status_emoji = "✅" if success else "❌"
-    description = (
-        f"{status_emoji} 账号：{masked_email}\n"
-        f"{msg}\n"
-    )
+    description = f"{status_emoji} 账号：{masked_email}\n" f"{msg}\n"
     if traffic_info:
         description += f"\n【流量信息】\n{traffic_info}\n"
-    description += (
-        f"\n登录地址：{cfg.login_url}\n"
-        f"签到接口：{cfg.checkin_url}"
-    )
+    description += f"\n登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
 
     try:
         await push_manager.send_news(
@@ -405,4 +395,3 @@ async def _send_checkin_push(
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("每日签到：发送签到结果推送失败：%s", exc, exc_info=True)
-
