@@ -98,6 +98,58 @@
                 </div>
             </div>
 
+            <!-- 每日签到配置 -->
+            <div class="card config-section" data-section="checkin">
+                <div class="card-header">
+                    <h2>📅 每日签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用每日签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="checkin_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="checkin_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">登录地址</td>
+                            <td><input type="text" id="checkin_login_url" class="form-input" placeholder="例如：https://ikuuu.de/auth/login"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到接口地址</td>
+                            <td><input type="text" id="checkin_checkin_url" class="form-input" placeholder="例如：https://ikuuu.de/user/checkin"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">用户信息页地址</td>
+                            <td><input type="text" id="checkin_user_page_url" class="form-input" placeholder="例如：https://ikuuu.de/user（可选，用于解析流量信息）"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">登录账号</td>
+                            <td><input type="text" id="checkin_email" class="form-input" placeholder="邮箱或用户名"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">登录密码</td>
+                            <td><input type="password" id="checkin_password" class="form-input" placeholder="登录密码"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="checkin_time" class="form-input" value="08:00"></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 15px;">
+                        <p>系统会在指定时间自动执行签到任务，项目启动时也会先执行一次签到。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 调度器配置 -->
             <div class="card config-section" data-section="scheduler">
                 <div class="card-header">

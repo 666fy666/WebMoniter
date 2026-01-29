@@ -212,9 +212,10 @@ nohup uv run python main.py > /dev/null 2>&1 &  # 后台运行
 配置文件采用 YAML 格式，主要包含以下部分：
 
 1. **监控平台配置** (`weibo`, `huya`)
-2. **调度器配置** (`scheduler`)
-3. **免打扰时段配置** (`quiet_hours`)
-4. **推送通道配置** (`push_channel`)
+2. **每日签到配置** (`checkin`)
+3. **调度器配置** (`scheduler`)
+4. **免打扰时段配置** (`quiet_hours`)
+5. **推送通道配置** (`push_channel`)
 
 ### 监控任务配置
 
@@ -247,6 +248,26 @@ huya:
 **获取房间号**：
 - 从虎牙直播间 URL 获取
 - 例如：`https://www.huya.com/123456`，房间号为 `123456`
+
+#### 每日签到配置
+
+系统支持将类似 SSPanel / iKuuu 的签到逻辑集成到本项目中，按照配置每天自动签到一次，并在项目启动时先执行一次签到。
+
+```yaml
+checkin:
+  enable: true                         # 是否启用每日签到
+  login_url: https://ikuuu.de/auth/login   # 登录地址
+  checkin_url: https://ikuuu.de/user/checkin  # 签到接口地址
+  user_page_url: https://ikuuu.de/user       # 用户信息页地址（用于解析剩余流量，可选）
+  email: your_email@example.com        # 登录账号
+  password: your_password              # 登录密码
+  time: "08:00"                        # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
+```
+
+**说明：**
+
+- **签到时间**：默认每天早上 8 点执行一次签到任务；如果需要调整时间，可以修改 `time` 字段。
+- **项目启动时签到**：无论是否到达定时任务时间，项目启动时都会先执行一次签到（前提是 `enable: true` 且配置完整）。
 
 #### 调度器配置
 

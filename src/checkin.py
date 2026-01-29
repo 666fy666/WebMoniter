@@ -1,0 +1,380 @@
+"""每日签到任务模块
+
+参考原有的 SSPanel / iKuuu 自动签到脚本，将其集成进本项目：
+- 使用配置文件中的登录地址、签到地址、账号、密码等参数
+- 支持每天固定时间（默认 08:00）自动签到
+- 项目启动时也会执行一次签到
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from dataclasses import dataclass
+from typing import Any
+
+import aiohttp
+from bs4 import BeautifulSoup
+from yarl import URL
+
+from src.config import AppConfig, get_config, is_in_quiet_hours
+from src.push_channel import get_push_channel
+from src.push_channel.manager import UnifiedPushManager
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class CheckinConfig:
+    """签到相关配置"""
+
+    enable: bool
+    login_url: str
+    checkin_url: str
+    user_page_url: str | None
+    email: str
+    password: str
+    time: str
+
+    @classmethod
+    def from_app_config(cls, config: AppConfig) -> "CheckinConfig":
+        return cls(
+            enable=config.checkin_enable,
+            login_url=config.checkin_login_url.strip(),
+            checkin_url=config.checkin_checkin_url.strip(),
+            user_page_url=(config.checkin_user_page_url or "").strip() or None,
+            email=config.checkin_email.strip(),
+            password=config.checkin_password.strip(),
+            time=config.checkin_time.strip() or "08:00",
+        )
+
+    def validate(self) -> bool:
+        """校验配置是否完整"""
+        if not self.enable:
+            logger.debug("每日签到未启用，跳过执行")
+            return False
+
+        missing_fields: list[str] = []
+        if not self.login_url:
+            missing_fields.append("checkin.login_url")
+        if not self.checkin_url:
+            missing_fields.append("checkin.checkin_url")
+        if not self.email:
+            missing_fields.append("checkin.email")
+        if not self.password:
+            missing_fields.append("checkin.password")
+
+        if missing_fields:
+            logger.error(
+                "每日签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields)
+            )
+            return False
+
+        return True
+
+
+def _mask_email(email: str) -> str:
+    """对邮箱做部分脱敏，用于日志输出"""
+    if "@" not in email:
+        return email
+    name, domain = email.split("@", 1)
+    if len(name) <= 3:
+        masked_name = name[0] + "***" if name else "***"
+    else:
+        masked_name = name[:3] + "***"
+    return f"{masked_name}@{domain}"
+
+
+async def _login_and_get_cookie(
+    session: aiohttp.ClientSession, cfg: CheckinConfig
+) -> str | None:
+    """登录站点并获取 Cookie"""
+    logger.info("每日签到：正在使用账号 %s 登录...", _mask_email(cfg.email))
+
+    # 从登录地址中推导出站点根地址，用于设置 Referer / Origin
+    try:
+        login_url = URL(cfg.login_url)
+        base_origin = f"{login_url.scheme}://{login_url.host}"
+    except Exception:
+        # 如果 URL 解析失败，则回退为配置值
+        base_origin = cfg.login_url
+
+    headers: dict[str, str] = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+        )
+    }
+
+    try:
+        # 访问登录页，获取 CSRF 等必要信息
+        async with session.get(cfg.login_url, headers=headers) as resp:
+            text = await resp.text()
+
+        soup = BeautifulSoup(text, "html.parser")
+        csrf_token: str | None = None
+        csrf_input = soup.find("input", {"name": "_token"})
+        if csrf_input:
+            csrf_token = csrf_input.get("value")
+
+        login_data: dict[str, str] = {
+            "email": cfg.email,
+            "passwd": cfg.password,
+        }
+        if csrf_token:
+            login_data["_token"] = csrf_token
+
+        headers.update(
+            {
+                "Origin": base_origin,
+                "Referer": cfg.login_url,
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+        )
+
+        async with session.post(cfg.login_url, data=login_data, headers=headers) as resp:
+            status = resp.status
+            resp_url = str(resp.url)
+
+            # 优先尝试解析 JSON
+            json_data: dict[str, Any] | None = None
+            try:
+                json_data = await resp.json(content_type=None)
+            except Exception:
+                json_data = None
+
+        if status == 200:
+            # 1. 一些站点登录成功会跳转到 /user 等页面
+            # 2. 有些返回 JSON: {"ret": 1, "msg": "..."}
+            if "user" in resp_url or (json_data and json_data.get("ret") == 1):
+                logger.info("每日签到：登录成功")
+                # 从 session 中提取 Cookie
+                cookie_jar = session.cookie_jar
+                cookies = cookie_jar.filter_cookies(base_origin)
+                cookie_string = "; ".join(f"{k}={v.value}" for k, v in cookies.items())
+                return cookie_string
+
+            msg = json_data.get("msg") if json_data else "未知错误"
+            logger.error("每日签到：登录失败：%s", msg)
+            return None
+
+        logger.error("每日签到：登录请求失败，HTTP 状态码：%s", status)
+        return None
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("每日签到：登录过程中发生错误：%s", exc, exc_info=True)
+        return None
+
+
+async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str) -> bool:
+    """执行签到"""
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+        ),
+        "Origin": cfg.checkin_url.rsplit("/user", 1)[0] if "/user" in cfg.checkin_url else "",
+        "Referer": cfg.checkin_url.rsplit("/checkin", 1)[0] if "/checkin" in cfg.checkin_url else "",
+        "Cookie": cookie,
+    }
+
+    try:
+        async with session.post(cfg.checkin_url, headers=headers) as resp:
+            try:
+                data: dict[str, Any] = await resp.json(content_type=None)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("每日签到：解析签到响应失败：%s", exc, exc_info=True)
+                return False
+
+        msg = data.get("msg", "")
+        if data.get("ret") == 1:
+            logger.info("每日签到：✅ 签到成功：%s", msg)
+            return True
+
+        if "已经签到" in msg or "已签到" in msg:
+            logger.info("每日签到：ℹ️ 今日已签到：%s", msg)
+            return True
+
+        logger.error("每日签到：❌ 签到失败：%s", msg)
+        return False
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("每日签到：签到请求失败：%s", exc, exc_info=True)
+        return False
+
+
+async def _get_user_traffic(
+    session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str
+) -> None:
+    """获取并输出流量信息（可选）"""
+    if not cfg.user_page_url:
+        # 用户未配置用户信息页地址，直接跳过
+        return
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+        ),
+        "Referer": cfg.user_page_url,
+        "Cookie": cookie,
+    }
+
+    try:
+        async with session.get(cfg.user_page_url, headers=headers) as resp:
+            text = await resp.text()
+
+        soup = BeautifulSoup(text, "html.parser")
+
+        traffic_cards = soup.find_all("div", class_="card-statistic-2")
+        if not traffic_cards:
+            logger.info("每日签到：未找到流量统计信息（可能站点样式已更新）")
+            return
+
+        logger.info("每日签到：📊 流量使用情况：")
+        logger.info("=" * 50)
+
+        for card in traffic_cards:
+            header = card.find("h4")
+            if header and "剩余流量" in header.text:
+                body = card.find("div", class_="card-body")
+                if body:
+                    remaining_traffic = re.sub(r"\s+", " ", body.get_text(strip=True))
+                    logger.info("每日签到：📈 剩余流量：%s", remaining_traffic)
+
+                stats = card.find("div", class_="card-stats-title")
+                if stats:
+                    today_used_text = re.sub(r"\s+", " ", stats.get_text(strip=True))
+                    match = re.search(r":\s*(.+)", today_used_text)
+                    if match:
+                        today_used = match.group(1).strip()
+                        logger.info("每日签到：📊 今日已用：%s", today_used)
+                    else:
+                        logger.info("每日签到：📊 今日使用情况：%s", today_used_text)
+
+        logger.info("=" * 50)
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("每日签到：获取流量信息失败：%s", exc, exc_info=True)
+
+
+async def run_checkin_once() -> None:
+    """执行一次完整的签到流程（登录 → 签到 → 获取流量信息）"""
+    # 每次执行时重新加载配置，确保支持热重载
+    app_config = get_config(reload=True)
+    cfg = CheckinConfig.from_app_config(app_config)
+
+    if not cfg.validate():
+        return
+
+    logger.info("=" * 60)
+    logger.info("每日签到：🚀 自动签到任务开始执行")
+    logger.info("=" * 60)
+
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=20)
+    ) as session:
+        # 准备推送通道（与监控任务保持一致）
+        push_channels = []
+        if app_config.push_channel_list:
+            for channel_config in app_config.push_channel_list:
+                if not channel_config.get("enable", False):
+                    continue
+                try:
+                    channel = get_push_channel(channel_config, session)
+                    push_channels.append(channel)
+                    if hasattr(channel, "initialize"):
+                        await channel.initialize()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "每日签到：推送通道 %s 初始化失败：%s",
+                        channel_config.get("name", "未知"),
+                        exc,
+                    )
+
+        push_manager: UnifiedPushManager | None = None
+        if push_channels:
+            push_manager = UnifiedPushManager(push_channels, session)
+        else:
+            logger.warning("每日签到：未配置任何启用的推送通道，将仅在日志中记录结果")
+
+        # 登录获取 Cookie
+        cookie = await _login_and_get_cookie(session, cfg)
+        if not cookie:
+            logger.error("每日签到：❌ 登录失败，本次签到终止")
+            # 登录失败也尝试推送一次
+            await _send_checkin_push(
+                push_manager,
+                title="每日签到失败：登录失败",
+                msg="登录失败，无法获取 Cookie，请检查账号、密码或站点状态。",
+                success=False,
+                cfg=cfg,
+            )
+            return
+
+        # 执行签到
+        ok = await _checkin(session, cfg, cookie)
+
+        # 获取流量信息（即使签到失败，也可以尝试获取流量信息）
+        await _get_user_traffic(session, cfg, cookie)
+
+        # 发送统一推送
+        title = "每日签到成功" if ok else "每日签到失败"
+        msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
+        await _send_checkin_push(
+            push_manager,
+            title=title,
+            msg=msg,
+            success=ok,
+            cfg=cfg,
+        )
+
+        # 关闭推送通道
+        if push_manager is not None:
+            await push_manager.close()
+
+    logger.info("=" * 60)
+    logger.info("每日签到：✨ 本次签到流程结束（成功：%s）", ok)
+    logger.info("=" * 60)
+
+
+async def _send_checkin_push(
+    push_manager: UnifiedPushManager | None,
+    title: str,
+    msg: str,
+    success: bool,
+    cfg: CheckinConfig,
+) -> None:
+    """通过统一推送通道发送签到结果"""
+    if push_manager is None:
+        return
+
+    # 免打扰时段内只记录日志，不推送
+    app_cfg = get_config()
+    if is_in_quiet_hours(app_cfg):
+        logger.info("每日签到：当前处于免打扰时段，仅记录签到结果日志，不发送推送。")
+        return
+
+    masked_email = _mask_email(cfg.email)
+    status_emoji = "✅" if success else "❌"
+    description = (
+        f"{status_emoji} 账号：{masked_email}\n"
+        f"{msg}\n\n"
+        f"登录地址：{cfg.login_url}\n"
+        f"签到接口：{cfg.checkin_url}"
+    )
+
+    try:
+        await push_manager.send_news(
+            title=f"{title}（{masked_email}）",
+            description=description,
+            to_url=cfg.user_page_url or cfg.login_url,
+            picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
+            btntxt="查看账户",
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("每日签到：发送签到结果推送失败：%s", exc, exc_info=True)
+

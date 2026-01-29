@@ -15,6 +15,22 @@ huya:
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
   concurrency: 10  # 并发数，建议5-10
 
+# 每日签到配置（例如 SSPanel / iKuuu 等）
+checkin:
+  enable: false  # 是否启用每日签到
+  # 登录地址（例如：https://ikuuu.nl/auth/login）
+  login_url:
+  # 签到接口地址（例如：https://ikuuu.nl/user/checkin）
+  checkin_url:
+  # 用户信息页地址（例如：https://ikuuu.nl/user，用于解析剩余流量，可选）
+  user_page_url:
+  # 登录账号（邮箱或用户名）
+  email:
+  # 登录密码
+  password:
+  # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
+  time: "08:00"
+
 # 调度器配置
 scheduler:
   huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒

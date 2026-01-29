@@ -8,6 +8,7 @@ import logging
 
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
+from src.checkin import run_checkin_once
 from src.config import AppConfig, get_config
 from src.config_watcher import ConfigWatcher
 from src.cookie_cache_manager import cookie_cache
@@ -80,21 +81,36 @@ async def register_monitors(scheduler: TaskScheduler):
         job_id="cleanup_logs",
     )
 
-    # 项目启动时立即执行一次监控任务
+    # 每日签到任务 - 默认每天早上 8 点执行一次
+    # 实际执行时会在任务内部重新读取配置，支持热重载
+    scheduler.add_cron_job(
+        func=run_checkin_once,
+        minute="0",
+        hour="8",
+        job_id="daily_checkin",
+    )
+
+    # 项目启动时立即执行一次监控任务和签到任务
     logger = logging.getLogger(__name__)
-    logger.debug("正在启动时立即执行一次监控任务...")
+    logger.debug("正在启动时立即执行一次监控任务和签到任务...")
 
     # 立即执行虎牙监控
     try:
         await run_huya_monitor()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"虎牙监控启动时首次执行失败: {e}", exc_info=True)
 
     # 立即执行微博监控
     try:
         await run_weibo_monitor()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"微博监控启动时首次执行失败: {e}", exc_info=True)
+
+    # 启动时立即执行一次每日签到任务
+    try:
+        await run_checkin_once()
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"每日签到任务启动时首次执行失败: {e}", exc_info=True)
 
     # 可以添加更多监控任务，例如：
     # scheduler.add_interval_job(

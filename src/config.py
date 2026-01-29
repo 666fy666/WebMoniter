@@ -38,6 +38,15 @@ class AppConfig(BaseModel):
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
 
+    # 每日签到配置
+    checkin_enable: bool = False  # 是否启用每日签到
+    checkin_login_url: str = ""  # 登录地址
+    checkin_checkin_url: str = ""  # 签到接口地址
+    checkin_user_page_url: str = ""  # 用户信息页地址（用于解析流量信息，可选）
+    checkin_email: str = ""  # 登录账号（邮箱或用户名）
+    checkin_password: str = ""  # 登录密码
+    checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
+
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
@@ -116,6 +125,24 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["huya_rooms"] = huya["rooms"]
             if "concurrency" in huya:
                 config_dict["huya_concurrency"] = huya["concurrency"]
+
+        # 每日签到配置
+        if "checkin" in yml_config:
+            checkin = yml_config["checkin"]
+            if "enable" in checkin:
+                config_dict["checkin_enable"] = checkin["enable"]
+            if "login_url" in checkin:
+                config_dict["checkin_login_url"] = checkin["login_url"]
+            if "checkin_url" in checkin:
+                config_dict["checkin_checkin_url"] = checkin["checkin_url"]
+            if "user_page_url" in checkin:
+                config_dict["checkin_user_page_url"] = checkin["user_page_url"]
+            if "email" in checkin:
+                config_dict["checkin_email"] = checkin["email"]
+            if "password" in checkin:
+                config_dict["checkin_password"] = checkin["password"]
+            if "time" in checkin:
+                config_dict["checkin_time"] = checkin["time"]
 
         # 调度器配置
         if "scheduler" in yml_config:

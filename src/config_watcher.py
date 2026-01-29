@@ -143,6 +143,18 @@ class ConfigWatcher:
         ):
             return True
 
+        # 每日签到配置
+        if (
+            old_config.checkin_enable != new_config.checkin_enable
+            or old_config.checkin_login_url != new_config.checkin_login_url
+            or old_config.checkin_checkin_url != new_config.checkin_checkin_url
+            or old_config.checkin_user_page_url != new_config.checkin_user_page_url
+            or old_config.checkin_email != new_config.checkin_email
+            or old_config.checkin_password != new_config.checkin_password
+            or old_config.checkin_time != new_config.checkin_time
+        ):
+            return True
+
         # 调度器配置
         if (
             old_config.huya_monitor_interval_seconds != new_config.huya_monitor_interval_seconds

@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const configMessage = document.getElementById('configMessage');
     const quietHoursEnable = document.getElementById('quiet_hours_enable');
     const quietHoursEnableLabel = document.getElementById('quiet_hours_enable_label');
+    const checkinEnable = document.getElementById('checkin_enable');
+    const checkinEnableLabel = document.getElementById('checkin_enable_label');
     const tableView = document.getElementById('tableView');
     const textView = document.getElementById('textView');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -127,6 +129,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         quietHoursEnableLabel.textContent = this.checked ? '开启' : '关闭';
     });
 
+    // 每日签到开关事件
+    if (checkinEnable && checkinEnableLabel) {
+        checkinEnable.addEventListener('change', function() {
+            checkinEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+
     // 加载配置
     async function loadConfig() {
         try {
@@ -144,6 +153,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 填充所有配置
             loadSectionConfig('weibo', config);
             loadSectionConfig('huya', config);
+            loadSectionConfig('checkin', config);
             loadSectionConfig('scheduler', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
@@ -395,6 +405,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('weibo_concurrency').value = config.weibo.concurrency || 3;
                 }
                 break;
+            case 'checkin':
+                if (config.checkin) {
+                    if (checkinEnable) {
+                        checkinEnable.checked = !!config.checkin.enable;
+                        if (checkinEnableLabel) {
+                            checkinEnableLabel.textContent = checkinEnable.checked ? '开启' : '关闭';
+                        }
+                    }
+                    const loginUrlInput = document.getElementById('checkin_login_url');
+                    const checkinUrlInput = document.getElementById('checkin_checkin_url');
+                    const userPageUrlInput = document.getElementById('checkin_user_page_url');
+                    const emailInput = document.getElementById('checkin_email');
+                    const passwordInput = document.getElementById('checkin_password');
+                    const timeInput = document.getElementById('checkin_time');
+
+                    if (loginUrlInput) loginUrlInput.value = config.checkin.login_url || '';
+                    if (checkinUrlInput) checkinUrlInput.value = config.checkin.checkin_url || '';
+                    if (userPageUrlInput) userPageUrlInput.value = config.checkin.user_page_url || '';
+                    if (emailInput) emailInput.value = config.checkin.email || '';
+                    if (passwordInput) passwordInput.value = config.checkin.password || '';
+                    if (timeInput) {
+                        const timeVal = config.checkin.time || '08:00';
+                        timeInput.value = timeVal.length === 5 ? timeVal : '08:00';
+                    }
+                }
+                break;
             case 'huya':
                 if (config.huya) {
                     document.getElementById('huya_rooms').value = typeof config.huya.rooms === 'string' 
@@ -437,6 +473,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     cookie: document.getElementById('weibo_cookie').value.trim(),
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3
+                };
+                break;
+            case 'checkin':
+                config.checkin = {
+                    enable: checkinEnable ? checkinEnable.checked : false,
+                    login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
+                    checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
+                    user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
+                    email: (document.getElementById('checkin_email')?.value || '').trim(),
+                    password: (document.getElementById('checkin_password')?.value || '').trim(),
+                    time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
                 };
                 break;
             case 'huya':
@@ -535,6 +582,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             enable: quietHoursEnable.checked,
             start: document.getElementById('quiet_hours_start').value || '22:00',
             end: document.getElementById('quiet_hours_end').value || '08:00'
+        };
+
+        // 每日签到配置
+        config.checkin = {
+            enable: checkinEnable ? checkinEnable.checked : false,
+            login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
+            checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
+            user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
+            email: (document.getElementById('checkin_email')?.value || '').trim(),
+            password: (document.getElementById('checkin_password')?.value || '').trim(),
+            time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
         };
 
         // 推送通道配置
