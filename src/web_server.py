@@ -357,70 +357,151 @@ async def save_config_api(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.get("/api/data/{table_name}")
-async def get_table_data(request: Request, table_name: str, page: int = 1, page_size: int = 100):
-    """获取数据库表数据"""
+# 平台主键与查询列
+PLATFORM_PRIMARY_KEY = {"weibo": "UID", "huya": "room"}
+VALID_PLATFORMS = frozenset(PLATFORM_PRIMARY_KEY)
+
+
+def _weibo_row_to_item(row: tuple) -> dict:
+    """将 weibo 表的一行转为 API 返回项（含 url）。"""
+    return {
+        "UID": row[0],
+        "用户名": row[1],
+        "认证信息": row[2],
+        "简介": row[3],
+        "粉丝数": row[4],
+        "微博数": row[5],
+        "文本": row[6],
+        "mid": row[7],
+        "url": (
+            f"https://m.weibo.cn/detail/{row[7]}" if row[7] else f"https://www.weibo.com/u/{row[0]}"
+        ),
+    }
+
+
+def _huya_row_to_item(row: tuple) -> dict:
+    """将 huya 表的一行转为 API 返回项（含 url）。"""
+    return {
+        "room": row[0],
+        "name": row[1],
+        "is_live": row[2],
+        "url": f"https://www.huya.com/{row[0]}",
+    }
+
+
+def _weibo_row_to_status_item(row: tuple) -> dict:
+    """将 weibo 表的一行转为 monitor-status 返回项（不含 url）。"""
+    return {
+        "UID": row[0],
+        "用户名": row[1],
+        "认证信息": row[2],
+        "简介": row[3],
+        "粉丝数": row[4],
+        "微博数": row[5],
+        "文本": row[6],
+        "mid": row[7],
+    }
+
+
+def _huya_row_to_status_item(row: tuple) -> dict:
+    """将 huya 表的一行转为 monitor-status 返回项。"""
+    return {"room": row[0], "name": row[1], "is_live": row[2]}
+
+
+@app.get("/api/data/{platform}/{item_id}")
+async def get_data_item(request: Request, platform: str, item_id: str):
+    """按平台与主键 ID 获取单条监控数据（需登录）。"""
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    if table_name not in ["weibo", "huya"]:
-        return JSONResponse({"error": "无效的表名"}, status_code=400)
+    if platform not in VALID_PLATFORMS:
+        return JSONResponse({"error": "无效的平台"}, status_code=400)
 
     try:
         db = AsyncDatabase()
         await db.initialize()
 
-        # 获取总数
-        count_sql = f"SELECT COUNT(*) FROM {table_name}"
-        count_result = await db.execute_query(count_sql)
+        if platform == "weibo":
+            rows = await db.execute_query(
+                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :uid",
+                {"uid": item_id},
+            )
+        else:
+            rows = await db.execute_query(
+                "SELECT room, name, is_live FROM huya WHERE room = :room",
+                {"room": item_id},
+            )
+
+        await db.close()
+
+        if not rows:
+            return JSONResponse({"error": "未找到该资源"}, status_code=404)
+
+        row = rows[0]
+        if platform == "weibo":
+            data = _weibo_row_to_item(row)
+        else:
+            data = _huya_row_to_item(row)
+
+        return JSONResponse({"data": data})
+    except Exception as e:
+        logger.error(f"获取单条数据失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/data/{platform}")
+async def get_table_data(
+    request: Request,
+    platform: str,
+    page: int = 1,
+    page_size: int = 100,
+    uid: str | None = None,
+    room: str | None = None,
+):
+    """获取监控数据列表（需登录）。支持分页与按用户/房间过滤。"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    if platform not in VALID_PLATFORMS:
+        return JSONResponse({"error": "无效的平台"}, status_code=400)
+
+    # 平台与过滤参数对应关系
+    filter_param = uid if platform == "weibo" else room
+    filter_column = PLATFORM_PRIMARY_KEY[platform]
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        where_clause = ""
+        params: dict = {}
+        if filter_param:
+            where_clause = f" WHERE {filter_column} = :filter_val"
+            params["filter_val"] = filter_param
+
+        count_sql = f"SELECT COUNT(*) FROM {platform}{where_clause}"
+        count_result = await db.execute_query(count_sql, params if params else None)
         total = count_result[0][0] if count_result else 0
 
-        # 获取分页数据
         offset = (page - 1) * page_size
-        if table_name == "weibo":
+        params["limit"] = page_size
+        params["offset"] = offset
+        if platform == "weibo":
             sql = (
                 "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid "
-                f"FROM {table_name} LIMIT {page_size} OFFSET {offset}"
+                f"FROM weibo{where_clause} LIMIT :limit OFFSET :offset"
             )
-        else:  # huya
-            sql = (
-                f"SELECT room, name, is_live FROM {table_name} "
-                f"LIMIT {page_size} OFFSET {offset}"
-            )
+        else:
+            sql = f"SELECT room, name, is_live FROM huya{where_clause} LIMIT :limit OFFSET :offset"
 
-        rows = await db.execute_query(sql)
+        rows = await db.execute_query(sql, params)
 
-        # 转换为字典格式，并添加跳转链接
-        if table_name == "weibo":
-            data = [
-                {
-                    "UID": row[0],
-                    "用户名": row[1],
-                    "认证信息": row[2],
-                    "简介": row[3],
-                    "粉丝数": row[4],
-                    "微博数": row[5],
-                    "文本": row[6],
-                    "mid": row[7],
-                    "url": (
-                        f"https://m.weibo.cn/detail/{row[7]}"
-                        if row[7]
-                        else f"https://www.weibo.com/u/{row[0]}"
-                    ),
-                }
-                for row in rows
-            ]
-        else:  # huya
-            data = [
-                {
-                    "room": row[0],
-                    "name": row[1],
-                    "is_live": row[2],
-                    "url": f"https://www.huya.com/{row[0]}",
-                }
-                for row in rows
-            ]
+        if platform == "weibo":
+            data = [_weibo_row_to_item(row) for row in rows]
+        else:
+            data = [_huya_row_to_item(row) for row in rows]
 
         await db.close()
 
@@ -430,7 +511,7 @@ async def get_table_data(request: Request, table_name: str, page: int = 1, page_
                 "total": total,
                 "page": page,
                 "page_size": page_size,
-                "total_pages": (total + page_size - 1) // page_size,
+                "total_pages": (total + page_size - 1) // page_size if total else 0,
             }
         )
     except Exception as e:
@@ -531,35 +612,94 @@ async def get_logs(request: Request, lines: int = 100):
         return JSONResponse({"error": f"读取日志失败: {str(e)}"}, status_code=500)
 
 
-@app.get("/api/monitor-status")
-async def get_monitor_status(request: Request):
-    """获取监控任务状态（API接口，无需登录）"""
+@app.get("/api/monitor-status/{platform}/{item_id}")
+async def get_monitor_status_item(request: Request, platform: str, item_id: str):
+    """按平台与主键 ID 获取单条监控状态（无需登录）。"""
+    if platform not in VALID_PLATFORMS:
+        return JSONResponse({"error": "无效的平台"}, status_code=400)
 
     try:
         db = AsyncDatabase()
         await db.initialize()
 
-        # 获取weibo表数据
-        weibo_sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
-        weibo_rows = await db.execute_query(weibo_sql)
-        weibo_data = [
-            {
-                "UID": row[0],
-                "用户名": row[1],
-                "认证信息": row[2],
-                "简介": row[3],
-                "粉丝数": row[4],
-                "微博数": row[5],
-                "文本": row[6],
-                "mid": row[7],
-            }
-            for row in weibo_rows
-        ]
+        if platform == "weibo":
+            rows = await db.execute_query(
+                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :uid",
+                {"uid": item_id},
+            )
+            data = [_weibo_row_to_status_item(row) for row in rows]
+        else:
+            rows = await db.execute_query(
+                "SELECT room, name, is_live FROM huya WHERE room = :room",
+                {"room": item_id},
+            )
+            data = [_huya_row_to_status_item(row) for row in rows]
 
-        # 获取huya表数据
-        huya_sql = "SELECT room, name, is_live FROM huya"
-        huya_rows = await db.execute_query(huya_sql)
-        huya_data = [{"room": row[0], "name": row[1], "is_live": row[2]} for row in huya_rows]
+        await db.close()
+
+        if not data:
+            return JSONResponse({"error": "未找到该资源"}, status_code=404)
+
+        return JSONResponse(
+            {
+                "success": True,
+                "data": data[0],
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取监控状态失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/monitor-status/{platform}")
+async def get_monitor_status_by_platform(request: Request, platform: str):
+    """按平台获取监控状态列表（无需登录）。"""
+    if platform not in VALID_PLATFORMS:
+        return JSONResponse({"error": "无效的平台"}, status_code=400)
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        if platform == "weibo":
+            weibo_rows = await db.execute_query(
+                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
+            )
+            data = [_weibo_row_to_status_item(row) for row in weibo_rows]
+        else:
+            huya_rows = await db.execute_query("SELECT room, name, is_live FROM huya")
+            data = [_huya_row_to_status_item(row) for row in huya_rows]
+
+        await db.close()
+
+        return JSONResponse(
+            {
+                "success": True,
+                "data": data,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取监控状态失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/monitor-status")
+async def get_monitor_status(request: Request):
+    """获取全部监控任务状态（无需登录）。"""
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        weibo_rows = await db.execute_query(
+            "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
+        )
+        weibo_data = [_weibo_row_to_status_item(row) for row in weibo_rows]
+
+        huya_rows = await db.execute_query("SELECT room, name, is_live FROM huya")
+        huya_data = [_huya_row_to_status_item(row) for row in huya_rows]
 
         await db.close()
 

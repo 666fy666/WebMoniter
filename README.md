@@ -416,18 +416,58 @@ Content-Type: application/json
 }
 ```
 
-#### 3. 数据查询
+#### 3. 数据查询（需登录）
 
-**获取监控数据**
+数据查询采用 REST 风格，支持按平台、按主键 ID 查询，以及分页与过滤。
+
+**平台与主键说明**
+
+| 平台   | `platform` | 主键 ID 含义 | 示例 |
+|--------|------------|--------------|------|
+| 微博   | `weibo`    | 用户 UID     | `1234567890` |
+| 虎牙   | `huya`     | 房间号 room  | `123456` |
+
+**列表：分页 + 可选过滤**
+
 ```http
-GET /api/data/{table_name}?page=1&page_size=100
+GET /api/data/{platform}?page=1&page_size=100
+GET /api/data/weibo?uid=1234567890&page=1&page_size=20
+GET /api/data/huya?room=123456&page=1&page_size=20
 ```
 
-支持的 `table_name`：
-- `weibo` - 微博监控数据
-- `huya` - 虎牙监控数据
+- `platform`：`weibo` 或 `huya`
+- `page`：页码，从 1 开始（默认 1）
+- `page_size`：每页条数（默认 100）
+- `uid`：仅当 `platform=weibo` 时有效，按用户 UID 过滤
+- `room`：仅当 `platform=huya` 时有效，按房间号过滤
 
-**获取监控状态（无需登录）**
+返回示例：
+```json
+{
+  "data": [...],
+  "total": 100,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 5
+}
+```
+
+**单条：按平台 + 主键 ID**
+
+```http
+GET /api/data/weibo/{uid}
+GET /api/data/huya/{room}
+```
+
+示例：`GET /api/data/weibo/1234567890`、`GET /api/data/huya/123456`  
+未找到时返回 `404`，成功时返回 `{"data": {...}}`。
+
+#### 4. 监控状态（无需登录）
+
+监控状态接口与数据查询对应，同样支持「全部 / 按平台 / 按 ID」三种粒度，**无需登录**。
+
+**全部监控状态**
+
 ```http
 GET /api/monitor-status
 ```
@@ -461,7 +501,26 @@ GET /api/monitor-status
 }
 ```
 
-#### 4. 日志查询
+**按平台**
+
+```http
+GET /api/monitor-status/weibo
+GET /api/monitor-status/huya
+```
+
+返回该平台下所有监控项的数组，格式同上（`data` 为数组）。
+
+**按平台 + 主键 ID（单条）**
+
+```http
+GET /api/monitor-status/weibo/{uid}
+GET /api/monitor-status/huya/{room}
+```
+
+示例：`GET /api/monitor-status/weibo/1234567890`、`GET /api/monitor-status/huya/123456`  
+成功时 `data` 为单条对象；未找到时返回 `404`。
+
+#### 5. 日志查询
 
 **获取日志**
 ```http
@@ -496,12 +555,25 @@ print(config_response.json())
 status_response = requests.get(f"{BASE_URL}/api/monitor-status")
 print(status_response.json())
 
-# 获取微博数据
+# 获取微博数据列表（分页）
 weibo_response = session.get(
     f"{BASE_URL}/api/data/weibo",
     params={"page": 1, "page_size": 10}
 )
 print(weibo_response.json())
+
+# 按 UID 查询单个微博用户（需登录）
+weibo_one = session.get(f"{BASE_URL}/api/data/weibo/1234567890")
+print(weibo_one.json())
+
+# 按房间号查询单个虎牙直播间（需登录）
+huya_one = session.get(f"{BASE_URL}/api/data/huya/123456")
+print(huya_one.json())
+
+# 监控状态：按平台、按 ID（无需登录）
+status_weibo = requests.get(f"{BASE_URL}/api/monitor-status/weibo")
+status_one_user = requests.get(f"{BASE_URL}/api/monitor-status/weibo/1234567890")
+print(status_weibo.json(), status_one_user.json())
 ```
 
 #### cURL 示例
@@ -518,6 +590,14 @@ curl -X GET http://localhost:8866/api/config \
 
 # 获取监控状态（无需登录）
 curl -X GET http://localhost:8866/api/monitor-status
+
+# 按平台 / 按 ID 获取监控状态
+curl -X GET http://localhost:8866/api/monitor-status/weibo
+curl -X GET http://localhost:8866/api/monitor-status/weibo/1234567890
+
+# 获取单条数据（需 Cookie）
+curl -X GET "http://localhost:8866/api/data/weibo/1234567890" -b cookies.txt
+curl -X GET "http://localhost:8866/api/data/huya/123456" -b cookies.txt
 
 # 获取日志
 curl -X GET "http://localhost:8866/api/logs?lines=50" \
