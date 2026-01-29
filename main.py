@@ -89,7 +89,7 @@ async def register_monitors(scheduler: TaskScheduler):
     )
 
     # 每日签到任务 - 执行时间从配置 checkin.time 读取，支持热重载
-    checkin_minute, checkin_hour = _parse_checkin_time(config.checkin_time)
+    checkin_hour, checkin_minute = _parse_checkin_time(config.checkin_time)
     scheduler.add_cron_job(
         func=run_checkin_once,
         minute=checkin_minute,
@@ -169,7 +169,7 @@ async def on_config_changed(
             updates.append(update_info)
 
         # 更新每日签到任务的执行时间
-        checkin_minute, checkin_hour = _parse_checkin_time(new_config.checkin_time)
+        checkin_hour, checkin_minute = _parse_checkin_time(new_config.checkin_time)
         update_info = scheduler.update_cron_job(
             job_id="daily_checkin",
             minute=checkin_minute,
