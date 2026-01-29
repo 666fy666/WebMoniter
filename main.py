@@ -3,18 +3,19 @@
 Web监控系统主入口
 使用APScheduler进行任务调度，支持多平台监控和定时任务
 """
+
 import asyncio
 import logging
 
 from monitors.huya_monitor import HuyaMonitor
 from monitors.weibo_monitor import WeiboMonitor
-from tasks import cleanup_logs, run_checkin_once
 from src.config import AppConfig, get_config
 from src.config_watcher import ConfigWatcher
 from src.cookie_cache_manager import cookie_cache
 from src.database import close_shared_connection
 from src.log_manager import LogManager
 from src.scheduler import TaskScheduler, setup_logging
+from tasks import cleanup_logs, run_checkin_once
 
 
 def _parse_checkin_time(checkin_time: str) -> tuple[str, str]:
