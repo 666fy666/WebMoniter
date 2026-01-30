@@ -5,6 +5,50 @@
 
 ---
 
+## 零、开发环境与代码规范
+
+### 代码检测
+
+项目使用 `black` 和 `ruff` 进行代码格式化和检查。
+
+#### 安装开发依赖
+
+```bash
+uv sync --extra dev
+```
+
+#### 代码格式化
+
+使用 `black` 格式化代码：
+
+```bash
+# 格式化所有代码
+uv run black .
+
+# 检查代码格式（不修改文件）
+uv run black --check .
+```
+
+#### 代码检查
+
+使用 `ruff` 检查代码：
+
+```bash
+# 检查代码并自动修复
+uv run ruff check --fix .
+
+# 仅检查代码（不修复）
+uv run ruff check .
+```
+
+#### 运行测试
+
+```bash
+uv run pytest
+```
+
+---
+
 ## 一、架构简述
 
 | 类型       | 触发方式     | 配置来源示例                          | 项目内示例           |

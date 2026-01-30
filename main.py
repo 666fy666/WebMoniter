@@ -170,9 +170,7 @@ async def main() -> None:
     jobs = scheduler.scheduler.get_jobs()
     logger.info("Web监控系统已启动，已注册 %d 个任务", len(jobs))
 
-    async def config_changed_callback(
-        old_cfg: AppConfig | None, new_cfg: AppConfig
-    ) -> None:
+    async def config_changed_callback(old_cfg: AppConfig | None, new_cfg: AppConfig) -> None:
         await on_config_changed(old_cfg, new_cfg, scheduler)
 
     config_watcher = ConfigWatcher(

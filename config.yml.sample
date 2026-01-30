@@ -3,87 +3,111 @@
 # 使用方法：
 # 1. 复制此文件为 config.yml: cp config.yml.sample config.yml
 # 2. 根据实际情况修改 config.yml 中的配置项
+# 3. 修改后无需重启，系统支持配置热重载（约 5 秒内生效）
 
+# =============================================================================
 # 微博监控配置
+# =============================================================================
+# 获取 Cookie：登录微博网页版 → 打开开发者工具(F12) → Network 中任意请求复制 Cookie 请求头
+# 获取 UID：访问用户主页，URL 中数字即为 UID，例如 https://weibo.com/u/1234567890 → UID 为 1234567890
 weibo:
-  cookie: your_weibo_cookie
-  uids: uid1,uid2,uid3  # 逗号分隔的UID列表
-  concurrency: 2  # 并发数，建议2-5
+  cookie: your_weibo_cookie  # 从浏览器开发者工具获取
+  uids: uid1,uid2,uid3  # 逗号分隔的 UID 列表
+  concurrency: 2  # 并发数，建议 2-5（避免触发限流）
 
+# =============================================================================
 # 微博超话签到配置（须包含 XSRF-TOKEN，支持多 Cookie）
+# =============================================================================
+# Cookie：浏览器打开微博，F12 控制台执行 document.cookie 获取
+# 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串，会对每个 Cookie 依次签到并分别推送
+# 签到时间：默认每天 23:45；enable: true 且配置完整时，项目启动时也会执行一次
 weibo_chaohua:
   enable: false  # 是否启用微博超话签到
-  # 单 Cookie（多 Cookie 时可不填），浏览器打开微博 F12 控制台输入 document.cookie 获取
-  cookie: 
-  # 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串
+  cookie:  # 单 Cookie（多 Cookie 时可不填）
   # cookies:
   #   - "SCF=xxx; XSRF-TOKEN=xxx; SUB=xxx; ..."
   #   - "SCF=yyy; XSRF-TOKEN=yyy; SUB=yyy; ..."
-  time: "23:45"  # 签到时间（24 小时制，格式：HH:MM），默认 23:45
+  time: "23:45"  # 签到时间（24 小时制 HH:MM），默认 23:45
 
+# =============================================================================
 # 虎牙监控配置
+# =============================================================================
+# 获取房间号：从虎牙直播间 URL 获取，例如 https://www.huya.com/123456 → 房间号为 123456
 huya:
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
-  concurrency: 5  # 并发数，建议5-10
+  concurrency: 5  # 并发数，建议 5-10
 
-# ikuuu签到配置
+# =============================================================================
+# iKuuu 签到配置
+# =============================================================================
+# 按配置每天固定时间（默认 08:00）自动签到，项目启动时也会执行一次（enable: true 且配置完整时）
+# 多账号：配置 accounts 列表，每项包含 email、password，会对每个账号依次登录、签到并分别推送；不配置时使用单账号 email/password
 checkin:
   enable: false  # 是否启用每日签到
-  # 登录地址（例如：https://ikuuu.nl/auth/login）
-  login_url: 
-  # 签到接口地址（例如：https://ikuuu.nl/user/checkin）
-  checkin_url: 
-  # 用户信息页地址（例如：https://ikuuu.nl/user，用于解析剩余流量，可选）
-  user_page_url: 
-  # 单账号（与 password 搭配，多账号时可不填）
-  email: 
-  password: 
-  # 多账号：配置 accounts 后优先使用，每项需包含 email、password
-  # accounts:
+  login_url:  # 登录地址，例如 https://ikuuu.nl/auth/login
+  checkin_url:  # 签到接口地址，例如 https://ikuuu.nl/user/checkin
+  user_page_url:  # 用户信息页地址（用于解析剩余流量，可选），例如 https://ikuuu.nl/user
+  email:  # 单账号登录邮箱（多账号时可不填）
+  password:  # 单账号登录密码
+  # accounts:  # 多账号，配置后优先于单账号
   #   - email: user1@example.com
   #     password: pass1
   #   - email: user2@example.com
   #     password: pass2
-  # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
-  time: "08:00"
+  time: "08:00"  # 签到时间（24 小时制 HH:MM），默认每天早上 8 点
 
+# =============================================================================
 # 百度贴吧签到配置（须包含 BDUSS，支持多 Cookie）
+# =============================================================================
+# Cookie：须包含 BDUSS，浏览器登录贴吧后 F12 控制台执行 document.cookie 获取
+# 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie，会对每个 Cookie 依次签到并分别推送
+# 签到时间：默认每天 08:10；enable: true 且配置了 Cookie 时，项目启动时也会执行一次
+# 推送：签到结果通过下方 push_channel 发送，受免打扰时段控制
 tieba:
   enable: false  # 是否启用贴吧签到
-  # 单 Cookie（多 Cookie 时可不填），浏览器打开贴吧 F12 控制台输入 document.cookie 获取
-  cookie: 
-  # 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串
-  # cookies: 
+  cookie:  # 单 Cookie（多 Cookie 时可不填）
+  # cookies:
   #   - "BIDUPSID=xxx; BDUSS=xxx; ..."
   #   - "BIDUPSID=yyy; BDUSS=yyy; ..."
-  time: "08:10"  # 签到时间（24 小时制，格式：HH:MM），默认 08:10
+  time: "08:10"  # 签到时间（24 小时制 HH:MM），默认 08:10
 
+# =============================================================================
 # 调度器配置
+# =============================================================================
+# 监控间隔与定时任务执行时间，修改后热重载生效，无需重启
 scheduler:
-  huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒
-  weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认300秒（5分钟）
-  cleanup_logs_hour: 2  # 日志清理时间（小时），默认2点
-  cleanup_logs_minute: 0  # 日志清理时间（分钟），默认0分
-  retention_days: 3  # 日志保留天数，默认3天
+  huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认 65
+  weibo_monitor_interval_seconds: 300  # 微博监控间隔（秒），默认 300（5 分钟）
+  cleanup_logs_hour: 2  # 日志清理执行时间（小时），默认 2 点
+  cleanup_logs_minute: 0  # 日志清理执行时间（分钟），默认 0 分
+  retention_days: 3  # 日志保留天数，默认 3 天
 
+# =============================================================================
 # 免打扰时段配置
-# ⚠️ 注意：开启此功能后，在免打扰时段内的监控任务将继续执行，但不会推送通知给用户
-# 这可能会导致您在免打扰时段内遗漏重要消息，请谨慎使用
+# =============================================================================
+# 启用后，在指定时间段内静默运行：监控任务会正常执行并更新数据库，但不会推送通知（日志中仍会记录）
+# 支持跨天设置，例如 start: "22:00" end: "08:00" 表示晚 10 点到早 8 点不推送
+# ⚠️ 免打扰时段内可能遗漏重要消息，请谨慎使用
 quiet_hours:
-  enable: false  # 是否启用免打扰时段，默认false
-  start: "03:00"  # 免打扰时段开始时间（24小时制，格式：HH:MM），例如：22:00 表示晚上10点
-  end: "08:00"  # 免打扰时段结束时间（24小时制，格式：HH:MM），例如：08:00 表示早上8点
+  enable: false  # 是否启用免打扰时段
+  start: "03:00"  # 开始时间（24 小时制 HH:MM）
+  end: "08:00"  # 结束时间（24 小时制 HH:MM）
 
+# =============================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
-# 新增定时任务可使用 plugins.xxx 配置，无需修改 AppConfig
+# =============================================================================
+# 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src/job_registry.TASK_MODULES 中移除 tasks.demo_task
 plugins:
-  demo_task:  # 示例：Demo 定时任务（不需要可删除此块，并在 src/job_registry.TASK_MODULES 中移除 tasks.demo_task）
+  demo_task:
     enable: false
     time: "08:30"  # 执行时间 HH:MM
     message: "Demo 定时任务执行完成"
 
+# =============================================================================
 # 推送通道配置
-# 通道名称，唯一，可自定义不要纯数字，对应 query_task 中的 target_push_name_list
+# =============================================================================
+# 支持配置多个推送通道。每个通道需设置：name（唯一）、enable、type，以及该 type 所需的其他字段
+# 通道类型与说明见 README「推送通道支持」表格；可同时启用多个通道，消息会发往所有启用的通道
 push_channel:
   # Server酱 Turbo
   - name: Server酱_Turbo

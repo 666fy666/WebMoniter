@@ -62,7 +62,9 @@ class WeiboChaohuaCheckinConfig:
 
         effective = self.cookies if self.cookies else ([self.cookie] if self.cookie else [])
         if not effective or not any(c.strip() for c in effective):
-            logger.error("微博超话签到配置不完整，已跳过执行，缺少字段: weibo_chaohua.cookie 或 weibo_chaohua.cookies")
+            logger.error(
+                "微博超话签到配置不完整，已跳过执行，缺少字段: weibo_chaohua.cookie 或 weibo_chaohua.cookies"
+            )
             return False
 
         for c in effective:
@@ -85,15 +87,15 @@ def _clean_cookie(cookie: str) -> str:
     """清理Cookie，处理编码问题"""
     try:
         # 移除可能的换行符和多余空格
-        cookie = cookie.strip().replace('\n', '').replace('\r', '')
-        
+        cookie = cookie.strip().replace("\n", "").replace("\r", "")
+
         # 确保Cookie是字符串格式
         if isinstance(cookie, bytes):
-            cookie = cookie.decode('utf-8', errors='ignore')
-        
+            cookie = cookie.decode("utf-8", errors="ignore")
+
         # 移除可能的非ASCII字符
-        cookie = ''.join(char for char in cookie if ord(char) < 128)
-        
+        cookie = "".join(char for char in cookie if ord(char) < 128)
+
         return cookie
     except Exception as e:
         logger.warning(f"Cookie处理失败: {str(e)}")
@@ -103,7 +105,7 @@ def _clean_cookie(cookie: str) -> str:
 def _get_xsrf_token(cookie: str) -> str | None:
     """从Cookie中提取XSRF-TOKEN"""
     try:
-        match = re.search(r'XSRF-TOKEN=([^;]+)', cookie)
+        match = re.search(r"XSRF-TOKEN=([^;]+)", cookie)
         if match:
             return match.group(1)
     except Exception:
@@ -115,7 +117,7 @@ def _get_user_info(cookie: str) -> str:
     """获取用户基本信息"""
     try:
         # 从Cookie中提取用户名或ID
-        sub_match = re.search(r'SUB=([^;]+)', cookie)
+        sub_match = re.search(r"SUB=([^;]+)", cookie)
         if sub_match:
             return f"用户{sub_match.group(1)[:8]}..."
     except Exception:
@@ -140,85 +142,81 @@ def _run_weibo_chaohua_sign_sync(
         - 签到完成: (True, user_info, success, already_signed, fail, total)
     """
     session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-        'Referer': 'https://weibo.com/',
-        'X-Requested-With': 'XMLHttpRequest'
-    })
+    session.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Referer": "https://weibo.com/",
+            "X-Requested-With": "XMLHttpRequest",
+        }
+    )
 
     # 处理Cookie
     cookie = _clean_cookie(cookie)
-    session.headers['Cookie'] = cookie
-    
+    session.headers["Cookie"] = cookie
+
     xsrf_token = _get_xsrf_token(cookie)
     if xsrf_token:
-        session.headers['X-XSRF-TOKEN'] = xsrf_token
-    
+        session.headers["X-XSRF-TOKEN"] = xsrf_token
+
     user_info = _get_user_info(cookie)
 
     def _fetch_chaohua_list(page: int = 1, collected: list | None = None) -> list[dict]:
         """获取超话列表"""
         if collected is None:
             collected = []
-        
-        params = {
-            'tabid': '231093_-_chaohua',
-            'page': page
-        }
-        
+
+        params = {"tabid": "231093_-_chaohua", "page": page}
+
         try:
             response = session.get(CHAOHUA_LIST_URL, params=params, timeout=15)
-            
+
             if response.status_code != 200:
                 raise Exception(f"HTTP Error: {response.status_code}")
-            
+
             if not response.text:
                 raise Exception("响应内容为空")
-            
+
             try:
                 data = response.json()
             except json.JSONDecodeError as e:
                 raise Exception(f"JSON解析失败: {str(e)}")
-            
-            if data.get('ok') != 1:
-                error_msg = data.get('msg', '未知错误')
-                if 'login' in error_msg.lower() or 'cookie' in error_msg.lower():
+
+            if data.get("ok") != 1:
+                error_msg = data.get("msg", "未知错误")
+                if "login" in error_msg.lower() or "cookie" in error_msg.lower():
                     raise Exception(f"登录状态失效，请更新Cookie: {error_msg}")
                 raise Exception(f"API返回错误: {error_msg}")
-            
-            api_data = data.get('data', {})
-            chaohua_list = api_data.get('list', [])
-            
+
+            api_data = data.get("data", {})
+            chaohua_list = api_data.get("list", [])
+
             if not chaohua_list:
                 return collected
-            
+
             # 提取超话ID和名称
             for item in chaohua_list:
-                oid = item.get('oid', '')
-                if oid.startswith('1022:'):
+                oid = item.get("oid", "")
+                if oid.startswith("1022:"):
                     chaohua_id = oid[5:]  # 去掉前缀 "1022:"
-                    chaohua_name = item.get('topic_name', '')
+                    chaohua_name = item.get("topic_name", "")
                     if chaohua_id and chaohua_name:
-                        collected.append({
-                            'id': chaohua_id,
-                            'name': chaohua_name
-                        })
-            
+                        collected.append({"id": chaohua_id, "name": chaohua_name})
+
             # 检查是否还有下一页
-            max_page = api_data.get('max_page', 1)
+            max_page = api_data.get("max_page", 1)
             if page < max_page:
                 time.sleep(0.8)  # 增加延迟
                 return _fetch_chaohua_list(page + 1, collected)
-            
+
             return collected
-            
+
         except requests.exceptions.RequestException as e:
             raise Exception(f"网络请求失败: {str(e)}")
         except Exception as e:
@@ -227,52 +225,52 @@ def _run_weibo_chaohua_sign_sync(
     def _sign_chaohua(chaohua_id: str, chaohua_name: str) -> dict:
         """签到单个超话"""
         params = {
-            'api': 'http://i.huati.weibo.com/aj/super/checkin',
-            'id': chaohua_id,
-            'location': 'page_100808_super_index',
-            '__rnd': int(time.time() * 1000)
+            "api": "http://i.huati.weibo.com/aj/super/checkin",
+            "id": chaohua_id,
+            "location": "page_100808_super_index",
+            "__rnd": int(time.time() * 1000),
         }
-        
+
         try:
             headers = {
-                'Referer': f'https://weibo.com/p/{chaohua_id}/super_index',
+                "Referer": f"https://weibo.com/p/{chaohua_id}/super_index",
             }
-            
+
             response = session.get(CHAOHUA_SIGN_URL, params=params, headers=headers, timeout=15)
-            
+
             if response.status_code != 200:
-                return {'success': False, 'msg': f'HTTP错误: {response.status_code}'}
-            
+                return {"success": False, "msg": f"HTTP错误: {response.status_code}"}
+
             try:
                 data = response.json()
             except json.JSONDecodeError:
-                return {'success': False, 'msg': '响应格式错误'}
-            
-            code = str(data.get('code', ''))
-            msg = data.get('msg', '未知错误')
-            
+                return {"success": False, "msg": "响应格式错误"}
+
+            code = str(data.get("code", ""))
+            msg = data.get("msg", "未知错误")
+
             # 成功的状态码: 100000(签到成功), 382004(今日已签到), 382010(其他成功状态)
-            success_codes = ['100000', '382004', '382010']
+            success_codes = ["100000", "382004", "382010"]
             is_success = code in success_codes
-            
+
             return {
-                'success': is_success,
-                'code': code,
-                'msg': msg,
-                'already_signed': code == '382004'
+                "success": is_success,
+                "code": code,
+                "msg": msg,
+                "already_signed": code == "382004",
             }
-            
+
         except requests.exceptions.RequestException as e:
-            return {'success': False, 'msg': f'网络请求失败: {str(e)}'}
+            return {"success": False, "msg": f"网络请求失败: {str(e)}"}
         except Exception as e:
-            return {'success': False, 'msg': f'签到失败: {str(e)}'}
+            return {"success": False, "msg": f"签到失败: {str(e)}"}
 
     # 获取超话列表
     try:
         chaohua_list = _fetch_chaohua_list()
     except Exception as e:
         return False, f"获取超话列表失败: {str(e)}", 0, 0, 0, 0
-    
+
     if not chaohua_list:
         return True, user_info, 0, 0, 0, 0
 
@@ -284,15 +282,15 @@ def _run_weibo_chaohua_sign_sync(
     first_failure_pushed = False
 
     for i, chaohua in enumerate(chaohua_list, 1):
-        chaohua_id = chaohua['id']
-        chaohua_name = chaohua['name']
-        
+        chaohua_id = chaohua["id"]
+        chaohua_name = chaohua["name"]
+
         logger.debug(f"微博超话签到：[{i}/{total}] {chaohua_name}")
-        
+
         result = _sign_chaohua(chaohua_id, chaohua_name)
-        
-        if result['success']:
-            if result.get('already_signed'):
+
+        if result["success"]:
+            if result.get("already_signed"):
                 logger.debug(f"微博超话签到：[{chaohua_name}] {result['msg']}")
                 already_signed_count += 1
             else:
@@ -305,10 +303,10 @@ def _run_weibo_chaohua_sign_sync(
             if on_first_failure and not first_failure_pushed:
                 first_failure_pushed = True
                 try:
-                    on_first_failure(chaohua_name, result.get('msg', '未知错误'))
+                    on_first_failure(chaohua_name, result.get("msg", "未知错误"))
                 except Exception:  # 回调在子线程，不阻塞签到流程
                     pass
-        
+
         # 添加随机延迟，避免请求过快
         if i < total:
             delay = 3 + random.uniform(0.5, 1.0)
@@ -371,10 +369,19 @@ async def run_weibo_chaohua_checkin_once() -> None:
 
                 return schedule_push
 
-            on_first_failure = make_on_first_failure(push_manager, cfg_one) if push_manager else None
+            on_first_failure = (
+                make_on_first_failure(push_manager, cfg_one) if push_manager else None
+            )
 
             try:
-                success, user_info_or_err, success_count, already_signed_count, fail_count, total = await asyncio.to_thread(
+                (
+                    success,
+                    user_info_or_err,
+                    success_count,
+                    already_signed_count,
+                    fail_count,
+                    total,
+                ) = await asyncio.to_thread(
                     _run_weibo_chaohua_sign_sync, cookie_str, on_first_failure
                 )
             except Exception as e:
@@ -462,4 +469,6 @@ def _get_weibo_chaohua_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("weibo_chaohua_checkin", run_weibo_chaohua_checkin_once, _get_weibo_chaohua_trigger_kwargs)
+register_task(
+    "weibo_chaohua_checkin", run_weibo_chaohua_checkin_once, _get_weibo_chaohua_trigger_kwargs
+)

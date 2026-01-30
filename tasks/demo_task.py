@@ -44,9 +44,7 @@ async def run_demo_task_once() -> None:
 
     logger.info("demo_task：开始执行")
 
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=20)
-    ) as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         push_manager: UnifiedPushManager | None = await build_push_manager(
             config.push_channel_list,
             session,

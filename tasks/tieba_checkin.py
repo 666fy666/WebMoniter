@@ -96,14 +96,16 @@ def _run_tieba_sign_sync(cookie: str) -> tuple[bool, str, int, int, int, int]:
         - 签到完成: (True, user_name, success, exist, error, total)
     """
     session = requests.Session()
-    session.headers.update({
-        "Host": "tieba.baidu.com",
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Connection": "keep-alive",
-    })
+    session.headers.update(
+        {
+            "Host": "tieba.baidu.com",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Connection": "keep-alive",
+        }
+    )
 
     cookie_dict = {
         item.split("=")[0].strip(): item.split("=", 1)[1].strip()
@@ -122,7 +124,7 @@ def _run_tieba_sign_sync(cookie: str) -> tuple[bool, str, int, int, int, int]:
                     resp = session.post(url, data=data, timeout=10)
                 resp.raise_for_status()
                 return resp.json()
-            except Exception as e:
+            except Exception:
                 if i == retry - 1:
                     raise
                 time.sleep(2)
@@ -207,13 +209,15 @@ def _run_tieba_sign_sync(cookie: str) -> tuple[bool, str, int, int, int, int]:
 
         try:
             data = dict(sign_data_base)
-            data.update({
-                "BDUSS": bduss,
-                "fid": forum_id,
-                "kw": forum_name,
-                "tbs": tbs,
-                "timestamp": str(int(time.time())),
-            })
+            data.update(
+                {
+                    "BDUSS": bduss,
+                    "fid": forum_id,
+                    "kw": forum_name,
+                    "tbs": tbs,
+                    "timestamp": str(int(time.time())),
+                }
+            )
             data = _encode_data(data)
             result = _request(SIGN_URL, "post", data)
 
@@ -343,7 +347,9 @@ async def _send_tieba_push(
 
     masked = _mask_cookie_for_log(cfg.cookie)
     status_emoji = "✅" if success else "❌"
-    body = f"{status_emoji} Cookie: {masked}\n{detail or description}\n\n贴吧签到时间配置: {cfg.time}"
+    body = (
+        f"{status_emoji} Cookie: {masked}\n{detail or description}\n\n贴吧签到时间配置: {cfg.time}"
+    )
 
     try:
         await push_manager.send_news(

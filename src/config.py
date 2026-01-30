@@ -45,7 +45,9 @@ class AppConfig(BaseModel):
     checkin_user_page_url: str = ""  # 用户信息页地址（用于解析流量信息，可选）
     checkin_email: str = ""  # 单账号：登录账号（与 checkin_password 搭配）
     checkin_password: str = ""  # 单账号：登录密码
-    checkin_accounts: list[dict] = []  # 多账号：[{"email": str, "password": str}, ...]，非空时优先于单账号
+    checkin_accounts: list[dict] = (
+        []
+    )  # 多账号：[{"email": str, "password": str}, ...]，非空时优先于单账号
     checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
 
     # 百度贴吧签到配置（使用 Cookie）
@@ -56,7 +58,9 @@ class AppConfig(BaseModel):
 
     # 微博超话签到配置（使用 Cookie）
     weibo_chaohua_enable: bool = False  # 是否启用微博超话签到
-    weibo_chaohua_cookie: str = ""  # 单 Cookie（与 weibo_chaohua_cookies 二选一，须包含 XSRF-TOKEN）
+    weibo_chaohua_cookie: str = (
+        ""  # 单 Cookie（与 weibo_chaohua_cookies 二选一，须包含 XSRF-TOKEN）
+    )
     weibo_chaohua_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 weibo_chaohua_cookie
     weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
 
@@ -164,10 +168,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 accounts = []
                 for a in checkin["accounts"]:
                     if isinstance(a, dict):
-                        accounts.append({
-                            "email": str(a.get("email", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        })
+                        accounts.append(
+                            {
+                                "email": str(a.get("email", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
                 if accounts:
                     config_dict["checkin_accounts"] = accounts
 

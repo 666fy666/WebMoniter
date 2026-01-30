@@ -4,17 +4,30 @@
 
 **多平台监控签到 · 开播提醒 · 多渠道推送**
 
+<sub>监控 · 签到 · 开播提醒 · 推送 · 定时任务 · 配置热重载</sub>
+
+<br/>
+
+[![GitHub Stars](https://img.shields.io/github/stars/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
+[![GitHub Forks](https://img.shields.io/github/forks/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
 [![Docker](https://img.shields.io/badge/docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![APScheduler](https://img.shields.io/badge/scheduler-APScheduler-red?style=flat-square)](https://apscheduler.readthedocs.io/)
 
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/fengyu666/webmoniter/latest?style=flat-square&logo=docker&sort=semver)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![Docker Pulls](https://img.shields.io/docker/pulls/fengyu666/webmoniter?style=flat-square)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![Docker Image Size (latest)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/latest?style=flat-square)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![Docker Hub](https://img.shields.io/badge/docker%20hub-fengyu666%2Fwebmoniter-2496ED?style=flat-square&logo=docker)](https://hub.docker.com/r/fengyu666/webmoniter)
+
+**代码仓库**: [GitHub](https://github.com/666fy666/WebMoniter) · [GitCode](https://gitcode.com/qq_35720175/WebMoniter)
+
 </div>
 
 <div align="center">
 
-一个支持 **虎牙直播、微博、ikuuu、百度贴吧** 等多平台的监控与签到工具。  
-使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、钉钉、Telegram、Bark、邮件等），配置热重载，开箱即用。
+一个支持 **虎牙直播、微博(超话)、ikuuu、百度贴吧** 等多平台的监控与签到工具。  
+使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、钉钉、Telegram、Bark、邮件等），**配置热重载**，开箱即用。
 
 </div>
 
@@ -22,7 +35,7 @@
 
 <div align="center">
 
-| [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](#-api-调用) | [🛠 开发指南](#-开发指南) |
+| [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web-管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](docs/API.md) | [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md) |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 
 </div>
@@ -32,13 +45,15 @@
 ## 📋 目录
 
 - [支持的平台和推送通道](#-支持的平台和推送通道)
+  - [定时任务支持](#定时任务支持)
 - [快速开始](#-快速开始)
-  - [Docker 部署（推荐）](#-docker-部署推荐)
-  - [Web管理界面](#-web管理界面)
-  - [本地安装步骤](#-本地安装步骤)
+  - [Docker 部署](#-docker-部署推荐)
+  - [Web 管理界面](#-web-管理界面)
+  - [本地安装](#-本地安装)
+  - [更新](#-更新)
 - [配置说明](#-配置说明)
-- [API 调用](#-api-调用)
-- [开发指南](#-开发指南)
+- [API 调用](docs/API.md)
+- [二次开发](docs/SECONDARY_DEVELOPMENT.md)
 - [常见问题](#-常见问题)
 - [参考与致谢](#-参考与致谢)
 
@@ -52,6 +67,20 @@
 | -------- | -------- | -------- | -------- |
 | 虎牙     | huya     | ❌       | ✅       |
 | 微博     | weibo    | ✅       | ❌       |
+
+### 定时任务支持
+
+系统使用 **APScheduler** 的 Cron 触发器，按配置时间每日执行以下定时任务；修改 `config.yml` 后支持**热重载**，无需重启。
+
+| 任务名称       | 配置节点 / 任务 ID   | 默认执行时间 | 启动时执行 | 说明 |
+| -------------- | -------------------- | ------------ | ---------- | ---- |
+| 日志清理       | `scheduler`          | 02:00        | ✅         | 按 `cleanup_logs_hour`、`cleanup_logs_minute` 执行，保留天数由 `retention_days` 控制 |
+| iKuuu 签到     | `checkin`            | 08:00        | ✅         | `enable: true` 且配置完整时，每日定时签到并在启动时执行一次；支持多账号 `accounts` |
+| 百度贴吧签到   | `tieba`              | 08:10        | ✅         | `enable: true` 且配置 Cookie（须含 BDUSS）时执行；支持多 Cookie |
+| 微博超话签到   | `weibo_chaohua`      | 23:45        | ✅         | `enable: true` 且配置 Cookie（须含 XSRF-TOKEN）时执行；支持多 Cookie |
+| Demo 示例任务  | `plugins.demo_task`  | 08:30        | ✅         | 二次开发示例，不需要可在 `job_registry.TASK_MODULES` 中移除 |
+
+**说明**：所有定时任务在**项目启动时都会立即执行一次**；各签到类任务内部会根据 `enable` 与配置完整性决定是否真正执行，日志清理任务每次都会执行。
 
 ### 推送通道支持
 
@@ -80,594 +109,62 @@
 
 ### 🐳 Docker 部署（推荐）
 
-本项目推荐使用 Docker Compose 进行部署，支持多平台架构（amd64、arm64）。
-
-#### 前置要求
-
-- Docker >= 20.10
-- Docker Compose >= 2.0
-
-#### 部署步骤
-
-**1. 准备配置文件**
+要求：Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。
 
 ```bash
-# 克隆项目
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-
-# 复制配置文件模板
-cp config.yml.sample config.yml
-
-# 编辑配置文件，填入监控配置和推送通道
-vim config.yml  # 或使用其他编辑器
-```
-
-**2. 启动服务**
-
-```bash
-# 启动服务（后台运行）
-docker compose up -d
-
-# 查看服务状态
-docker compose ps
-
-# 查看实时日志
-docker compose logs -f
-```
-
-**3. 验证部署**
-
-访问 `http://localhost:8866` 或 `http://your-server-ip:8866`，使用默认账号 `admin` / `123` 登录。
-
-#### Docker 常用操作
-
-```bash
-# 查看状态
-docker compose ps
-
-# 查看日志
-docker compose logs -f                    # 实时日志
-docker compose logs --tail=100            # 最近100行
-
-# 停止/重启/更新
-docker compose stop                        # 停止服务
-docker compose restart                     # 重启服务
-docker compose pull && docker compose up -d  # 更新到最新版本
-
-# 完全卸载
-docker compose down                        # 停止并删除容器
-# 注意：数据文件（data/、logs/、config.yml）会保留在本地
-```
-
-#### 配置文件热重载
-
-**重要**：系统支持配置文件热重载功能，修改 `config.yml` 后**无需重启容器**，配置会在 5 秒内自动生效。
-
-#### 数据持久化
-
-所有重要数据都会保存在本地：
-
-- **配置文件**: `./config.yml` - 监控和推送配置
-- **数据库**: `./data/` - SQLite 数据库文件
-- **日志文件**: `./logs/` - 应用日志（按日期分割）
-
-删除容器不会丢失数据，重新启动容器后数据会自动恢复。
-
----
-
-## 🌐 Web管理界面
-
-系统提供了Web管理界面，支持PC端和移动端访问。
-
-### 访问地址
-
-启动系统后，访问 `http://localhost:8866` 即可打开Web管理界面。
-
-**Docker部署**：如果使用Docker部署，请确保已映射端口 `8866:8866`，然后访问 `http://your-server-ip:8866`
-
-### 登录信息
-
-- **用户名**: `admin`
-- **密码**: `123`
-
-<img src="web/static/web首页.png" alt="首页截图" width="600">
-
----
-> ⚠️ **安全提示**：默认账号密码仅用于开发测试，生产环境建议修改登录凭据。
-
----
-
-### 本地安装步骤
-
-#### 环境要求
-
-- Python >= 3.10
-- uv (Python 包管理器)
-
-#### 安装步骤
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/666fy666/WebMoniter.git
-cd WebMoniter
-
-# 2. 安装 uv（如果尚未安装）
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# Windows
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# 3. 安装项目依赖
-uv sync --locked
-
-# 4. 复制并编辑配置文件
 cp config.yml.sample config.yml
 # 编辑 config.yml，配置监控任务和推送通道
 
-# 5. 启动系统
-uv run python main.py  # 前台运行
-# 或
-nohup uv run python main.py > /dev/null 2>&1 &  # 后台运行
+docker compose up -d
 ```
 
-**启动后访问**：
-- Web管理界面：`http://localhost:8866`
-- 默认登录账号：`admin` / `123`
+访问 `http://localhost:8866`，默认账号 `admin` / `123`。
 
----
+> 💡 **提示**：`config.yml` 支持热重载（约 5 秒生效），无需重启。数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失。
+
+### 🌐 Web 管理界面
+
+<img src="web/static/web首页.png" alt="首页截图" width="600">
+
+> ⚠️ 默认账号仅用于测试，生产环境请修改登录凭据。
+
+### 📦 本地安装
+
+要求：Python >= 3.10、[uv](https://docs.astral.sh/uv/getting-started/installation/)。
+
+```bash
+git clone https://github.com/666fy666/WebMoniter.git
+cd WebMoniter
+uv sync --locked
+cp config.yml.sample config.yml
+uv run python main.py
+```
+
+### 🆙 更新
+
+| 部署方式 | 命令 |
+|---------|------|
+| Docker | `docker compose pull && docker compose up -d` |
+| 本地 | `git pull` → `uv sync --locked` → 重启应用 |
+
+配置支持热重载，多数更新无需重启。更新前建议备份 `config.yml`、`data/`。
 
 ## ⚙️ 配置说明
 
-### 监控任务配置
+所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **`config.yml.sample`** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
 
-#### 微博监控
-
-```yaml
-weibo:
-  cookie: your_weibo_cookie  # 从浏览器开发者工具获取
-  uids: uid1,uid2,uid3       # 逗号分隔的UID列表
-  concurrency: 2              # 并发数，建议 2-5（避免触发限流）
-```
-
-**获取 Cookie**：
-1. 登录微博网页版
-2. 打开浏览器开发者工具（F12）
-3. 在 Network 标签中找到任意请求，复制 `Cookie` 请求头
-
-**获取 UID**：
-- 访问用户主页，URL 中的数字即为 UID
-- 例如：`https://weibo.com/u/1234567890`，UID 为 `1234567890`
-
-#### 虎牙监控
-
-```yaml
-huya:
-  rooms: room1,room2,room3              # 逗号分隔的房间号列表
-  concurrency: 10                        # 并发数，建议 5-10
-```
-
-**获取房间号**：
-- 从虎牙直播间 URL 获取
-- 例如：`https://www.huya.com/123456`，房间号为 `123456`
-
-#### iKuuu签到配置
-
-系统支持iKuuu 的签到，按照配置每天自动签到一次，并在项目启动时先执行一次签到。
-
-```yaml
-checkin:
-  enable: true                         # 是否启用每日签到
-  login_url: https://ikuuu.nl/auth/login   # 登录地址
-  checkin_url: https://ikuuu.nl/user/checkin  # 签到接口地址
-  user_page_url: https://ikuuu.nl/user       # 用户信息页地址（用于解析剩余流量，可选）
-  email: your_email@example.com        # 登录账号
-  password: your_password              # 登录密码
-  time: "08:00"                        # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
-```
-
-**说明：**
-
-- **签到时间**：默认每天早上 8 点执行一次签到任务；如果需要调整时间，可以修改 `time` 字段。
-- **项目启动时签到**：无论是否到达定时任务时间，项目启动时都会先执行一次签到（前提是 `enable: true` 且配置完整）。
-- **多账号**：可配置 `accounts` 列表，每项包含 `email`、`password`，配置后会对每个账号依次登录、签到并分别推送结果；不配置 `accounts` 时仍使用单账号 `email`/`password`。
-
-#### 贴吧签到配置
-
-系统支持百度贴吧每日签到，使用 **Cookie** 作为参数（须包含 BDUSS），按配置时间自动签到关注贴吧，并接入项目统一推送。
-
-```yaml
-tieba:
-  enable: false   # 是否启用贴吧签到
-  cookie:          # 贴吧 Cookie（须包含 BDUSS），浏览器打开贴吧 F12 控制台输入 document.cookie 获取
-  time: "08:10"   # 签到时间（24 小时制，格式：HH:MM），默认 08:10
-```
-
-**说明：**
-
-- **Cookie**：须包含 `BDUSS`，可从浏览器登录贴吧后，F12 控制台执行 `document.cookie` 获取。
-- **多 Cookie**：可配置 `cookies` 列表，每项为完整 Cookie 字符串，配置后会对每个 Cookie 依次签到并分别推送结果；不配置 `cookies` 时仍使用单条 `cookie`。
-- **签到时间**：默认每天 08:10 执行；可与 iKuuu 签到错开时间。
-- **项目启动时签到**：若 `enable: true` 且配置了 Cookie，项目启动时也会执行一次贴吧签到。
-- **推送**：签到结果通过项目配置的推送通道发送（受免打扰时段控制）。
-
-#### 调度器配置
-
-```yaml
-scheduler:
-  huya_monitor_interval_seconds: 65      # 虎牙监控间隔（秒），默认65秒
-  weibo_monitor_interval_seconds: 300    # 微博监控间隔（秒），默认300秒（5分钟）
-  cleanup_logs_hour: 2                   # 日志清理时间（小时），默认2点
-  cleanup_logs_minute: 0                 # 日志清理时间（分钟），默认0分
-  retention_days: 3                      # 日志保留天数，默认3天
-```
-
-#### 免打扰时段配置
-
-```yaml
-quiet_hours:
-  enable: false  # 是否启用免打扰时段，默认false
-  start: "22:00"  # 免打扰时段开始时间（24小时制，格式：HH:MM）
-  end: "08:00"    # 免打扰时段结束时间（24小时制，格式：HH:MM）
-```
-
-**功能说明**：
-- 启用免打扰时段后，系统会在指定时间段内**静默运行**
-- 监控任务会**正常执行**，继续检测变化并更新数据库
-- 在免打扰时段内检测到的变化**不会推送通知**，但会在日志中记录
-- 支持跨天设置（例如：22:00 到 08:00）
-
-### 推送通道配置
-
-推送通道配置在 `push_channel` 部分，支持配置多个推送通道。每个通道需要设置：
-
-- `name`: 通道名称（唯一标识）
-- `enable`: 是否启用（`true`/`false`）
-- `type`: 通道类型（见上表）
-- 其他通道特定配置
-
-**配置示例**：
-
-```yaml
-push_channel:
-  # 企业微信机器人（推荐）
-  - name: 企业微信机器人
-    enable: true
-    type: wecom_bot
-    key: your_webhook_key
-  
-  # 钉钉机器人（推荐）
-  - name: 钉钉机器人
-    enable: true
-    type: dingtalk_bot
-    access_token: your_access_token
-    secret: your_secret  # 可选：加签密钥
-  
-  # WxPusher
-  - name: WxPusher
-    enable: true
-    type: wxpusher
-    app_token: your_app_token
-    uids: uid1,uid2        # 用户ID列表，逗号分隔
-    topic: topic_id        # 可选，指定群发topic_id（群发推送用，详见WxPusher官方文档）
-```
-
-详细配置示例请参考 `config.yml.sample` 文件。
+- 监控与推送类型一览见上文 [支持的平台和推送通道](#-支持的平台和推送通道)
+- 定时任务一览见 [定时任务支持](#定时任务支持)
 
 ---
 
 ## 🔌 API 调用
 
-系统提供了 RESTful API 接口，方便与其他系统集成或进行自动化操作。所有 API 接口均基于 FastAPI 框架实现。
+系统提供 RESTful API，便于与其他系统集成或自动化操作，接口基于 FastAPI 实现。
 
-### 基础信息
-
-- **Base URL**: `http://localhost:8866`（本地部署）或 `http://your-server-ip:8866`（服务器部署）
-- **Content-Type**: `application/json`
-- **认证方式**: 基于 Session 的认证（部分接口需要登录）
-
-### API 端点列表
-
-#### 1. 认证相关
-
-**登录**
-```http
-POST /api/login
-Content-Type: application/x-www-form-urlencoded
-
-username=admin&password=123
-```
-
-**登出**
-```http
-POST /api/logout
-```
-
-**检查认证状态**
-```http
-GET /api/check-auth
-```
-
-#### 2. 配置管理
-
-**获取配置**
-```http
-GET /api/config?format=json
-GET /api/config?format=yaml
-```
-
-**保存配置**
-```http
-POST /api/config
-Content-Type: application/json
-
-{
-  "content": "yaml配置内容..."
-}
-```
-
-或使用 JSON 格式：
-```http
-POST /api/config
-Content-Type: application/json
-
-{
-  "config": {
-    "weibo": {...},
-    "huya": {...},
-    ...
-  }
-}
-```
-
-#### 3. 数据查询（需登录）
-
-数据查询采用 REST 风格，支持按平台、按主键 ID 查询，以及分页与过滤。
-
-**平台与主键说明**
-
-| 平台   | `platform` | 主键 ID 含义 | 示例 |
-|--------|------------|--------------|------|
-| 微博   | `weibo`    | 用户 UID     | `1234567890` |
-| 虎牙   | `huya`     | 房间号 room  | `123456` |
-
-**列表：分页 + 可选过滤**
-
-```http
-GET /api/data/{platform}?page=1&page_size=100
-GET /api/data/weibo?uid=1234567890&page=1&page_size=20
-GET /api/data/huya?room=123456&page=1&page_size=20
-```
-
-- `platform`：`weibo` 或 `huya`
-- `page`：页码，从 1 开始（默认 1）
-- `page_size`：每页条数（默认 100）
-- `uid`：仅当 `platform=weibo` 时有效，按用户 UID 过滤
-- `room`：仅当 `platform=huya` 时有效，按房间号过滤
-
-返回示例：
-```json
-{
-  "data": [...],
-  "total": 100,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 5
-}
-```
-
-**单条：按平台 + 主键 ID**
-
-```http
-GET /api/data/weibo/{uid}
-GET /api/data/huya/{room}
-```
-
-示例：`GET /api/data/weibo/1234567890`、`GET /api/data/huya/123456`  
-未找到时返回 `404`，成功时返回 `{"data": {...}}`。
-
-#### 4. 监控状态（无需登录）
-
-监控状态接口与数据查询对应，同样支持「全部 / 按平台 / 按 ID」三种粒度，**无需登录**。
-
-**全部监控状态**
-
-```http
-GET /api/monitor-status
-```
-
-返回示例：
-```json
-{
-  "success": true,
-  "data": {
-    "weibo": [
-      {
-        "UID": "1234567890",
-        "用户名": "示例用户",
-        "认证信息": "认证信息",
-        "简介": "用户简介",
-        "粉丝数": 10000,
-        "微博数": 500,
-        "文本": "最新微博内容",
-        "mid": "微博ID"
-      }
-    ],
-    "huya": [
-      {
-        "room": "123456",
-        "name": "主播名称",
-        "is_live": true
-      }
-    ]
-  },
-  "timestamp": "2024-01-01T12:00:00"
-}
-```
-
-**按平台**
-
-```http
-GET /api/monitor-status/weibo
-GET /api/monitor-status/huya
-```
-
-返回该平台下所有监控项的数组，格式同上（`data` 为数组）。
-
-**按平台 + 主键 ID（单条）**
-
-```http
-GET /api/monitor-status/weibo/{uid}
-GET /api/monitor-status/huya/{room}
-```
-
-示例：`GET /api/monitor-status/weibo/1234567890`、`GET /api/monitor-status/huya/123456`  
-成功时 `data` 为单条对象；未找到时返回 `404`。
-
-#### 5. 日志查询
-
-**获取日志**
-```http
-GET /api/logs?lines=100
-```
-
-### API 调用示例
-
-#### Python 示例
-
-```python
-import requests
-
-# 基础URL
-BASE_URL = "http://localhost:8866"
-
-# 创建会话以保持登录状态
-session = requests.Session()
-
-# 登录
-login_response = session.post(
-    f"{BASE_URL}/api/login",
-    data={"username": "admin", "password": "123"}
-)
-print(login_response.json())
-
-# 获取配置
-config_response = session.get(f"{BASE_URL}/api/config")
-print(config_response.json())
-
-# 获取监控状态（无需登录）
-status_response = requests.get(f"{BASE_URL}/api/monitor-status")
-print(status_response.json())
-
-# 获取微博数据列表（分页）
-weibo_response = session.get(
-    f"{BASE_URL}/api/data/weibo",
-    params={"page": 1, "page_size": 10}
-)
-print(weibo_response.json())
-
-# 按 UID 查询单个微博用户（需登录）
-weibo_one = session.get(f"{BASE_URL}/api/data/weibo/1234567890")
-print(weibo_one.json())
-
-# 按房间号查询单个虎牙直播间（需登录）
-huya_one = session.get(f"{BASE_URL}/api/data/huya/123456")
-print(huya_one.json())
-
-# 监控状态：按平台、按 ID（无需登录）
-status_weibo = requests.get(f"{BASE_URL}/api/monitor-status/weibo")
-status_one_user = requests.get(f"{BASE_URL}/api/monitor-status/weibo/1234567890")
-print(status_weibo.json(), status_one_user.json())
-```
-
-#### cURL 示例
-
-```bash
-# 登录
-curl -X POST http://localhost:8866/api/login \
-  -d "username=admin&password=123" \
-  -c cookies.txt
-
-# 获取配置（使用保存的 Cookie）
-curl -X GET http://localhost:8866/api/config \
-  -b cookies.txt
-
-# 获取监控状态（无需登录）
-curl -X GET http://localhost:8866/api/monitor-status
-
-# 按平台 / 按 ID 获取监控状态
-curl -X GET http://localhost:8866/api/monitor-status/weibo
-curl -X GET http://localhost:8866/api/monitor-status/weibo/1234567890
-
-# 获取单条数据（需 Cookie）
-curl -X GET "http://localhost:8866/api/data/weibo/1234567890" -b cookies.txt
-curl -X GET "http://localhost:8866/api/data/huya/123456" -b cookies.txt
-
-# 获取日志
-curl -X GET "http://localhost:8866/api/logs?lines=50" \
-  -b cookies.txt
-```
-
-### 错误处理
-
-API 返回的错误格式：
-
-```json
-{
-  "error": "错误描述信息"
-}
-```
-
-常见 HTTP 状态码：
-- `200` - 请求成功
-- `400` - 请求参数错误
-- `401` - 未授权（需要登录）
-- `404` - 资源不存在
-- `500` - 服务器内部错误
-
----
-
-## 💻 开发指南
-
-### 代码检测
-
-项目使用 `black` 和 `ruff` 进行代码格式化和检查。
-
-#### 安装开发依赖
-
-```bash
-uv sync --extra dev
-```
-
-#### 代码格式化
-
-使用 `black` 格式化代码：
-
-```bash
-# 格式化所有代码
-uv run black .
-
-# 检查代码格式（不修改文件）
-uv run black --check .
-```
-
-#### 代码检查
-
-使用 `ruff` 检查代码：
-
-```bash
-# 检查代码并自动修复
-uv run ruff check --fix .
-
-# 仅检查代码（不修复）
-uv run ruff check .
-```
-
-#### 运行测试
-
-```bash
-uv run pytest
-```
+**详细说明**（认证、配置、数据查询、监控状态、日志及 Python/cURL 示例）请参阅 **[API 调用指南](docs/API.md)**。
 
 ---
 

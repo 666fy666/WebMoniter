@@ -43,7 +43,10 @@ class CheckinConfig:
         # 多账号优先：checkin_accounts 非空时使用，否则用单账号组一条
         if getattr(config, "checkin_accounts", None):
             accounts = [
-                {"email": str(a.get("email", "")).strip(), "password": str(a.get("password", "")).strip()}
+                {
+                    "email": str(a.get("email", "")).strip(),
+                    "password": str(a.get("password", "")).strip(),
+                }
                 for a in config.checkin_accounts
                 if isinstance(a, dict)
             ]
