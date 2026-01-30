@@ -71,7 +71,7 @@ class DingtalkBot(PushChannel):
                     error_msg = result.get("errmsg", "未知错误")
                     raise Exception(f"推送失败: {error_msg}")
 
-                self.logger.info(f"【推送_{self.name}】成功")
+                self.logger.debug(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
             self.logger.error(f"【推送_{self.name}】请求失败: {e}")

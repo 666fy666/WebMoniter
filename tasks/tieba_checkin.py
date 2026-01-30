@@ -34,17 +34,23 @@ SIGN_KEY = "tiebaclient!!!"
 
 @dataclass
 class TiebaCheckinConfig:
-    """贴吧签到相关配置"""
+    """贴吧签到相关配置（支持多 Cookie）"""
 
     enable: bool
-    cookie: str
+    cookie: str  # 单条 Cookie，兼容旧配置
+    cookies: list[str]  # 多 Cookie 列表，非空时优先使用
     time: str
 
     @classmethod
     def from_app_config(cls, config: AppConfig) -> TiebaCheckinConfig:
+        cookies: list[str] = getattr(config, "tieba_cookies", None) or []
+        single = (config.tieba_cookie or "").strip()
+        if not cookies and single:
+            cookies = [single]
         return cls(
             enable=config.tieba_enable,
-            cookie=(config.tieba_cookie or "").strip(),
+            cookie=single,
+            cookies=cookies,
             time=(config.tieba_time or "08:10").strip() or "08:10",
         )
 
@@ -54,17 +60,21 @@ class TiebaCheckinConfig:
             logger.debug("贴吧签到未启用，跳过执行")
             return False
 
-        if not self.cookie:
-            logger.error("贴吧签到配置不完整，已跳过执行，缺少字段: tieba.cookie")
+        effective = self.cookies if self.cookies else ([self.cookie] if self.cookie else [])
+        if not effective or not any(c.strip() for c in effective):
+            logger.error("贴吧签到配置不完整，已跳过执行，缺少字段: tieba.cookie 或 tieba.cookies")
             return False
 
-        cookie_dict = {
-            item.split("=")[0].strip(): item.split("=", 1)[1].strip()
-            for item in self.cookie.split(";")
-            if "=" in item
-        }
-        if not cookie_dict.get("BDUSS"):
-            logger.warning("贴吧 Cookie 中未找到 BDUSS，签到可能失败")
+        for c in effective:
+            if not c.strip():
+                continue
+            cookie_dict = {
+                item.split("=")[0].strip(): item.split("=", 1)[1].strip()
+                for item in c.split(";")
+                if "=" in item
+            }
+            if not cookie_dict.get("BDUSS"):
+                logger.warning("贴吧 Cookie 中未找到 BDUSS，该条签到可能失败")
 
         return True
 
@@ -231,14 +241,17 @@ def _run_tieba_sign_sync(cookie: str) -> tuple[bool, str, int, int, int, int]:
 
 
 async def run_tieba_checkin_once() -> None:
-    """执行一次贴吧签到流程，并接入统一推送。"""
+    """执行一次贴吧签到流程（支持多 Cookie），并接入统一推送。"""
     app_config = get_config(reload=True)
     cfg = TiebaCheckinConfig.from_app_config(app_config)
 
     if not cfg.validate():
         return
 
-    logger.info("贴吧签到：开始执行")
+    effective_cookies = [c.strip() for c in cfg.cookies if c.strip()]
+    if not effective_cookies and cfg.cookie:
+        effective_cookies = [cfg.cookie.strip()]
+    logger.info("贴吧签到：开始执行（共 %d 个 Cookie）", len(effective_cookies))
 
     import aiohttp
 
@@ -252,55 +265,63 @@ async def run_tieba_checkin_once() -> None:
         if push_manager is None:
             logger.warning("贴吧签到：未配置任何启用的推送通道，将仅在日志中记录结果")
 
-        try:
-            login_ok, user_name_or_err, success, exist, err, total = await asyncio.to_thread(
-                _run_tieba_sign_sync, cfg.cookie
+        for idx, cookie_str in enumerate(effective_cookies):
+            cfg_one = TiebaCheckinConfig(
+                enable=cfg.enable,
+                cookie=cookie_str,
+                cookies=[cookie_str],
+                time=cfg.time,
             )
-        except Exception as e:
-            logger.error("贴吧签到：执行异常: %s", e, exc_info=True)
-            await _send_tieba_push(
-                push_manager,
-                title="贴吧签到失败",
-                description=f"执行异常：{e}",
-                success=False,
-                cfg=cfg,
-            )
-            if push_manager is not None:
-                await push_manager.close()
-            return
+            logger.debug("贴吧签到：正在处理第 %d/%d 个账号", idx + 1, len(effective_cookies))
 
-        if not login_ok:
-            logger.error("贴吧签到：❌ %s", user_name_or_err)
-            await _send_tieba_push(
-                push_manager,
-                title="贴吧签到失败：登录失败",
-                description=user_name_or_err,
-                success=False,
-                cfg=cfg,
-            )
-        else:
-            logger.info(
-                "贴吧签到：结束 账号=%s 成功=%s 已签=%s 失败=%s 总计=%s",
-                user_name_or_err,
-                success,
-                exist,
-                err,
-                total,
-            )
-            summary = (
-                f"成功: {success}，已签: {exist}，失败: {err}，总计: {total}"
-            )
-            await _send_tieba_push(
-                push_manager,
-                title="贴吧签到完成",
-                description=summary,
-                success=True,
-                cfg=cfg,
-                detail=f"账号: {user_name_or_err}\n{summary}",
-            )
+            try:
+                login_ok, user_name_or_err, success, exist, err, total = await asyncio.to_thread(
+                    _run_tieba_sign_sync, cookie_str
+                )
+            except Exception as e:
+                logger.error("贴吧签到：第 %d 个账号执行异常: %s", idx + 1, e, exc_info=True)
+                await _send_tieba_push(
+                    push_manager,
+                    title="贴吧签到失败",
+                    description=f"执行异常：{e}",
+                    success=False,
+                    cfg=cfg_one,
+                )
+                continue
+
+            if not login_ok:
+                logger.error("贴吧签到：❌ 第 %d 个账号 %s", idx + 1, user_name_or_err)
+                await _send_tieba_push(
+                    push_manager,
+                    title="贴吧签到失败：登录失败",
+                    description=user_name_or_err,
+                    success=False,
+                    cfg=cfg_one,
+                )
+            else:
+                logger.info(
+                    "贴吧签到：第 %d 个账号 账号=%s 成功=%s 已签=%s 失败=%s 总计=%s",
+                    idx + 1,
+                    user_name_or_err,
+                    success,
+                    exist,
+                    err,
+                    total,
+                )
+                summary = f"成功: {success}，已签: {exist}，失败: {err}，总计: {total}"
+                await _send_tieba_push(
+                    push_manager,
+                    title="贴吧签到完成",
+                    description=summary,
+                    success=True,
+                    cfg=cfg_one,
+                    detail=f"账号: {user_name_or_err}\n{summary}",
+                )
 
         if push_manager is not None:
             await push_manager.close()
+
+    logger.info("贴吧签到：结束（共处理 %d 个账号）", len(effective_cookies))
 
 
 async def _send_tieba_push(

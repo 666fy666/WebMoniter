@@ -4,7 +4,54 @@ import asyncio
 import logging
 import signal
 import sys
+import threading
 from collections.abc import Callable
+
+# 控制台日志分隔符：在「任务源」日志（监控/定时任务/主流程）与上一组推送之间插入，提升阅读体验
+_LOG_SEPARATOR = "─" * 60
+
+# 视为「任务源」的 logger 名称：监控类、定时任务模块、主入口
+def _is_task_source(name: str) -> bool:
+    return (
+        "Monitor" in name
+        or name.startswith("tasks.")
+        or name == "__main__"
+    )
+
+# 视为「同一事件内推送」的 logger 名称：推送渠道，不在此前插分隔符
+def _is_push_channel(name: str) -> bool:
+    return name in (
+        "WxPusher",
+        "DingtalkBot",
+        "FeishuBot",
+        "WeComApps",
+        "PushChannelManager",
+    )
+
+
+class TaskGroupFormatter(logging.Formatter):
+    """在任务组之间插入分隔符的 Formatter，仅用于控制台。"""
+
+    _last_logger_name: str | None = None
+    _lock = threading.Lock()
+
+    def format(self, record: logging.LogRecord) -> str:
+        name = record.name
+        base_fmt = super().format(record)
+        with self._lock:
+            prev = TaskGroupFormatter._last_logger_name
+            need_sep = (
+                _is_task_source(name)
+                and (
+                    prev is None
+                    or _is_push_channel(prev)
+                    or (_is_task_source(prev) and prev != name)
+                )
+            )
+            TaskGroupFormatter._last_logger_name = name
+        if need_sep:
+            return f"\n{_LOG_SEPARATOR}\n{base_fmt}"
+        return base_fmt
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -293,7 +340,7 @@ def setup_logging(log_level: str = "INFO", console_output: bool = None):
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(getattr(logging, log_level.upper()))
         console_handler.setFormatter(
-            logging.Formatter(
+            TaskGroupFormatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                 datefmt="%Y-%m-%d %H:%M:%S",
             )

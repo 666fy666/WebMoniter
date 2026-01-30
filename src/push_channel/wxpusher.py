@@ -85,7 +85,7 @@ class WxPusher(PushChannel):
 
                 # wxpusher API 返回格式：{"success": true/false, "msg": "消息", "data": {...}}
                 if result.get("success") is True:
-                    self.logger.info(f"【推送_{self.name}】成功")
+                    self.logger.debug(f"【推送_{self.name}】成功")
                     return {"status": "success"}
                 else:
                     error_msg = result.get("msg", "未知错误")

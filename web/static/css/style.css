@@ -1054,3 +1054,48 @@ input:checked + .slider:before {
 .view-container {
     width: 100%;
 }
+
+/* 多账号 / 多 Cookie 列表 */
+.multi-accounts-list,
+.multi-cookies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.multi-account-row,
+.multi-cookie-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}
+
+.multi-account-row .account-fields,
+.multi-cookie-row .cookie-field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.multi-account-row input.form-input,
+.multi-cookie-row input.form-input,
+.multi-cookie-row textarea.form-input {
+    flex: 1;
+    min-width: 120px;
+}
+
+.multi-account-row .account-fields input:nth-child(1) { max-width: 240px; }
+.multi-account-row .account-fields input:nth-child(2) { max-width: 200px; }
+
+.multi-account-row .row-remove,
+.multi-cookie-row .row-remove {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 13px;
+}

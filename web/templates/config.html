@@ -98,10 +98,10 @@
                 </div>
             </div>
 
-            <!-- 每日签到配置 -->
+            <!-- ikuuu签到配置 -->
             <div class="card config-section" data-section="checkin">
                 <div class="card-header">
-                    <h2>📅 每日签到配置</h2>
+                    <h2>📅 ikuuu签到配置</h2>
                     <div class="card-actions">
                         <button class="btn btn-secondary section-reload-btn">重新加载</button>
                         <button class="btn btn-primary section-save-btn">保存配置</button>
@@ -110,7 +110,7 @@
                 <div class="card-body">
                     <table class="config-table">
                         <tr>
-                            <td class="config-label">启用每日签到</td>
+                            <td class="config-label">启用ikuuu签到</td>
                             <td>
                                 <label class="switch">
                                     <input type="checkbox" id="checkin_enable">
@@ -132,12 +132,19 @@
                             <td><input type="text" id="checkin_user_page_url" class="form-input" placeholder="例如：https://ikuuu.de/user（可选，用于解析流量信息）"></td>
                         </tr>
                         <tr>
-                            <td class="config-label">登录账号</td>
-                            <td><input type="text" id="checkin_email" class="form-input" placeholder="邮箱或用户名"></td>
+                            <td class="config-label">登录账号（单账号）</td>
+                            <td><input type="text" id="checkin_email" class="form-input" placeholder="邮箱或用户名，多账号时可不填"></td>
                         </tr>
                         <tr>
-                            <td class="config-label">登录密码</td>
-                            <td><input type="password" id="checkin_password" class="form-input" placeholder="登录密码"></td>
+                            <td class="config-label">登录密码（单账号）</td>
+                            <td><input type="password" id="checkin_password" class="form-input" placeholder="登录密码，多账号时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多账号</td>
+                            <td>
+                                <div id="checkin_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="checkin_add_account_btn" class="btn btn-secondary" style="margin-top: 8px;">添加账号</button>
+                            </td>
                         </tr>
                         <tr>
                             <td class="config-label">签到时间</td>
@@ -145,7 +152,7 @@
                         </tr>
                     </table>
                     <div class="help-box" style="margin-top: 15px;">
-                        <p>系统会在指定时间自动执行签到任务，项目启动时也会先执行一次签到。</p>
+                        <p>系统会在指定时间自动执行签到任务，项目启动时也会先执行一次签到。配置多账号后会对每个账号依次签到并分别推送。</p>
                     </div>
                 </div>
             </div>
@@ -172,8 +179,15 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="config-label">Cookie</td>
-                            <td><input type="text" id="tieba_cookie" class="form-input" placeholder="贴吧 Cookie（须包含 BDUSS），浏览器 F12 控制台 document.cookie 获取"></td>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="tieba_cookie" class="form-input" placeholder="贴吧 Cookie（须包含 BDUSS），多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="tieba_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="tieba_add_cookie_btn" class="btn btn-secondary" style="margin-top: 8px;">添加 Cookie</button>
+                            </td>
                         </tr>
                         <tr>
                             <td class="config-label">签到时间</td>
@@ -181,7 +195,7 @@
                         </tr>
                     </table>
                     <div class="help-box" style="margin-top: 15px;">
-                        <p>使用 Cookie 作为参数，须包含 BDUSS。系统会在指定时间自动执行贴吧签到，项目启动时若启用也会执行一次。</p>
+                        <p>使用 Cookie 作为参数，须包含 BDUSS。配置多 Cookie 后会对每个账号依次签到并分别推送。系统会在指定时间自动执行贴吧签到，项目启动时若启用也会执行一次。</p>
                     </div>
                 </div>
             </div>

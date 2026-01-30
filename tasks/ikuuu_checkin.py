@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CheckinConfig:
-    """签到相关配置"""
+    """签到相关配置（可表示单账号或用于多账号时的公共字段）"""
 
     enable: bool
     login_url: str
@@ -36,17 +36,47 @@ class CheckinConfig:
     email: str
     password: str
     time: str
+    accounts: list[dict]  # 多账号列表 [{"email": str, "password": str}, ...]，执行时优先遍历此列表
 
     @classmethod
     def from_app_config(cls, config: AppConfig) -> CheckinConfig:
+        # 多账号优先：checkin_accounts 非空时使用，否则用单账号组一条
+        if getattr(config, "checkin_accounts", None):
+            accounts = [
+                {"email": str(a.get("email", "")).strip(), "password": str(a.get("password", "")).strip()}
+                for a in config.checkin_accounts
+                if isinstance(a, dict)
+            ]
+        else:
+            accounts = [
+                {
+                    "email": (config.checkin_email or "").strip(),
+                    "password": (config.checkin_password or "").strip(),
+                }
+            ]
+        first = accounts[0] if accounts else {"email": "", "password": ""}
         return cls(
             enable=config.checkin_enable,
             login_url=config.checkin_login_url.strip(),
             checkin_url=config.checkin_checkin_url.strip(),
             user_page_url=(config.checkin_user_page_url or "").strip() or None,
-            email=config.checkin_email.strip(),
-            password=config.checkin_password.strip(),
+            email=first.get("email", ""),
+            password=first.get("password", ""),
             time=config.checkin_time.strip() or "08:00",
+            accounts=accounts,
+        )
+
+    def with_account(self, email: str, password: str) -> CheckinConfig:
+        """返回仅替换邮箱/密码的副本，用于单账号登录与推送。"""
+        return CheckinConfig(
+            enable=self.enable,
+            login_url=self.login_url,
+            checkin_url=self.checkin_url,
+            user_page_url=self.user_page_url,
+            email=email,
+            password=password,
+            time=self.time,
+            accounts=self.accounts,
         )
 
     def validate(self) -> bool:
@@ -60,10 +90,12 @@ class CheckinConfig:
             missing_fields.append("checkin.login_url")
         if not self.checkin_url:
             missing_fields.append("checkin.checkin_url")
-        if not self.email:
-            missing_fields.append("checkin.email")
-        if not self.password:
-            missing_fields.append("checkin.password")
+        if not self.accounts:
+            missing_fields.append("checkin.accounts 或 checkin.email/password")
+        else:
+            valid_accounts = [a for a in self.accounts if a.get("email") and a.get("password")]
+            if not valid_accounts:
+                missing_fields.append("至少一个账号需包含 checkin.email 与 checkin.password")
 
         if missing_fields:
             logger.error("ikuuu签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields))
@@ -278,18 +310,17 @@ async def _get_user_traffic(
 
 
 async def run_checkin_once() -> None:
-    """执行一次完整的 iKuuu/SSPanel 签到流程（登录 → 签到 → 获取流量信息）"""
-    # 每次执行时重新加载配置，确保支持热重载
+    """执行一次完整的 iKuuu/SSPanel 签到流程（支持多账号：登录 → 签到 → 获取流量信息 → 推送）"""
     app_config = get_config(reload=True)
     cfg = CheckinConfig.from_app_config(app_config)
 
     if not cfg.validate():
         return
 
-    logger.info("ikuuu签到：开始执行")
+    valid_accounts = [a for a in cfg.accounts if a.get("email") and a.get("password")]
+    logger.info("ikuuu签到：开始执行（共 %d 个账号）", len(valid_accounts))
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
-        # 准备推送通道（与监控任务保持一致）
         push_manager: UnifiedPushManager | None = await build_push_manager(
             app_config.push_channel_list,
             session,
@@ -299,43 +330,42 @@ async def run_checkin_once() -> None:
         if push_manager is None:
             logger.warning("ikuuu签到：未配置任何启用的推送通道，将仅在日志中记录结果")
 
-        # 登录获取 Cookie
-        cookie = await _login_and_get_cookie(session, cfg)
-        if not cookie:
-            logger.error("ikuuu签到：❌ 登录失败，本次签到终止")
-            # 登录失败也尝试推送一次
+        success_count = 0
+        for idx, account in enumerate(valid_accounts):
+            cfg_one = cfg.with_account(account["email"], account["password"])
+            logger.debug("ikuuu签到：正在处理第 %d/%d 个账号", idx + 1, len(valid_accounts))
+
+            cookie = await _login_and_get_cookie(session, cfg_one)
+            if not cookie:
+                logger.error("ikuuu签到：❌ 账号 %s 登录失败", _mask_email(cfg_one.email))
+                await _send_checkin_push(
+                    push_manager,
+                    title="ikuuu签到失败：登录失败",
+                    msg="登录失败，无法获取 Cookie，请检查账号、密码或站点状态。",
+                    success=False,
+                    cfg=cfg_one,
+                )
+                continue
+
+            ok = await _checkin(session, cfg_one, cookie)
+            if ok:
+                success_count += 1
+            traffic_info = await _get_user_traffic(session, cfg_one, cookie)
+            title = "ikuuu签到成功" if ok else "ikuuu签到失败"
+            msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
             await _send_checkin_push(
                 push_manager,
-                title="ikuuu签到失败：登录失败",
-                msg="登录失败，无法获取 Cookie，请检查账号、密码或站点状态。",
-                success=False,
-                cfg=cfg,
+                title=title,
+                msg=msg,
+                success=ok,
+                cfg=cfg_one,
+                traffic_info=traffic_info,
             )
-            return
 
-        # 执行签到
-        ok = await _checkin(session, cfg, cookie)
-
-        # 获取流量信息（即使签到失败，也可以尝试获取流量信息），并用于推送
-        traffic_info = await _get_user_traffic(session, cfg, cookie)
-
-        # 发送统一推送（含流量信息）
-        title = "ikuuu签到成功" if ok else "ikuuu签到失败"
-        msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
-        await _send_checkin_push(
-            push_manager,
-            title=title,
-            msg=msg,
-            success=ok,
-            cfg=cfg,
-            traffic_info=traffic_info,
-        )
-
-        # 关闭推送通道
         if push_manager is not None:
             await push_manager.close()
 
-    logger.info("ikuuu签到：结束（成功：%s）", ok)
+    logger.info("ikuuu签到：结束（成功 %d/%d 个账号）", success_count, len(valid_accounts))
 
 
 async def _send_checkin_push(

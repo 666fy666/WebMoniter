@@ -404,6 +404,50 @@ document.addEventListener('DOMContentLoaded', async function() {
         return `<input type="text" class="field-${field} form-input" value="${value || ''}">`;
     }
 
+    // 渲染签到多账号列表
+    function renderCheckinAccounts(accounts) {
+        const container = document.getElementById('checkin_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ email: '', password: '' }];
+        list.forEach((acc, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="account-fields">
+                    <input type="text" class="form-input checkin-account-email" placeholder="邮箱或用户名">
+                    <input type="password" class="form-input checkin-account-password" placeholder="密码">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove checkin-account-remove">删除</button>
+            `;
+            row.querySelector('.checkin-account-email').value = acc.email || '';
+            row.querySelector('.checkin-account-password').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+
+    // 渲染贴吧多 Cookie 列表
+    function renderTiebaCookies(cookies) {
+        const container = document.getElementById('tieba_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input tieba-cookie-value" placeholder="贴吧 Cookie（须包含 BDUSS）">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove tieba-cookie-remove">删除</button>
+            `;
+            row.querySelector('.tieba-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
     // 加载特定section的配置
     function loadSectionConfig(section, config) {
         switch(section) {
@@ -440,6 +484,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const timeVal = config.checkin.time || '08:00';
                         timeInput.value = timeVal.length === 5 ? timeVal : '08:00';
                     }
+                    // 多账号列表：优先使用 accounts，否则用单账号组一条
+                    const accountsListEl = document.getElementById('checkin_accounts_list');
+                    if (accountsListEl) {
+                        const accounts = Array.isArray(config.checkin.accounts) && config.checkin.accounts.length > 0
+                            ? config.checkin.accounts
+                            : [{ email: config.checkin.email || '', password: config.checkin.password || '' }];
+                        renderCheckinAccounts(accounts);
+                    }
                 }
                 break;
             case 'tieba':
@@ -456,6 +508,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (tiebaTimeInput) {
                         const timeVal = config.tieba.time || '08:10';
                         tiebaTimeInput.value = timeVal.length === 5 ? timeVal : '08:10';
+                    }
+                    // 多 Cookie 列表：优先使用 cookies，否则用单条 cookie
+                    const cookiesListEl = document.getElementById('tieba_cookies_list');
+                    if (cookiesListEl) {
+                        const cookies = Array.isArray(config.tieba.cookies) && config.tieba.cookies.length > 0
+                            ? config.tieba.cookies
+                            : (config.tieba.cookie ? [config.tieba.cookie] : ['']);
+                        renderTiebaCookies(cookies);
                     }
                 }
                 break;
@@ -516,24 +576,41 @@ document.addEventListener('DOMContentLoaded', async function() {
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3
                 };
                 break;
-            case 'checkin':
+            case 'checkin': {
+                const accounts = [];
+                document.querySelectorAll('#checkin_accounts_list .multi-account-row').forEach(row => {
+                    const email = (row.querySelector('.checkin-account-email')?.value || '').trim();
+                    const password = (row.querySelector('.checkin-account-password')?.value || '').trim();
+                    accounts.push({ email, password });
+                });
+                const first = accounts[0] || { email: '', password: '' };
                 config.checkin = {
                     enable: checkinEnable ? checkinEnable.checked : false,
                     login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
                     checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
                     user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
-                    email: (document.getElementById('checkin_email')?.value || '').trim(),
-                    password: (document.getElementById('checkin_password')?.value || '').trim(),
+                    email: (document.getElementById('checkin_email')?.value || '').trim() || first.email,
+                    password: (document.getElementById('checkin_password')?.value || '').trim() || first.password,
                     time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
                 };
+                if (accounts.length > 0) config.checkin.accounts = accounts;
                 break;
-            case 'tieba':
+            }
+            case 'tieba': {
+                const cookies = [];
+                document.querySelectorAll('#tieba_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.tieba-cookie-value')?.value || '').trim();
+                    cookies.push(val);
+                });
+                const firstCookie = cookies[0] || (document.getElementById('tieba_cookie')?.value || '').trim();
                 config.tieba = {
                     enable: tiebaEnable ? tiebaEnable.checked : false,
-                    cookie: (document.getElementById('tieba_cookie')?.value || '').trim(),
+                    cookie: (document.getElementById('tieba_cookie')?.value || '').trim() || firstCookie,
                     time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
                 };
+                if (cookies.length > 0) config.tieba.cookies = cookies;
                 break;
+            }
             case 'huya':
                 config.huya = {
                     rooms: document.getElementById('huya_rooms').value.trim(),
@@ -644,23 +721,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             end: document.getElementById('quiet_hours_end').value || '08:00'
         };
 
-        // 每日签到配置
+        // 每日签到配置（含多账号）
+        const checkinAccounts = [];
+        document.querySelectorAll('#checkin_accounts_list .multi-account-row').forEach(row => {
+            const email = (row.querySelector('.checkin-account-email')?.value || '').trim();
+            const password = (row.querySelector('.checkin-account-password')?.value || '').trim();
+            checkinAccounts.push({ email, password });
+        });
+        const firstCheckin = checkinAccounts[0] || { email: '', password: '' };
         config.checkin = {
             enable: checkinEnable ? checkinEnable.checked : false,
             login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
             checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
             user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
-            email: (document.getElementById('checkin_email')?.value || '').trim(),
-            password: (document.getElementById('checkin_password')?.value || '').trim(),
+            email: (document.getElementById('checkin_email')?.value || '').trim() || firstCheckin.email,
+            password: (document.getElementById('checkin_password')?.value || '').trim() || firstCheckin.password,
             time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
         };
+        if (checkinAccounts.length > 0) config.checkin.accounts = checkinAccounts;
 
-        // 贴吧签到配置
+        // 贴吧签到配置（含多 Cookie）
+        const tiebaCookies = [];
+        document.querySelectorAll('#tieba_cookies_list .multi-cookie-row').forEach(row => {
+            const val = (row.querySelector('.tieba-cookie-value')?.value || '').trim();
+            tiebaCookies.push(val);
+        });
+        const firstTiebaCookie = tiebaCookies[0] || (document.getElementById('tieba_cookie')?.value || '').trim();
         config.tieba = {
             enable: tiebaEnable ? tiebaEnable.checked : false,
-            cookie: (document.getElementById('tieba_cookie')?.value || '').trim(),
+            cookie: (document.getElementById('tieba_cookie')?.value || '').trim() || firstTiebaCookie,
             time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
         };
+        if (tiebaCookies.length > 0) config.tieba.cookies = tiebaCookies;
 
         // 推送通道配置
         config.push_channel = [];
@@ -949,6 +1041,63 @@ document.addEventListener('DOMContentLoaded', async function() {
             saveBtn.disabled = false;
             saveBtn.textContent = '保存配置';
         }
+    }
+
+    // 多账号：添加账号
+    const checkinAddAccountBtn = document.getElementById('checkin_add_account_btn');
+    if (checkinAddAccountBtn) {
+        checkinAddAccountBtn.addEventListener('click', function() {
+            const container = document.getElementById('checkin_accounts_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = `
+                <div class="account-fields">
+                    <input type="text" class="form-input checkin-account-email" placeholder="邮箱或用户名">
+                    <input type="password" class="form-input checkin-account-password" placeholder="密码">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove checkin-account-remove">删除</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+    // 多账号：删除行（事件委托）
+    const checkinAccountsList = document.getElementById('checkin_accounts_list');
+    if (checkinAccountsList) {
+        checkinAccountsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('checkin-account-remove')) {
+                const row = e.target.closest('.multi-account-row');
+                if (row && checkinAccountsList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 多 Cookie：添加 Cookie
+    const tiebaAddCookieBtn = document.getElementById('tieba_add_cookie_btn');
+    if (tiebaAddCookieBtn) {
+        tiebaAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('tieba_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input tieba-cookie-value" placeholder="贴吧 Cookie（须包含 BDUSS）">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove tieba-cookie-remove">删除</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+    // 多 Cookie：删除行（事件委托）
+    const tiebaCookiesList = document.getElementById('tieba_cookies_list');
+    if (tiebaCookiesList) {
+        tiebaCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tieba-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && tiebaCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
     }
 
     // 为每个section绑定事件

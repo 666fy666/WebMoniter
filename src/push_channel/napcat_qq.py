@@ -58,7 +58,7 @@ class NapCatQQ(PushChannel):
                 resp_data = await response.json()
 
                 if resp_data.get("status") == "ok" and resp_data.get("retcode") == 0:
-                    self.logger.info(f"【推送_{self.name}】消息发送成功")
+                    self.logger.debug(f"【推送_{self.name}】消息发送成功")
                     return {"status": "success"}
                 else:
                     error_msg = resp_data.get("message", "未知错误")

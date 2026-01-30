@@ -30,7 +30,7 @@ class Gotify(PushChannel):
             session = await self._get_session()
             async with session.post(self.web_server_url, headers=headers, json=body) as response:
                 response.raise_for_status()
-                self.logger.info(f"【推送_{self.name}】成功")
+                self.logger.debug(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
             self.logger.error(f"【推送_{self.name}】请求失败: {e}")

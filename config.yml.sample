@@ -13,9 +13,9 @@ weibo:
 # 虎牙监控配置
 huya:
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
-  concurrency: 10  # 并发数，建议5-10
+  concurrency: 5  # 并发数，建议5-10
 
-# 每日签到配置（例如 SSPanel / iKuuu 等）
+# ikuuu签到配置
 checkin:
   enable: false  # 是否启用每日签到
   # 登录地址（例如：https://ikuuu.nl/auth/login）
@@ -24,17 +24,27 @@ checkin:
   checkin_url:
   # 用户信息页地址（例如：https://ikuuu.nl/user，用于解析剩余流量，可选）
   user_page_url:
-  # 登录账号（邮箱或用户名）
+  # 单账号（与 password 搭配，多账号时可不填）
   email:
-  # 登录密码
   password:
+  # 多账号：配置 accounts 后优先使用，每项需包含 email、password
+  # accounts:
+  #   - email: user1@example.com
+  #     password: pass1
+  #   - email: user2@example.com
+  #     password: pass2
   # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
   time: "08:00"
 
-# 百度贴吧签到配置（使用 Cookie，须包含 BDUSS）
+# 百度贴吧签到配置（须包含 BDUSS，支持多 Cookie）
 tieba:
   enable: false  # 是否启用贴吧签到
-  cookie:  # 贴吧 Cookie，浏览器打开贴吧 F12 控制台输入 document.cookie 获取
+  # 单 Cookie（多 Cookie 时可不填），浏览器打开贴吧 F12 控制台输入 document.cookie 获取
+  cookie:
+  # 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串
+  # cookies:
+  #   - "BIDUPSID=xxx; BDUSS=xxx; ..."
+  #   - "BIDUPSID=yyy; BDUSS=yyy; ..."
   time: "08:10"  # 签到时间（24 小时制，格式：HH:MM），默认 08:10
 
 # 调度器配置

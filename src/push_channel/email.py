@@ -73,7 +73,7 @@ class Email(PushChannel):
             # 关闭连接
             await smtp_client.quit()
 
-            self.logger.info(f"【推送_{self.name}】成功")
+            self.logger.debug(f"【推送_{self.name}】成功")
             return {"status": "success"}
         except Exception as e:
             self.logger.error(f"【推送_{self.name}】推送失败: {e}", exc_info=True)

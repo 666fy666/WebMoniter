@@ -157,7 +157,7 @@ class QQBot(PushChannel):
                 session = await self._get_session()
                 async with session.post(push_url, headers=headers, json=body) as response:
                     response.raise_for_status()
-                    self.logger.info(f"【推送_{self.name}】【{channel_name}】成功")
+                    self.logger.debug(f"【推送_{self.name}】【{channel_name}】成功")
             except ClientResponseError as e:
                 error_msg = f"【推送_{self.name}】【{channel_name}】请求失败: {e}"
                 self.logger.error(error_msg)

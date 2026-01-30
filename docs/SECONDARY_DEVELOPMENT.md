@@ -28,10 +28,11 @@ iKuuu 签到使用**顶层配置**（与贴吧签到一致）：在 `config.yml`
 
 ### 2.1 配置：config.yml
 
-在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config.yml.sample`）：
+在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config.yml.sample`）。
+
+**单账号示例：**
 
 ```yaml
-# 每日签到配置（例如 SSPanel / iKuuu 等）
 checkin:
   enable: false
   login_url: https://ikuuu.nl/auth/login
@@ -40,6 +41,22 @@ checkin:
   email: your@email.com
   password: your_password
   time: "08:00"   # 每日执行时间 HH:MM
+```
+
+**多账号示例（`accounts` 非空时优先于单账号 `email`/`password`）：**
+
+```yaml
+checkin:
+  enable: true
+  login_url: https://ikuuu.nl/auth/login
+  checkin_url: https://ikuuu.nl/user/checkin
+  user_page_url: https://ikuuu.nl/user
+  time: "08:00"
+  accounts:
+    - email: user1@example.com
+      password: pass1
+    - email: user2@example.com
+      password: pass2
 ```
 
 ### 2.2 配置：src/config.py

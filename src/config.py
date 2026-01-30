@@ -43,13 +43,15 @@ class AppConfig(BaseModel):
     checkin_login_url: str = ""  # 登录地址
     checkin_checkin_url: str = ""  # 签到接口地址
     checkin_user_page_url: str = ""  # 用户信息页地址（用于解析流量信息，可选）
-    checkin_email: str = ""  # 登录账号（邮箱或用户名）
-    checkin_password: str = ""  # 登录密码
+    checkin_email: str = ""  # 单账号：登录账号（与 checkin_password 搭配）
+    checkin_password: str = ""  # 单账号：登录密码
+    checkin_accounts: list[dict] = []  # 多账号：[{"email": str, "password": str}, ...]，非空时优先于单账号
     checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
 
     # 百度贴吧签到配置（使用 Cookie）
     tieba_enable: bool = False  # 是否启用贴吧签到
-    tieba_cookie: str = ""  # 贴吧 Cookie（须包含 BDUSS）
+    tieba_cookie: str = ""  # 单 Cookie（与 tieba_cookies 二选一，须包含 BDUSS）
+    tieba_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 tieba_cookie
     tieba_time: str = "08:10"  # 贴吧签到时间（格式：HH:MM），默认 08:10
 
     # 调度器配置
@@ -151,6 +153,17 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["checkin_password"] = checkin["password"]
             if "time" in checkin:
                 config_dict["checkin_time"] = checkin["time"]
+            # 多账号：accounts 为非空列表时优先使用
+            if "accounts" in checkin and isinstance(checkin["accounts"], list):
+                accounts = []
+                for a in checkin["accounts"]:
+                    if isinstance(a, dict):
+                        accounts.append({
+                            "email": str(a.get("email", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        })
+                if accounts:
+                    config_dict["checkin_accounts"] = accounts
 
         # 贴吧签到配置
         if "tieba" in yml_config:
@@ -161,6 +174,11 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["tieba_cookie"] = tieba["cookie"]
             if "time" in tieba:
                 config_dict["tieba_time"] = tieba["time"]
+            # 多 Cookie：cookies 为非空列表时优先使用
+            if "cookies" in tieba and isinstance(tieba["cookies"], list):
+                cookies = [str(c).strip() for c in tieba["cookies"] if c]
+                if cookies:
+                    config_dict["tieba_cookies"] = cookies
 
         # 调度器配置
         if "scheduler" in yml_config:

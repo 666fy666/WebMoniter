@@ -143,7 +143,7 @@ class ConfigWatcher:
         ):
             return True
 
-        # ikuuu签到配置
+        # ikuuu签到配置（含多账号）
         if (
             old_config.checkin_enable != new_config.checkin_enable
             or old_config.checkin_login_url != new_config.checkin_login_url
@@ -152,14 +152,16 @@ class ConfigWatcher:
             or old_config.checkin_email != new_config.checkin_email
             or old_config.checkin_password != new_config.checkin_password
             or old_config.checkin_time != new_config.checkin_time
+            or getattr(old_config, "checkin_accounts", []) != getattr(new_config, "checkin_accounts", [])
         ):
             return True
 
-        # 贴吧签到配置
+        # 贴吧签到配置（含多 Cookie）
         if (
             old_config.tieba_enable != new_config.tieba_enable
             or old_config.tieba_cookie != new_config.tieba_cookie
             or old_config.tieba_time != new_config.tieba_time
+            or getattr(old_config, "tieba_cookies", []) != getattr(new_config, "tieba_cookies", [])
         ):
             return True
 

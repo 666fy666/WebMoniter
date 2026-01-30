@@ -288,7 +288,7 @@ class FeishuApps(PushChannel):
                     self.logger.error(f"【推送_{self.name}】{suggestion}")
                     raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
 
-                self.logger.info(f"【推送_{self.name}】成功")
+                self.logger.debug(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
             error_info = f"HTTP {e.status}, message='{e.message}', url='{e.request_info.url}'"

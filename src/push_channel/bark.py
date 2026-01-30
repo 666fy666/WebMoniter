@@ -42,7 +42,7 @@ class Bark(PushChannel):
                 response.raise_for_status()
                 result = await response.json()
                 if result.get("code") == 200:
-                    self.logger.info(f"【推送_{self.name}】成功")
+                    self.logger.debug(f"【推送_{self.name}】成功")
                     return {"status": "success"}
                 else:
                     error_msg = result.get("message", "未知错误")
