@@ -10,7 +10,7 @@ import logging
 
 from src.config import AppConfig, get_config
 from src.config_watcher import ConfigWatcher
-from src.cookie_cache_manager import cookie_cache
+from src.cookie_cache import get_cookie_cache
 from src.database import close_shared_connection
 from src.job_registry import (
     MONITOR_JOBS,
@@ -20,6 +20,8 @@ from src.job_registry import (
 from src.log_manager import LogManager
 from src.scheduler import TaskScheduler, setup_logging
 
+cookie_cache = get_cookie_cache()
+
 
 async def register_monitors(scheduler: TaskScheduler) -> None:
     """
@@ -28,33 +30,28 @@ async def register_monitors(scheduler: TaskScheduler) -> None:
     """
     discover_and_import()
     config = get_config()
-
-    for desc in MONITOR_JOBS:
-        kwargs = desc.get_trigger_kwargs(config)
-        scheduler.add_interval_job(
-            func=desc.run_func,
-            job_id=desc.job_id,
-            **kwargs,
-        )
-
-    for desc in TASK_JOBS:
-        kwargs = desc.get_trigger_kwargs(config)
-        scheduler.add_cron_job(
-            func=desc.run_func,
-            job_id=desc.job_id,
-            **kwargs,
-        )
-
     logger = logging.getLogger(__name__)
+
+    # 注册监控任务和定时任务
+    job_registrations = [
+        (MONITOR_JOBS, scheduler.add_interval_job),
+        (TASK_JOBS, scheduler.add_cron_job),
+    ]
+
+    for job_list, register_func in job_registrations:
+        for desc in job_list:
+            kwargs = desc.get_trigger_kwargs(config)
+            register_func(
+                func=desc.run_func,
+                job_id=desc.job_id,
+                **kwargs,
+            )
+
+    # 启动时立即执行一次所有任务
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
+    all_jobs = MONITOR_JOBS + TASK_JOBS
 
-    for desc in MONITOR_JOBS:
-        try:
-            await desc.run_func()
-        except Exception as e:  # noqa: BLE001
-            logger.error("%s 启动时首次执行失败: %s", desc.job_id, e, exc_info=True)
-
-    for desc in TASK_JOBS:
+    for desc in all_jobs:
         try:
             await desc.run_func()
         except Exception as e:  # noqa: BLE001

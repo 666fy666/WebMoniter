@@ -398,7 +398,7 @@ async def _send_checkin_push(
 
     try:
         await push_manager.send_news(
-            title=f"{title}（{masked_email}）",
+            title=f"{title}",
             description=description,
             to_url=cfg.user_page_url or cfg.login_url,
             picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",

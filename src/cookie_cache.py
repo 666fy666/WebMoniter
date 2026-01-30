@@ -202,3 +202,15 @@ class CookieCache:
                     self._cache[platform]["notified"] = True
             self._save_cache()
             logger.debug(f"已标记 {platform} Cookie过期提醒已发送")
+
+
+# 全局Cookie缓存实例（延迟初始化）
+cookie_cache: CookieCache | None = None
+
+
+def get_cookie_cache() -> CookieCache:
+    """获取全局Cookie缓存实例（单例模式）"""
+    global cookie_cache
+    if cookie_cache is None:
+        cookie_cache = CookieCache()
+    return cookie_cache

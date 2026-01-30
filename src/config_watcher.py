@@ -17,7 +17,9 @@ class ConfigWatcher:
         self,
         config_path: str = "config.yml",
         check_interval: int = 5,
-        on_config_changed: Callable[[AppConfig | None, AppConfig], Awaitable[None] | None] | None = None,
+        on_config_changed: (
+            Callable[[AppConfig | None, AppConfig], Awaitable[None] | None] | None
+        ) = None,
     ):
         """
         初始化配置监控器
@@ -127,71 +129,57 @@ class ConfigWatcher:
         if old_config is None:
             return True
 
-        # 检查关键配置项是否变化
-        # 微博配置
-        if (
-            old_config.weibo_cookie != new_config.weibo_cookie
-            or old_config.weibo_uids != new_config.weibo_uids
-            or old_config.weibo_concurrency != new_config.weibo_concurrency
-        ):
-            return True
+        # 定义需要比较的配置字段组
+        config_groups = {
+            "weibo": ["weibo_cookie", "weibo_uids", "weibo_concurrency"],
+            "huya": ["huya_rooms", "huya_concurrency"],
+            "checkin": [
+                "checkin_enable",
+                "checkin_login_url",
+                "checkin_checkin_url",
+                "checkin_user_page_url",
+                "checkin_email",
+                "checkin_password",
+                "checkin_time",
+            ],
+            "tieba": ["tieba_enable", "tieba_cookie", "tieba_time"],
+            "weibo_chaohua": ["weibo_chaohua_enable", "weibo_chaohua_cookie", "weibo_chaohua_time"],
+            "scheduler": [
+                "huya_monitor_interval_seconds",
+                "weibo_monitor_interval_seconds",
+                "cleanup_logs_hour",
+                "cleanup_logs_minute",
+                "retention_days",
+            ],
+            "quiet_hours": ["quiet_hours_enable", "quiet_hours_start", "quiet_hours_end"],
+        }
 
-        # 虎牙配置
-        if (
-            old_config.huya_rooms != new_config.huya_rooms
-            or old_config.huya_concurrency != new_config.huya_concurrency
-        ):
-            return True
+        # 通用字段比较
+        for group_name, fields in config_groups.items():
+            for field in fields:
+                old_value = getattr(old_config, field, None)
+                new_value = getattr(new_config, field, None)
+                if old_value != new_value:
+                    return True
 
-        # ikuuu签到配置（含多账号）
-        if (
-            old_config.checkin_enable != new_config.checkin_enable
-            or old_config.checkin_login_url != new_config.checkin_login_url
-            or old_config.checkin_checkin_url != new_config.checkin_checkin_url
-            or old_config.checkin_user_page_url != new_config.checkin_user_page_url
-            or old_config.checkin_email != new_config.checkin_email
-            or old_config.checkin_password != new_config.checkin_password
-            or old_config.checkin_time != new_config.checkin_time
-            or getattr(old_config, "checkin_accounts", [])
-            != getattr(new_config, "checkin_accounts", [])
-        ):
-            return True
+        # 特殊处理：多账号和多Cookie配置
+        special_fields = {
+            "checkin_accounts": (old_config, new_config),
+            "tieba_cookies": (old_config, new_config),
+            "weibo_chaohua_cookies": (old_config, new_config),
+        }
 
-        # 贴吧签到配置（含多 Cookie）
-        if (
-            old_config.tieba_enable != new_config.tieba_enable
-            or old_config.tieba_cookie != new_config.tieba_cookie
-            or old_config.tieba_time != new_config.tieba_time
-            or getattr(old_config, "tieba_cookies", []) != getattr(new_config, "tieba_cookies", [])
-        ):
-            return True
+        for field_name, (old_cfg, new_cfg) in special_fields.items():
+            old_value = getattr(old_cfg, field_name, [])
+            new_value = getattr(new_cfg, field_name, [])
+            if old_value != new_value:
+                return True
 
-        # 微博超话签到配置（含多 Cookie）
-        if (
-            old_config.weibo_chaohua_enable != new_config.weibo_chaohua_enable
-            or old_config.weibo_chaohua_cookie != new_config.weibo_chaohua_cookie
-            or old_config.weibo_chaohua_time != new_config.weibo_chaohua_time
-            or getattr(old_config, "weibo_chaohua_cookies", [])
-            != getattr(new_config, "weibo_chaohua_cookies", [])
-        ):
-            return True
-
-        # 调度器配置
-        if (
-            old_config.huya_monitor_interval_seconds != new_config.huya_monitor_interval_seconds
-            or old_config.weibo_monitor_interval_seconds
-            != new_config.weibo_monitor_interval_seconds
-            or old_config.cleanup_logs_hour != new_config.cleanup_logs_hour
-            or old_config.cleanup_logs_minute != new_config.cleanup_logs_minute
-            or old_config.retention_days != new_config.retention_days
-        ):
-            return True
-
-        # 插件/扩展任务配置
+        # 插件配置
         if old_config.plugins != new_config.plugins:
             return True
 
-        # 推送通道配置（简单比较列表长度和内容）
+        # 推送通道配置（比较列表内容）
         old_channels = old_config.push_channel_list
         new_channels = new_config.push_channel_list
         if len(old_channels) != len(new_channels):
@@ -201,14 +189,6 @@ class ConfigWatcher:
         old_channels_str = str(sorted(old_channels, key=lambda x: x.get("name", "")))
         new_channels_str = str(sorted(new_channels, key=lambda x: x.get("name", "")))
         if old_channels_str != new_channels_str:
-            return True
-
-        # 免打扰时段配置
-        if (
-            old_config.quiet_hours_enable != new_config.quiet_hours_enable
-            or old_config.quiet_hours_start != new_config.quiet_hours_start
-            or old_config.quiet_hours_end != new_config.quiet_hours_end
-        ):
             return True
 
         return False

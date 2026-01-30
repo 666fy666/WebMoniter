@@ -8,7 +8,6 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
-from src.cookie_cache_manager import cookie_cache
 from src.monitor import BaseMonitor, CookieExpiredError
 
 
@@ -19,9 +18,6 @@ class WeiboMonitor(BaseMonitor):
         super().__init__(config, session)
         self.weibo_config = config.get_weibo_config()
         self.old_data_dict: dict[str, tuple] = {}
-        # Cookie失效处理标志和锁，确保只处理一次
-        self._cookie_expired_handled = False
-        self._cookie_expired_lock = asyncio.Lock()
         self._is_first_time: bool = False  # 标记是否是首次创建数据库
 
     async def initialize(self):
@@ -247,23 +243,10 @@ class WeiboMonitor(BaseMonitor):
         try:
             new_data = await self.get_info(uid)
             # 成功获取数据，如果之前被标记为过期，现在标记为有效
-            if not cookie_cache.is_valid("weibo"):
-                await cookie_cache.mark_valid("weibo")
-                self.logger.info("微博Cookie已恢复有效")
-                # Cookie恢复有效时，重置处理标志
-                self._cookie_expired_handled = False
+            await self.mark_cookie_valid()
         except CookieExpiredError as e:
-            # Cookie失效，统一处理（只记录一次日志，只发送一次推送）
-            async with self._cookie_expired_lock:
-                # 双重检查，确保只处理一次
-                if not self._cookie_expired_handled:
-                    self._cookie_expired_handled = True
-                    self.logger.error(f"检测到Cookie失效: {e}")
-                    await cookie_cache.mark_expired("weibo")
-                    # 只有在未发送过提醒时才发送
-                    if not cookie_cache.is_notified("weibo"):
-                        await self.push_cookie_expired_notification()
-                        await cookie_cache.mark_notified("weibo")
+            # Cookie失效，使用基类统一处理
+            await self.handle_cookie_expired(e)
             return  # 不再抛出异常，直接返回
         except Exception as e:
             self.logger.error(f"获取用户 {uid} 数据失败: {e}")
@@ -413,8 +396,8 @@ class WeiboMonitor(BaseMonitor):
 
     async def push_cookie_expired_notification(self):
         """发送Cookie失效提醒"""
+        await super().push_cookie_expired_notification()  # 调用基类方法检查推送服务
         if not self.push:
-            self.logger.warning("推送服务未初始化，无法发送Cookie失效提醒")
             return
 
         try:
@@ -428,9 +411,14 @@ class WeiboMonitor(BaseMonitor):
                 to_url="https://weibo.com/login.php",
                 btntxt="前往登录",
             )
-            self.logger.info("已发送Cookie失效提醒到企业微信")
+            self.logger.info("已发送Cookie失效提醒")
         except Exception as e:
             self.logger.error(f"发送Cookie失效提醒失败: {e}")
+
+    @property
+    def platform_name(self) -> str:
+        """平台名称"""
+        return "weibo"
 
     async def run(self):
         """运行监控"""
@@ -448,7 +436,7 @@ class WeiboMonitor(BaseMonitor):
             )
             # Cookie更新后，重置过期状态和提醒状态
             # mark_valid会自动重置notified标志
-            await cookie_cache.mark_valid("weibo")
+            await self.mark_cookie_valid()
             # 如果session已存在，更新headers中的Cookie
             if self.session is not None:
                 self.session.headers["Cookie"] = new_cookie
@@ -456,14 +444,14 @@ class WeiboMonitor(BaseMonitor):
         else:
             self.logger.debug(f"Cookie未变化 (长度: {len(old_cookie)})")
 
-        # 重置Cookie失效处理标志
-        self._cookie_expired_handled = False
-
         self.logger.debug("开始执行 %s", self.monitor_name)
 
         # 在执行任务前检查Cookie状态
         # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
-        if not cookie_cache.is_valid("weibo"):
+        from src.cookie_cache import get_cookie_cache
+
+        cookie_cache = get_cookie_cache()
+        if not cookie_cache.is_valid(self.platform_name):
             self.logger.warning(f"{self.monitor_name} Cookie标记为过期，尝试验证...")
             # 尝试获取前几个用户的数据来验证Cookie是否真的无效（改进：不因单个用户失败就跳过所有）
             if self.weibo_config.uids:
@@ -476,7 +464,7 @@ class WeiboMonitor(BaseMonitor):
                         test_uid = self.weibo_config.uids[i]
                         await self.get_info(test_uid)
                         # 如果成功获取数据，说明Cookie实际有效，恢复状态
-                        await cookie_cache.mark_valid("weibo")
+                        await self.mark_cookie_valid()
                         self.logger.info("Cookie验证成功，已恢复有效状态")
                         verification_success = True
                         break

@@ -10,7 +10,6 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
-from src.cookie_cache_manager import cookie_cache
 from src.monitor import BaseMonitor, CookieExpiredError
 
 # 硬编码的 User-Agent
@@ -119,17 +118,10 @@ class HuyaMonitor(BaseMonitor):
         try:
             data = await self.get_info(room_id)
             # 成功获取数据，如果之前被标记为过期，现在标记为有效
-            if not cookie_cache.is_valid("huya"):
-                await cookie_cache.mark_valid("huya")
-                self.logger.info("虎牙Cookie已恢复有效")
+            await self.mark_cookie_valid()
         except CookieExpiredError as e:
-            # Cookie失效，更新缓存并发送企业微信提醒（仅发送一次）
-            self.logger.error(f"检测到Cookie失效: {e}")
-            await cookie_cache.mark_expired("huya")
-            # 只有在未发送过提醒时才发送
-            if not cookie_cache.is_notified("huya"):
-                await self.push_cookie_expired_notification()
-                await cookie_cache.mark_notified("huya")
+            # Cookie失效，使用基类统一处理
+            await self.handle_cookie_expired(e)
             return  # 不再抛出异常，直接返回
         except Exception as e:
             self.logger.error(f"获取房间 {room_id} 信息失败: {e}")
@@ -200,8 +192,8 @@ class HuyaMonitor(BaseMonitor):
 
     async def push_cookie_expired_notification(self):
         """发送Cookie失效提醒"""
+        await super().push_cookie_expired_notification()  # 调用基类方法检查推送服务
         if not self.push:
-            self.logger.warning("推送服务未初始化，无法发送Cookie失效提醒")
             return
 
         try:
@@ -215,9 +207,14 @@ class HuyaMonitor(BaseMonitor):
                 to_url="https://www.huya.com/login",
                 btntxt="前往登录",
             )
-            self.logger.info("已发送Cookie失效提醒到企业微信")
+            self.logger.info("已发送Cookie失效提醒")
         except Exception as e:
             self.logger.error(f"发送Cookie失效提醒失败: {e}")
+
+    @property
+    def platform_name(self) -> str:
+        """平台名称"""
+        return "huya"
 
     async def run(self):
         """运行监控"""
@@ -235,7 +232,10 @@ class HuyaMonitor(BaseMonitor):
 
         # 在执行任务前检查Cookie状态
         # 如果标记为无效，尝试验证一次（可能Cookie已恢复但缓存未更新）
-        if not cookie_cache.is_valid("huya"):
+        from src.cookie_cache import get_cookie_cache
+
+        cookie_cache = get_cookie_cache()
+        if not cookie_cache.is_valid(self.platform_name):
             self.logger.warning(f"{self.monitor_name} Cookie标记为过期，尝试验证...")
             # 尝试获取前几个房间的数据来验证Cookie是否真的无效（改进：不因单个房间失败就跳过所有）
             if self.huya_config.rooms:
@@ -248,7 +248,7 @@ class HuyaMonitor(BaseMonitor):
                         test_room = self.huya_config.rooms[i]
                         await self.get_info(test_room)
                         # 如果成功获取数据，说明Cookie实际有效，恢复状态
-                        await cookie_cache.mark_valid("huya")
+                        await self.mark_cookie_valid()
                         self.logger.info("Cookie验证成功，已恢复有效状态")
                         verification_success = True
                         break

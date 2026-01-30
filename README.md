@@ -35,7 +35,7 @@
 
 <div align="center">
 
-| [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web-管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](docs/API.md) | [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md) |
+| [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web-管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](docs/API.md) | [🏗️ 项目架构](docs/ARCHITECTURE.md) | [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md) |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 
 </div>
@@ -53,6 +53,7 @@
   - [更新](#-更新)
 - [配置说明](#-配置说明)
 - [API 调用](docs/API.md)
+- [项目架构](docs/ARCHITECTURE.md)
 - [二次开发](docs/SECONDARY_DEVELOPMENT.md)
 - [常见问题](#-常见问题)
 - [参考与致谢](#-参考与致谢)
@@ -140,6 +141,12 @@ cd WebMoniter
 uv sync --locked
 cp config.yml.sample config.yml
 uv run python main.py
+
+# 后台启动（推荐用于长期运行，终端关闭进程不受影响）
+uv run python main.py &
+
+// 可选：将日志输出重定向到文件
+# uv run python main.py > webmoniter.log 2>&1 &
 ```
 
 ### 🆙 更新
@@ -153,7 +160,7 @@ uv run python main.py
 
 ## ⚙️ 配置说明
 
-所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **`config.yml.sample`** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
+所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
 
 - 监控与推送类型一览见上文 [支持的平台和推送通道](#-支持的平台和推送通道)
 - 定时任务一览见 [定时任务支持](#定时任务支持)

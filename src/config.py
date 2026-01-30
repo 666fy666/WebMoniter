@@ -128,42 +128,65 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             raise ValueError(f"配置文件 {yml_path} 为空")
 
         # 将嵌套的YAML配置转换为扁平化格式
-        # 微博配置
-        if "weibo" in yml_config:
-            weibo = yml_config["weibo"]
-            if "cookie" in weibo:
-                config_dict["weibo_cookie"] = weibo["cookie"]
-            if "uids" in weibo:
-                config_dict["weibo_uids"] = weibo["uids"]
-            if "concurrency" in weibo:
-                config_dict["weibo_concurrency"] = weibo["concurrency"]
+        # 定义配置映射：{yaml_key: {field_mapping: {yaml_field: config_field}}}
+        config_mappings = {
+            "weibo": {
+                "cookie": "weibo_cookie",
+                "uids": "weibo_uids",
+                "concurrency": "weibo_concurrency",
+            },
+            "huya": {
+                "rooms": "huya_rooms",
+                "concurrency": "huya_concurrency",
+            },
+            "checkin": {
+                "enable": "checkin_enable",
+                "login_url": "checkin_login_url",
+                "checkin_url": "checkin_checkin_url",
+                "user_page_url": "checkin_user_page_url",
+                "email": "checkin_email",
+                "password": "checkin_password",
+                "time": "checkin_time",
+            },
+            "tieba": {
+                "enable": "tieba_enable",
+                "cookie": "tieba_cookie",
+                "time": "tieba_time",
+            },
+            "weibo_chaohua": {
+                "enable": "weibo_chaohua_enable",
+                "cookie": "weibo_chaohua_cookie",
+                "time": "weibo_chaohua_time",
+            },
+            "scheduler": {
+                "huya_monitor_interval_seconds": "huya_monitor_interval_seconds",
+                "weibo_monitor_interval_seconds": "weibo_monitor_interval_seconds",
+                "cleanup_logs_hour": "cleanup_logs_hour",
+                "cleanup_logs_minute": "cleanup_logs_minute",
+                "retention_days": "retention_days",
+            },
+            "quiet_hours": {
+                "enable": "quiet_hours_enable",
+                "start": "quiet_hours_start",
+                "end": "quiet_hours_end",
+            },
+        }
 
-        # 虎牙配置
-        if "huya" in yml_config:
-            huya = yml_config["huya"]
-            if "rooms" in huya:
-                config_dict["huya_rooms"] = huya["rooms"]
-            if "concurrency" in huya:
-                config_dict["huya_concurrency"] = huya["concurrency"]
+        # 通用配置映射处理
+        for section_key, field_mapping in config_mappings.items():
+            if section_key in yml_config:
+                section = yml_config[section_key]
+                for yaml_field, config_field in field_mapping.items():
+                    if yaml_field in section:
+                        value = section[yaml_field]
+                        # 特殊处理：cookie字段可能为空字符串
+                        if yaml_field == "cookie" and value is None:
+                            value = ""
+                        config_dict[config_field] = value
 
-        # 每日签到配置
+        # 特殊处理：多账号配置
         if "checkin" in yml_config:
             checkin = yml_config["checkin"]
-            if "enable" in checkin:
-                config_dict["checkin_enable"] = checkin["enable"]
-            if "login_url" in checkin:
-                config_dict["checkin_login_url"] = checkin["login_url"]
-            if "checkin_url" in checkin:
-                config_dict["checkin_checkin_url"] = checkin["checkin_url"]
-            if "user_page_url" in checkin:
-                config_dict["checkin_user_page_url"] = checkin["user_page_url"]
-            if "email" in checkin:
-                config_dict["checkin_email"] = checkin["email"]
-            if "password" in checkin:
-                config_dict["checkin_password"] = checkin["password"]
-            if "time" in checkin:
-                config_dict["checkin_time"] = checkin["time"]
-            # 多账号：accounts 为非空列表时优先使用
             if "accounts" in checkin and isinstance(checkin["accounts"], list):
                 accounts = []
                 for a in checkin["accounts"]:
@@ -177,69 +200,25 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 if accounts:
                     config_dict["checkin_accounts"] = accounts
 
-        # 贴吧签到配置
-        if "tieba" in yml_config:
-            tieba = yml_config["tieba"]
-            if "enable" in tieba:
-                config_dict["tieba_enable"] = tieba["enable"]
-            if "cookie" in tieba:
-                config_dict["tieba_cookie"] = tieba["cookie"] or ""
-            if "time" in tieba:
-                config_dict["tieba_time"] = tieba["time"]
-            # 多 Cookie：cookies 为非空列表时优先使用
-            if "cookies" in tieba and isinstance(tieba["cookies"], list):
-                cookies = [str(c).strip() for c in tieba["cookies"] if c]
-                if cookies:
-                    config_dict["tieba_cookies"] = cookies
+        # 特殊处理：多Cookie配置
+        for cookie_section in ["tieba", "weibo_chaohua"]:
+            if cookie_section in yml_config:
+                section = yml_config[cookie_section]
+                if "cookies" in section and isinstance(section["cookies"], list):
+                    cookies = [str(c).strip() for c in section["cookies"] if c]
+                    if cookies:
+                        config_field = (
+                            f"{cookie_section}_cookies"
+                            if cookie_section == "tieba"
+                            else "weibo_chaohua_cookies"
+                        )
+                        config_dict[config_field] = cookies
 
-        # 微博超话签到配置
-        if "weibo_chaohua" in yml_config:
-            weibo_chaohua = yml_config["weibo_chaohua"]
-            if "enable" in weibo_chaohua:
-                config_dict["weibo_chaohua_enable"] = weibo_chaohua["enable"]
-            if "cookie" in weibo_chaohua:
-                config_dict["weibo_chaohua_cookie"] = weibo_chaohua["cookie"] or ""
-            if "time" in weibo_chaohua:
-                config_dict["weibo_chaohua_time"] = weibo_chaohua["time"]
-            # 多 Cookie：cookies 为非空列表时优先使用
-            if "cookies" in weibo_chaohua and isinstance(weibo_chaohua["cookies"], list):
-                cookies = [str(c).strip() for c in weibo_chaohua["cookies"] if c]
-                if cookies:
-                    config_dict["weibo_chaohua_cookies"] = cookies
-
-        # 调度器配置
-        if "scheduler" in yml_config:
-            scheduler = yml_config["scheduler"]
-            if "huya_monitor_interval_seconds" in scheduler:
-                config_dict["huya_monitor_interval_seconds"] = scheduler[
-                    "huya_monitor_interval_seconds"
-                ]
-            if "weibo_monitor_interval_seconds" in scheduler:
-                config_dict["weibo_monitor_interval_seconds"] = scheduler[
-                    "weibo_monitor_interval_seconds"
-                ]
-            if "cleanup_logs_hour" in scheduler:
-                config_dict["cleanup_logs_hour"] = scheduler["cleanup_logs_hour"]
-            if "cleanup_logs_minute" in scheduler:
-                config_dict["cleanup_logs_minute"] = scheduler["cleanup_logs_minute"]
-            if "retention_days" in scheduler:
-                config_dict["retention_days"] = scheduler["retention_days"]
-
-        # 推送通道配置
+        # 推送通道配置（直接复制）
         if "push_channel" in yml_config:
             config_dict["push_channel_list"] = yml_config["push_channel"]
 
-        # 免打扰时段配置
-        if "quiet_hours" in yml_config:
-            quiet_hours = yml_config["quiet_hours"]
-            if "enable" in quiet_hours:
-                config_dict["quiet_hours_enable"] = quiet_hours["enable"]
-            if "start" in quiet_hours:
-                config_dict["quiet_hours_start"] = quiet_hours["start"]
-            if "end" in quiet_hours:
-                config_dict["quiet_hours_end"] = quiet_hours["end"]
-
-        # 插件/扩展任务配置（供二次开发使用）
+        # 插件/扩展任务配置（直接复制）
         if "plugins" in yml_config:
             config_dict["plugins"] = yml_config["plugins"]
 

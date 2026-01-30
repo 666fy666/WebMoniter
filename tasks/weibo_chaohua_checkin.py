@@ -447,7 +447,7 @@ async def _send_weibo_chaohua_push(
 
     try:
         await push_manager.send_news(
-            title=f"{title}（{masked}）",
+            title=f"{title}",
             description=body,
             to_url="https://weibo.com",
             picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
