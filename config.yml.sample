@@ -10,6 +10,17 @@ weibo:
   uids: uid1,uid2,uid3  # 逗号分隔的UID列表
   concurrency: 2  # 并发数，建议2-5
 
+# 微博超话签到配置（须包含 XSRF-TOKEN，支持多 Cookie）
+weibo_chaohua:
+  enable: false  # 是否启用微博超话签到
+  # 单 Cookie（多 Cookie 时可不填），浏览器打开微博 F12 控制台输入 document.cookie 获取
+  cookie: 
+  # 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串
+  # cookies:
+  #   - "SCF=xxx; XSRF-TOKEN=xxx; SUB=xxx; ..."
+  #   - "SCF=yyy; XSRF-TOKEN=yyy; SUB=yyy; ..."
+  time: "23:45"  # 签到时间（24 小时制，格式：HH:MM），默认 23:45
+
 # 虎牙监控配置
 huya:
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
@@ -19,14 +30,14 @@ huya:
 checkin:
   enable: false  # 是否启用每日签到
   # 登录地址（例如：https://ikuuu.nl/auth/login）
-  login_url:
+  login_url: 
   # 签到接口地址（例如：https://ikuuu.nl/user/checkin）
-  checkin_url:
+  checkin_url: 
   # 用户信息页地址（例如：https://ikuuu.nl/user，用于解析剩余流量，可选）
-  user_page_url:
+  user_page_url: 
   # 单账号（与 password 搭配，多账号时可不填）
-  email:
-  password:
+  email: 
+  password: 
   # 多账号：配置 accounts 后优先使用，每项需包含 email、password
   # accounts:
   #   - email: user1@example.com
@@ -40,9 +51,9 @@ checkin:
 tieba:
   enable: false  # 是否启用贴吧签到
   # 单 Cookie（多 Cookie 时可不填），浏览器打开贴吧 F12 控制台输入 document.cookie 获取
-  cookie:
+  cookie: 
   # 多 Cookie：配置 cookies 列表后优先使用，每项为完整 Cookie 字符串
-  # cookies:
+  # cookies: 
   #   - "BIDUPSID=xxx; BDUSS=xxx; ..."
   #   - "BIDUPSID=yyy; BDUSS=yyy; ..."
   time: "08:10"  # 签到时间（24 小时制，格式：HH:MM），默认 08:10
@@ -93,7 +104,7 @@ push_channel:
     corp_id:
     agent_id:
     corp_secret:
-    touser: @all  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
+    touser: "@all"  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
   # 企业微信机器人
   - name: 企业微信机器人
     enable: false

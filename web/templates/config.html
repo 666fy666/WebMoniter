@@ -75,6 +75,49 @@
                 </div>
             </div>
 
+            <!-- 微博超话签到配置 -->
+            <div class="card config-section" data-section="weibo_chaohua">
+                <div class="card-header">
+                    <h2>💬 微博超话签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用微博超话签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="weibo_chaohua_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="weibo_chaohua_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="weibo_chaohua_cookie" class="form-input" placeholder="微博 Cookie（须包含 XSRF-TOKEN），多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="weibo_chaohua_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="weibo_chaohua_add_cookie_btn" class="btn btn-secondary" style="margin-top: 8px;">添加 Cookie</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="weibo_chaohua_time" class="form-input" value="23:45"></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 15px;">
+                        <p>使用 Cookie 作为参数，须包含 XSRF-TOKEN。配置多 Cookie 后会对每个账号依次签到并分别推送。系统会在指定时间自动执行微博超话签到，项目启动时若启用也会执行一次。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 虎牙监控配置 -->
             <div class="card config-section" data-section="huya">
                 <div class="card-header">

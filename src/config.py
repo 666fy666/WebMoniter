@@ -54,6 +54,12 @@ class AppConfig(BaseModel):
     tieba_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 tieba_cookie
     tieba_time: str = "08:10"  # 贴吧签到时间（格式：HH:MM），默认 08:10
 
+    # 微博超话签到配置（使用 Cookie）
+    weibo_chaohua_enable: bool = False  # 是否启用微博超话签到
+    weibo_chaohua_cookie: str = ""  # 单 Cookie（与 weibo_chaohua_cookies 二选一，须包含 XSRF-TOKEN）
+    weibo_chaohua_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 weibo_chaohua_cookie
+    weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
+
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
@@ -171,7 +177,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             if "enable" in tieba:
                 config_dict["tieba_enable"] = tieba["enable"]
             if "cookie" in tieba:
-                config_dict["tieba_cookie"] = tieba["cookie"]
+                config_dict["tieba_cookie"] = tieba["cookie"] or ""
             if "time" in tieba:
                 config_dict["tieba_time"] = tieba["time"]
             # 多 Cookie：cookies 为非空列表时优先使用
@@ -179,6 +185,21 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 cookies = [str(c).strip() for c in tieba["cookies"] if c]
                 if cookies:
                     config_dict["tieba_cookies"] = cookies
+
+        # 微博超话签到配置
+        if "weibo_chaohua" in yml_config:
+            weibo_chaohua = yml_config["weibo_chaohua"]
+            if "enable" in weibo_chaohua:
+                config_dict["weibo_chaohua_enable"] = weibo_chaohua["enable"]
+            if "cookie" in weibo_chaohua:
+                config_dict["weibo_chaohua_cookie"] = weibo_chaohua["cookie"] or ""
+            if "time" in weibo_chaohua:
+                config_dict["weibo_chaohua_time"] = weibo_chaohua["time"]
+            # 多 Cookie：cookies 为非空列表时优先使用
+            if "cookies" in weibo_chaohua and isinstance(weibo_chaohua["cookies"], list):
+                cookies = [str(c).strip() for c in weibo_chaohua["cookies"] if c]
+                if cookies:
+                    config_dict["weibo_chaohua_cookies"] = cookies
 
         # 调度器配置
         if "scheduler" in yml_config:

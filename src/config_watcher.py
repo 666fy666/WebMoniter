@@ -165,6 +165,15 @@ class ConfigWatcher:
         ):
             return True
 
+        # 微博超话签到配置（含多 Cookie）
+        if (
+            old_config.weibo_chaohua_enable != new_config.weibo_chaohua_enable
+            or old_config.weibo_chaohua_cookie != new_config.weibo_chaohua_cookie
+            or old_config.weibo_chaohua_time != new_config.weibo_chaohua_time
+            or getattr(old_config, "weibo_chaohua_cookies", []) != getattr(new_config, "weibo_chaohua_cookies", [])
+        ):
+            return True
+
         # 调度器配置
         if (
             old_config.huya_monitor_interval_seconds != new_config.huya_monitor_interval_seconds

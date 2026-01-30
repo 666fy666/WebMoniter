@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const checkinEnableLabel = document.getElementById('checkin_enable_label');
     const tiebaEnable = document.getElementById('tieba_enable');
     const tiebaEnableLabel = document.getElementById('tieba_enable_label');
+    const weiboChaohuaEnable = document.getElementById('weibo_chaohua_enable');
+    const weiboChaohuaEnableLabel = document.getElementById('weibo_chaohua_enable_label');
     const tableView = document.getElementById('tableView');
     const textView = document.getElementById('textView');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -145,6 +147,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // 微博超话签到开关事件
+    if (weiboChaohuaEnable && weiboChaohuaEnableLabel) {
+        weiboChaohuaEnable.addEventListener('change', function() {
+            weiboChaohuaEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+
     // 加载配置
     async function loadConfig() {
         try {
@@ -159,8 +168,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const config = data.config;
             originalConfig = JSON.parse(JSON.stringify(config)); // 深拷贝
 
-            // 填充所有配置
+            // 填充所有配置（微博监控与超话放前）
             loadSectionConfig('weibo', config);
+            loadSectionConfig('weibo_chaohua', config);
             loadSectionConfig('huya', config);
             loadSectionConfig('checkin', config);
             loadSectionConfig('tieba', config);
@@ -448,6 +458,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    function renderWeiboChaohuaCookies(cookies) {
+        const container = document.getElementById('weibo_chaohua_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input weibo-chaohua-cookie-value" placeholder="微博 Cookie（须包含 XSRF-TOKEN）">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove weibo-chaohua-cookie-remove">删除</button>
+            `;
+            row.querySelector('.weibo-chaohua-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
     // 加载特定section的配置
     function loadSectionConfig(section, config) {
         switch(section) {
@@ -463,7 +493,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'checkin':
                 if (config.checkin) {
                     if (checkinEnable) {
-                        checkinEnable.checked = !!config.checkin.enable;
+                        const enableVal = config.checkin.enable;
+                        checkinEnable.checked = enableVal === true || enableVal === 'true';
                         if (checkinEnableLabel) {
                             checkinEnableLabel.textContent = checkinEnable.checked ? '开启' : '关闭';
                         }
@@ -484,12 +515,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const timeVal = config.checkin.time || '08:00';
                         timeInput.value = timeVal.length === 5 ? timeVal : '08:00';
                     }
-                    // 多账号列表：优先使用 accounts，否则用单账号组一条
+                    // 多账号列表：仅当配置中明确有多条 accounts 时显示；单账号时只填单账号输入框，多账号区显示空行
                     const accountsListEl = document.getElementById('checkin_accounts_list');
                     if (accountsListEl) {
                         const accounts = Array.isArray(config.checkin.accounts) && config.checkin.accounts.length > 0
                             ? config.checkin.accounts
-                            : [{ email: config.checkin.email || '', password: config.checkin.password || '' }];
+                            : [{ email: '', password: '' }];
                         renderCheckinAccounts(accounts);
                     }
                 }
@@ -497,7 +528,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'tieba':
                 if (config.tieba) {
                     if (tiebaEnable) {
-                        tiebaEnable.checked = !!config.tieba.enable;
+                        const enableVal = config.tieba.enable;
+                        tiebaEnable.checked = enableVal === true || enableVal === 'true';
                         if (tiebaEnableLabel) {
                             tiebaEnableLabel.textContent = tiebaEnable.checked ? '开启' : '关闭';
                         }
@@ -509,13 +541,39 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const timeVal = config.tieba.time || '08:10';
                         tiebaTimeInput.value = timeVal.length === 5 ? timeVal : '08:10';
                     }
-                    // 多 Cookie 列表：优先使用 cookies，否则用单条 cookie
+                    // 多 Cookie 列表：仅当配置中明确有多条 cookies 时显示；单条时只填单条输入框，多 Cookie 区显示空行
                     const cookiesListEl = document.getElementById('tieba_cookies_list');
                     if (cookiesListEl) {
                         const cookies = Array.isArray(config.tieba.cookies) && config.tieba.cookies.length > 0
                             ? config.tieba.cookies
-                            : (config.tieba.cookie ? [config.tieba.cookie] : ['']);
+                            : [''];
                         renderTiebaCookies(cookies);
+                    }
+                }
+                break;
+            case 'weibo_chaohua':
+                if (config.weibo_chaohua) {
+                    if (weiboChaohuaEnable) {
+                        const enableVal = config.weibo_chaohua.enable;
+                        weiboChaohuaEnable.checked = enableVal === true || enableVal === 'true';
+                        if (weiboChaohuaEnableLabel) {
+                            weiboChaohuaEnableLabel.textContent = weiboChaohuaEnable.checked ? '开启' : '关闭';
+                        }
+                    }
+                    const weiboChaohuaCookieInput = document.getElementById('weibo_chaohua_cookie');
+                    const weiboChaohuaTimeInput = document.getElementById('weibo_chaohua_time');
+                    if (weiboChaohuaCookieInput) weiboChaohuaCookieInput.value = config.weibo_chaohua.cookie || '';
+                    if (weiboChaohuaTimeInput) {
+                        const timeVal = config.weibo_chaohua.time || '23:45';
+                        weiboChaohuaTimeInput.value = timeVal.length === 5 ? timeVal : '23:45';
+                    }
+                    // 多 Cookie 列表：仅当配置中明确有多条 cookies 时显示；单条时只填单条输入框，多 Cookie 区显示空行
+                    const cookiesListEl = document.getElementById('weibo_chaohua_cookies_list');
+                    if (cookiesListEl) {
+                        const cookies = Array.isArray(config.weibo_chaohua.cookies) && config.weibo_chaohua.cookies.length > 0
+                            ? config.weibo_chaohua.cookies
+                            : [''];
+                        renderWeiboChaohuaCookies(cookies);
                     }
                 }
                 break;
@@ -581,16 +639,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.querySelectorAll('#checkin_accounts_list .multi-account-row').forEach(row => {
                     const email = (row.querySelector('.checkin-account-email')?.value || '').trim();
                     const password = (row.querySelector('.checkin-account-password')?.value || '').trim();
-                    accounts.push({ email, password });
+                    if (email || password) accounts.push({ email, password });
                 });
-                const first = accounts[0] || { email: '', password: '' };
+                const singleEmail = (document.getElementById('checkin_email')?.value || '').trim();
+                const singlePassword = (document.getElementById('checkin_password')?.value || '').trim();
+                const first = accounts[0] || { email: singleEmail, password: singlePassword };
                 config.checkin = {
                     enable: checkinEnable ? checkinEnable.checked : false,
                     login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
                     checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
                     user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
-                    email: (document.getElementById('checkin_email')?.value || '').trim() || first.email,
-                    password: (document.getElementById('checkin_password')?.value || '').trim() || first.password,
+                    email: first.email,
+                    password: first.password,
                     time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
                 };
                 if (accounts.length > 0) config.checkin.accounts = accounts;
@@ -600,15 +660,30 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const cookies = [];
                 document.querySelectorAll('#tieba_cookies_list .multi-cookie-row').forEach(row => {
                     const val = (row.querySelector('.tieba-cookie-value')?.value || '').trim();
-                    cookies.push(val);
+                    if (val) cookies.push(val);
                 });
-                const firstCookie = cookies[0] || (document.getElementById('tieba_cookie')?.value || '').trim();
+                const singleCookie = (document.getElementById('tieba_cookie')?.value || '').trim();
                 config.tieba = {
                     enable: tiebaEnable ? tiebaEnable.checked : false,
-                    cookie: (document.getElementById('tieba_cookie')?.value || '').trim() || firstCookie,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
                     time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
                 };
                 if (cookies.length > 0) config.tieba.cookies = cookies;
+                break;
+            }
+            case 'weibo_chaohua': {
+                const cookies = [];
+                document.querySelectorAll('#weibo_chaohua_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.weibo-chaohua-cookie-value')?.value || '').trim();
+                    if (val) cookies.push(val);
+                });
+                const singleCookie = (document.getElementById('weibo_chaohua_cookie')?.value || '').trim();
+                config.weibo_chaohua = {
+                    enable: weiboChaohuaEnable ? weiboChaohuaEnable.checked : false,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
+                    time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45'
+                };
+                if (cookies.length > 0) config.weibo_chaohua.cookies = cookies;
                 break;
             }
             case 'huya':
@@ -692,12 +767,26 @@ document.addEventListener('DOMContentLoaded', async function() {
     function collectConfig() {
         const config = {};
 
-        // 微博配置
+        // 微博监控配置
         config.weibo = {
             cookie: document.getElementById('weibo_cookie').value.trim(),
             uids: document.getElementById('weibo_uids').value.trim(),
             concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3
         };
+
+        // 微博超话签到配置（含多 Cookie）
+        const weiboChaohuaCookies = [];
+        document.querySelectorAll('#weibo_chaohua_cookies_list .multi-cookie-row').forEach(row => {
+            const val = (row.querySelector('.weibo-chaohua-cookie-value')?.value || '').trim();
+            if (val) weiboChaohuaCookies.push(val);
+        });
+        const singleWeiboChaohuaCookie = (document.getElementById('weibo_chaohua_cookie')?.value || '').trim();
+        config.weibo_chaohua = {
+            enable: weiboChaohuaEnable ? weiboChaohuaEnable.checked : false,
+            cookie: weiboChaohuaCookies.length > 0 ? weiboChaohuaCookies[0] : singleWeiboChaohuaCookie,
+            time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45'
+        };
+        if (weiboChaohuaCookies.length > 0) config.weibo_chaohua.cookies = weiboChaohuaCookies;
 
         // 虎牙配置
         config.huya = {
@@ -721,35 +810,37 @@ document.addEventListener('DOMContentLoaded', async function() {
             end: document.getElementById('quiet_hours_end').value || '08:00'
         };
 
-        // 每日签到配置（含多账号）
+        // 每日签到配置（含多账号）：多账号区仅收集非空行；单账号用单账号输入框
         const checkinAccounts = [];
         document.querySelectorAll('#checkin_accounts_list .multi-account-row').forEach(row => {
             const email = (row.querySelector('.checkin-account-email')?.value || '').trim();
             const password = (row.querySelector('.checkin-account-password')?.value || '').trim();
-            checkinAccounts.push({ email, password });
+            if (email || password) checkinAccounts.push({ email, password });
         });
-        const firstCheckin = checkinAccounts[0] || { email: '', password: '' };
+        const singleCheckinEmail = (document.getElementById('checkin_email')?.value || '').trim();
+        const singleCheckinPassword = (document.getElementById('checkin_password')?.value || '').trim();
+        const firstCheckin = checkinAccounts[0] || { email: singleCheckinEmail, password: singleCheckinPassword };
         config.checkin = {
             enable: checkinEnable ? checkinEnable.checked : false,
             login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
             checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
             user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
-            email: (document.getElementById('checkin_email')?.value || '').trim() || firstCheckin.email,
-            password: (document.getElementById('checkin_password')?.value || '').trim() || firstCheckin.password,
+            email: firstCheckin.email,
+            password: firstCheckin.password,
             time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
         };
         if (checkinAccounts.length > 0) config.checkin.accounts = checkinAccounts;
 
-        // 贴吧签到配置（含多 Cookie）
+        // 贴吧签到配置（含多 Cookie）：多 Cookie 区仅收集非空行
         const tiebaCookies = [];
         document.querySelectorAll('#tieba_cookies_list .multi-cookie-row').forEach(row => {
             const val = (row.querySelector('.tieba-cookie-value')?.value || '').trim();
-            tiebaCookies.push(val);
+            if (val) tiebaCookies.push(val);
         });
-        const firstTiebaCookie = tiebaCookies[0] || (document.getElementById('tieba_cookie')?.value || '').trim();
+        const singleTiebaCookie = (document.getElementById('tieba_cookie')?.value || '').trim();
         config.tieba = {
             enable: tiebaEnable ? tiebaEnable.checked : false,
-            cookie: (document.getElementById('tieba_cookie')?.value || '').trim() || firstTiebaCookie,
+            cookie: tiebaCookies.length > 0 ? tiebaCookies[0] : singleTiebaCookie,
             time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
         };
         if (tiebaCookies.length > 0) config.tieba.cookies = tiebaCookies;
@@ -1096,6 +1187,34 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (e.target.classList.contains('tieba-cookie-remove')) {
                 const row = e.target.closest('.multi-cookie-row');
                 if (row && tiebaCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 微博超话多 Cookie：添加 Cookie
+    const weiboChaohuaAddCookieBtn = document.getElementById('weibo_chaohua_add_cookie_btn');
+    if (weiboChaohuaAddCookieBtn) {
+        weiboChaohuaAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('weibo_chaohua_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input weibo-chaohua-cookie-value" placeholder="微博 Cookie（须包含 XSRF-TOKEN）">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove weibo-chaohua-cookie-remove">删除</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+    // 微博超话多 Cookie：删除行（事件委托）
+    const weiboChaohuaCookiesList = document.getElementById('weibo_chaohua_cookies_list');
+    if (weiboChaohuaCookiesList) {
+        weiboChaohuaCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('weibo-chaohua-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && weiboChaohuaCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
             }
         });
     }

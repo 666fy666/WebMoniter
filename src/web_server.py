@@ -213,8 +213,13 @@ async def save_config_api(request: Request):
 
                         # 更新配置数据
                         def update_dict(target, source):
-                            """递归更新字典，保留原始结构"""
+                            """递归更新字典，保留原始结构。空列表 cookies/accounts 不写入，避免污染 YAML。"""
                             for key, value in source.items():
+                                # 不写入空的 cookies 或 accounts，避免在错误位置产生 cookies: [] / accounts: []
+                                if key in ("cookies", "accounts") and isinstance(value, list) and len(value) == 0:
+                                    if key in target and isinstance(target[key], list):
+                                        del target[key]
+                                    continue
                                 if key not in target:
                                     # 新键，直接添加
                                     target[key] = value

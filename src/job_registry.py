@@ -39,6 +39,7 @@ TASK_MODULES: list[str] = [
     "tasks.log_cleanup",
     "tasks.ikuuu_checkin",
     "tasks.tieba_checkin",
+    "tasks.weibo_chaohua_checkin",
     "tasks.demo_task",  # 二次开发示例，不需要可移除此行
 ]
 
