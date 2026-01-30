@@ -18,7 +18,8 @@ from dataclasses import dataclass
 
 import requests
 
-from src.config import AppConfig, get_config, is_in_quiet_hours
+from src.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.job_registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 
 logger = logging.getLogger(__name__)
@@ -333,3 +334,12 @@ async def _send_tieba_push(
         )
     except Exception as exc:
         logger.error("贴吧签到：发送推送失败: %s", exc, exc_info=True)
+
+
+def _get_tieba_trigger_kwargs(config: AppConfig) -> dict:
+    """供注册表与配置热重载使用。"""
+    hour, minute = parse_checkin_time(config.tieba_time)
+    return {"minute": minute, "hour": hour}
+
+
+register_task("tieba_checkin", run_tieba_checkin_once, _get_tieba_trigger_kwargs)

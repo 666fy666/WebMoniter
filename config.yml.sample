@@ -53,6 +53,14 @@ quiet_hours:
   start: "03:00"  # 免打扰时段开始时间（24小时制，格式：HH:MM），例如：22:00 表示晚上10点
   end: "08:00"  # 免打扰时段结束时间（24小时制，格式：HH:MM），例如：08:00 表示早上8点
 
+# 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
+# 新增定时任务可使用 plugins.xxx 配置，无需修改 AppConfig
+plugins:
+  demo_task:  # 示例：Demo 定时任务（不需要可删除此块，并在 src/job_registry.TASK_MODULES 中移除 tasks.demo_task）
+    enable: false
+    time: "08:30"  # 执行时间 HH:MM
+    message: "Demo 定时任务执行完成"
+
 # 推送通道配置
 # 通道名称，唯一，可自定义不要纯数字，对应 query_task 中的 target_push_name_list
 push_channel:

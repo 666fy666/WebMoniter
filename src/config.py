@@ -67,6 +67,9 @@ class AppConfig(BaseModel):
     quiet_hours_start: str = "22:00"  # 免打扰时段开始时间（格式：HH:MM）
     quiet_hours_end: str = "08:00"  # 免打扰时段结束时间（格式：HH:MM）
 
+    # 插件/扩展任务配置（供二次开发使用，key 为任务名，value 为任意配置 dict）
+    plugins: dict = {}
+
     def get_weibo_config(self) -> WeiboConfig:
         """获取微博配置"""
         if not self.weibo_uids:
@@ -191,6 +194,10 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             if "end" in quiet_hours:
                 config_dict["quiet_hours_end"] = quiet_hours["end"]
 
+        # 插件/扩展任务配置（供二次开发使用）
+        if "plugins" in yml_config:
+            config_dict["plugins"] = yml_config["plugins"]
+
         logger.debug(f"成功从 {yml_path} 加载配置")
         return config_dict
 
@@ -303,3 +310,26 @@ def is_in_quiet_hours(config: AppConfig) -> bool:
     except Exception as e:
         logger.warning(f"检查免打扰时段时出错: {e}，默认返回False")
         return False
+
+
+def parse_checkin_time(checkin_time: str) -> tuple[str, str]:
+    """
+    解析签到时间配置（HH:MM）为 cron 的 hour、minute。
+    供调度器与配置热重载使用。
+
+    Args:
+        checkin_time: 时间字符串，如 "08:00"、"23:55"
+
+    Returns:
+        (hour, minute) 字符串元组，如 ("8", "0")。无效时默认 ("8", "0")。
+    """
+    raw = (checkin_time or "08:00").strip()
+    parts = raw.split(":", 1)
+    try:
+        h = int(parts[0].strip()) if parts else 8
+        m = int(parts[1].strip()) if len(parts) > 1 else 0
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            return str(h), str(m)
+    except (ValueError, IndexError):
+        pass
+    return "8", "0"

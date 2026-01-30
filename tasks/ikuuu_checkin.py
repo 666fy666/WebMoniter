@@ -18,7 +18,8 @@ import aiohttp
 from bs4 import BeautifulSoup
 from yarl import URL
 
-from src.config import AppConfig, get_config, is_in_quiet_hours
+from src.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.job_registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 
 logger = logging.getLogger(__name__)
@@ -372,3 +373,12 @@ async def _send_checkin_push(
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：发送签到结果推送失败：%s", exc, exc_info=True)
+
+
+def _get_checkin_trigger_kwargs(config: AppConfig) -> dict:
+    """供注册表与配置热重载使用。"""
+    hour, minute = parse_checkin_time(config.checkin_time)
+    return {"minute": minute, "hour": hour}
+
+
+register_task("daily_checkin", run_checkin_once, _get_checkin_trigger_kwargs)

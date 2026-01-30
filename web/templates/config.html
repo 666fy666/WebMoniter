@@ -268,6 +268,30 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 插件/扩展配置（二次开发，如 plugins.demo_task） -->
+            <div class="card config-section" data-section="plugins">
+                <div class="card-header">
+                    <h2>🔌 插件/扩展配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">plugins（JSON）</td>
+                            <td>
+                                <textarea id="plugins_json" class="form-textarea yaml-editor" rows="8" placeholder='{"demo_task": {"enable": false, "time": "08:30", "message": "说明"}}'></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 15px;">
+                        <p>用于二次开发的扩展配置，对应 config.yml 中的 <code>plugins</code>。格式为 JSON，与 YAML 中的结构一致。详见项目内 <code>docs/SECONDARY_DEVELOPMENT.md</code>。</p>
+                    </div>
+                </div>
+            </div>
             </div>
             
             <!-- 文本视图容器 -->

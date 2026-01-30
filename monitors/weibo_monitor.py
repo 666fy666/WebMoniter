@@ -1,6 +1,7 @@
 """微博监控模块"""
 
 import asyncio
+import logging
 from datetime import datetime
 
 import aiohttp
@@ -546,3 +547,25 @@ class WeiboMonitor(BaseMonitor):
     def monitor_name(self) -> str:
         """监控器名称"""
         return "微博监控🖼️  🖼️  🖼️"
+
+
+async def run_weibo_monitor() -> None:
+    """运行微博监控任务（支持配置热重载）。由调度器与注册表调用。"""
+    config = get_config(reload=True)
+    logger_instance = logging.getLogger(__name__)
+    logger_instance.debug(
+        "微博监控：已重新加载配置文件 (Cookie长度: %s 字符)", len(config.weibo_cookie)
+    )
+    async with WeiboMonitor(config) as monitor:
+        await monitor.run()
+
+
+def _get_weibo_trigger_kwargs(config: AppConfig) -> dict:
+    """供注册表与配置热重载使用。"""
+    return {"seconds": config.weibo_monitor_interval_seconds}
+
+
+# 自注册到任务注册表（由 job_registry.discover_and_import 导入时执行）
+from src.job_registry import register_monitor
+
+register_monitor("weibo_monitor", run_weibo_monitor, _get_weibo_trigger_kwargs)

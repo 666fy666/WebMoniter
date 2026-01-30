@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import re
 from datetime import datetime
 
@@ -319,3 +320,23 @@ class HuyaMonitor(BaseMonitor):
     def monitor_name(self) -> str:
         """监控器名称"""
         return "虎牙直播监控🐯  🐯  🐯"
+
+
+async def run_huya_monitor() -> None:
+    """运行虎牙监控任务（支持配置热重载）。由调度器与注册表调用。"""
+    config = get_config(reload=True)
+    logger_instance = logging.getLogger(__name__)
+    logger_instance.debug("虎牙监控：已重新加载配置文件")
+    async with HuyaMonitor(config) as monitor:
+        await monitor.run()
+
+
+def _get_huya_trigger_kwargs(config: AppConfig) -> dict:
+    """供注册表与配置热重载使用。"""
+    return {"seconds": config.huya_monitor_interval_seconds}
+
+
+# 自注册到任务注册表（由 job_registry.discover_and_import 导入时执行）
+from src.job_registry import register_monitor
+
+register_monitor("huya_monitor", run_huya_monitor, _get_huya_trigger_kwargs)

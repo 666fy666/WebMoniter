@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('scheduler', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
+            loadSectionConfig('plugins', config);
 
             showMessage('configMessage', '配置加载成功', 'success');
         } catch (error) {
@@ -488,6 +489,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'push_channel':
                 renderPushChannels(config.push_channel || []);
                 break;
+            case 'plugins':
+                try {
+                    const pluginsJson = document.getElementById('plugins_json');
+                    if (pluginsJson) {
+                        const val = config.plugins && typeof config.plugins === 'object' ? config.plugins : {};
+                        pluginsJson.value = JSON.stringify(val, null, 2);
+                    }
+                } catch (e) {
+                    if (document.getElementById('plugins_json')) {
+                        document.getElementById('plugins_json').value = '{}';
+                    }
+                }
+                break;
         }
     }
 
@@ -580,6 +594,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                     config.push_channel.push(channel);
                 });
+                break;
+            case 'plugins':
+                try {
+                    const pluginsJson = document.getElementById('plugins_json');
+                    if (pluginsJson && pluginsJson.value.trim()) {
+                        config.plugins = JSON.parse(pluginsJson.value.trim());
+                    } else {
+                        config.plugins = {};
+                    }
+                } catch (e) {
+                    config.plugins = {};
+                }
                 break;
         }
         return config;
@@ -675,6 +701,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             config.push_channel.push(channel);
         });
+
+        // 插件/扩展配置
+        try {
+            const pluginsJson = document.getElementById('plugins_json');
+            if (pluginsJson && pluginsJson.value.trim()) {
+                config.plugins = JSON.parse(pluginsJson.value.trim());
+            } else {
+                config.plugins = {};
+            }
+        } catch (e) {
+            config.plugins = {};
+        }
 
         return config;
     }

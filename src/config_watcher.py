@@ -143,7 +143,7 @@ class ConfigWatcher:
         ):
             return True
 
-        # 每日签到配置
+        # ikuuu签到配置
         if (
             old_config.checkin_enable != new_config.checkin_enable
             or old_config.checkin_login_url != new_config.checkin_login_url
@@ -155,6 +155,14 @@ class ConfigWatcher:
         ):
             return True
 
+        # 贴吧签到配置
+        if (
+            old_config.tieba_enable != new_config.tieba_enable
+            or old_config.tieba_cookie != new_config.tieba_cookie
+            or old_config.tieba_time != new_config.tieba_time
+        ):
+            return True
+
         # 调度器配置
         if (
             old_config.huya_monitor_interval_seconds != new_config.huya_monitor_interval_seconds
@@ -162,7 +170,12 @@ class ConfigWatcher:
             != new_config.weibo_monitor_interval_seconds
             or old_config.cleanup_logs_hour != new_config.cleanup_logs_hour
             or old_config.cleanup_logs_minute != new_config.cleanup_logs_minute
+            or old_config.retention_days != new_config.retention_days
         ):
+            return True
+
+        # 插件/扩展任务配置
+        if old_config.plugins != new_config.plugins:
             return True
 
         # 推送通道配置（简单比较列表长度和内容）
