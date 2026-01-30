@@ -21,6 +21,7 @@ import requests
 from src.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 from src.job_registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
+from src.utils import mask_cookie_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +78,6 @@ class TiebaCheckinConfig:
                 logger.warning("贴吧 Cookie 中未找到 BDUSS，该条签到可能失败")
 
         return True
-
-
-def _mask_cookie_for_log(cookie: str) -> str:
-    """对 Cookie 做部分脱敏，用于日志与推送描述"""
-    if not cookie or len(cookie) < 20:
-        return "***"
-    return cookie[:8] + "***" + cookie[-4:] if len(cookie) > 12 else "***"
 
 
 def _run_tieba_sign_sync(cookie: str) -> tuple[bool, str, int, int, int, int]:
@@ -345,7 +339,7 @@ async def _send_tieba_push(
         logger.debug("贴吧签到：免打扰时段，不发送推送")
         return
 
-    masked = _mask_cookie_for_log(cfg.cookie)
+    masked = mask_cookie_for_log(cfg.cookie)
     status_emoji = "✅" if success else "❌"
     body = (
         f"{status_emoji} Cookie: {masked}\n{detail or description}\n\n贴吧签到时间配置: {cfg.time}"

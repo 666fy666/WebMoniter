@@ -11,19 +11,12 @@ from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.cookie_cache_manager import cookie_cache
-from src.monitor import BaseMonitor
+from src.monitor import BaseMonitor, CookieExpiredError
 
 # 硬编码的 User-Agent
 HUYA_USER_AGENT = "Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Mobile Safari/537.36"
 # 硬编码的 Cookie（空字符串，不需要 cookie）
 HUYA_COOKIE = ""
-
-
-class CookieExpiredError(Exception):
-    """Cookie失效异常"""
-
-    pass
-
 
 # 预编译正则表达式
 RE_PROFILE = re.compile(r'"tProfileInfo":({.*?})')

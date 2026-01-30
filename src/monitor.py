@@ -7,6 +7,12 @@ import aiohttp
 from aiohttp import ClientSession
 
 from src.config import AppConfig
+
+
+class CookieExpiredError(Exception):
+    """Cookie 失效异常，由各平台监控在检测到需重新登录时抛出。"""
+
+    pass
 from src.database import AsyncDatabase
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 

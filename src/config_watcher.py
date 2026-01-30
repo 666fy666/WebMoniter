@@ -17,7 +17,7 @@ class ConfigWatcher:
         self,
         config_path: str = "config.yml",
         check_interval: int = 5,
-        on_config_changed: Callable[[AppConfig, AppConfig], Awaitable[None] | None] | None = None,
+        on_config_changed: Callable[[AppConfig | None, AppConfig], Awaitable[None] | None] | None = None,
     ):
         """
         初始化配置监控器

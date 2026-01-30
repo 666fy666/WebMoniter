@@ -24,6 +24,7 @@ import requests
 from src.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 from src.job_registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
+from src.utils import mask_cookie_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -74,13 +75,6 @@ class WeiboChaohuaCheckinConfig:
                 logger.warning("微博超话 Cookie 中未找到 XSRF-TOKEN，该条签到可能失败")
 
         return True
-
-
-def _mask_cookie_for_log(cookie: str) -> str:
-    """对 Cookie 做部分脱敏，用于日志与推送描述"""
-    if not cookie or len(cookie) < 20:
-        return "***"
-    return cookie[:8] + "***" + cookie[-4:] if len(cookie) > 12 else "***"
 
 
 def _clean_cookie(cookie: str) -> str:
@@ -447,7 +441,7 @@ async def _send_weibo_chaohua_push(
         logger.debug("微博超话签到：免打扰时段，不发送推送")
         return
 
-    masked = _mask_cookie_for_log(cfg.cookie)
+    masked = mask_cookie_for_log(cfg.cookie)
     status_emoji = "✅" if success else "❌"
     body = f"{status_emoji} Cookie: {masked}\n{detail or description}\n\n微博超话签到时间配置: {cfg.time}"
 

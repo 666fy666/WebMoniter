@@ -270,10 +270,7 @@ def get_config(reload: bool = False) -> AppConfig:
     """
     global _config_cache, _config_file_mtime
 
-    # 记录原始值（如果存在，用于检测变化）
-    old_weibo_cookie = None
-    if _config_cache is not None:
-        old_weibo_cookie = _config_cache.weibo_cookie
+    old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
 
     # 检查配置文件修改时间（优化热重载效率）
     config_file_path = Path("config.yml")
@@ -289,30 +286,18 @@ def get_config(reload: bool = False) -> AppConfig:
         # 文件被修改了，需要重新加载
         logger.debug("检测到配置文件已修改，自动重新加载...")
 
-    # 从YAML文件加载配置
     if reload:
         logger.debug("开始重新加载配置文件...")
-    else:
-        logger.debug("加载配置文件...")
-
     yml_config = load_config_from_yml()
     _config_file_mtime = current_mtime  # 更新文件修改时间
 
     # 创建AppConfig实例
     config = AppConfig(**yml_config)
 
-    # 更新缓存
     _config_cache = config
-
-    # 记录新值并检测变化
     new_weibo_cookie = config.weibo_cookie
-
-    logger.debug("配置加载完成")
-    # 只在Cookie真正变化时才记录INFO级别的日志
     if old_weibo_cookie is not None and old_weibo_cookie != new_weibo_cookie:
-        logger.info(f"微博Cookie已更新 (长度: {len(new_weibo_cookie or '')} 字符)")
-    else:
-        logger.debug("微博Cookie未变更")
+        logger.info("微博Cookie已更新 (长度: %s 字符)", len(new_weibo_cookie or ""))
 
     return config
 

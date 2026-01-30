@@ -9,13 +9,7 @@ from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.cookie_cache_manager import cookie_cache
-from src.monitor import BaseMonitor
-
-
-class CookieExpiredError(Exception):
-    """Cookie失效异常"""
-
-    pass
+from src.monitor import BaseMonitor, CookieExpiredError
 
 
 class WeiboMonitor(BaseMonitor):
