@@ -31,6 +31,12 @@ checkin:
   # 签到时间（24 小时制，格式：HH:MM），默认每天早上 8 点
   time: "08:00"
 
+# 百度贴吧签到配置（使用 Cookie，须包含 BDUSS）
+tieba:
+  enable: false  # 是否启用贴吧签到
+  cookie:  # 贴吧 Cookie，浏览器打开贴吧 F12 控制台输入 document.cookie 获取
+  time: "08:10"  # 签到时间（24 小时制，格式：HH:MM），默认 08:10
+
 # 调度器配置
 scheduler:
   huya_monitor_interval_seconds: 65  # 虎牙监控间隔（秒），默认65秒

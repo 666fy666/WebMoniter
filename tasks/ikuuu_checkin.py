@@ -1,4 +1,4 @@
-"""iKuuu/SSPanel 每日签到任务模块
+"""iKuuu/SSPanel ikuuu签到任务模块
 
 iKuuu 自动签到脚本：
 - 使用配置文件中的登录地址、签到地址、账号、密码等参数
@@ -51,7 +51,7 @@ class CheckinConfig:
     def validate(self) -> bool:
         """校验配置是否完整"""
         if not self.enable:
-            logger.debug("每日签到未启用，跳过执行")
+            logger.debug("ikuuu签到未启用，跳过执行")
             return False
 
         missing_fields: list[str] = []
@@ -65,7 +65,7 @@ class CheckinConfig:
             missing_fields.append("checkin.password")
 
         if missing_fields:
-            logger.error("每日签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields))
+            logger.error("ikuuu签到配置不完整，已跳过执行，缺少字段: %s", ", ".join(missing_fields))
             return False
 
         return True
@@ -85,7 +85,7 @@ def _mask_email(email: str) -> str:
 
 async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConfig) -> str | None:
     """登录站点并获取 Cookie"""
-    logger.debug("每日签到：使用账号 %s 登录", _mask_email(cfg.email))
+    logger.debug("ikuuu签到：使用账号 %s 登录", _mask_email(cfg.email))
 
     # 从登录地址中推导出站点根地址，用于设置 Referer / Origin
     try:
@@ -144,7 +144,7 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
             # 1. 一些站点登录成功会跳转到 /user 等页面
             # 2. 有些返回 JSON: {"ret": 1, "msg": "..."}
             if "user" in resp_url or (json_data and json_data.get("ret") == 1):
-                logger.debug("每日签到：登录成功")
+                logger.debug("ikuuu签到：登录成功")
                 # 从 session 中提取 Cookie
                 cookie_jar = session.cookie_jar
                 cookies = cookie_jar.filter_cookies(base_origin)
@@ -152,14 +152,14 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
                 return cookie_string
 
             msg = json_data.get("msg") if json_data else "未知错误"
-            logger.error("每日签到：登录失败：%s", msg)
+            logger.error("ikuuu签到：登录失败：%s", msg)
             return None
 
-        logger.error("每日签到：登录请求失败，HTTP 状态码：%s", status)
+        logger.error("ikuuu签到：登录请求失败，HTTP 状态码：%s", status)
         return None
 
     except Exception as exc:  # noqa: BLE001
-        logger.error("每日签到：登录过程中发生错误：%s", exc, exc_info=True)
+        logger.error("ikuuu签到：登录过程中发生错误：%s", exc, exc_info=True)
         return None
 
 
@@ -183,23 +183,23 @@ async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: s
             try:
                 data: dict[str, Any] = await resp.json(content_type=None)
             except Exception as exc:  # noqa: BLE001
-                logger.error("每日签到：解析签到响应失败：%s", exc, exc_info=True)
+                logger.error("ikuuu签到：解析签到响应失败：%s", exc, exc_info=True)
                 return False
 
         msg = data.get("msg", "")
         if data.get("ret") == 1:
-            logger.info("每日签到：✅ 签到成功：%s", msg)
+            logger.info("ikuuu签到：✅ 签到成功：%s", msg)
             return True
 
         if "已经签到" in msg or "已签到" in msg:
-            logger.info("每日签到：ℹ️ 今日已签到：%s", msg)
+            logger.info("ikuuu签到：ℹ️ 今日已签到：%s", msg)
             return True
 
-        logger.error("每日签到：❌ 签到失败：%s", msg)
+        logger.error("ikuuu签到：❌ 签到失败：%s", msg)
         return False
 
     except Exception as exc:  # noqa: BLE001
-        logger.error("每日签到：签到请求失败：%s", exc, exc_info=True)
+        logger.error("ikuuu签到：签到请求失败：%s", exc, exc_info=True)
         return False
 
 
@@ -244,7 +244,7 @@ async def _get_user_traffic(
 
         traffic_cards = soup.find_all("div", class_="card-statistic-2")
         if not traffic_cards:
-            logger.debug("每日签到：未找到流量统计信息")
+            logger.debug("ikuuu签到：未找到流量统计信息")
             return None
 
         lines: list[str] = []
@@ -254,7 +254,7 @@ async def _get_user_traffic(
                 body = card.find("div", class_="card-body")
                 if body:
                     remaining_traffic = re.sub(r"\s+", " ", body.get_text(strip=True))
-                    logger.debug("每日签到：剩余流量 %s", remaining_traffic)
+                    logger.debug("ikuuu签到：剩余流量 %s", remaining_traffic)
                     lines.append(f"📈 剩余流量：{remaining_traffic}")
 
                 stats = card.find("div", class_="card-stats-title")
@@ -263,16 +263,16 @@ async def _get_user_traffic(
                     match = re.search(r":\s*(.+)", today_used_text)
                     if match:
                         today_used = match.group(1).strip()
-                        logger.debug("每日签到：今日已用 %s", today_used)
+                        logger.debug("ikuuu签到：今日已用 %s", today_used)
                         lines.append(f"📊 今日已用：{today_used}")
                     else:
-                        logger.debug("每日签到：今日使用 %s", today_used_text)
+                        logger.debug("ikuuu签到：今日使用 %s", today_used_text)
                         lines.append(f"📊 今日使用情况：{today_used_text}")
 
         return "\n".join(lines) if lines else None
 
     except Exception as exc:  # noqa: BLE001
-        logger.error("每日签到：获取流量信息失败：%s", exc, exc_info=True)
+        logger.error("ikuuu签到：获取流量信息失败：%s", exc, exc_info=True)
         return None
 
 
@@ -285,7 +285,7 @@ async def run_checkin_once() -> None:
     if not cfg.validate():
         return
 
-    logger.info("每日签到：开始执行")
+    logger.info("ikuuu签到：开始执行")
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         # 准备推送通道（与监控任务保持一致）
@@ -293,19 +293,19 @@ async def run_checkin_once() -> None:
             app_config.push_channel_list,
             session,
             logger,
-            init_fail_prefix="每日签到：",
+            init_fail_prefix="ikuuu签到：",
         )
         if push_manager is None:
-            logger.warning("每日签到：未配置任何启用的推送通道，将仅在日志中记录结果")
+            logger.warning("ikuuu签到：未配置任何启用的推送通道，将仅在日志中记录结果")
 
         # 登录获取 Cookie
         cookie = await _login_and_get_cookie(session, cfg)
         if not cookie:
-            logger.error("每日签到：❌ 登录失败，本次签到终止")
+            logger.error("ikuuu签到：❌ 登录失败，本次签到终止")
             # 登录失败也尝试推送一次
             await _send_checkin_push(
                 push_manager,
-                title="每日签到失败：登录失败",
+                title="ikuuu签到失败：登录失败",
                 msg="登录失败，无法获取 Cookie，请检查账号、密码或站点状态。",
                 success=False,
                 cfg=cfg,
@@ -319,7 +319,7 @@ async def run_checkin_once() -> None:
         traffic_info = await _get_user_traffic(session, cfg, cookie)
 
         # 发送统一推送（含流量信息）
-        title = "每日签到成功" if ok else "每日签到失败"
+        title = "ikuuu签到成功" if ok else "ikuuu签到失败"
         msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
         await _send_checkin_push(
             push_manager,
@@ -334,7 +334,7 @@ async def run_checkin_once() -> None:
         if push_manager is not None:
             await push_manager.close()
 
-    logger.info("每日签到：结束（成功：%s）", ok)
+    logger.info("ikuuu签到：结束（成功：%s）", ok)
 
 
 async def _send_checkin_push(
@@ -352,7 +352,7 @@ async def _send_checkin_push(
     # 免打扰时段内只记录日志，不推送
     app_cfg = get_config()
     if is_in_quiet_hours(app_cfg):
-        logger.debug("每日签到：免打扰时段，不发送推送")
+        logger.debug("ikuuu签到：免打扰时段，不发送推送")
         return
 
     masked_email = _mask_email(cfg.email)
@@ -371,4 +371,4 @@ async def _send_checkin_push(
             btntxt="查看账户",
         )
     except Exception as exc:  # noqa: BLE001
-        logger.error("每日签到：发送签到结果推送失败：%s", exc, exc_info=True)
+        logger.error("ikuuu签到：发送签到结果推送失败：%s", exc, exc_info=True)

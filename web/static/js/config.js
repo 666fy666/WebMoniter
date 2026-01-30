@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const quietHoursEnableLabel = document.getElementById('quiet_hours_enable_label');
     const checkinEnable = document.getElementById('checkin_enable');
     const checkinEnableLabel = document.getElementById('checkin_enable_label');
+    const tiebaEnable = document.getElementById('tieba_enable');
+    const tiebaEnableLabel = document.getElementById('tieba_enable_label');
     const tableView = document.getElementById('tableView');
     const textView = document.getElementById('textView');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -136,6 +138,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // 贴吧签到开关事件
+    if (tiebaEnable && tiebaEnableLabel) {
+        tiebaEnable.addEventListener('change', function() {
+            tiebaEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+
     // 加载配置
     async function loadConfig() {
         try {
@@ -154,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('weibo', config);
             loadSectionConfig('huya', config);
             loadSectionConfig('checkin', config);
+            loadSectionConfig('tieba', config);
             loadSectionConfig('scheduler', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
@@ -431,6 +441,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                 }
                 break;
+            case 'tieba':
+                if (config.tieba) {
+                    if (tiebaEnable) {
+                        tiebaEnable.checked = !!config.tieba.enable;
+                        if (tiebaEnableLabel) {
+                            tiebaEnableLabel.textContent = tiebaEnable.checked ? '开启' : '关闭';
+                        }
+                    }
+                    const tiebaCookieInput = document.getElementById('tieba_cookie');
+                    const tiebaTimeInput = document.getElementById('tieba_time');
+                    if (tiebaCookieInput) tiebaCookieInput.value = config.tieba.cookie || '';
+                    if (tiebaTimeInput) {
+                        const timeVal = config.tieba.time || '08:10';
+                        tiebaTimeInput.value = timeVal.length === 5 ? timeVal : '08:10';
+                    }
+                }
+                break;
             case 'huya':
                 if (config.huya) {
                     document.getElementById('huya_rooms').value = typeof config.huya.rooms === 'string' 
@@ -484,6 +511,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     email: (document.getElementById('checkin_email')?.value || '').trim(),
                     password: (document.getElementById('checkin_password')?.value || '').trim(),
                     time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
+                };
+                break;
+            case 'tieba':
+                config.tieba = {
+                    enable: tiebaEnable ? tiebaEnable.checked : false,
+                    cookie: (document.getElementById('tieba_cookie')?.value || '').trim(),
+                    time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
                 };
                 break;
             case 'huya':
@@ -593,6 +627,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             email: (document.getElementById('checkin_email')?.value || '').trim(),
             password: (document.getElementById('checkin_password')?.value || '').trim(),
             time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
+        };
+
+        // 贴吧签到配置
+        config.tieba = {
+            enable: tiebaEnable ? tiebaEnable.checked : false,
+            cookie: (document.getElementById('tieba_cookie')?.value || '').trim(),
+            time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
         };
 
         // 推送通道配置

@@ -15,7 +15,7 @@ from src.cookie_cache_manager import cookie_cache
 from src.database import close_shared_connection
 from src.log_manager import LogManager
 from src.scheduler import TaskScheduler, setup_logging
-from tasks import cleanup_logs, run_checkin_once
+from tasks import cleanup_logs, run_checkin_once, run_tieba_checkin_once
 
 
 def _parse_checkin_time(checkin_time: str) -> tuple[str, str]:
@@ -97,6 +97,15 @@ async def register_monitors(scheduler: TaskScheduler):
         job_id="daily_checkin",
     )
 
+    # 贴吧签到任务 - 执行时间从配置 tieba.time 读取，支持热重载
+    tieba_hour, tieba_minute = _parse_checkin_time(config.tieba_time)
+    scheduler.add_cron_job(
+        func=run_tieba_checkin_once,
+        minute=tieba_minute,
+        hour=tieba_hour,
+        job_id="tieba_checkin",
+    )
+
     # 项目启动时立即执行一次监控任务和签到任务
     logger = logging.getLogger(__name__)
     logger.debug("正在启动时立即执行一次监控任务和签到任务...")
@@ -118,6 +127,12 @@ async def register_monitors(scheduler: TaskScheduler):
         await run_checkin_once()
     except Exception as e:  # noqa: BLE001
         logger.error(f"每日签到任务启动时首次执行失败: {e}", exc_info=True)
+
+    # 启动时立即执行一次贴吧签到任务
+    try:
+        await run_tieba_checkin_once()
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"贴吧签到任务启动时首次执行失败: {e}", exc_info=True)
 
     # 可以添加更多监控任务，例如：
     # scheduler.add_interval_job(
@@ -174,6 +189,16 @@ async def on_config_changed(
             job_id="daily_checkin",
             minute=checkin_minute,
             hour=checkin_hour,
+        )
+        if update_info:
+            updates.append(update_info)
+
+        # 更新贴吧签到任务的执行时间
+        tieba_hour, tieba_minute = _parse_checkin_time(new_config.tieba_time)
+        update_info = scheduler.update_cron_job(
+            job_id="tieba_checkin",
+            minute=tieba_minute,
+            hour=tieba_hour,
         )
         if update_info:
             updates.append(update_info)

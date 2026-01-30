@@ -47,6 +47,11 @@ class AppConfig(BaseModel):
     checkin_password: str = ""  # 登录密码
     checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
 
+    # 百度贴吧签到配置（使用 Cookie）
+    tieba_enable: bool = False  # 是否启用贴吧签到
+    tieba_cookie: str = ""  # 贴吧 Cookie（须包含 BDUSS）
+    tieba_time: str = "08:10"  # 贴吧签到时间（格式：HH:MM），默认 08:10
+
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
@@ -143,6 +148,16 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["checkin_password"] = checkin["password"]
             if "time" in checkin:
                 config_dict["checkin_time"] = checkin["time"]
+
+        # 贴吧签到配置
+        if "tieba" in yml_config:
+            tieba = yml_config["tieba"]
+            if "enable" in tieba:
+                config_dict["tieba_enable"] = tieba["enable"]
+            if "cookie" in tieba:
+                config_dict["tieba_cookie"] = tieba["cookie"]
+            if "time" in tieba:
+                config_dict["tieba_time"] = tieba["time"]
 
         # 调度器配置
         if "scheduler" in yml_config:

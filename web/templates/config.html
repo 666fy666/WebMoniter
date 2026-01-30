@@ -150,6 +150,42 @@
                 </div>
             </div>
 
+            <!-- 贴吧签到配置 -->
+            <div class="card config-section" data-section="tieba">
+                <div class="card-header">
+                    <h2>📌 贴吧签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
+                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用贴吧签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="tieba_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="tieba_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie</td>
+                            <td><input type="text" id="tieba_cookie" class="form-input" placeholder="贴吧 Cookie（须包含 BDUSS），浏览器 F12 控制台 document.cookie 获取"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="tieba_time" class="form-input" value="08:10"></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 15px;">
+                        <p>使用 Cookie 作为参数，须包含 BDUSS。系统会在指定时间自动执行贴吧签到，项目启动时若启用也会执行一次。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 调度器配置 -->
             <div class="card config-section" data-section="scheduler">
                 <div class="card-header">
