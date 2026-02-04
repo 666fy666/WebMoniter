@@ -201,7 +201,7 @@ def _get_checkin_trigger_kwargs(config: AppConfig) -> dict:
     hour, minute = parse_checkin_time(config.checkin_time)
     return {"minute": minute, "hour": hour}
 
-register_task("daily_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
+register_task("ikuuu_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
 ```
 
 **④ 当天已运行则跳过（默认行为）**
@@ -216,6 +216,10 @@ register_task("daily_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
 ```python
 register_task("always_run_task", run_task, _get_trigger_kwargs, skip_if_run_today=False)
 ```
+
+**⑤ 手动触发执行**
+
+通过 Web 管理界面的「任务管理」页面手动触发任务时，会使用 `JobDescriptor.original_run_func`（原始执行函数），绕过"当天已运行则跳过"检查，确保任务被强制执行。这对于调试或需要立即重新执行的场景非常有用。
 
 ### 2.4 注册表：src/job_registry.py
 
@@ -510,7 +514,7 @@ await self.db.execute_insert(sql, data)
 
 | 类型     | 示例       | 配置文件 | 配置解析 | 任务/监控实现 | 注册 |
 |----------|------------|----------|----------|----------------|------|
-| 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `load_config_from_yml`（checkin 段） | `tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("daily_checkin", ...)`，`TASK_MODULES` 含 `tasks.ikuuu_checkin` |
+| 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `load_config_from_yml`（checkin 段） | `tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("ikuuu_checkin", ...)`，`TASK_MODULES` 含 `tasks.ikuuu_checkin` |
 | 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_MODULES` 含 `tasks.demo_task` |
 | 监控任务 | 虎牙监控   | `config.yml` → `huya` + `scheduler.huya_monitor_interval_seconds` | `AppConfig`、`HuyaConfig`、`get_huya_config`、`load_config_from_yml`（huya/scheduler） | `monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_MODULES` 含 `monitors.huya_monitor` |
 

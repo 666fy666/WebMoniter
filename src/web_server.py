@@ -19,6 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.config import get_config, load_config_from_yml
 from src.database import AsyncDatabase
+from src.job_registry import MONITOR_JOBS, TASK_JOBS, discover_and_import
 
 # 尝试导入 ruamel.yaml 以保留注释
 try:
@@ -213,6 +214,112 @@ async def logs_page(request: Request):
     if not check_login(session_id):
         return templates.TemplateResponse("login.html", {"request": request})
     return templates.TemplateResponse("logs.html", {"request": request})
+
+
+@app.get("/tasks", response_class=HTMLResponse)
+async def tasks_page(request: Request):
+    """任务管理页面"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("tasks.html", {"request": request})
+
+
+@app.get("/api/tasks")
+async def get_tasks_api(request: Request):
+    """获取所有注册的任务列表"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        # 确保任务已被发现和导入
+        discover_and_import()
+
+        tasks = []
+
+        # 添加监控任务
+        for job in MONITOR_JOBS:
+            tasks.append({
+                "job_id": job.job_id,
+                "trigger": job.trigger,
+                "type": "monitor",
+                "type_label": "监控任务",
+                "description": _get_job_description(job.job_id),
+            })
+
+        # 添加定时任务
+        for job in TASK_JOBS:
+            tasks.append({
+                "job_id": job.job_id,
+                "trigger": job.trigger,
+                "type": "task",
+                "type_label": "定时任务",
+                "description": _get_job_description(job.job_id),
+            })
+
+        return JSONResponse({"success": True, "tasks": tasks})
+    except Exception as e:
+        logger.error(f"获取任务列表失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def _get_job_description(job_id: str) -> str:
+    """根据任务ID获取任务描述"""
+    descriptions = {
+        "huya_monitor": "虎牙直播状态监控",
+        "weibo_monitor": "微博动态监控",
+        "log_cleanup": "日志文件清理",
+        "ikuuu_checkin": "ikuuu 每日签到",
+        "tieba_checkin": "百度贴吧签到",
+        "weibo_chaohua_checkin": "微博超话签到",
+        "demo_task": "示例任务（二次开发演示）",
+    }
+    return descriptions.get(job_id, f"任务 {job_id}")
+
+
+@app.post("/api/tasks/{task_id}/run")
+async def run_task_api(request: Request, task_id: str):
+    """手动触发执行指定任务"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        # 确保任务已被发现和导入
+        discover_and_import()
+
+        # 查找任务
+        all_jobs = MONITOR_JOBS + TASK_JOBS
+        target_job = None
+        for job in all_jobs:
+            if job.job_id == task_id:
+                target_job = job
+                break
+
+        if target_job is None:
+            return JSONResponse({"error": f"任务 {task_id} 不存在"}, status_code=404)
+
+        # 异步执行任务（使用原始函数，绕过"当天已运行则跳过"检查）
+        logger.info(f"手动触发任务: {task_id}")
+        try:
+            # 优先使用原始函数（不检查当天是否已运行），如果没有则使用包装后的函数
+            run_func = target_job.original_run_func or target_job.run_func
+            await run_func()
+            logger.info(f"任务 {task_id} 手动执行完成")
+            return JSONResponse({
+                "success": True,
+                "message": f"任务 {task_id} 执行成功",
+            })
+        except Exception as e:
+            logger.error(f"任务 {task_id} 执行失败: {e}", exc_info=True)
+            return JSONResponse({
+                "success": False,
+                "message": f"任务执行失败: {str(e)}",
+            }, status_code=500)
+    except Exception as e:
+        logger.error(f"触发任务失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/config")

@@ -27,6 +27,8 @@ class JobDescriptor:
     run_func: Callable[[], Awaitable[None]]
     trigger: str  # "interval" | "cron"
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]]
+    # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
+    original_run_func: Callable[[], Awaitable[None]] | None = None
 
 
 # 监控任务（间隔执行）模块列表，新增监控时在此追加模块路径即可
@@ -63,6 +65,7 @@ def register_monitor(
             run_func=run_func,
             trigger="interval",
             get_trigger_kwargs=get_trigger_kwargs,
+            original_run_func=run_func,  # 监控任务无包装，原始函数即为 run_func
         )
     )
     logger.debug("已注册监控任务: %s", job_id)
@@ -77,7 +80,7 @@ def register_task(
 ) -> None:
     """
     注册一个定时任务（Cron 触发）。
-    应在任务模块加载时调用，例如：register_task("daily_checkin", run_checkin_once, lambda c: {"hour": h, "minute": m})
+    应在任务模块加载时调用，例如：register_task("ikuuu_checkin", run_checkin_once, lambda c: {"hour": h, "minute": m})
 
     Args:
         job_id: 任务唯一标识
@@ -114,6 +117,7 @@ def register_task(
             run_func=actual_run_func,
             trigger="cron",
             get_trigger_kwargs=get_trigger_kwargs,
+            original_run_func=run_func,  # 保存原始函数，用于手动触发时绕过跳过检查
         )
     )
     logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)

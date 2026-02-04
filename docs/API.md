@@ -194,6 +194,68 @@ GET /api/logs?lines=100
 
 ---
 
+### 6. 任务管理（需登录）
+
+#### 获取任务列表
+
+```http
+GET /api/tasks
+```
+
+返回所有注册的监控任务和定时任务列表：
+
+```json
+{
+  "success": true,
+  "tasks": [
+    {
+      "job_id": "huya_monitor",
+      "trigger": "interval",
+      "type": "monitor",
+      "type_label": "监控任务",
+      "description": "虎牙直播状态监控"
+    },
+    {
+      "job_id": "ikuuu_checkin",
+      "trigger": "cron",
+      "type": "task",
+      "type_label": "定时任务",
+      "description": "ikuuu 每日签到"
+    }
+  ]
+}
+```
+
+#### 手动触发任务
+
+```http
+POST /api/tasks/{task_id}/run
+```
+
+- `task_id`：任务 ID，如 `huya_monitor`、`ikuuu_checkin` 等
+
+成功返回：
+
+```json
+{
+  "success": true,
+  "message": "任务 huya_monitor 执行成功"
+}
+```
+
+失败返回：
+
+```json
+{
+  "success": false,
+  "message": "任务执行失败: 具体错误信息"
+}
+```
+
+**注意**：手动触发执行时会绕过"当天已运行则跳过"检查，确保任务被强制执行。
+
+---
+
 ## 调用示例
 
 ### Python 示例
@@ -241,6 +303,14 @@ print(huya_one.json())
 status_weibo = requests.get(f"{BASE_URL}/api/monitor-status/weibo")
 status_one_user = requests.get(f"{BASE_URL}/api/monitor-status/weibo/1234567890")
 print(status_weibo.json(), status_one_user.json())
+
+# 获取任务列表
+tasks_response = session.get(f"{BASE_URL}/api/tasks")
+print(tasks_response.json())
+
+# 手动触发任务执行（绕过"当天已运行则跳过"检查）
+run_response = session.post(f"{BASE_URL}/api/tasks/huya_monitor/run")
+print(run_response.json())
 ```
 
 ### cURL 示例
@@ -268,6 +338,14 @@ curl -X GET "http://localhost:8866/api/data/huya/123456" -b cookies.txt
 
 # 获取日志
 curl -X GET "http://localhost:8866/api/logs?lines=50" \
+  -b cookies.txt
+
+# 获取任务列表
+curl -X GET http://localhost:8866/api/tasks \
+  -b cookies.txt
+
+# 手动触发任务执行（绕过"当天已运行则跳过"检查）
+curl -X POST http://localhost:8866/api/tasks/huya_monitor/run \
   -b cookies.txt
 ```
 

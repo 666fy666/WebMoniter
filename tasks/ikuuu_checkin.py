@@ -414,4 +414,4 @@ def _get_checkin_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("daily_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
+register_task("ikuuu_checkin", run_checkin_once, _get_checkin_trigger_kwargs)

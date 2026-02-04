@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>控制台 - Web监控系统</title>
+    <title>任务管理 - Web监控系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css?v=4">
 </head>
@@ -19,7 +19,7 @@
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-text">配置管理</span>
             </a>
-            <a href="/tasks" class="nav-item">
+            <a href="/tasks" class="nav-item active">
                 <span class="nav-icon">📋</span>
                 <span class="nav-text">任务管理</span>
             </a>
@@ -78,53 +78,43 @@
 
     <div class="main-content">
         <div class="content-header">
-            <h1>控制台</h1>
-            <p class="subtitle">欢迎回来，系统运行正常</p>
+            <h1>任务管理</h1>
+            <p class="subtitle">查看和管理所有监控任务与定时任务，支持手动触发执行</p>
         </div>
         <div class="content-body">
-            <div class="welcome-card fade-in">
-                <div style="font-size: 64px; margin-bottom: 24px;">🎯</div>
-                <h2>欢迎使用 Web 监控系统</h2>
-                <p style="margin-bottom: 32px;">高效、稳定、易用的多平台监控解决方案</p>
-                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
-                    <a href="/config" class="btn btn-primary" style="text-decoration: none;">
-                        <span>⚙️</span>
-                        开始配置
-                    </a>
-                    <a href="/data" class="btn btn-secondary" style="text-decoration: none;">
-                        <span>📊</span>
-                        查看数据
-                    </a>
+            <div class="tabs">
+                <button class="tab-btn active" data-filter="all">🔮 全部任务</button>
+                <button class="tab-btn" data-filter="monitor">📡 监控任务</button>
+                <button class="tab-btn" data-filter="task">⏰ 定时任务</button>
+            </div>
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h2 id="tasksTitle">🔮 全部任务</h2>
+                    <div class="card-actions">
+                        <button id="refreshBtn" class="btn btn-secondary">
+                            <span>🔄</span>
+                            刷新
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="tasksContainer">
+                        <div class="loading">加载中...</div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- 功能卡片区域 -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px;">
-                <div class="card fade-in" style="animation-delay: 0.1s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📱</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">微博监控</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">实时监控微博动态，第一时间推送更新</p>
-                    </div>
-                </div>
-                <div class="card fade-in" style="animation-delay: 0.2s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">🎮</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">虎牙监控</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">关注主播开播状态，不错过任何精彩</p>
-                    </div>
-                </div>
-                <div class="card fade-in" style="animation-delay: 0.3s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📅</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">自动签到</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">支持多平台自动签到，省时省心</p>
-                    </div>
-                </div>
+            <div class="help-box" style="margin-top: 24px;">
+                <h3>💡 说明</h3>
+                <ul>
+                    <li><strong>监控任务</strong>：按固定时间间隔循环执行的任务，如微博监控、虎牙直播监控等</li>
+                    <li><strong>定时任务</strong>：按 Cron 时间表执行的任务，如每日签到、日志清理等</li>
+                    <li>点击「运行」按钮可手动触发任务执行，无需等待下次调度时间</li>
+                    <li>定时任务默认每天只执行一次，手动触发时会检查当天是否已运行过</li>
+                </ul>
             </div>
         </div>
     </div>
     <script src="/static/js/common.js?v=4"></script>
-    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/tasks.js?v=1"></script>
 </body>
 </html>
