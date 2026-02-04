@@ -1,6 +1,8 @@
 """Web服务器模块 - 提供Web界面和API接口"""
 
 import asyncio
+import hashlib
+import json
 import logging
 import os
 import secrets
@@ -45,12 +47,53 @@ templates = Jinja2Templates(directory="web/templates")
 # 静态文件目录
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
-# 登录凭据
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "123"
+# 凭据文件路径
+AUTH_FILE = Path("data/auth.json")
+
+# 默认凭据
+DEFAULT_USERNAME = "admin"
+DEFAULT_PASSWORD = "123"
 
 # 存储登录会话
 active_sessions: set[str] = set()
+
+
+def hash_password(password: str) -> str:
+    """使用 SHA-256 哈希密码"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def load_auth() -> dict:
+    """加载认证信息，如果文件不存在则返回默认值"""
+    if AUTH_FILE.exists():
+        try:
+            with open(AUTH_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"加载认证文件失败: {e}")
+    # 返回默认凭据（哈希后的密码）
+    return {
+        "username": DEFAULT_USERNAME,
+        "password_hash": hash_password(DEFAULT_PASSWORD),
+    }
+
+
+def save_auth(auth_data: dict) -> bool:
+    """保存认证信息到文件"""
+    try:
+        # 确保 data 目录存在
+        AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(AUTH_FILE, "w", encoding="utf-8") as f:
+            json.dump(auth_data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"保存认证文件失败: {e}")
+        return False
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """验证密码"""
+    return hash_password(password) == password_hash
 
 
 def check_login(session_id: str | None) -> bool:
@@ -79,7 +122,10 @@ async def login_page(request: Request):
 @app.post("/api/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     """登录接口"""
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+    auth_data = load_auth()
+    if username == auth_data.get("username") and verify_password(
+        password, auth_data.get("password_hash", "")
+    ):
         session_id = secrets.token_urlsafe(32)
         request.session["session_id"] = session_id
         active_sessions.add(session_id)
@@ -97,6 +143,40 @@ async def logout(request: Request):
         active_sessions.discard(session_id)
         request.session.clear()
     return JSONResponse({"success": True, "message": "已登出"})
+
+
+@app.post("/api/change-password")
+async def change_password(
+    request: Request,
+    old_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    """修改密码接口"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"success": False, "message": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    # 验证新密码和确认密码是否一致
+    if new_password != confirm_password:
+        return JSONResponse({"success": False, "message": "两次输入的新密码不一致"}, status_code=400)
+
+    # 验证新密码长度
+    if len(new_password) < 3:
+        return JSONResponse({"success": False, "message": "新密码长度至少为3个字符"}, status_code=400)
+
+    # 验证旧密码
+    auth_data = load_auth()
+    if not verify_password(old_password, auth_data.get("password_hash", "")):
+        return JSONResponse({"success": False, "message": "当前密码错误"}, status_code=400)
+
+    # 更新密码
+    auth_data["password_hash"] = hash_password(new_password)
+    if save_auth(auth_data):
+        logger.info("密码已成功修改")
+        return JSONResponse({"success": True, "message": "密码修改成功"})
+    else:
+        return JSONResponse({"success": False, "message": "保存密码失败，请重试"}, status_code=500)
 
 
 @app.get("/api/check-auth")

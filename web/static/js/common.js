@@ -33,17 +33,61 @@ async function logout() {
     }
 }
 
-// 显示消息
-function showMessage(elementId, message, type = 'success') {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = message;
-        element.className = `message ${type}`;
-        setTimeout(() => {
-            element.className = 'message';
-            element.style.display = 'none';
-        }, 5000);
+// 创建 Toast 容器
+function ensureToastContainer() {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
     }
+    return container;
+}
+
+// 显示 Toast 消息
+function showToast(message, type = 'success', duration = 3000) {
+    const container = ensureToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    // 图标
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // 触发动画
+    requestAnimationFrame(() => {
+        toast.classList.add('toast-show');
+    });
+    
+    // 自动移除
+    setTimeout(() => {
+        toast.classList.remove('toast-show');
+        toast.classList.add('toast-hide');
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// 显示消息（使用 Toast）
+function showMessage(elementId, message, type = 'success') {
+    showToast(message, type);
 }
 
 // 格式化日期时间
@@ -113,6 +157,120 @@ function initMobileMenu() {
     });
 }
 
+// 修改密码功能
+function initChangePassword() {
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const changePasswordModal = document.getElementById('changePasswordModal');
+    const closePasswordModal = document.getElementById('closePasswordModal');
+    const cancelPasswordChange = document.getElementById('cancelPasswordChange');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const passwordMessage = document.getElementById('passwordMessage');
+    const modalOverlay = changePasswordModal ? changePasswordModal.querySelector('.modal-overlay') : null;
+
+    if (!changePasswordBtn || !changePasswordModal) {
+        return; // 登录页面没有这些元素
+    }
+
+    // 显示模态框
+    function showModal() {
+        changePasswordModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 隐藏模态框
+    function hideModal() {
+        changePasswordModal.classList.remove('show');
+        document.body.style.overflow = '';
+        // 清空表单和消息
+        if (changePasswordForm) {
+            changePasswordForm.reset();
+        }
+        if (passwordMessage) {
+            passwordMessage.textContent = '';
+            passwordMessage.className = 'password-message';
+        }
+    }
+
+    // 显示消息
+    function showPasswordMessage(message, type) {
+        if (passwordMessage) {
+            passwordMessage.textContent = message;
+            passwordMessage.className = `password-message ${type}`;
+        }
+    }
+
+    // 绑定事件
+    changePasswordBtn.addEventListener('click', showModal);
+    
+    if (closePasswordModal) {
+        closePasswordModal.addEventListener('click', hideModal);
+    }
+    
+    if (cancelPasswordChange) {
+        cancelPasswordChange.addEventListener('click', hideModal);
+    }
+    
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', hideModal);
+    }
+
+    // 表单提交
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // 客户端验证
+            if (newPassword.length < 3) {
+                showPasswordMessage('新密码长度至少为3个字符', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showPasswordMessage('两次输入的新密码不一致', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('old_password', oldPassword);
+                formData.append('new_password', newPassword);
+                formData.append('confirm_password', confirmPassword);
+
+                const response = await fetch('/api/change-password', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showPasswordMessage('密码修改成功，请重新登录', 'success');
+                    // 2秒后自动登出
+                    setTimeout(() => {
+                        logout();
+                    }, 2000);
+                } else {
+                    showPasswordMessage(data.message || '密码修改失败', 'error');
+                }
+            } catch (error) {
+                console.error('修改密码失败:', error);
+                showPasswordMessage('网络错误，请稍后重试', 'error');
+            }
+        });
+    }
+
+    // ESC 键关闭模态框
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && changePasswordModal.classList.contains('show')) {
+            hideModal();
+        }
+    });
+}
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
     // 如果不是登录页，检查认证
@@ -128,4 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化移动端菜单
     initMobileMenu();
+
+    // 初始化修改密码功能
+    initChangePassword();
 });

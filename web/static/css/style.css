@@ -1503,3 +1503,309 @@ table tr.data-row-link:hover {
         transform: scale(1);
     }
 }
+
+/* ==========================================
+   Toast 提示样式
+   ========================================== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+    max-width: 400px;
+    min-width: 280px;
+}
+
+.toast-show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-hide {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: var(--text-primary);
+}
+
+/* Toast 类型样式 */
+.toast-success {
+    border-left: 4px solid var(--success-color);
+}
+
+.toast-success .toast-icon {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.toast-error {
+    border-left: 4px solid var(--error-color);
+}
+
+.toast-error .toast-icon {
+    background: var(--error-bg);
+    color: var(--error-color);
+}
+
+.toast-warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.toast-warning .toast-icon {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.toast-info {
+    border-left: 4px solid var(--info-color);
+}
+
+.toast-info .toast-icon {
+    background: var(--info-bg);
+    color: var(--info-color);
+}
+
+/* Toast 响应式 */
+@media (max-width: 480px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+
+    .toast {
+        max-width: none;
+        min-width: 0;
+    }
+}
+
+/* ==========================================
+   模态框样式
+   ========================================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+    animation: slideUp 0.3s ease-out;
+    z-index: 1;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-header h3::before {
+    content: '🔐';
+    font-size: 20px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-color);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-body .form-group {
+    margin-bottom: 20px;
+}
+
+.modal-body .form-group:last-of-type {
+    margin-bottom: 16px;
+}
+
+.modal-body .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.modal-body .form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    transition: all var(--transition-normal);
+    background: var(--bg-card);
+}
+
+.modal-body .form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.modal-body .form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-light);
+    background: #fafbfc;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.password-message {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    display: none;
+    margin-top: 8px;
+}
+
+.password-message.success {
+    display: block;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    border-left: 4px solid var(--success-color);
+}
+
+.password-message.error {
+    display: block;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border-left: 4px solid var(--error-color);
+}
+
+/* 模态框响应式 */
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 16px;
+        max-width: none;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 14px 20px;
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日志查看 - Web监控系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -29,12 +29,49 @@
             </a>
         </nav>
         <div class="sidebar-footer">
+            <button id="changePasswordBtn" class="btn btn-secondary" style="margin-bottom: 10px;">
+                <span>🔐</span>
+                修改密码
+            </button>
             <button id="logoutBtn" class="btn btn-secondary">
                 <span>🚪</span>
                 退出登录
             </button>
         </div>
     </div>
+
+    <!-- 修改密码模态框 -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" id="closePasswordModal">&times;</button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="oldPassword">当前密码</label>
+                        <input type="password" id="oldPassword" name="old_password" required placeholder="请输入当前密码">
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">新密码</label>
+                        <input type="password" id="newPassword" name="new_password" required placeholder="请输入新密码（至少3个字符）">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">确认新密码</label>
+                        <input type="password" id="confirmPassword" name="confirm_password" required placeholder="请再次输入新密码">
+                    </div>
+                    <div id="passwordMessage" class="password-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelPasswordChange">取消</button>
+                    <button type="submit" class="btn btn-primary">确认修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="main-content">
         <div class="content-header">
             <h1>日志查看</h1>
@@ -67,7 +104,7 @@
             </div>
         </div>
     </div>
-    <script src="/static/js/common.js"></script>
+    <script src="/static/js/common.js?v=3"></script>
     <script src="/static/js/logs.js"></script>
 </body>
 </html>
