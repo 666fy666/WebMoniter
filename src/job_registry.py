@@ -7,6 +7,7 @@
 3. 在任务模块内调用 register_monitor() 或 register_task() 完成注册
 """
 
+import functools
 import importlib
 import logging
 from collections.abc import Awaitable, Callable
@@ -71,20 +72,51 @@ def register_task(
     job_id: str,
     run_func: Callable[[], Awaitable[None]],
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]],
+    *,
+    skip_if_run_today: bool = True,
 ) -> None:
     """
     注册一个定时任务（Cron 触发）。
     应在任务模块加载时调用，例如：register_task("daily_checkin", run_checkin_once, lambda c: {"hour": h, "minute": m})
+
+    Args:
+        job_id: 任务唯一标识
+        run_func: 任务执行函数
+        get_trigger_kwargs: 获取触发参数的函数
+        skip_if_run_today: 是否在当天已运行过时跳过（默认 True）
     """
+    # 延迟导入避免循环依赖
+    from src.task_tracker import has_run_today as check_run_today
+    from src.task_tracker import mark_as_run_today
+
+    if skip_if_run_today:
+        # 包装任务函数，添加"当天已运行则跳过"的检查
+        @functools.wraps(run_func)
+        async def wrapped_run_func() -> None:
+            if await check_run_today(job_id):
+                logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
+                return
+            try:
+                await run_func()
+                # 任务执行成功后标记为已运行
+                await mark_as_run_today(job_id)
+            except Exception:
+                # 任务失败不标记，允许后续重试
+                raise
+
+        actual_run_func = wrapped_run_func
+    else:
+        actual_run_func = run_func
+
     TASK_JOBS.append(
         JobDescriptor(
             job_id=job_id,
-            run_func=run_func,
+            run_func=actual_run_func,
             trigger="cron",
             get_trigger_kwargs=get_trigger_kwargs,
         )
     )
-    logger.debug("已注册定时任务: %s", job_id)
+    logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)
 
 
 def discover_and_import() -> None:

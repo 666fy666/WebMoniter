@@ -48,6 +48,7 @@ async def register_monitors(scheduler: TaskScheduler) -> None:
             )
 
     # 启动时立即执行一次所有任务
+    # 监控任务每次都执行，定时任务会自动检查当天是否已运行过
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
     all_jobs = MONITOR_JOBS + TASK_JOBS
 

@@ -204,6 +204,19 @@ def _get_checkin_trigger_kwargs(config: AppConfig) -> dict:
 register_task("daily_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
 ```
 
+**④ 当天已运行则跳过（默认行为）**
+
+`register_task` 默认启用 `skip_if_run_today=True`，任务在执行前会检查当天是否已经运行过：
+- 如果已运行：输出日志 `{job_id}: 当天已经运行过了，跳过该任务`，然后跳过执行
+- 如果未运行：正常执行任务，成功后记录运行日期
+- 如果任务执行失败：不记录运行日期，允许后续重试
+
+若某个任务需要每次触发都执行（不检查当天是否已运行），可在注册时禁用：
+
+```python
+register_task("always_run_task", run_task, _get_trigger_kwargs, skip_if_run_today=False)
+```
+
 ### 2.4 注册表：src/job_registry.py
 
 在 `TASK_MODULES` 中已包含该模块，主程序启动时会导入并执行上述 `register_task`：
@@ -512,6 +525,8 @@ await self.db.execute_insert(sql, data)
 - [ ] 若用顶层配置：在 `AppConfig` 与 `load_config_from_yml()` 中补充字段；若用 `plugins`，无需改 config.py。
 - [ ] 新建 `tasks/xxx.py`，实现 `run_xxx_once()`（内部 `get_config(reload=True)`、校验、业务、推送）、`_get_xxx_trigger_kwargs(config)`（返回 `{"minute": m, "hour": h}`，可用 `parse_checkin_time`）。
 - [ ] 在模块末尾调用 `register_task("job_id", run_xxx_once, _get_xxx_trigger_kwargs)`。
+  - 默认启用 `skip_if_run_today=True`，当天已运行则跳过
+  - 若需每次触发都执行，设置 `skip_if_run_today=False`
 - [ ] 在 `src/job_registry.TASK_MODULES` 中追加 `"tasks.xxx"`。
 - [ ] 若使用新的顶层配置项，需在 `config_watcher._config_changed` 中增加对应比较（plugins 已支持）。
 
