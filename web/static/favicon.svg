@@ -1,20 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
     </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
   </defs>
-  <!-- Background circle -->
-  <circle cx="32" cy="32" r="30" fill="url(#grad)"/>
+  <!-- Background circle with shadow -->
+  <circle cx="32" cy="32" r="30" fill="url(#grad)" filter="url(#shadow)"/>
   <!-- Monitor eye icon - outer -->
   <ellipse cx="32" cy="28" rx="18" ry="12" fill="#FFFFFF" opacity="0.95"/>
   <!-- Monitor eye icon - middle -->
-  <ellipse cx="32" cy="28" rx="12" ry="8" fill="#4A90E2"/>
+  <ellipse cx="32" cy="28" rx="12" ry="8" fill="#6366f1"/>
   <!-- Monitor eye icon - pupil -->
   <circle cx="32" cy="28" r="6" fill="#FFFFFF"/>
   <!-- Highlight -->
-  <circle cx="30" cy="26" r="2" fill="#FFFFFF" opacity="0.8"/>
-  <!-- Bottom decoration -->
-  <path d="M 20 40 Q 32 45 44 40" stroke="#FFFFFF" stroke-width="2.5" fill="none" opacity="0.9" stroke-linecap="round"/>
+  <circle cx="30" cy="26" r="2" fill="#FFFFFF" opacity="0.9"/>
+  <!-- Bottom decoration - smile -->
+  <path d="M 20 42 Q 32 48 44 42" stroke="#FFFFFF" stroke-width="2.5" fill="none" opacity="0.9" stroke-linecap="round"/>
+  <!-- Sparkle effect -->
+  <circle cx="46" cy="16" r="3" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="48" cy="14" r="1.5" fill="#FFFFFF" opacity="0.6"/>
 </svg>

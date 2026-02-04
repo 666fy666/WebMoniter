@@ -20,26 +20,66 @@
                 <span class="nav-text">配置管理</span>
             </a>
             <a href="/data" class="nav-item">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon">📊</span>
                 <span class="nav-text">数据展示</span>
             </a>
             <a href="/logs" class="nav-item">
-                <span class="nav-icon">📝</span>
+                <span class="nav-icon">📋</span>
                 <span class="nav-text">日志查看</span>
             </a>
         </nav>
         <div class="sidebar-footer">
-            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+            <button id="logoutBtn" class="btn btn-secondary">
+                <span>🚪</span>
+                退出登录
+            </button>
         </div>
     </div>
     <div class="main-content">
         <div class="content-header">
             <h1>控制台</h1>
+            <p class="subtitle">欢迎回来，系统运行正常</p>
         </div>
         <div class="content-body">
-            <div class="welcome-card">
-                <h2>欢迎使用Web监控系统</h2>
-                <p>请从左侧导航栏选择功能模块</p>
+            <div class="welcome-card fade-in">
+                <div style="font-size: 64px; margin-bottom: 24px;">🎯</div>
+                <h2>欢迎使用 Web 监控系统</h2>
+                <p style="margin-bottom: 32px;">高效、稳定、易用的多平台监控解决方案</p>
+                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                    <a href="/config" class="btn btn-primary" style="text-decoration: none;">
+                        <span>⚙️</span>
+                        开始配置
+                    </a>
+                    <a href="/data" class="btn btn-secondary" style="text-decoration: none;">
+                        <span>📊</span>
+                        查看数据
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 功能卡片区域 -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px;">
+                <div class="card fade-in" style="animation-delay: 0.1s;">
+                    <div class="card-body" style="text-align: center; padding: 32px;">
+                        <div style="font-size: 40px; margin-bottom: 16px;">📱</div>
+                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">微博监控</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">实时监控微博动态，第一时间推送更新</p>
+                    </div>
+                </div>
+                <div class="card fade-in" style="animation-delay: 0.2s;">
+                    <div class="card-body" style="text-align: center; padding: 32px;">
+                        <div style="font-size: 40px; margin-bottom: 16px;">🎮</div>
+                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">虎牙监控</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">关注主播开播状态，不错过任何精彩</p>
+                    </div>
+                </div>
+                <div class="card fade-in" style="animation-delay: 0.3s;">
+                    <div class="card-body" style="text-align: center; padding: 32px;">
+                        <div style="font-size: 40px; margin-bottom: 16px;">📅</div>
+                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">自动签到</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">支持多平台自动签到，省时省心</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

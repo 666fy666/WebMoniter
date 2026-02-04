@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentTable = this.dataset.table;
             currentPage = 1;
-            tableTitle.textContent = currentTable === 'weibo' ? '微博数据' : '虎牙数据';
+            tableTitle.textContent = currentTable === 'weibo' ? '📱 微博数据' : '🎮 虎牙数据';
             loadTableData();
         });
     });
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             html += '<th>房间号</th><th>主播名称</th><th>直播状态</th>';
             html += '</tr></thead><tbody>';
             rows.forEach(row => {
-                const statusText = row.is_live === '1' ? '<span style="color: #e74c3c;">🔴 直播中</span>' : '<span style="color: #95a5a6;">⚫ 未开播</span>';
+                const statusText = row.is_live === '1' ? '<span style="color: #10b981; font-weight: 500;">🟢 直播中</span>' : '<span style="color: #94a3b8;">⚪ 未开播</span>';
                 const url = row.url || `https://www.huya.com/${row.room}`;
                 html += `<tr class="data-row-link" data-href="${escapeAttr(url)}" title="点击跳转到虎牙直播间">
                     <td>${escapeHtml(row.room)}</td>

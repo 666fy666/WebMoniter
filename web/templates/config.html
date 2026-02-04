@@ -20,16 +20,19 @@
                 <span class="nav-text">配置管理</span>
             </a>
             <a href="/data" class="nav-item">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon">📊</span>
                 <span class="nav-text">数据展示</span>
             </a>
             <a href="/logs" class="nav-item">
-                <span class="nav-icon">📝</span>
+                <span class="nav-icon">📋</span>
                 <span class="nav-text">日志查看</span>
             </a>
         </nav>
         <div class="sidebar-footer">
-            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+            <button id="logoutBtn" class="btn btn-secondary">
+                <span>🚪</span>
+                退出登录
+            </button>
         </div>
     </div>
     <div class="main-content">
@@ -41,20 +44,26 @@
             <div id="configMessage" class="message"></div>
             
             <!-- 视图切换标签 -->
-            <div class="tabs" style="margin-bottom: 20px;">
-                <button class="tab-btn active" data-view="table">表格视图</button>
-                <button class="tab-btn" data-view="text">文本视图</button>
+            <div class="tabs" style="margin-bottom: 24px;">
+                <button class="tab-btn active" data-view="table">📋 表格视图</button>
+                <button class="tab-btn" data-view="text">📝 文本视图</button>
             </div>
             
             <!-- 表格视图容器 -->
             <div id="tableView" class="view-container">
             <!-- 微博监控配置 -->
-            <div class="card config-section" data-section="weibo">
+            <div class="card config-section fade-in" data-section="weibo">
                 <div class="card-header">
                     <h2>📱 微博监控配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -76,12 +85,18 @@
             </div>
 
             <!-- 微博超话签到配置 -->
-            <div class="card config-section" data-section="weibo_chaohua">
+            <div class="card config-section fade-in" data-section="weibo_chaohua" style="animation-delay: 0.05s;">
                 <div class="card-header">
                     <h2>💬 微博超话签到配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -104,7 +119,10 @@
                             <td class="config-label">多 Cookie</td>
                             <td>
                                 <div id="weibo_chaohua_cookies_list" class="multi-cookies-list"></div>
-                                <button type="button" id="weibo_chaohua_add_cookie_btn" class="btn btn-secondary" style="margin-top: 8px;">添加 Cookie</button>
+                                <button type="button" id="weibo_chaohua_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;">
+                                    <span>➕</span>
+                                    添加 Cookie
+                                </button>
                             </td>
                         </tr>
                         <tr>
@@ -112,19 +130,25 @@
                             <td><input type="time" id="weibo_chaohua_time" class="form-input" value="23:45"></td>
                         </tr>
                     </table>
-                    <div class="help-box" style="margin-top: 15px;">
+                    <div class="help-box" style="margin-top: 16px;">
                         <p>使用 Cookie 作为参数，须包含 XSRF-TOKEN。配置多 Cookie 后会对每个账号依次签到并分别推送。系统会在指定时间自动执行微博超话签到，项目启动时若启用也会执行一次。</p>
                     </div>
                 </div>
             </div>
 
             <!-- 虎牙监控配置 -->
-            <div class="card config-section" data-section="huya">
+            <div class="card config-section fade-in" data-section="huya" style="animation-delay: 0.1s;">
                 <div class="card-header">
                     <h2>🎮 虎牙监控配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -142,12 +166,18 @@
             </div>
 
             <!-- ikuuu签到配置 -->
-            <div class="card config-section" data-section="checkin">
+            <div class="card config-section fade-in" data-section="checkin" style="animation-delay: 0.15s;">
                 <div class="card-header">
                     <h2>📅 ikuuu签到配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -186,7 +216,10 @@
                             <td class="config-label">多账号</td>
                             <td>
                                 <div id="checkin_accounts_list" class="multi-accounts-list"></div>
-                                <button type="button" id="checkin_add_account_btn" class="btn btn-secondary" style="margin-top: 8px;">添加账号</button>
+                                <button type="button" id="checkin_add_account_btn" class="btn btn-secondary" style="margin-top: 10px;">
+                                    <span>➕</span>
+                                    添加账号
+                                </button>
                             </td>
                         </tr>
                         <tr>
@@ -194,19 +227,25 @@
                             <td><input type="time" id="checkin_time" class="form-input" value="08:00"></td>
                         </tr>
                     </table>
-                    <div class="help-box" style="margin-top: 15px;">
+                    <div class="help-box" style="margin-top: 16px;">
                         <p>系统会在指定时间自动执行签到任务，项目启动时也会先执行一次签到。配置多账号后会对每个账号依次签到并分别推送。</p>
                     </div>
                 </div>
             </div>
 
             <!-- 贴吧签到配置 -->
-            <div class="card config-section" data-section="tieba">
+            <div class="card config-section fade-in" data-section="tieba" style="animation-delay: 0.2s;">
                 <div class="card-header">
                     <h2>📌 贴吧签到配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -229,7 +268,10 @@
                             <td class="config-label">多 Cookie</td>
                             <td>
                                 <div id="tieba_cookies_list" class="multi-cookies-list"></div>
-                                <button type="button" id="tieba_add_cookie_btn" class="btn btn-secondary" style="margin-top: 8px;">添加 Cookie</button>
+                                <button type="button" id="tieba_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;">
+                                    <span>➕</span>
+                                    添加 Cookie
+                                </button>
                             </td>
                         </tr>
                         <tr>
@@ -237,19 +279,25 @@
                             <td><input type="time" id="tieba_time" class="form-input" value="08:10"></td>
                         </tr>
                     </table>
-                    <div class="help-box" style="margin-top: 15px;">
+                    <div class="help-box" style="margin-top: 16px;">
                         <p>使用 Cookie 作为参数，须包含 BDUSS。配置多 Cookie 后会对每个账号依次签到并分别推送。系统会在指定时间自动执行贴吧签到，项目启动时若启用也会执行一次。</p>
                     </div>
                 </div>
             </div>
 
             <!-- 调度器配置 -->
-            <div class="card config-section" data-section="scheduler">
+            <div class="card config-section fade-in" data-section="scheduler" style="animation-delay: 0.25s;">
                 <div class="card-header">
                     <h2>⏰ 调度器配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -279,12 +327,18 @@
             </div>
 
             <!-- 免打扰时段配置 -->
-            <div class="card config-section" data-section="quiet_hours">
+            <div class="card config-section fade-in" data-section="quiet_hours" style="animation-delay: 0.3s;">
                 <div class="card-header">
                     <h2>🔕 免打扰时段配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -308,14 +362,14 @@
                             <td><input type="time" id="quiet_hours_end" class="form-input" placeholder="HH:MM"></td>
                         </tr>
                     </table>
-                    <div class="help-box" style="margin-top: 15px;">
+                    <div class="help-box" style="margin-top: 16px;">
                         <p class="warning">⚠️ 开启此功能后，在免打扰时段内的监控任务将继续执行，但不会推送通知给用户</p>
                     </div>
                 </div>
             </div>
 
             <!-- 推送通道配置 -->
-            <div class="card config-section" data-section="push_channel">
+            <div class="card config-section fade-in" data-section="push_channel" style="animation-delay: 0.35s;">
                 <div class="card-header">
                     <h2>📢 推送通道配置</h2>
                 </div>
@@ -327,12 +381,18 @@
             </div>
 
             <!-- 插件/扩展配置（二次开发，如 plugins.demo_task） -->
-            <div class="card config-section" data-section="plugins">
+            <div class="card config-section fade-in" data-section="plugins" style="animation-delay: 0.4s;">
                 <div class="card-header">
                     <h2>🔌 插件/扩展配置</h2>
                     <div class="card-actions">
-                        <button class="btn btn-secondary section-reload-btn">重新加载</button>
-                        <button class="btn btn-primary section-save-btn">保存配置</button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -344,8 +404,8 @@
                             </td>
                         </tr>
                     </table>
-                    <div class="help-box" style="margin-top: 15px;">
-                        <p>用于二次开发的扩展配置，对应 config.yml 中的 <code>plugins</code>。格式为 JSON，与 YAML 中的结构一致。详见项目内 <code>docs/SECONDARY_DEVELOPMENT.md</code>。</p>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>用于二次开发的扩展配置，对应 config.yml 中的 <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">plugins</code>。格式为 JSON，与 YAML 中的结构一致。详见项目内 <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">docs/SECONDARY_DEVELOPMENT.md</code>。</p>
                     </div>
                 </div>
             </div>
@@ -353,12 +413,18 @@
             
             <!-- 文本视图容器 -->
             <div id="textView" class="view-container" style="display: none;">
-                <div class="card">
+                <div class="card fade-in">
                     <div class="card-header">
-                        <h2>配置文件（YAML格式）</h2>
+                        <h2>📄 配置文件（YAML格式）</h2>
                         <div class="card-actions">
-                            <button id="reloadYamlBtn" class="btn btn-secondary">重新加载</button>
-                            <button id="saveYamlBtn" class="btn btn-primary">保存配置</button>
+                            <button id="reloadYamlBtn" class="btn btn-secondary">
+                                <span>🔄</span>
+                                重新加载
+                            </button>
+                            <button id="saveYamlBtn" class="btn btn-primary">
+                                <span>💾</span>
+                                保存配置
+                            </button>
                         </div>
                     </div>
                     <div class="card-body">

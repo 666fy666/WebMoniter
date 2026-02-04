@@ -20,16 +20,19 @@
                 <span class="nav-text">配置管理</span>
             </a>
             <a href="/data" class="nav-item">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon">📊</span>
                 <span class="nav-text">数据展示</span>
             </a>
             <a href="/logs" class="nav-item active">
-                <span class="nav-icon">📝</span>
+                <span class="nav-icon">📋</span>
                 <span class="nav-text">日志查看</span>
             </a>
         </nav>
         <div class="sidebar-footer">
-            <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+            <button id="logoutBtn" class="btn btn-secondary">
+                <span>🚪</span>
+                退出登录
+            </button>
         </div>
     </div>
     <div class="main-content">
@@ -38,15 +41,22 @@
             <p class="subtitle">实时查看当天日志内容</p>
         </div>
         <div class="content-body">
-            <div class="card">
+            <div class="card fade-in">
                 <div class="card-header">
-                    <h2>今日日志</h2>
+                    <h2>📋 今日日志</h2>
                     <div class="card-actions">
-                        <label>
-                            <input type="checkbox" id="autoScroll" checked> 自动滚动
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                            <input type="checkbox" id="autoScroll" checked style="width: 16px; height: 16px; cursor: pointer;"> 
+                            <span>自动滚动</span>
                         </label>
-                        <button id="refreshLogsBtn" class="btn btn-secondary">刷新</button>
-                        <button id="clearLogsBtn" class="btn btn-secondary">清空显示</button>
+                        <button id="refreshLogsBtn" class="btn btn-secondary">
+                            <span>🔄</span>
+                            刷新
+                        </button>
+                        <button id="clearLogsBtn" class="btn btn-secondary">
+                            <span>🗑️</span>
+                            清空显示
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">

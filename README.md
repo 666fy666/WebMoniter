@@ -36,7 +36,6 @@
 <div align="center">
 
 | [🚀 快速开始](#-快速开始) | [🐳 Docker 部署](#-docker-部署推荐) | [🌐 Web 管理](#-web-管理界面) | [⚙️ 配置说明](#-配置说明) | [📡 API](docs/API.md) | [🏗️ 项目架构](docs/ARCHITECTURE.md) | [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md) |
-|:---:|:---:|:---:|:---:|:---:|:---:|
 
 </div>
 
@@ -70,8 +69,6 @@
 | 微博     | weibo    | ✅       | ❌       |
 
 ### 定时任务支持
-
-系统使用 **APScheduler** 的 Cron 触发器，按配置时间每日执行以下定时任务；修改 `config.yml` 后支持**热重载**，无需重启。
 
 | 任务名称       | 配置节点 / 任务 ID   | 默认执行时间 | 启动时执行 | 说明 |
 | -------------- | -------------------- | ------------ | ---------- | ---- |
@@ -160,7 +157,8 @@ uv run python main.py &
 
 ## ⚙️ 配置说明
 
-所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
+- **应用配置**：所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
+- **Docker 编排**：Docker 部署时的编排与运行参数（镜像、端口、卷挂载、资源限制、健康检查等）见 **[`docker-compose.yml`](docker-compose.yml)**；可按需修改端口、时区、内存限制等，修改后执行 `docker compose up -d` 使变更生效。
 
 - 监控与推送类型一览见上文 [支持的平台和推送通道](#-支持的平台和推送通道)
 - 定时任务一览见 [定时任务支持](#定时任务支持)
@@ -211,11 +209,14 @@ A: 免打扰时段内，监控任务会**正常执行**并更新数据库，但*
 ## 📄 参考与致谢
 
 本项目参考了 [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push) 项目的设计思路和推送通道实现，特此表示感谢！
+
 ---
 
 ## 📄 许可证
 
 本项目采用 [MIT License](./LICENSE) 许可，允许用于学习、研究和非商业用途。有关详细条款，请查阅 LICENSE 文件。
+
+---
 
 ## Contributors
 
@@ -223,11 +224,14 @@ A: 免打扰时段内，监控任务会**正常执行**并更新数据库，但*
   <img src="https://contrib.rocks/image?repo=666fy666/WebMoniter" />
 </a>
 
+---
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=666fy666/WebMoniter&type=Date)](https://star-history.com/#666fy666/WebMoniter&Date)
 
 ---
+
 <div align="center">
 
 **最后，如果这个项目对你有帮助**  

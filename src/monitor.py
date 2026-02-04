@@ -105,6 +105,13 @@ class BaseMonitor(ABC):
             error: Cookie过期异常
         """
         platform = self.platform_name
+
+        # 如果Cookie已经被标记为过期，跳过重复处理（避免并发任务产生大量重复日志）
+        if not cookie_cache.is_valid(platform):
+            self.logger.debug(f"Cookie已标记为过期，跳过重复处理: {error}")
+            return
+
+        # 首次检测到Cookie失效，记录日志并标记
         self.logger.error(f"检测到Cookie失效: {error}")
         await cookie_cache.mark_expired(platform)
 
