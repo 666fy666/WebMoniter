@@ -35,9 +35,27 @@ POST /api/logout
 GET /api/check-auth
 ```
 
+#### 获取版本信息（无需登录）
+
+```http
+GET /api/version
+```
+
+返回示例：
+
+```json
+{
+  "version": "2.0.0",
+  "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/releases/latest",
+  "releases_url": "https://github.com/666fy666/WebMoniter/releases"
+}
+```
+
+> 用于 Web 界面自动检测新版本。前端会调用 `github_api_url` 获取最新 release 信息并与当前版本比较。
+
 ---
 
-### 2. 配置管理
+### 2. 配置管理（需登录）
 
 #### 获取配置
 
@@ -276,9 +294,13 @@ login_response = session.post(
 )
 print(login_response.json())
 
-# 获取配置
+# 获取配置（需登录）
 config_response = session.get(f"{BASE_URL}/api/config")
 print(config_response.json())
+
+# 获取版本信息（无需登录）
+version_response = requests.get(f"{BASE_URL}/api/version")
+print(version_response.json())
 
 # 获取监控状态（无需登录）
 status_response = requests.get(f"{BASE_URL}/api/monitor-status")
@@ -321,9 +343,12 @@ curl -X POST http://localhost:8866/api/login \
   -d "username=admin&password=123" \
   -c cookies.txt
 
-# 获取配置（使用保存的 Cookie）
+# 获取配置（需登录，使用保存的 Cookie）
 curl -X GET http://localhost:8866/api/config \
   -b cookies.txt
+
+# 获取版本信息（无需登录）
+curl -X GET http://localhost:8866/api/version
 
 # 获取监控状态（无需登录）
 curl -X GET http://localhost:8866/api/monitor-status

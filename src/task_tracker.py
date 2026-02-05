@@ -90,7 +90,9 @@ async def mark_as_run_today(job_id: str) -> None:
         await conn.commit()
 
 
-def skip_if_run_today(job_id: str) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
+def skip_if_run_today(
+    job_id: str,
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
     """
     装饰器：如果任务当天已经运行过，则跳过执行。
 

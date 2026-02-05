@@ -231,7 +231,8 @@ TASK_MODULES: list[str] = [
     "tasks.log_cleanup",
     "tasks.ikuuu_checkin",  # iKuuu 签到
     "tasks.tieba_checkin",
-    "tasks.demo_task",
+    "tasks.weibo_chaohua_checkin",  # 微博超话签到
+    "tasks.demo_task",  # 二次开发示例，不需要可移除此行
 ]
 ```
 

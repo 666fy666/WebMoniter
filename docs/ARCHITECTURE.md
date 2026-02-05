@@ -1,4 +1,4 @@
-# WebMoniter 项目架构文档
+# Web任务系统 项目架构文档
 
 ## 📋 目录
 
@@ -19,7 +19,7 @@
 
 ## 项目概述
 
-WebMoniter 是一个基于 Python 的**多平台监控与签到系统**，采用异步IO架构，支持：
+Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平台任务系统**，采用异步IO架构，支持：
 
 - **多平台监控**：虎牙直播、微博等平台的实时监控
 - **定时任务**：iKuuu签到、百度贴吧签到、微博超话签到等
@@ -35,6 +35,7 @@ WebMoniter 是一个基于 Python 的**多平台监控与签到系统**，采用
 - ✅ **配置热重载**：配置文件修改后自动检测并应用，无需重启
 - ✅ **Cookie管理**：智能Cookie缓存和过期检测机制
 - ✅ **免打扰时段**：支持配置免打扰时段，静默运行监控任务
+- ✅ **版本更新检测**：自动检测 GitHub 新版本并在 Web 界面提示更新
 
 ---
 
@@ -491,9 +492,10 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - **API接口**：RESTful API供外部调用
 
 **页面路由**：
-- `/`：首页（重定向到配置页或登录页）
+- `/`：首页（已登录则配置页，未登录则登录页）
 - `/login`：登录页面
 - `/config`：配置管理页面
+- `/tasks`：任务管理页面
 - `/data`：数据展示页面
 - `/logs`：日志展示页面
 
@@ -503,6 +505,7 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `GET /api/data/{platform}`：获取监控数据
 - `GET /api/logs`：获取日志内容
 - `GET /api/monitor-status/{platform}`：获取监控状态（无需登录）
+- `GET /api/version`：获取版本信息（无需登录，用于前端检测新版本）
 
 **配置保存特性**：
 - 使用 `ruamel.yaml` 保留YAML注释
@@ -537,6 +540,37 @@ logs/
 - 定时任务每天执行一次（默认02:00）
 - 删除超过 `retention_days` 天的日志文件
 - 从文件名提取日期或使用文件修改时间
+
+---
+
+### 12. src/version.py - 版本信息模块
+
+**职责**：管理应用版本信息，支持版本更新检测
+
+**核心功能**：
+- 从 `pyproject.toml` 读取当前版本号
+- 提供 GitHub 仓库信息（用于检测新版本）
+- 缓存版本号避免重复读取
+
+**版本获取流程**：
+1. 优先从 `importlib.metadata.version()` 读取（已安装包场景）
+2. 失败则从 `pyproject.toml` 直接解析版本号
+3. 缓存到 `__version__` 变量
+
+**导出内容**：
+```python
+from src.version import (
+    __version__,              # 当前版本号，如 "2.0.0"
+    GITHUB_RELEASES_URL,      # GitHub Releases 页面 URL
+    GITHUB_API_LATEST_RELEASE # GitHub API 获取最新 release 的 URL
+)
+```
+
+**前端版本检测流程**：
+1. 前端调用 `GET /api/version` 获取当前版本和 GitHub API 地址
+2. 前端调用 GitHub API 获取最新 release 的 `tag_name`
+3. 比较版本号，若有新版本则显示更新提示横幅
+4. 用户可点击跳转至 GitHub Releases 页面查看更新内容
 
 ---
 
@@ -807,6 +841,7 @@ WebMoniter/
 │   ├── scheduler.py        # 任务调度器
 │   ├── task_tracker.py     # 任务运行追踪（当天已运行则跳过）
 │   ├── utils.py            # 工具函数
+│   ├── version.py          # 版本信息管理
 │   ├── web_server.py       # Web服务器
 │   │
 │   └── push_channel/       # 推送通道模块
@@ -849,7 +884,9 @@ WebMoniter/
 │   │   └── js/
 │   └── templates/          # Jinja2模板
 │       ├── login.html
+│       ├── dashboard.html  # 控制台首页
 │       ├── config.html
+│       ├── tasks.html      # 任务管理
 │       ├── data.html
 │       └── logs.html
 │
@@ -992,7 +1029,7 @@ push_channel:
 - `job_id`：任务ID（主键）
 - `last_run_date`：最后运行日期（ISO格式，如 "2025-02-04"）
 
-> 该表用于实现"当天已运行则跳过"功能，避免定时任务在程序重启或定时触发时重复执行。
+> 该表由 `src/task_tracker.py` 在首次使用时创建，用于实现"当天已运行则跳过"功能，避免定时任务在程序重启或定时触发时重复执行。
 
 ### 连接管理
 
@@ -1044,8 +1081,8 @@ class PushChannel(ABC):
 
 ### 路由设计
 
-- **页面路由**：返回HTML页面（配置、数据、日志）
-- **API路由**：返回JSON数据（配置、数据、日志、监控状态）
+- **页面路由**：返回 HTML 页面（配置、任务管理、数据、日志）
+- **API路由**：返回 JSON 数据（配置、任务、数据、日志、监控状态、版本信息）
 
 ### 认证机制
 
@@ -1063,7 +1100,7 @@ class PushChannel(ABC):
 
 ## 总结
 
-WebMoniter 采用**模块化、插件化、异步IO**的架构设计，具有以下特点：
+Web任务系统采用**模块化、插件化、异步IO**的架构设计，具有以下特点：
 
 1. **高可扩展性**：新增监控或任务只需添加模块，无需修改核心代码
 2. **配置热重载**：修改配置无需重启，5秒内自动生效

@@ -1,5 +1,5 @@
 /* ==========================================
-   Web监控系统 - 现代化样式
+   Web任务系统 - 现代化样式
    ========================================== */
 
 /* CSS 变量定义 */
@@ -2034,5 +2034,94 @@ table tr.data-row-link:hover {
 
     .modal-footer .btn {
         width: 100%;
+    }
+}
+
+/* ==================== 版本更新提示横幅 ==================== */
+.update-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-bottom: 1px solid #f59e0b;
+    color: #92400e;
+    font-size: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.update-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.update-banner-icon {
+    font-size: 18px;
+}
+
+.update-banner-text {
+    font-weight: 500;
+}
+
+.update-banner-text a {
+    color: #b45309;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.update-banner-text a:hover {
+    color: #92400e;
+}
+
+.update-banner-close {
+    background: transparent;
+    border: none;
+    color: #92400e;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.update-banner-close:hover {
+    background: rgba(146, 64, 14, 0.1);
+}
+
+/* 版本信息显示（侧边栏底部） */
+.version-info {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    border-top: 1px solid var(--border-light);
+    margin-top: auto;
+}
+
+.version-info a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.version-info a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* 更新横幅响应式 */
+@media (max-width: 768px) {
+    .update-banner {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .update-banner-content {
+        gap: 8px;
     }
 }

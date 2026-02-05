@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>配置管理 - Web监控系统</title>
+    <title>配置管理 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/style.css?v=6">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>Web监控系统</h2>
+            <h2>Web任务系统</h2>
         </div>
         <nav class="sidebar-nav">
             <a href="/config" class="nav-item active">
@@ -41,6 +41,9 @@
                 <span>🚪</span>
                 退出登录
             </button>
+        </div>
+        <div class="version-info">
+            <span id="currentVersion">加载中...</span>
         </div>
     </div>
 
@@ -74,6 +77,18 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- 版本更新提示横幅 -->
+    <div id="updateBanner" class="update-banner">
+        <div class="update-banner-content">
+            <span class="update-banner-icon">🎉</span>
+            <span class="update-banner-text">
+                发现新版本 <strong id="latestVersion"></strong>！
+                <a id="releasesLink" href="#" target="_blank">前往更新</a>
+            </span>
+        </div>
+        <button id="dismissUpdateBanner" class="update-banner-close" title="关闭">&times;</button>
     </div>
 
     <div class="main-content">
@@ -510,7 +525,7 @@
 
         </div>
     </div>
-    <script src="/static/js/common.js?v=5"></script>
+    <script src="/static/js/common.js?v=6"></script>
     <script src="/static/js/config.js?v=2"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 [project]
 name = "web-monitor"
-version = "2.0.0"
-description = "Web监控系统"
+version = "3.0.0"
+description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9.0",

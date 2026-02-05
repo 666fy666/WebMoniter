@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Web监控系统主入口
+Web任务系统主入口
 使用APScheduler进行任务调度，支持多平台监控和定时任务。
 新增监控/定时任务只需在 src/job_registry 中追加模块并在对应模块内注册，详见 docs/SECONDARY_DEVELOPMENT.md。
 """
@@ -166,7 +166,7 @@ async def main() -> None:
     scheduler = TaskScheduler(config)
     await register_monitors(scheduler)
     jobs = scheduler.scheduler.get_jobs()
-    logger.info("Web监控系统已启动，已注册 %d 个任务", len(jobs))
+    logger.info("Web任务系统已启动，已注册 %d 个任务", len(jobs))
 
     async def config_changed_callback(old_cfg: AppConfig | None, new_cfg: AppConfig) -> None:
         await on_config_changed(old_cfg, new_cfg, scheduler)

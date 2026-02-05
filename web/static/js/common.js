@@ -271,11 +271,111 @@ function initChangePassword() {
     });
 }
 
+// ==================== 版本检查功能 ====================
+
+// 版本比较：返回 1 (a > b), -1 (a < b), 0 (a == b)
+function compareVersions(a, b) {
+    // 去掉 'v' 前缀
+    a = a.replace(/^v/, '');
+    b = b.replace(/^v/, '');
+    
+    const partsA = a.split('.').map(x => parseInt(x, 10) || 0);
+    const partsB = b.split('.').map(x => parseInt(x, 10) || 0);
+    
+    const maxLen = Math.max(partsA.length, partsB.length);
+    for (let i = 0; i < maxLen; i++) {
+        const numA = partsA[i] || 0;
+        const numB = partsB[i] || 0;
+        if (numA > numB) return 1;
+        if (numA < numB) return -1;
+    }
+    return 0;
+}
+
+// 检查版本更新
+async function checkVersionUpdate() {
+    try {
+        // 获取当前版本信息
+        const localResp = await fetch('/api/version');
+        if (!localResp.ok) return;
+        const localData = await localResp.json();
+        const currentVersion = localData.version;
+        const githubApiUrl = localData.github_api_url;
+        const releasesUrl = localData.releases_url;
+        
+        if (!currentVersion || currentVersion === 'unknown') return;
+        
+        // 更新页面上的当前版本显示
+        const currentVersionEl = document.getElementById('currentVersion');
+        if (currentVersionEl) {
+            currentVersionEl.textContent = `v${currentVersion}`;
+        }
+        
+        // 从 GitHub API 获取最新版本
+        const githubResp = await fetch(githubApiUrl);
+        if (!githubResp.ok) {
+            console.log('无法获取最新版本信息');
+            return;
+        }
+        const releaseData = await githubResp.json();
+        const latestVersion = releaseData.tag_name; // 如 "v2.0.1"
+        
+        if (!latestVersion) return;
+        
+        // 比较版本
+        const cmp = compareVersions(latestVersion, currentVersion);
+        
+        const updateBanner = document.getElementById('updateBanner');
+        if (cmp > 0 && updateBanner) {
+            // 有新版本
+            const latestVersionEl = document.getElementById('latestVersion');
+            const releasesLinkEl = document.getElementById('releasesLink');
+            
+            if (latestVersionEl) {
+                latestVersionEl.textContent = latestVersion;
+            }
+            if (releasesLinkEl) {
+                releasesLinkEl.href = releasesUrl;
+            }
+            
+            updateBanner.style.display = 'flex';
+        }
+    } catch (error) {
+        console.log('版本检查失败:', error.message);
+    }
+}
+
+// 关闭更新提示
+function dismissUpdateBanner() {
+    const updateBanner = document.getElementById('updateBanner');
+    if (updateBanner) {
+        updateBanner.style.display = 'none';
+        // 记录到 sessionStorage，本次会话不再提示
+        sessionStorage.setItem('updateBannerDismissed', 'true');
+    }
+}
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
     // 如果不是登录页，检查认证
     if (!window.location.pathname.includes('/login')) {
         checkAuth();
+        
+        // 检查版本更新（如果本次会话未关闭过提示）
+        if (!sessionStorage.getItem('updateBannerDismissed')) {
+            checkVersionUpdate();
+        } else {
+            // 即使关闭了提示，也更新当前版本显示
+            fetch('/api/version')
+                .then(resp => resp.json())
+                .then(data => {
+                    const currentVersionEl = document.getElementById('currentVersion');
+                    if (currentVersionEl && data.version) {
+                        currentVersionEl.textContent = `v${data.version}`;
+                    }
+                })
+                .catch(() => {});
+        }
     }
 
     // 绑定登出按钮
@@ -289,4 +389,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化修改密码功能
     initChangePassword();
+    
+    // 绑定关闭更新提示按钮
+    const dismissBtn = document.getElementById('dismissUpdateBanner');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', dismissUpdateBanner);
+    }
 });

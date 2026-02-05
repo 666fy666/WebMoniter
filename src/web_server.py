@@ -33,7 +33,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # 创建FastAPI应用
-app = FastAPI(title="Web监控系统", description="Web监控系统管理界面")
+app = FastAPI(title="Web任务系统", description="Web任务系统管理界面")
 
 # 会话密钥
 SECRET_KEY = secrets.token_urlsafe(32)
@@ -104,7 +104,7 @@ def check_login(session_id: str | None) -> bool:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """首页 - 重定向到配置管理页"""
+    """首页：已登录则配置页，未登录则登录页"""
     session_id = request.session.get("session_id")
     if check_login(session_id):
         return templates.TemplateResponse("config.html", {"request": request})
@@ -156,15 +156,21 @@ async def change_password(
     """修改密码接口"""
     session_id = request.session.get("session_id")
     if not check_login(session_id):
-        return JSONResponse({"success": False, "message": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse(
+            {"success": False, "message": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     # 验证新密码和确认密码是否一致
     if new_password != confirm_password:
-        return JSONResponse({"success": False, "message": "两次输入的新密码不一致"}, status_code=400)
+        return JSONResponse(
+            {"success": False, "message": "两次输入的新密码不一致"}, status_code=400
+        )
 
     # 验证新密码长度
     if len(new_password) < 3:
-        return JSONResponse({"success": False, "message": "新密码长度至少为3个字符"}, status_code=400)
+        return JSONResponse(
+            {"success": False, "message": "新密码长度至少为3个字符"}, status_code=400
+        )
 
     # 验证旧密码
     auth_data = load_auth()
@@ -187,6 +193,24 @@ async def check_auth(request: Request):
     if check_login(session_id):
         return JSONResponse({"authenticated": True})
     return JSONResponse({"authenticated": False}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+@app.get("/api/version")
+async def get_version_api():
+    """获取当前版本信息"""
+    from src.version import (
+        GITHUB_API_LATEST_RELEASE,
+        GITHUB_RELEASES_URL,
+        __version__,
+    )
+
+    return JSONResponse(
+        {
+            "version": __version__,
+            "github_api_url": GITHUB_API_LATEST_RELEASE,
+            "releases_url": GITHUB_RELEASES_URL,
+        }
+    )
 
 
 @app.get("/config", response_class=HTMLResponse)
@@ -240,23 +264,27 @@ async def get_tasks_api(request: Request):
 
         # 添加监控任务
         for job in MONITOR_JOBS:
-            tasks.append({
-                "job_id": job.job_id,
-                "trigger": job.trigger,
-                "type": "monitor",
-                "type_label": "监控任务",
-                "description": _get_job_description(job.job_id),
-            })
+            tasks.append(
+                {
+                    "job_id": job.job_id,
+                    "trigger": job.trigger,
+                    "type": "monitor",
+                    "type_label": "监控任务",
+                    "description": _get_job_description(job.job_id),
+                }
+            )
 
         # 添加定时任务
         for job in TASK_JOBS:
-            tasks.append({
-                "job_id": job.job_id,
-                "trigger": job.trigger,
-                "type": "task",
-                "type_label": "定时任务",
-                "description": _get_job_description(job.job_id),
-            })
+            tasks.append(
+                {
+                    "job_id": job.job_id,
+                    "trigger": job.trigger,
+                    "type": "task",
+                    "type_label": "定时任务",
+                    "description": _get_job_description(job.job_id),
+                }
+            )
 
         return JSONResponse({"success": True, "tasks": tasks})
     except Exception as e:
@@ -307,16 +335,21 @@ async def run_task_api(request: Request, task_id: str):
             run_func = target_job.original_run_func or target_job.run_func
             await run_func()
             logger.info(f"任务 {task_id} 手动执行完成")
-            return JSONResponse({
-                "success": True,
-                "message": f"任务 {task_id} 执行成功",
-            })
+            return JSONResponse(
+                {
+                    "success": True,
+                    "message": f"任务 {task_id} 执行成功",
+                }
+            )
         except Exception as e:
             logger.error(f"任务 {task_id} 执行失败: {e}", exc_info=True)
-            return JSONResponse({
-                "success": False,
-                "message": f"任务执行失败: {str(e)}",
-            }, status_code=500)
+            return JSONResponse(
+                {
+                    "success": False,
+                    "message": f"任务执行失败: {str(e)}",
+                },
+                status_code=500,
+            )
     except Exception as e:
         logger.error(f"触发任务失败: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
