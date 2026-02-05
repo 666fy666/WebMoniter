@@ -36,7 +36,8 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 # 复制项目源代码（只复制运行时需要的文件）
-COPY main.py ./
+# pyproject.toml 用于版本号读取
+COPY pyproject.toml main.py ./
 COPY monitors/ ./monitors/
 COPY src/ ./src/
 COPY tasks/ ./tasks/
