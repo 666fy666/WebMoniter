@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>配置管理 - Web监控系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=4">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -120,6 +120,13 @@
                             <td class="config-label">并发数</td>
                             <td><input type="number" id="weibo_concurrency" class="form-input" min="1" max="10" placeholder="建议2-5"></td>
                         </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="weibo_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
                     </table>
                 </div>
             </div>
@@ -169,6 +176,13 @@
                             <td class="config-label">签到时间</td>
                             <td><input type="time" id="weibo_chaohua_time" class="form-input" value="23:45"></td>
                         </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="weibo_chaohua_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
                     </table>
                     <div class="help-box" style="margin-top: 16px;">
                         <p>使用 Cookie 作为参数，须包含 XSRF-TOKEN。配置多 Cookie 后会对每个账号依次签到并分别推送。系统会在指定时间自动执行微博超话签到，项目启动时若启用也会执行一次。</p>
@@ -200,6 +214,13 @@
                         <tr>
                             <td class="config-label">并发数</td>
                             <td><input type="number" id="huya_concurrency" class="form-input" min="1" max="20" placeholder="建议5-10"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="huya_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -266,6 +287,13 @@
                             <td class="config-label">签到时间</td>
                             <td><input type="time" id="checkin_time" class="form-input" value="08:00"></td>
                         </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="checkin_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
                     </table>
                     <div class="help-box" style="margin-top: 16px;">
                         <p>系统会在指定时间自动执行签到任务，项目启动时也会先执行一次签到。配置多账号后会对每个账号依次签到并分别推送。</p>
@@ -317,6 +345,13 @@
                         <tr>
                             <td class="config-label">签到时间</td>
                             <td><input type="time" id="tieba_time" class="form-input" value="08:10"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="tieba_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
                         </tr>
                     </table>
                     <div class="help-box" style="margin-top: 16px;">
@@ -475,7 +510,7 @@
 
         </div>
     </div>
-    <script src="/static/js/common.js?v=4"></script>
-    <script src="/static/js/config.js"></script>
+    <script src="/static/js/common.js?v=5"></script>
+    <script src="/static/js/config.js?v=2"></script>
 </body>
 </html>

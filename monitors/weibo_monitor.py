@@ -62,9 +62,9 @@ class WeiboMonitor(BaseMonitor):
         """检查是否有企业微信应用推送通道"""
         if not self.push:
             return False
-        # 检查 UnifiedPushManager 中是否有启用的企业微信应用推送通道
+        # 检查 UnifiedPushManager 中是否有企业微信应用推送通道
         for channel in getattr(self.push, "push_channels", []):
-            if channel.enable and channel.type == "wecom_apps":
+            if channel.type == "wecom_apps":
                 return True
         return False
 
@@ -301,7 +301,7 @@ class WeiboMonitor(BaseMonitor):
                 # 使用完整内容（旧数据或没有原始数据的情况）
                 description = (
                     f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 28}\n"
+                    f"{'=' * 25}\n"
                     f"认证:{data['认证信息']}\n\n"
                     f"简介:{data['简介']}"
                 )
@@ -351,7 +351,7 @@ class WeiboMonitor(BaseMonitor):
             # 构建完整的推送描述
             description = (
                 f"Ta说:👇\n{text}\n"
-                f"{'=' * 28}\n"
+                f"{'=' * 25}\n"
                 f"认证:{verified_reason}\n\n"
                 f"简介:{user_description}"
             )
@@ -419,6 +419,12 @@ class WeiboMonitor(BaseMonitor):
     def platform_name(self) -> str:
         """平台名称"""
         return "weibo"
+
+    @property
+    def push_channel_names(self) -> list[str] | None:
+        """推送通道名称列表"""
+        channels = getattr(self.config, "weibo_push_channels", None)
+        return channels if channels else None
 
     async def run(self):
         """运行监控"""

@@ -940,10 +940,9 @@ scheduler:
   huya_monitor_interval_seconds: 60
   weibo_monitor_interval_seconds: 300
 
-# 推送通道配置
+# 推送通道配置（每个任务可通过 push_channels 字段选择使用哪些通道）
 push_channel:
   - name: "企业微信"
-    enable: true
     type: wecom_apps
     # ...
 ```

@@ -16,7 +16,6 @@ class PushChannel(ABC):
             session: 可选的 HTTP 会话（用于共享连接）
         """
         self.name = config.get("name", "")
-        self.enable = config.get("enable", False)
         self.type = config.get("type", "")
         self.session = session
         self._own_session = False

@@ -41,6 +41,7 @@ class WeiboChaohuaCheckinConfig:
     cookie: str  # 单条 Cookie，兼容旧配置
     cookies: list[str]  # 多 Cookie 列表，非空时优先使用
     time: str
+    push_channels: list[str]  # 推送通道名称列表，为空时使用全部通道
 
     @classmethod
     def from_app_config(cls, config: AppConfig) -> WeiboChaohuaCheckinConfig:
@@ -48,11 +49,13 @@ class WeiboChaohuaCheckinConfig:
         single = (config.weibo_chaohua_cookie or "").strip()
         if not cookies and single:
             cookies = [single]
+        push_channels: list[str] = getattr(config, "weibo_chaohua_push_channels", None) or []
         return cls(
             enable=config.weibo_chaohua_enable,
             cookie=single,
             cookies=cookies,
             time=(config.weibo_chaohua_time or "23:45").strip() or "23:45",
+            push_channels=push_channels,
         )
 
     def validate(self) -> bool:
@@ -330,9 +333,10 @@ async def run_weibo_chaohua_checkin_once() -> None:
             session,
             logger,
             init_fail_prefix="微博超话签到：",
+            channel_names=cfg.push_channels if cfg.push_channels else None,
         )
         if push_manager is None:
-            logger.warning("微博超话签到：未配置任何启用的推送通道，将仅在日志中记录结果")
+            logger.warning("微博超话签到：未配置任何推送通道，将仅在日志中记录结果")
 
         for idx, cookie_str in enumerate(effective_cookies):
             cfg_one = WeiboChaohuaCheckinConfig(
@@ -340,6 +344,7 @@ async def run_weibo_chaohua_checkin_once() -> None:
                 cookie=cookie_str,
                 cookies=[cookie_str],
                 time=cfg.time,
+                push_channels=cfg.push_channels,
             )
             logger.debug("微博超话签到：正在处理第 %d/%d 个账号", idx + 1, len(effective_cookies))
 

@@ -37,6 +37,7 @@ class CheckinConfig:
     password: str
     time: str
     accounts: list[dict]  # 多账号列表 [{"email": str, "password": str}, ...]，执行时优先遍历此列表
+    push_channels: list[str]  # 推送通道名称列表，为空时使用全部通道
 
     @classmethod
     def from_app_config(cls, config: AppConfig) -> CheckinConfig:
@@ -58,6 +59,7 @@ class CheckinConfig:
                 }
             ]
         first = accounts[0] if accounts else {"email": "", "password": ""}
+        push_channels: list[str] = getattr(config, "checkin_push_channels", None) or []
         return cls(
             enable=config.checkin_enable,
             login_url=config.checkin_login_url.strip(),
@@ -67,6 +69,7 @@ class CheckinConfig:
             password=first.get("password", ""),
             time=config.checkin_time.strip() or "08:00",
             accounts=accounts,
+            push_channels=push_channels,
         )
 
     def with_account(self, email: str, password: str) -> CheckinConfig:
@@ -80,6 +83,7 @@ class CheckinConfig:
             password=password,
             time=self.time,
             accounts=self.accounts,
+            push_channels=self.push_channels,
         )
 
     def validate(self) -> bool:
@@ -329,9 +333,10 @@ async def run_checkin_once() -> None:
             session,
             logger,
             init_fail_prefix="ikuuu签到：",
+            channel_names=cfg.push_channels if cfg.push_channels else None,
         )
         if push_manager is None:
-            logger.warning("ikuuu签到：未配置任何启用的推送通道，将仅在日志中记录结果")
+            logger.warning("ikuuu签到：未配置任何推送通道，将仅在日志中记录结果")
 
         success_count = 0
         for idx, account in enumerate(valid_accounts):

@@ -14,21 +14,38 @@ async def build_push_manager(
     logger: logging.Logger,
     *,
     init_fail_prefix: str = "",
+    channel_names: list[str] | None = None,
 ) -> "UnifiedPushManager | None":
     """
-    根据配置构建 UnifiedPushManager（仅包含 enable=true 的通道）。
+    根据配置构建 UnifiedPushManager。
+
+    Args:
+        push_channel_list: 推送通道配置列表
+        session: HTTP 会话
+        logger: 日志记录器
+        init_fail_prefix: 初始化失败日志前缀
+        channel_names: 要使用的通道名称列表（可选）。
+                      如果为空列表或 None，则使用所有已配置的通道。
+                      如果指定了名称，则只使用名称匹配的通道。
 
     说明：
-    - 行为保持与原逻辑一致：逐个创建通道、可选执行 initialize、失败则跳过该通道。
-    - 仅做代码复用，避免在监控与签到中重复实现初始化逻辑。
+    - 按通道名称过滤：当 channel_names 非空时，只初始化指定名称的通道。
+    - 逐个创建通道、可选执行 initialize、失败则跳过该通道。
     """
     if not push_channel_list:
         return None
 
+    # 如果指定了通道名称，转换为集合用于快速查找
+    filter_names: set[str] | None = None
+    if channel_names:
+        filter_names = set(channel_names)
+
     push_channels = []
     for channel_config in push_channel_list:
-        # 只处理启用的通道
-        if not channel_config.get("enable", False):
+        name = channel_config.get("name", "")
+
+        # 按名称过滤通道（如果指定了）
+        if filter_names is not None and name not in filter_names:
             continue
 
         try:
@@ -38,9 +55,8 @@ async def build_push_manager(
             if hasattr(channel, "initialize"):
                 await channel.initialize()
         except Exception as e:  # noqa: BLE001
-            name = channel_config.get("name", "未知")
             # 保持日志信息风格可由调用方通过前缀控制
-            logger.warning(f"{init_fail_prefix}推送通道 {name} 初始化失败: {e}")
+            logger.warning(f"{init_fail_prefix}推送通道 {name or '未知'} 初始化失败: {e}")
 
     if not push_channels:
         return None
@@ -92,18 +108,15 @@ class UnifiedPushManager:
         results = {}
         errors = []
 
-        # 过滤出启用的通道
-        enabled_channels = [ch for ch in self.push_channels if ch.enable]
-
-        if not enabled_channels:
-            self.logger.warning("未配置任何启用的推送渠道")
+        if not self.push_channels:
+            self.logger.warning("未配置任何推送渠道")
             return {"results": results, "errors": errors}
 
         # 并发发送到所有渠道
         tasks = []
         channel_names = []
 
-        for channel in enabled_channels:
+        for channel in self.push_channels:
             channel_names.append(channel.name)
             # 如果提供了 description_func，则使用它来生成该通道的 description
             channel_description = description_func(channel) if description_func else description

@@ -1,6 +1,7 @@
 // 配置管理页面JavaScript
 
 let originalConfig = null;
+let availablePushChannels = []; // 可用的推送通道列表
 let pushChannelTypes = {
     'serverChan_turbo': { name: 'Server酱 Turbo', fields: ['send_key'] },
     'serverChan_3': { name: 'Server酱 3', fields: ['send_key', 'uid', 'tags'] },
@@ -190,6 +191,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const container = document.getElementById('pushChannelsContainer');
         container.innerHTML = '';
 
+        // 更新可用推送通道列表
+        availablePushChannels = channels.map(ch => ({
+            name: ch.name || '',
+            type: ch.type || ''
+        })).filter(ch => ch.name);
+
         if (channels.length === 0) {
             container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">暂无推送通道</p>';
             return;
@@ -198,6 +205,74 @@ document.addEventListener('DOMContentLoaded', async function() {
         channels.forEach((channel, index) => {
             const channelDiv = createPushChannelElement(channel, index);
             container.appendChild(channelDiv);
+        });
+
+        // 渲染所有任务的推送通道选择
+        renderAllTaskPushChannelSelects();
+    }
+
+    // 渲染任务推送通道选择
+    function renderTaskPushChannelSelect(containerId, selectedChannels) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        if (availablePushChannels.length === 0) {
+            container.innerHTML = '<span class="no-channels">暂无可用推送通道，请先配置推送通道</span>';
+            return;
+        }
+
+        const selected = Array.isArray(selectedChannels) ? selectedChannels : [];
+        
+        availablePushChannels.forEach(channel => {
+            const label = document.createElement('label');
+            label.className = 'push-channel-checkbox' + (selected.includes(channel.name) ? ' selected' : '');
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = channel.name;
+            checkbox.checked = selected.includes(channel.name);
+            checkbox.addEventListener('change', function() {
+                label.classList.toggle('selected', this.checked);
+            });
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'channel-name';
+            nameSpan.textContent = channel.name;
+            
+            label.appendChild(checkbox);
+            label.appendChild(nameSpan);
+            container.appendChild(label);
+        });
+    }
+
+    // 获取任务选择的推送通道
+    function getTaskPushChannels(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        
+        const channels = [];
+        container.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+            if (checkbox.value) {
+                channels.push(checkbox.value);
+            }
+        });
+        return channels;
+    }
+
+    // 渲染所有任务的推送通道选择
+    function renderAllTaskPushChannelSelects() {
+        const taskPushChannelConfigs = {
+            'weibo_push_channels': originalConfig?.weibo?.push_channels || [],
+            'weibo_chaohua_push_channels': originalConfig?.weibo_chaohua?.push_channels || [],
+            'huya_push_channels': originalConfig?.huya?.push_channels || [],
+            'checkin_push_channels': originalConfig?.checkin?.push_channels || [],
+            'tieba_push_channels': originalConfig?.tieba?.push_channels || []
+        };
+
+        Object.keys(taskPushChannelConfigs).forEach(containerId => {
+            renderTaskPushChannelSelect(containerId, taskPushChannelConfigs[containerId]);
         });
     }
 
@@ -215,10 +290,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             <div class="push-channel-header">
                 <div class="push-channel-title">
                     <span>${name}</span>
-                    <label class="switch">
-                        <input type="checkbox" class="channel-enable" ${channel.enable ? 'checked' : ''}>
-                        <span class="slider"></span>
-                    </label>
                 </div>
                 <div class="push-channel-actions">
                     <button class="btn btn-small btn-secondary reload-channel-btn">重新加载</button>
@@ -488,6 +559,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ? config.weibo.uids 
                         : (Array.isArray(config.weibo.uids) ? config.weibo.uids.join(',') : '');
                     document.getElementById('weibo_concurrency').value = config.weibo.concurrency || 3;
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('weibo_push_channels', config.weibo.push_channels || []);
                 }
                 break;
             case 'checkin':
@@ -523,6 +596,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             : [{ email: '', password: '' }];
                         renderCheckinAccounts(accounts);
                     }
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('checkin_push_channels', config.checkin.push_channels || []);
                 }
                 break;
             case 'tieba':
@@ -549,6 +624,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             : [''];
                         renderTiebaCookies(cookies);
                     }
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('tieba_push_channels', config.tieba.push_channels || []);
                 }
                 break;
             case 'weibo_chaohua':
@@ -575,6 +652,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             : [''];
                         renderWeiboChaohuaCookies(cookies);
                     }
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('weibo_chaohua_push_channels', config.weibo_chaohua.push_channels || []);
                 }
                 break;
             case 'huya':
@@ -583,6 +662,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ? config.huya.rooms 
                         : (Array.isArray(config.huya.rooms) ? config.huya.rooms.join(',') : '');
                     document.getElementById('huya_concurrency').value = config.huya.concurrency || 7;
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('huya_push_channels', config.huya.push_channels || []);
                 }
                 break;
             case 'scheduler':
@@ -631,7 +712,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 config.weibo = {
                     cookie: document.getElementById('weibo_cookie').value.trim(),
                     uids: document.getElementById('weibo_uids').value.trim(),
-                    concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3
+                    concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
+                    push_channels: getTaskPushChannels('weibo_push_channels')
                 };
                 break;
             case 'checkin': {
@@ -651,7 +733,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
                     email: first.email,
                     password: first.password,
-                    time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
+                    time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00',
+                    push_channels: getTaskPushChannels('checkin_push_channels')
                 };
                 if (accounts.length > 0) config.checkin.accounts = accounts;
                 break;
@@ -666,7 +749,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 config.tieba = {
                     enable: tiebaEnable ? tiebaEnable.checked : false,
                     cookie: cookies.length > 0 ? cookies[0] : singleCookie,
-                    time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
+                    time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10',
+                    push_channels: getTaskPushChannels('tieba_push_channels')
                 };
                 if (cookies.length > 0) config.tieba.cookies = cookies;
                 break;
@@ -681,7 +765,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 config.weibo_chaohua = {
                     enable: weiboChaohuaEnable ? weiboChaohuaEnable.checked : false,
                     cookie: cookies.length > 0 ? cookies[0] : singleCookie,
-                    time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45'
+                    time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45',
+                    push_channels: getTaskPushChannels('weibo_chaohua_push_channels')
                 };
                 if (cookies.length > 0) config.weibo_chaohua.cookies = cookies;
                 break;
@@ -689,7 +774,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'huya':
                 config.huya = {
                     rooms: document.getElementById('huya_rooms').value.trim(),
-                    concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7
+                    concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
+                    push_channels: getTaskPushChannels('huya_push_channels')
                 };
                 break;
             case 'scheduler':
@@ -714,7 +800,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 channelItems.forEach(item => {
                     const channel = {
                         name: item.querySelector('.channel-name').value.trim(),
-                        enable: item.querySelector('.channel-enable').checked,
                         type: item.querySelector('.channel-type').value
                     };
 
@@ -771,7 +856,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.weibo = {
             cookie: document.getElementById('weibo_cookie').value.trim(),
             uids: document.getElementById('weibo_uids').value.trim(),
-            concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3
+            concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
+            push_channels: getTaskPushChannels('weibo_push_channels')
         };
 
         // 微博超话签到配置（含多 Cookie）
@@ -784,14 +870,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.weibo_chaohua = {
             enable: weiboChaohuaEnable ? weiboChaohuaEnable.checked : false,
             cookie: weiboChaohuaCookies.length > 0 ? weiboChaohuaCookies[0] : singleWeiboChaohuaCookie,
-            time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45'
+            time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45',
+            push_channels: getTaskPushChannels('weibo_chaohua_push_channels')
         };
         if (weiboChaohuaCookies.length > 0) config.weibo_chaohua.cookies = weiboChaohuaCookies;
 
         // 虎牙配置
         config.huya = {
             rooms: document.getElementById('huya_rooms').value.trim(),
-            concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7
+            concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
+            push_channels: getTaskPushChannels('huya_push_channels')
         };
 
         // 调度器配置
@@ -827,7 +915,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
             email: firstCheckin.email,
             password: firstCheckin.password,
-            time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00'
+            time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00',
+            push_channels: getTaskPushChannels('checkin_push_channels')
         };
         if (checkinAccounts.length > 0) config.checkin.accounts = checkinAccounts;
 
@@ -841,7 +930,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.tieba = {
             enable: tiebaEnable ? tiebaEnable.checked : false,
             cookie: tiebaCookies.length > 0 ? tiebaCookies[0] : singleTiebaCookie,
-            time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10'
+            time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10',
+            push_channels: getTaskPushChannels('tieba_push_channels')
         };
         if (tiebaCookies.length > 0) config.tieba.cookies = tiebaCookies;
 
@@ -851,7 +941,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         channelItems.forEach(item => {
             const channel = {
                 name: item.querySelector('.channel-name').value.trim(),
-                enable: item.querySelector('.channel-enable').checked,
                 type: item.querySelector('.channel-type').value
             };
 
@@ -1066,7 +1155,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 收集当前通道的配置
             const channel = {
                 name: channelDiv.querySelector('.channel-name').value.trim(),
-                enable: channelDiv.querySelector('.channel-enable').checked,
                 type: channelDiv.querySelector('.channel-type').value
             };
 

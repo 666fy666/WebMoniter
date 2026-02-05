@@ -401,6 +401,8 @@ async def save_config_api(request: Request):
                         # 更新配置数据
                         def update_dict(target, source):
                             """递归更新字典，保留原始结构。空列表 cookies/accounts 不写入，避免污染 YAML。"""
+                            from ruamel.yaml.comments import CommentedSeq
+
                             for key, value in source.items():
                                 # 不写入空的 cookies 或 accounts，避免在错误位置产生 cookies: [] / accounts: []
                                 if (
@@ -410,6 +412,13 @@ async def save_config_api(request: Request):
                                 ):
                                     if key in target and isinstance(target[key], list):
                                         del target[key]
+                                    continue
+                                # push_channels 是字符串列表，直接替换（包括空列表）
+                                # 使用 flow style（["a", "b"]）避免 block style 缩进问题
+                                if key == "push_channels":
+                                    new_list = CommentedSeq(value if value else [])
+                                    new_list.fa.set_flow_style()  # 强制使用 flow style
+                                    target[key] = new_list
                                     continue
                                 if key not in target:
                                     # 新键，直接添加

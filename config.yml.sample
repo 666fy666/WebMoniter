@@ -14,6 +14,7 @@ weibo:
   cookie: your_weibo_cookie  # 从浏览器开发者工具获取
   uids: uid1,uid2,uid3  # 逗号分隔的 UID 列表
   concurrency: 2  # 并发数，建议 2-5（避免触发限流）
+  push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道，如 [企业微信应用, 钉钉机器人, 飞书机器人, WxPusher]
 
 # =============================================================================
 # 微博超话签到配置（须包含 XSRF-TOKEN，支持多 Cookie）
@@ -28,6 +29,7 @@ weibo_chaohua:
   #   - "SCF=xxx; XSRF-TOKEN=xxx; SUB=xxx; ..."
   #   - "SCF=yyy; XSRF-TOKEN=yyy; SUB=yyy; ..."
   time: "23:45"  # 签到时间（24 小时制 HH:MM），默认 23:45
+  push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
 
 # =============================================================================
 # 虎牙监控配置
@@ -36,6 +38,7 @@ weibo_chaohua:
 huya:
   rooms: room1,room2,room3  # 逗号分隔的房间号列表
   concurrency: 5  # 并发数，建议 5-10
+  push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
 
 # =============================================================================
 # iKuuu 签到配置
@@ -55,6 +58,7 @@ checkin:
   #   - email: user2@example.com
   #     password: pass2
   time: "08:00"  # 签到时间（24 小时制 HH:MM），默认每天早上 8 点
+  push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
 
 # =============================================================================
 # 百度贴吧签到配置（须包含 BDUSS，支持多 Cookie）
@@ -70,6 +74,7 @@ tieba:
   #   - "BIDUPSID=xxx; BDUSS=xxx; ..."
   #   - "BIDUPSID=yyy; BDUSS=yyy; ..."
   time: "08:10"  # 签到时间（24 小时制 HH:MM），默认 08:10
+  push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
 
 # =============================================================================
 # 调度器配置
@@ -106,24 +111,22 @@ plugins:
 # =============================================================================
 # 推送通道配置
 # =============================================================================
-# 支持配置多个推送通道。每个通道需设置：name（唯一）、enable、type，以及该 type 所需的其他字段
-# 通道类型与说明见 README「推送通道支持」表格；可同时启用多个通道，消息会发往所有启用的通道
+# 支持配置多个推送通道。每个通道需设置：name（唯一）、type，以及该 type 所需的其他字段
+# 通道类型与说明见 README「推送通道支持」表格
+# 每个任务可在其配置中通过 push_channels 字段选择使用哪些通道（按 name 匹配），为空时使用全部已配置的通道
 push_channel:
   # Server酱 Turbo
   - name: Server酱_Turbo
-    enable: false
     type: serverChan_turbo
     send_key:
   # Server酱 3
   - name: Server酱_3
-    enable: false
     type: serverChan_3
     send_key:
     uid:
     tags:
   # 企业微信应用
   - name: 企业微信应用
-    enable: false
     type: wecom_apps
     corp_id:
     agent_id:
@@ -131,18 +134,15 @@ push_channel:
     touser: "@all"  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
   # 企业微信机器人
   - name: 企业微信机器人
-    enable: false
     type: wecom_bot
     key:
   # 钉钉机器人
   - name: 钉钉机器人
-    enable: false
     type: dingtalk_bot
     access_token:  # 机器人访问令牌
     secret:  # 可选：加签密钥（SEC开头的字符串），如果配置了secret则使用加签方式，否则使用普通方式
   # 飞书自建应用
   - name: 飞书自建应用
-    enable: false
     type: feishu_apps
     app_id:
     app_secret:
@@ -150,19 +150,16 @@ push_channel:
     receive_id:
   # 飞书机器人
   - name: 飞书机器人
-    enable: false
     type: feishu_bot
     webhook_key:  # 机器人Webhook Key
     sign_secret:  # 可选：签名密钥，如果配置了sign_secret则使用签名校验方式，否则使用普通方式
   # Telegram机器人
   - name: Telegram机器人
-    enable: false
     type: telegram_bot
     api_token:
     chat_id:
   # QQ机器人（不推荐，需要使用app_secret获取AccessToken鉴权）
   - name: QQ机器人
-    enable: false
     type: qq_bot
     base_url: https://api.sgroup.qq.com
     app_id:  # 机器人应用的App ID
@@ -175,7 +172,6 @@ push_channel:
           - "子频道12"
   # NapCatQQ
   - name: NapCatQQ
-    enable: false
     type: napcat_qq
     api_url: http://localhost:3000
     token:
@@ -184,24 +180,20 @@ push_channel:
     at_qq: "all"
   # Bark
   - name: Bark
-    enable: false
     type: bark
     server_url: https://api.day.app
     key:
   # Gotify
   - name: Gotify
-    enable: false
     type: gotify
     web_server_url:
   # Webhook
   - name: Webhook
-    enable: false
     type: webhook
     webhook_url: https://xxx.com?title={{title}}&content={{content}}
     request_method: GET
   # PushPlus
   - name: PushPlus
-    enable: false
     type: pushplus
     token:
     channel: wechat  # 推送渠道，可选值：wechat(微信)、mail(邮件)、webhook(Webhook)、cp(企业微信)、sms(短信)等
@@ -210,7 +202,6 @@ push_channel:
     to:  # 好友消息的接收者标识，可选
   # Email
   - name: Email
-    enable: false
     type: email
     smtp_host:
     smtp_port:
@@ -221,7 +212,6 @@ push_channel:
     receiver_email:
   # WxPusher
   - name: WxPusher
-    enable: false
     type: wxpusher
     app_token:  # 应用令牌，在WxPusher后台创建应用后获取
     uids:  # 用户ID列表，逗号分隔（可选，与topic_ids二选一）

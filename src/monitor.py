@@ -52,8 +52,13 @@ class BaseMonitor(ABC):
 
         session = await self._get_session()
 
-        # 初始化推送通道（新格式）
-        self.push = await build_push_manager(self.config.push_channel_list, session, self.logger)
+        # 初始化推送通道，按任务配置的通道名称过滤
+        self.push = await build_push_manager(
+            self.config.push_channel_list,
+            session,
+            self.logger,
+            channel_names=self.push_channel_names,
+        )
         if self.push is None:
             self.logger.warning("未配置任何推送通道，推送功能将不可用")
 
@@ -96,6 +101,19 @@ class BaseMonitor(ABC):
             平台名称，如 "huya"、"weibo"
         """
         pass
+
+    @property
+    def push_channel_names(self) -> list[str] | None:
+        """
+        推送通道名称列表 - 用于过滤要使用的推送通道
+
+        子类应重写此属性以返回任务配置中的 push_channels 列表。
+        返回 None 或空列表时使用所有已配置的通道。
+
+        Returns:
+            推送通道名称列表，如 ["企业微信机器人", "Telegram机器人"]
+        """
+        return None
 
     async def handle_cookie_expired(self, error: CookieExpiredError) -> None:
         """

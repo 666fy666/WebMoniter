@@ -156,6 +156,7 @@ async def run_checkin_once() -> None:
     async with aiohttp.ClientSession(...) as session:
         push_manager = await build_push_manager(
             app_config.push_channel_list, session, logger, init_fail_prefix="ikuuu签到：",
+            channel_names=cfg.push_channels if cfg.push_channels else None,  # 指定使用的通道
         )
         cookie = await _login_and_get_cookie(session, cfg)
         if not cookie:
@@ -499,13 +500,14 @@ await self.db.execute_insert(sql, data)
 ## 六、推送逻辑（统一说明）
 
 - 推送通道统一来自 `config.push_channel_list`（即 `config.yml` 的 `push_channel`），无需在任务里新增通道类型。
+- **通道选择机制**：每个任务可以在配置中通过 `push_channels` 字段指定使用哪些推送通道（按名称匹配）。为空时使用全部已配置的通道。
 - 在任务/监控内：
-  1. 使用 `await build_push_manager(config.push_channel_list, session, logger, init_fail_prefix="任务名：")` 得到 `UnifiedPushManager`。
+  1. 使用 `await build_push_manager(config.push_channel_list, session, logger, init_fail_prefix="任务名：", channel_names=["通道1", "通道2"])` 得到 `UnifiedPushManager`。`channel_names` 参数可选，用于指定仅初始化哪些通道（按 `name` 字段匹配），为空或 None 时使用全部通道。
   2. 需要推送时调用 `await push_manager.send_news(title=..., description=..., to_url=..., picurl=..., btntxt=...)`。
   3. 遵守免打扰：推送前 `if is_in_quiet_hours(config): return`（或只打日志），再调用 `send_news`。
   4. 使用完毕后 `await push_manager.close()`。
 
-虎牙在类内使用 `self.push`（BaseMonitor 在 `initialize` 里已创建）；iKuuu/Demo 在 async 函数内自己创建 `push_manager` 并在同一 session 生命周期内 close。  
+虎牙在类内使用 `self.push`（BaseMonitor 在 `initialize` 里已创建，会自动读取任务配置的 `push_channels`）；iKuuu/Demo 在 async 函数内自己创建 `push_manager` 并在同一 session 生命周期内 close。  
 推送失败建议用 `logger.error(..., exc_info=True)` 记录，不中断主流程。
 
 ---

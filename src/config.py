@@ -33,10 +33,12 @@ class AppConfig(BaseModel):
     weibo_cookie: str = ""
     weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
+    weibo_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 虎牙
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
+    huya_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 每日签到配置
     checkin_enable: bool = False  # 是否启用每日签到
@@ -49,12 +51,14 @@ class AppConfig(BaseModel):
         []
     )  # 多账号：[{"email": str, "password": str}, ...]，非空时优先于单账号
     checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
+    checkin_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 百度贴吧签到配置（使用 Cookie）
     tieba_enable: bool = False  # 是否启用贴吧签到
     tieba_cookie: str = ""  # 单 Cookie（与 tieba_cookies 二选一，须包含 BDUSS）
     tieba_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 tieba_cookie
     tieba_time: str = "08:10"  # 贴吧签到时间（格式：HH:MM），默认 08:10
+    tieba_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 微博超话签到配置（使用 Cookie）
     weibo_chaohua_enable: bool = False  # 是否启用微博超话签到
@@ -63,6 +67,7 @@ class AppConfig(BaseModel):
     )
     weibo_chaohua_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 weibo_chaohua_cookie
     weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
+    weibo_chaohua_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
@@ -134,10 +139,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "cookie": "weibo_cookie",
                 "uids": "weibo_uids",
                 "concurrency": "weibo_concurrency",
+                "push_channels": "weibo_push_channels",
             },
             "huya": {
                 "rooms": "huya_rooms",
                 "concurrency": "huya_concurrency",
+                "push_channels": "huya_push_channels",
             },
             "checkin": {
                 "enable": "checkin_enable",
@@ -147,16 +154,19 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "email": "checkin_email",
                 "password": "checkin_password",
                 "time": "checkin_time",
+                "push_channels": "checkin_push_channels",
             },
             "tieba": {
                 "enable": "tieba_enable",
                 "cookie": "tieba_cookie",
                 "time": "tieba_time",
+                "push_channels": "tieba_push_channels",
             },
             "weibo_chaohua": {
                 "enable": "weibo_chaohua_enable",
                 "cookie": "weibo_chaohua_cookie",
                 "time": "weibo_chaohua_time",
+                "push_channels": "weibo_chaohua_push_channels",
             },
             "scheduler": {
                 "huya_monitor_interval_seconds": "huya_monitor_interval_seconds",
@@ -182,6 +192,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                         # 特殊处理：cookie字段可能为空字符串
                         if yaml_field == "cookie" and value is None:
                             value = ""
+                        # 特殊处理：push_channels 字段确保为列表
+                        if yaml_field == "push_channels":
+                            if value is None:
+                                value = []
+                            elif isinstance(value, str):
+                                value = [v.strip() for v in value.split(",") if v.strip()]
                         config_dict[config_field] = value
 
         # 特殊处理：多账号配置

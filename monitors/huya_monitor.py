@@ -216,6 +216,12 @@ class HuyaMonitor(BaseMonitor):
         """平台名称"""
         return "huya"
 
+    @property
+    def push_channel_names(self) -> list[str] | None:
+        """推送通道名称列表"""
+        channels = getattr(self.config, "huya_push_channels", None)
+        return channels if channels else None
+
     async def run(self):
         """运行监控"""
         # 热重载：重新加载config.yml文件中的配置（如果文件被修改）

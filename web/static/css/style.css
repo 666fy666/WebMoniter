@@ -66,6 +66,7 @@
 
 html {
     scroll-behavior: smooth;
+    height: 100%;
 }
 
 body {
@@ -86,6 +87,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    height: 100%;
     background: var(--gradient-primary);
     position: relative;
     overflow: hidden;
@@ -1024,6 +1026,77 @@ table tr.data-row-link:hover {
 
 .push-channel-table .config-label {
     width: 180px;
+}
+
+/* ==========================================
+   推送通道多选样式
+   ========================================== */
+.push-channels-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.push-channel-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 13px;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.push-channel-checkbox:hover {
+    border-color: var(--primary-light);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.push-channel-checkbox.selected {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+    color: var(--primary-color);
+}
+
+.push-channel-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.push-channel-checkbox .channel-name {
+    font-weight: 500;
+}
+
+.push-channels-select .no-channels {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+.help-text {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+@media (max-width: 768px) {
+    .push-channels-select {
+        gap: 6px;
+    }
+    
+    .push-channel-checkbox {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
 }
 
 /* ==========================================
