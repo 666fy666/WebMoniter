@@ -35,8 +35,10 @@ async function checkVersionUpdateOnLogin() {
         if (currentVersionEl) {
             if (currentVersion && currentVersion !== 'unknown') {
                 currentVersionEl.textContent = `v${currentVersion}`;
+                currentVersionEl.href = tagsUrl;
             } else {
                 currentVersionEl.textContent = '版本未知';
+                currentVersionEl.removeAttribute('href');
             }
         }
         
@@ -144,12 +146,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentVersionEl = document.getElementById('currentVersion');
                 if (currentVersionEl && data.version) {
                     currentVersionEl.textContent = `v${data.version}`;
+                    if (data.tags_url) {
+                        currentVersionEl.href = data.tags_url;
+                    }
                 }
             })
             .catch(() => {
                 const currentVersionEl = document.getElementById('currentVersion');
                 if (currentVersionEl) {
                     currentVersionEl.textContent = '版本未知';
+                    currentVersionEl.removeAttribute('href');
                 }
             });
     }

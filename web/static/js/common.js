@@ -309,6 +309,7 @@ async function checkVersionUpdate() {
         const currentVersionEl = document.getElementById('currentVersion');
         if (currentVersionEl) {
             currentVersionEl.textContent = `v${currentVersion}`;
+            currentVersionEl.href = tagsUrl;
         }
         
         // 从 GitHub Tags API 获取最新版本
@@ -373,6 +374,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const currentVersionEl = document.getElementById('currentVersion');
                     if (currentVersionEl && data.version) {
                         currentVersionEl.textContent = `v${data.version}`;
+                        if (data.tags_url) {
+                            currentVersionEl.href = data.tags_url;
+                        }
                     }
                 })
                 .catch(() => {});
