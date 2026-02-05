@@ -57,6 +57,101 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 
+    // 配置卡片折叠/展开功能
+    const COLLAPSED_SECTIONS_KEY = 'webmoniter_collapsed_sections';
+
+    // 从 localStorage 加载折叠状态
+    function loadCollapsedState() {
+        try {
+            const saved = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // 保存折叠状态到 localStorage
+    function saveCollapsedState(collapsedSections) {
+        try {
+            localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(collapsedSections));
+        } catch (e) {
+            console.error('保存折叠状态失败:', e);
+        }
+    }
+
+    // 切换单个卡片的折叠状态
+    function toggleSectionCollapse(section) {
+        const sectionName = section.dataset.section;
+        const isCollapsed = section.classList.toggle('collapsed');
+        
+        // 更新 localStorage
+        const collapsedSections = loadCollapsedState();
+        if (isCollapsed) {
+            if (!collapsedSections.includes(sectionName)) {
+                collapsedSections.push(sectionName);
+            }
+        } else {
+            const index = collapsedSections.indexOf(sectionName);
+            if (index > -1) {
+                collapsedSections.splice(index, 1);
+            }
+        }
+        saveCollapsedState(collapsedSections);
+    }
+
+    // 初始化折叠状态
+    function initCollapsedState() {
+        const collapsedSections = loadCollapsedState();
+        document.querySelectorAll('.config-section').forEach(section => {
+            const sectionName = section.dataset.section;
+            if (collapsedSections.includes(sectionName)) {
+                section.classList.add('collapsed');
+            }
+        });
+    }
+
+    // 为每个配置卡片的 header 添加点击事件
+    document.querySelectorAll('.config-section .card-header').forEach(header => {
+        header.addEventListener('click', function(e) {
+            // 如果点击的是按钮，则不触发折叠
+            if (e.target.closest('.btn') || e.target.closest('.card-actions')) {
+                return;
+            }
+            const section = this.closest('.config-section');
+            if (section) {
+                toggleSectionCollapse(section);
+            }
+        });
+    });
+
+    // 全部折叠按钮
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', function() {
+            const sections = document.querySelectorAll('.config-section');
+            const collapsedSections = [];
+            sections.forEach(section => {
+                section.classList.add('collapsed');
+                collapsedSections.push(section.dataset.section);
+            });
+            saveCollapsedState(collapsedSections);
+        });
+    }
+
+    // 全部展开按钮
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.config-section').forEach(section => {
+                section.classList.remove('collapsed');
+            });
+            saveCollapsedState([]);
+        });
+    }
+
+    // 初始化折叠状态
+    initCollapsedState();
+
     // 加载YAML配置
     async function loadYamlConfig() {
         try {

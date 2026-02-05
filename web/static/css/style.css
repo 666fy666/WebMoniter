@@ -601,6 +601,64 @@ input:focus + .slider {
     margin-bottom: 24px;
 }
 
+/* 配置卡片折叠功能 */
+.config-section .card-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.config-section .card-header h2 {
+    position: relative;
+    padding-right: 30px;
+}
+
+.config-section .card-header h2::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--text-secondary);
+    transition: transform var(--transition-normal);
+}
+
+.config-section.collapsed .card-header h2::after {
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+.config-section .card-body {
+    overflow: hidden;
+    transition: max-height var(--transition-normal), padding var(--transition-normal), opacity var(--transition-normal);
+    opacity: 1;
+}
+
+.config-section.collapsed .card-body {
+    max-height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+.config-section .card-header:hover {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* 折叠/展开全部按钮 */
+.collapse-all-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.collapse-all-actions .btn {
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
 .config-table {
     width: 100%;
     border-collapse: collapse;
@@ -2044,6 +2102,8 @@ table tr.data-row-link:hover {
     justify-content: space-between;
     gap: 12px;
     padding: 12px 20px;
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border-bottom: 1px solid #f59e0b;
     color: #92400e;
@@ -2117,6 +2177,8 @@ table tr.data-row-link:hover {
 /* 更新横幅响应式 */
 @media (max-width: 768px) {
     .update-banner {
+        margin-left: 0;
+        width: 100%;
         padding: 10px 16px;
         font-size: 13px;
     }

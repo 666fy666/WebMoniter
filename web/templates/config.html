@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>配置管理 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -106,6 +106,17 @@
             
             <!-- 表格视图容器 -->
             <div id="tableView" class="view-container">
+            <!-- 折叠/展开全部按钮 -->
+            <div class="collapse-all-actions">
+                <button id="collapseAllBtn" class="btn btn-secondary">
+                    <span>📁</span>
+                    全部折叠
+                </button>
+                <button id="expandAllBtn" class="btn btn-secondary">
+                    <span>📂</span>
+                    全部展开
+                </button>
+            </div>
             <!-- 微博监控配置 -->
             <div class="card config-section fade-in" data-section="weibo">
                 <div class="card-header">
@@ -525,7 +536,7 @@
 
         </div>
     </div>
-    <script src="/static/js/common.js?v=8"></script>
+    <script src="/static/js/common.js?v=2"></script>
     <script src="/static/js/config.js?v=2"></script>
 </body>
 </html>

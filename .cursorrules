@@ -16,13 +16,15 @@
 - **Transformers:** 使用 Transformers 库处理预训练模型和分词器；正确实现注意力机制和位置编码。
 - **Diffusers:** 使用 Diffusers 库实现和处理扩散模型；理解并正确实现正向和反向扩散过程；采用合适的噪声调度器和采样方法。
 
-# Web Development: Django
-- **Views:** 对于复杂的视图，使用 Django 的基于类的视图（CBVs）；对于简单的逻辑，使用基于函数的视图（FBVs）。
-- **Database:** 利用 Django 的 ORM 进行数据库交互，避免原生 SQL 查询。使用 PostgreSQL 或 MySQL 作为生产环境的数据库。
-- **Structure:** 严格遵循模型-视图-模板（MVT）模式。
-- **Forms & Auth:** 使用 Django 的内置用户模型和身份验证框架进行用户管理；使用 Django 的表单和模型表单类处理表单并进行验证。
-- **Advanced:** 使用 Django 的中间件处理身份验证、日志记录和缓存等任务；使用 Django REST 框架（DRF）进行 API 开发。
-- **Async & Tasks:** 使用 Celery 处理后台任务，Redis 作为缓存和任务队列。
+# Frontend Development: JavaScript & CSS
+- **JS Style:** 使用原生 JavaScript（ES6+），避免不必要的框架依赖；使用 `const` 和 `let` 声明变量，避免 `var`。
+- **JS Async:** 使用 `async/await` 处理异步操作；使用 `fetch` API 进行网络请求，正确处理错误和响应状态。
+- **JS DOM:** 使用 `getElementById`、`querySelector` 等方法操作 DOM；事件监听使用 `addEventListener`，避免内联事件处理。
+- **JS Structure:** 将相关功能封装为函数；使用模块化结构组织代码，保持单一职责原则。
+- **CSS Variables:** 使用 CSS 自定义属性（`--var-name`）定义主题色、间距等可复用值。
+- **CSS Layout:** 优先使用 Flexbox 和 Grid 进行布局；使用响应式设计，通过 `@media` 查询适配不同屏幕。
+- **CSS Naming:** 使用语义化的类名（如 `.btn-primary`、`.card-header`）；避免过度嵌套，保持选择器简洁。
+- **Versioning:** 静态资源使用查询参数版本号（如 `style.css?v=1`）进行缓存控制，如果每一次更新前端页面,都要确保所有资源版本号保持统一。
 
 # Web Development: FastAPI
 - **Style:** 使用函数式、声明式编程，避免不必要的类。
@@ -34,7 +36,7 @@
 # Web Development: Flask
 - **Style:** 使用函数式、声明式编程，避免不必要的类。
 - **Structure:** 使用 Flask 应用工厂实现模块化和测试性；使用 Flask 蓝图（Blueprints）组织路由。
-- **Extensions:** 使用 Flask-RESTful 构建 RESTful API；使用 Flask-SQLAlchemy 进行 ORM 操作，Flask-Migrate 进行数据库迁移；使用 Marshmallow 进行序列化/反序列化和输入验证；使用 Flask-JWT-Extended 实现基于 JWT 的身份验证。
+- **Extensions:** 使用 Flask-RESTful 构建 RESTful API；使用 Flask-SQLAlchemy 进行 ORM 操作,Flask-Migrate 进行数据库迁移；使用 Marshmallow 进行序列化/反序列化和输入验证；使用 Flask-JWT-Extended 实现基于 JWT 的身份验证。
 - **Deployment:** 使用 Gunicorn 或 uWSGI 作为生产环境的 WSGI 服务器。
 
 # Microservices & Serverless (微服务与无服务器架构)
@@ -77,7 +79,6 @@
 - PyTorch: https://pytorch.org/docs/
 - Transformers: https://huggingface.co/docs/transformers/
 - Diffusers: https://huggingface.co/docs/diffusers/
-- Django: https://docs.djangoproject.com/
 - FastAPI: https://fastapi.tiangolo.com/
 - Flask: https://flask.palletsprojects.com/
 - Pandas: https://pandas.pydata.org/docs/
