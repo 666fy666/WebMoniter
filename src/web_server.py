@@ -199,7 +199,7 @@ async def check_auth(request: Request):
 async def get_version_api():
     """获取当前版本信息"""
     from src.version import (
-        GITHUB_API_LATEST_RELEASE,
+        GITHUB_API_LATEST_TAG,
         GITHUB_RELEASES_URL,
         __version__,
     )
@@ -207,8 +207,8 @@ async def get_version_api():
     return JSONResponse(
         {
             "version": __version__,
-            "github_api_url": GITHUB_API_LATEST_RELEASE,
-            "releases_url": GITHUB_RELEASES_URL,
+            "github_api_url": GITHUB_API_LATEST_TAG,
+            "tags_url": GITHUB_RELEASES_URL,
         }
     )
 

@@ -560,17 +560,17 @@ logs/
 **导出内容**：
 ```python
 from src.version import (
-    __version__,              # 当前版本号，如 "2.0.0"
-    GITHUB_RELEASES_URL,      # GitHub Releases 页面 URL
-    GITHUB_API_LATEST_RELEASE # GitHub API 获取最新 release 的 URL
+    __version__,          # 当前版本号，如 "2.0.0"
+    GITHUB_RELEASES_URL,  # GitHub Tags 页面 URL
+    GITHUB_API_LATEST_TAG # GitHub API 获取最新 tag 的 URL
 )
 ```
 
 **前端版本检测流程**：
 1. 前端调用 `GET /api/version` 获取当前版本和 GitHub API 地址
-2. 前端调用 GitHub API 获取最新 release 的 `tag_name`
+2. 前端调用 GitHub Tags API 获取最新 tag 的 `name`
 3. 比较版本号，若有新版本则显示更新提示横幅
-4. 用户可点击跳转至 GitHub Releases 页面查看更新内容
+4. 用户可点击跳转至 GitHub Tags 页面查看更新内容
 
 ---
 

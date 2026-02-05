@@ -46,12 +46,12 @@ GET /api/version
 ```json
 {
   "version": "2.0.0",
-  "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/releases/latest",
-  "releases_url": "https://github.com/666fy666/WebMoniter/releases"
+  "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/tags",
+  "tags_url": "https://github.com/666fy666/WebMoniter/tags"
 }
 ```
 
-> 用于 Web 界面自动检测新版本。前端会调用 `github_api_url` 获取最新 release 信息并与当前版本比较。
+> 用于 Web 界面自动检测新版本。前端会调用 `github_api_url` 获取最新 tag 信息并与当前版本比较。
 
 ---
 

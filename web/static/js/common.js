@@ -301,7 +301,7 @@ async function checkVersionUpdate() {
         const localData = await localResp.json();
         const currentVersion = localData.version;
         const githubApiUrl = localData.github_api_url;
-        const releasesUrl = localData.releases_url;
+        const tagsUrl = localData.tags_url;
         
         if (!currentVersion || currentVersion === 'unknown') return;
         
@@ -311,14 +311,15 @@ async function checkVersionUpdate() {
             currentVersionEl.textContent = `v${currentVersion}`;
         }
         
-        // 从 GitHub API 获取最新版本
+        // 从 GitHub Tags API 获取最新版本
         const githubResp = await fetch(githubApiUrl);
         if (!githubResp.ok) {
             console.log('无法获取最新版本信息');
             return;
         }
-        const releaseData = await githubResp.json();
-        const latestVersion = releaseData.tag_name; // 如 "v2.0.1"
+        const tagsData = await githubResp.json();
+        // Tags API 返回数组，第一个元素是最新的 tag
+        const latestVersion = tagsData.length > 0 ? tagsData[0].name : null;
         
         if (!latestVersion) return;
         
@@ -335,7 +336,7 @@ async function checkVersionUpdate() {
                 latestVersionEl.textContent = latestVersion;
             }
             if (releasesLinkEl) {
-                releasesLinkEl.href = releasesUrl;
+                releasesLinkEl.href = tagsUrl;
             }
             
             updateBanner.style.display = 'flex';
