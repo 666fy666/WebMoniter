@@ -2125,3 +2125,102 @@ table tr.data-row-link:hover {
         gap: 8px;
     }
 }
+
+/* ==================== 登录页版本信息 ==================== */
+.login-version-info {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.login-version-info a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.login-version-info a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* 登录页更新横幅（固定在顶部） */
+.login-update-banner {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(253, 230, 138, 0.95) 100%);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.5);
+    color: #92400e;
+    font-size: 14px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-update-banner .update-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.login-update-banner .update-banner-icon {
+    font-size: 18px;
+}
+
+.login-update-banner .update-banner-text {
+    font-weight: 500;
+}
+
+.login-update-banner .update-banner-text a {
+    color: #b45309;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.login-update-banner .update-banner-text a:hover {
+    color: #92400e;
+}
+
+.login-update-banner .update-banner-close {
+    background: transparent;
+    border: none;
+    color: #92400e;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+    position: absolute;
+    right: 12px;
+}
+
+.login-update-banner .update-banner-close:hover {
+    background: rgba(146, 64, 14, 0.1);
+}
+
+/* 登录页更新横幅响应式 */
+@media (max-width: 768px) {
+    .login-update-banner {
+        padding: 10px 40px 10px 16px;
+        font-size: 13px;
+    }
+    
+    .login-update-banner .update-banner-content {
+        gap: 8px;
+    }
+    
+    .login-update-banner .update-banner-close {
+        right: 8px;
+    }
+}
