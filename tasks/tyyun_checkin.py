@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import hashlib
 import logging
 import re
 import time
@@ -66,9 +65,7 @@ def _rsa_encode(j_rsakey: str, string: str) -> str:
         raise RuntimeError("天翼云盘签到需要 rsa 库，请安装: uv add rsa")
     rsa_key = f"-----BEGIN PUBLIC KEY-----\n{j_rsakey}\n-----END PUBLIC KEY-----"
     pubkey = rsa.PublicKey.load_pkcs1_openssl_pem(rsa_key.encode())
-    result = _b64tohex(
-        (base64.b64encode(rsa.encrypt(string.encode(), pubkey))).decode()
-    )
+    result = _b64tohex((base64.b64encode(rsa.encrypt(string.encode(), pubkey))).decode())
     return result
 
 
@@ -146,7 +143,11 @@ def _run_tyyun_sync(username: str, password: str) -> tuple[bool, str]:
         j = resp.json()
         netdisk_bonus = j.get("netdiskBonus", "?")
         is_sign = j.get("isSign", "true") == "false"
-        res1 = f"未签到，签到获得{netdisk_bonus}M空间" if is_sign else f"已经签到过了，签到获得{netdisk_bonus}M空间"
+        res1 = (
+            f"未签到，签到获得{netdisk_bonus}M空间"
+            if is_sign
+            else f"已经签到过了，签到获得{netdisk_bonus}M空间"
+        )
         parts = [res1]
         for task_id, act_id in [
             ("TASK_SIGNIN", "ACT_SIGNIN"),
@@ -185,7 +186,7 @@ async def run_tyyun_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "TyyunConfig":
+        def from_app_config(cls, config: AppConfig) -> TyyunConfig:
             accounts: list[dict] = getattr(config, "tyyun_accounts", None) or []
             single_u = (getattr(config, "tyyun_username", None) or "").strip()
             single_p = (getattr(config, "tyyun_password", None) or "").strip()
@@ -205,10 +206,14 @@ async def run_tyyun_checkin_once() -> None:
             if not self.enable:
                 logger.debug("天翼云盘签到未启用，跳过")
                 return False
-            effective = self.accounts if self.accounts else (
-                [{"username": self.username, "password": self.password}]
-                if (self.username or self.password)
-                else []
+            effective = (
+                self.accounts
+                if self.accounts
+                else (
+                    [{"username": self.username, "password": self.password}]
+                    if (self.username or self.password)
+                    else []
+                )
             )
             if not effective or not any(
                 (a.get("username") or "").strip() and (a.get("password") or "").strip()
@@ -224,7 +229,10 @@ async def run_tyyun_checkin_once() -> None:
         return
 
     effective = [
-        {"username": (a.get("username") or "").strip(), "password": (a.get("password") or "").strip()}
+        {
+            "username": (a.get("username") or "").strip(),
+            "password": (a.get("password") or "").strip(),
+        }
         for a in (cfg.accounts or [])
         if (a.get("username") or "").strip() and (a.get("password") or "").strip()
     ]
@@ -245,15 +253,17 @@ async def run_tyyun_checkin_once() -> None:
 
         for idx, acc in enumerate(effective):
             try:
-                ok, msg = await asyncio.to_thread(
-                    _run_tyyun_sync, acc["username"], acc["password"]
-                )
+                ok, msg = await asyncio.to_thread(_run_tyyun_sync, acc["username"], acc["password"])
             except Exception as e:
                 logger.error("天翼云盘签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
 
             if push_manager and not is_in_quiet_hours(app_config):
-                masked_u = acc["username"][:3] + "****" + acc["username"][-4:] if len(acc["username"]) >= 7 else "***"
+                masked_u = (
+                    acc["username"][:3] + "****" + acc["username"][-4:]
+                    if len(acc["username"]) >= 7
+                    else "***"
+                )
                 title = "天翼云盘签到成功" if ok else "天翼云盘签到失败"
                 body = f"{'✅' if ok else '❌'} 账号: {masked_u}\n{msg}\n\n执行时间配置: {cfg.time}"
                 try:

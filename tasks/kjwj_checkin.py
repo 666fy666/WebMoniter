@@ -38,7 +38,7 @@ class KjwjConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "KjwjConfig":
+    def from_app_config(cls, config: AppConfig) -> KjwjConfig:
         raw = getattr(config, "kjwj_accounts", None) or []
         accounts: list[KjwjAccount] = []
         for a in raw:
@@ -159,4 +159,3 @@ def _get_kjwj_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task("kjwj_checkin", run_kjwj_checkin_once, _get_kjwj_trigger_kwargs)
-

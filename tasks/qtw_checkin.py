@@ -35,10 +35,14 @@ def _run_qtw_sync(cookie: str) -> tuple[bool, str]:
         if not token:
             return False, "获取 token 失败"
         weekday = datetime.date.today().weekday() + 1
-        r2 = requests.post(SIGN_URL, headers={"User-Agent": headers1["User-Agent"]}, data={"token": token}, timeout=15)
+        r2 = requests.post(
+            SIGN_URL,
+            headers={"User-Agent": headers1["User-Agent"]},
+            data={"token": token},
+            timeout=15,
+        )
         r2.raise_for_status()
         data = (r2.json() or {}).get("data", {})
-        sign_day = data.get("signDay", "")
         day_data = data.get("signData", {}).get(str(weekday), {})
         is_sign = day_data.get("isSign", 0)
         reward = day_data.get("title", "")
@@ -63,7 +67,7 @@ async def run_qtw_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "QtwConfig":
+        def from_app_config(cls, config: AppConfig) -> QtwConfig:
             cookies: list[str] = getattr(config, "qtw_cookies", None) or []
             single = (getattr(config, "qtw_cookie", None) or "").strip()
             if not cookies and single:

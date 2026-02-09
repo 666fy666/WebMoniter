@@ -14,7 +14,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from src.config import AppConfig
+from src.config import AppConfig, get_config
 
 logger = logging.getLogger(__name__)
 
@@ -117,10 +117,52 @@ def register_task(
     from src.task_tracker import has_run_today as check_run_today
     from src.task_tracker import mark_as_run_today
 
+    # 任务启用开关映射：job_id -> AppConfig 中对应的 enable 字段名
+    job_enable_field_map: dict[str, str] = {
+        "ikuuu_checkin": "checkin_enable",
+        "tieba_checkin": "tieba_enable",
+        "weibo_chaohua_checkin": "weibo_chaohua_enable",
+        "rainyun_checkin": "rainyun_enable",
+        "enshan_checkin": "enshan_enable",
+        "tyyun_checkin": "tyyun_enable",
+        "aliyun_checkin": "aliyun_enable",
+        "smzdm_checkin": "smzdm_enable",
+        "zdm_draw": "zdm_draw_enable",
+        "fg_checkin": "fg_enable",
+        "miui_checkin": "miui_enable",
+        "iqiyi_checkin": "iqiyi_enable",
+        "lenovo_checkin": "lenovo_enable",
+        "lbly_checkin": "lbly_enable",
+        "pinzan_checkin": "pinzan_enable",
+        "dml_checkin": "dml_enable",
+        "xiaomao_checkin": "xiaomao_enable",
+        "ydwx_checkin": "ydwx_enable",
+        "xingkong_checkin": "xingkong_enable",
+        "freenom_checkin": "freenom_enable",
+        "weather_push": "weather_enable",
+        "qtw_checkin": "qtw_enable",
+        "kuake_checkin": "kuake_enable",
+        "kjwj_checkin": "kjwj_enable",
+        "fr_checkin": "fr_enable",
+        "nine_nine_nine_task": "nine_nine_nine_enable",
+        "zgfc_draw": "zgfc_enable",
+        "ssq_500w_notice": "ssq_500w_enable",
+        "log_cleanup": "log_cleanup_enable",
+        # demo_task 使用 plugins 配置，不在此列出
+    }
+
     if skip_if_run_today:
         # 包装任务函数，添加"当天已运行则跳过"的检查
         @functools.wraps(run_func)
         async def wrapped_run_func() -> None:
+            # 先检查该任务在当前配置中是否启用，未启用则直接跳过且不输出"当天已运行"日志
+            enable_field = job_enable_field_map.get(job_id)
+            if enable_field is not None:
+                config = get_config()
+                if not getattr(config, enable_field, False):
+                    logger.debug("%s: 当前配置未启用，跳过调度执行", job_id)
+                    return
+
             if await check_run_today(job_id):
                 logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
                 return

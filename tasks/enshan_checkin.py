@@ -70,7 +70,7 @@ async def run_enshan_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "EnshanConfig":
+        def from_app_config(cls, config: AppConfig) -> EnshanConfig:
             cookies: list[str] = getattr(config, "enshan_cookies", None) or []
             single = (getattr(config, "enshan_cookie", None) or "").strip()
             if not cookies and single:

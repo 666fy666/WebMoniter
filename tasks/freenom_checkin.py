@@ -51,7 +51,7 @@ class FreenomTaskConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "FreenomTaskConfig":
+    def from_app_config(cls, config: AppConfig) -> FreenomTaskConfig:
         raw_accounts = getattr(config, "freenom_accounts", None) or []
         accounts: list[FreenomAccount] = []
         for a in raw_accounts:
@@ -84,8 +84,7 @@ def _renew_for_account(email: str, password: str) -> dict[str, Any]:
     sess.headers.update(
         {
             "user-agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "Chrome/103.0.5060.134 Safari/537.36"
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " "Chrome/103.0.5060.134 Safari/537.36"
             ),
             "content-type": "application/x-www-form-urlencoded",
             "referer": "https://my.freenom.com/clientarea.php",
@@ -196,9 +195,7 @@ async def run_freenom_checkin_once() -> None:
             masked = acc.email
             logger.info("Freenom 续期：开始处理第 %d 个账号（%s）", idx, masked)
             try:
-                result = await asyncio.to_thread(
-                    _renew_for_account, acc.email, acc.password
-                )
+                result = await asyncio.to_thread(_renew_for_account, acc.email, acc.password)
             except Exception as exc:  # pragma: no cover - 防御性
                 logger.exception("Freenom 续期：账号 %s 处理异常：%s", masked, exc)
                 all_lines.append(f"账号 {masked}：执行异常：{exc}")
@@ -236,4 +233,3 @@ def _get_freenom_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task("freenom_checkin", run_freenom_checkin_once, _get_freenom_trigger_kwargs)
-

@@ -16,14 +16,20 @@ from src.push_channel.manager import UnifiedPushManager, build_push_manager
 logger = logging.getLogger(__name__)
 
 try:
-    from Crypto.PublicKey import RSA
     from Crypto.Cipher import PKCS1_v1_5
+    from Crypto.PublicKey import RSA
 except ImportError:
     RSA = None  # type: ignore[assignment]
     PKCS1_v1_5 = None  # type: ignore[assignment]
 
 PT = ["cD", "BT", "Uzn", "Po", "Luu", "Yhc", "Cj", "FP", "al", "Tq"]
-HT = ["MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJB", "L7qpP6mG6ZHdDKEIdTqQDo/WQ", "6NaWftXwOTHnnbnwUEX2/2jI4qALxRWMliYI80cszh6", "ySbap0KIljDCN", "w0CAwEAAQ=="]
+HT = [
+    "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJB",
+    "L7qpP6mG6ZHdDKEIdTqQDo/WQ",
+    "6NaWftXwOTHnnbnwUEX2/2jI4qALxRWMliYI80cszh6",
+    "ySbap0KIljDCN",
+    "w0CAwEAAQ==",
+]
 
 
 def _get_sign_key() -> str:
@@ -127,7 +133,7 @@ async def run_lenovo_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "LenovoConfig":
+        def from_app_config(cls, config: AppConfig) -> LenovoConfig:
             tokens: list[str] = getattr(config, "lenovo_access_tokens", None) or []
             single = (getattr(config, "lenovo_access_token", None) or "").strip()
             if not tokens and single:
@@ -164,8 +170,11 @@ async def run_lenovo_checkin_once() -> None:
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45)) as session:
         push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list, session, logger,
-            init_fail_prefix="联想乐豆签到：", channel_names=cfg.push_channels or None,
+            app_config.push_channel_list,
+            session,
+            logger,
+            init_fail_prefix="联想乐豆签到：",
+            channel_names=cfg.push_channels or None,
         )
         for idx, token in enumerate(effective):
             try:
@@ -177,7 +186,13 @@ async def run_lenovo_checkin_once() -> None:
                 masked = token[:8] + "***" if len(token) > 8 else "***"
                 title = "联想乐豆签到成功" if ok else "联想乐豆签到失败"
                 try:
-                    await push_manager.send_news(title=title, description=f"账号 {masked}\n{msg}", to_url="https://mmembership.lenovo.com.cn", picurl="", btntxt="打开")
+                    await push_manager.send_news(
+                        title=title,
+                        description=f"账号 {masked}\n{msg}",
+                        to_url="https://mmembership.lenovo.com.cn",
+                        picurl="",
+                        btntxt="打开",
+                    )
                 except Exception as exc:
                     logger.error("联想乐豆签到：推送失败 %s", exc)
         if push_manager:

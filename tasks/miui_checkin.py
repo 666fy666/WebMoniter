@@ -68,12 +68,14 @@ def _rsa_encrypt_pem(key_pem: str, data: str) -> str:
 def _phone_login(account: str, password: str) -> dict:
     h = hashlib.md5(password.encode()).hexdigest().upper()
     session = requests.Session()
-    session.headers.update({
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; M2007J17C Build/SKQ1.211006.001) APP/xiaomi.vipaccount APPV/220301 MK/UmVkbWkgTm90ZSA5IFBybw== PassportSDK/3.7.8 passport-ui/3.7.8",
-        "Cookie": "deviceId=X0jMu7b0w-jcne-S; pass_o=2d25bb648d023d7f; sdkVersion=accountsdk-2020.01.09",
-        "Host": "account.xiaomi.com",
-    })
+    session.headers.update(
+        {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; M2007J17C Build/SKQ1.211006.001) APP/xiaomi.vipaccount APPV/220301 MK/UmVkbWkgTm90ZSA5IFBybw== PassportSDK/3.7.8 passport-ui/3.7.8",
+            "Cookie": "deviceId=X0jMu7b0w-jcne-S; pass_o=2d25bb648d023d7f; sdkVersion=accountsdk-2020.01.09",
+            "Host": "account.xiaomi.com",
+        }
+    )
     data = {
         "cc": "+86",
         "qs": "%3F_json%3Dtrue%26sid%3Dmiui_vip%26_locale%3Dzh_CN",
@@ -146,7 +148,12 @@ def _run_miui_sync(account: str, password: str) -> tuple[bool, str]:
             "Origin": "https://web.vip.miui.com",
             "Referer": "https://web.vip.miui.com/",
         }
-        params = {"ref": "vipAccountShortcut", "pathname": "/mio/checkIn", "version": "dev.231026", "miui_vip_ph": miui_vip_ph}
+        params = {
+            "ref": "vipAccountShortcut",
+            "pathname": "/mio/checkIn",
+            "version": "dev.231026",
+            "miui_vip_ph": miui_vip_ph,
+        }
         body = f'------{boundary}\r\nContent-Disposition: form-data; name="miui_vip_ph"\r\n\r\n{miui_vip_ph}\r\n------{boundary}\r\nContent-Disposition: form-data; name="token"\r\n\r\n{token}\r\n------{boundary}--\r\n'
         r = requests.post(
             "https://api.vip.miui.com/mtop/planet/vip/user/checkinV2",
@@ -165,7 +172,12 @@ def _run_miui_sync(account: str, password: str) -> tuple[bool, str]:
             return False, j.get("message", "签到失败")
         # 拔萝卜
         try:
-            r2 = requests.post("https://api.vip.miui.com/api/carrot/pull", headers=headers, params=params, timeout=15)
+            r2 = requests.post(
+                "https://api.vip.miui.com/api/carrot/pull",
+                headers=headers,
+                params=params,
+                timeout=15,
+            )
             if r2.status_code == 200:
                 j2 = r2.json()
                 if j2.get("code") == 200:
@@ -194,7 +206,7 @@ async def run_miui_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "MiuiConfig":
+        def from_app_config(cls, config: AppConfig) -> MiuiConfig:
             accounts: list[dict] = getattr(config, "miui_accounts", None) or []
             single_a = (getattr(config, "miui_account", None) or "").strip()
             single_p = (getattr(config, "miui_password", None) or "").strip()
@@ -213,8 +225,15 @@ async def run_miui_checkin_once() -> None:
         def validate(self) -> bool:
             if not self.enable:
                 return False
-            effective = self.accounts or ([{"account": self.account, "password": self.password}] if (self.account or self.password) else [])
-            if not effective or not any((a.get("account") or "").strip() and (a.get("password") or "").strip() for a in effective):
+            effective = self.accounts or (
+                [{"account": self.account, "password": self.password}]
+                if (self.account or self.password)
+                else []
+            )
+            if not effective or not any(
+                (a.get("account") or "").strip() and (a.get("password") or "").strip()
+                for a in effective
+            ):
                 logger.error("小米社区签到配置不完整")
                 return False
             return True
@@ -224,7 +243,11 @@ async def run_miui_checkin_once() -> None:
     if not cfg.validate():
         return
 
-    effective = [{"account": (a.get("account") or "").strip(), "password": (a.get("password") or "").strip()} for a in (cfg.accounts or []) if (a.get("account") or "").strip() and (a.get("password") or "").strip()]
+    effective = [
+        {"account": (a.get("account") or "").strip(), "password": (a.get("password") or "").strip()}
+        for a in (cfg.accounts or [])
+        if (a.get("account") or "").strip() and (a.get("password") or "").strip()
+    ]
     if not effective and cfg.account and cfg.password:
         effective = [{"account": cfg.account, "password": cfg.password}]
     logger.info("小米社区签到：开始执行（共 %d 个账号）", len(effective))
@@ -233,8 +256,11 @@ async def run_miui_checkin_once() -> None:
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
         push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list, session, logger,
-            init_fail_prefix="小米社区签到：", channel_names=cfg.push_channels or None,
+            app_config.push_channel_list,
+            session,
+            logger,
+            init_fail_prefix="小米社区签到：",
+            channel_names=cfg.push_channels or None,
         )
         for idx, acc in enumerate(effective):
             try:
@@ -243,10 +269,20 @@ async def run_miui_checkin_once() -> None:
                 logger.error("小米社区签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
             if push_manager and not is_in_quiet_hours(app_config):
-                masked = acc["account"][:3] + "****" + acc["account"][-4:] if len(acc["account"]) >= 7 else "***"
+                masked = (
+                    acc["account"][:3] + "****" + acc["account"][-4:]
+                    if len(acc["account"]) >= 7
+                    else "***"
+                )
                 title = "小米社区签到成功" if ok else "小米社区签到失败"
                 try:
-                    await push_manager.send_news(title=title, description=f"账号 {masked}\n{msg}", to_url="https://web.vip.miui.com", picurl="", btntxt="打开")
+                    await push_manager.send_news(
+                        title=title,
+                        description=f"账号 {masked}\n{msg}",
+                        to_url="https://web.vip.miui.com",
+                        picurl="",
+                        btntxt="打开",
+                    )
                 except Exception as exc:
                     logger.error("小米社区签到：推送失败 %s", exc)
         if push_manager:

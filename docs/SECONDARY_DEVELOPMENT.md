@@ -53,7 +53,7 @@ uv run pytest
 
 | 类型       | 触发方式     | 配置来源示例                          | 项目内示例           |
 |------------|--------------|---------------------------------------|----------------------|
-| 监控任务   | 固定间隔轮询 | `scheduler.xxx_interval_seconds`      | 虎牙监控、微博监控   |
+| 监控任务   | 固定间隔轮询 | `huya.monitor_interval_seconds`、`weibo.monitor_interval_seconds` | 虎牙监控、微博监控   |
 | 定时任务   | Cron 每日定点 | `checkin.time`、`tieba.time`、`plugins.xxx.time` | iKuuu 签到、贴吧签到、Demo 任务 |
 
 新增任务时只需：
@@ -315,15 +315,13 @@ register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
 huya:
   rooms: 991108,333003,518518   # 逗号分隔的房间号
   concurrency: 5
-
-scheduler:
-  huya_monitor_interval_seconds: 65   # 轮询间隔（秒）
+  monitor_interval_seconds: 65   # 轮询间隔（秒）
 ```
 
 ### 4.2 配置：src/config.py
 
-- **AppConfig** 中增加扁平字段：`huya_rooms`、`huya_concurrency`；调度相关已有 `huya_monitor_interval_seconds`。
-- **load_config_from_yml**：从 `yml_config["huya"]`、`yml_config["scheduler"]` 读到上述字段写入 `config_dict`。
+- **AppConfig** 中增加扁平字段：`huya_rooms`、`huya_concurrency`、`huya_monitor_interval_seconds`。
+- **load_config_from_yml**：从 `yml_config["huya"]` 读到上述字段写入 `config_dict`。
 - 提供 **get_huya_config()** 返回结构化配置（列表 + 并发数），供监控类使用：
 
 ```python
@@ -336,7 +334,7 @@ def get_huya_config(self) -> HuyaConfig:
     return HuyaConfig(rooms=rooms, concurrency=self.huya_concurrency)
 ```
 
-见 `src/config.py` 中 `HuyaConfig`、`AppConfig.get_huya_config` 及 `load_config_from_yml` 的 huya / scheduler 段落。
+见 `src/config.py` 中 `HuyaConfig`、`AppConfig.get_huya_config` 及 `load_config_from_yml` 的 huya 段落。
 
 ### 4.3 监控实现：monitors/huya_monitor.py
 
@@ -532,7 +530,7 @@ await self.db.execute_insert(sql, data)
 | 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_MODULES` 含 `tasks.demo_task` |
 | 定时任务 | Freenom 续期 | `config.yml` → `freenom` | `AppConfig` + `load_config_from_yml`（freenom 段，多账号 accounts） | `tasks/freenom_checkin.py`（`run_freenom_checkin_once`、`_get_freenom_trigger_kwargs`） | `register_task("freenom_checkin", ...)`，`TASK_MODULES` 含 `tasks.freenom_checkin` |
 | 定时任务 | 天气推送   | `config.yml` → `weather` | `AppConfig` + `load_config_from_yml`（weather 段） | `tasks/weather_push.py`（`run_weather_push_once`、`_get_weather_trigger_kwargs`） | `register_task("weather_push", ...)`，`TASK_MODULES` 含 `tasks.weather_push` |
-| 监控任务 | 虎牙监控   | `config.yml` → `huya` + `scheduler.huya_monitor_interval_seconds` | `AppConfig`、`HuyaConfig`、`get_huya_config`、`load_config_from_yml`（huya/scheduler） | `monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_MODULES` 含 `monitors.huya_monitor` |
+| 监控任务 | 虎牙监控   | `config.yml` → `huya`（含 `monitor_interval_seconds`） | `AppConfig`、`HuyaConfig`、`get_huya_config`、`load_config_from_yml`（huya 段） | `monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_MODULES` 含 `monitors.huya_monitor` |
 
 - **parse_checkin_time**：`src/config.py`，将 `"HH:MM"` 解析为 `(hour, minute)` 字符串元组，供 Cron 使用。
 - **BaseMonitor**：`src/monitor.py`，提供 `config`、`db`、`push`、`initialize`、`close`，子类实现 `run`、`monitor_name`。
@@ -554,7 +552,7 @@ await self.db.execute_insert(sql, data)
 
 ## 九、检查清单：新增监控任务
 
-- [ ] 在 `config.yml` 中增加业务节点（如 `my_monitor`）及 `scheduler.my_monitor_interval_seconds`。
+- [ ] 在 `config.yml` 中增加业务节点（如 `my_monitor`），并在该节点下增加 `monitor_interval_seconds` 字段（例如 `my_monitor.monitor_interval_seconds`）。
 - [ ] 在 `AppConfig` 中增加扁平字段，在 `load_config_from_yml()` 中解析；可选：提供 `get_my_monitor_config()` 返回结构化配置。
 - [ ] 在 `config_watcher._config_changed` 中增加对新字段的比较（以便热重载）。
 - [ ] 新建 `monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。

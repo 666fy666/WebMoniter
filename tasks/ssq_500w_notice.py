@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 import random
 from collections import Counter
-from datetime import datetime
 
 import requests
 
@@ -89,7 +88,9 @@ def _check_prize(ticket_red: list[int], ticket_blue: int, win_red: list[int], wi
     return "未中（仅供娱乐参考）"
 
 
-def _generate_cold_numbers(red_hist: list[list[str]], blue_hist: list[int]) -> tuple[list[int], int]:
+def _generate_cold_numbers(
+    red_hist: list[list[str]], blue_hist: list[int]
+) -> tuple[list[int], int]:
     red_all = [int(n) for sub in red_hist for n in sub]
     red_c = Counter(red_all)
     blue_c = Counter(blue_hist)
@@ -97,9 +98,7 @@ def _generate_cold_numbers(red_hist: list[list[str]], blue_hist: list[int]) -> t
     cold_red = [n for n, _ in sorted(red_c.items(), key=lambda x: x[1])[:18]]
     cold_blue = [n for n, _ in sorted(blue_c.items(), key=lambda x: x[1])[:10]]
 
-    reds = sorted(
-        random.sample(cold_red if len(cold_red) >= 6 else list(range(1, 34)), 6)
-    )
+    reds = sorted(random.sample(cold_red if len(cold_red) >= 6 else list(range(1, 34)), 6))
     blue = random.choice(cold_blue if cold_blue else list(range(1, 17)))
     return reds, blue
 
@@ -117,9 +116,7 @@ async def run_ssq_500w_notice_once() -> None:
         return
 
     lines: list[str] = []
-    lines.append(
-        f"双色球 {result['period']} 已开奖！（仅供娱乐参考）"
-    )
+    lines.append(f"双色球 {result['period']} 已开奖！（仅供娱乐参考）")
     lines.append(f"开奖日期：{result['date']}")
     lines.append(
         "开奖号码：{reds} + {blue:02d}".format(
@@ -173,11 +170,8 @@ async def run_ssq_500w_notice_once() -> None:
 
 
 def _get_ssq_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(
-        getattr(config, "ssq_500w_time", "21:30") or "21:30"
-    )
+    hour, minute = parse_checkin_time(getattr(config, "ssq_500w_time", "21:30") or "21:30")
     return {"minute": minute, "hour": hour}
 
 
 register_task("ssq_500w_notice", run_ssq_500w_notice_once, _get_ssq_trigger_kwargs)
-

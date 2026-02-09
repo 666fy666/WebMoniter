@@ -32,7 +32,7 @@ class KuakeConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "KuakeConfig":
+    def from_app_config(cls, config: AppConfig) -> KuakeConfig:
         cookies = getattr(config, "kuake_cookies", None) or []
         single = (getattr(config, "kuake_cookie", None) or "").strip()
         if not cookies and single:
@@ -68,7 +68,9 @@ def _do_sign_for_cookie(cookie: str) -> str:
     }
     try:
         # 验证账号
-        r_info = session.get(url_info, headers=headers, params={"fr": "pc", "platform": "pc"}, timeout=15)
+        r_info = session.get(
+            url_info, headers=headers, params={"fr": "pc", "platform": "pc"}, timeout=15
+        )
         info = r_info.json()
         if not info.get("data"):
             return "❌ 登录失败，Cookie 可能已失效"
@@ -98,7 +100,9 @@ def _do_sign_for_cookie(cookie: str) -> str:
         )
         sign_data = r_sign.json().get("data") or {}
         reward_mb = int((sign_data.get("sign_daily_reward", 0) or 0) / 1024 / 1024)
-        progress = f"{(cap_sign.get('sign_progress', 0) or 0) + 1}/{cap_sign.get('sign_target', 0) or 0}"
+        progress = (
+            f"{(cap_sign.get('sign_progress', 0) or 0) + 1}/{cap_sign.get('sign_target', 0) or 0}"
+        )
         return f"🙍 账号 {nickname}：签到成功 +{reward_mb}MB，连签进度 {progress}"
     except Exception as exc:  # pragma: no cover - 防御性
         logger.warning("夸克签到：账号处理异常：%s", exc)
@@ -152,4 +156,3 @@ def _get_kuake_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task("kuake_checkin", run_kuake_checkin_once, _get_kuake_trigger_kwargs)
-

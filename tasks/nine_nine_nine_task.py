@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import random
 import time
@@ -35,14 +34,13 @@ class NineConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "NineConfig":
+    def from_app_config(cls, config: AppConfig) -> NineConfig:
         tokens = getattr(config, "nine_nine_nine_tokens", None) or []
         tokens = [t.strip() for t in tokens if t and t.strip()]
         return cls(
             enable=getattr(config, "nine_nine_nine_enable", False),
             tokens=tokens,
-            time=(getattr(config, "nine_nine_nine_time", None) or "15:15").strip()
-            or "15:15",
+            time=(getattr(config, "nine_nine_nine_time", None) or "15:15").strip() or "15:15",
             push_channels=getattr(config, "nine_nine_nine_push_channels", None) or [],
         )
 
@@ -109,9 +107,7 @@ def _run_for_token(token: str) -> list[str]:
                 result = r.json().get("data") or {}
                 point = result.get("point", 0)
                 if result.get("success") is True:
-                    lines.append(
-                        f"打卡内容【{item['meaning']}】完成，获得积分 {point}"
-                    )
+                    lines.append(f"打卡内容【{item['meaning']}】完成，获得积分 {point}")
                 else:
                     lines.append(f"打卡内容【{item['meaning']}】：请勿重复打卡")
             except Exception as exc:
@@ -257,9 +253,7 @@ async def run_nine_nine_nine_task_once() -> None:
 
 
 def _get_nine_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(
-        getattr(config, "nine_nine_nine_time", "15:15") or "15:15"
-    )
+    hour, minute = parse_checkin_time(getattr(config, "nine_nine_nine_time", "15:15") or "15:15")
     return {"minute": minute, "hour": hour}
 
 
@@ -268,4 +262,3 @@ register_task(
     run_nine_nine_nine_task_once,
     _get_nine_trigger_kwargs,
 )
-

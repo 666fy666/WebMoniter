@@ -76,7 +76,7 @@ async def run_zdm_draw_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "ZdmDrawConfig":
+        def from_app_config(cls, config: AppConfig) -> ZdmDrawConfig:
             cookies: list[str] = getattr(config, "zdm_draw_cookies", None) or []
             single = (getattr(config, "zdm_draw_cookie", None) or "").strip()
             if not cookies and single:
@@ -152,9 +152,7 @@ async def run_zdm_draw_once() -> None:
 
 
 def _get_zdm_draw_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(
-        getattr(config, "zdm_draw_time", "07:30") or "07:30"
-    )
+    hour, minute = parse_checkin_time(getattr(config, "zdm_draw_time", "07:30") or "07:30")
     return {"minute": minute, "hour": hour}
 
 

@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('ydwx', config);
             loadSectionConfig('xingkong', config);
             loadSectionConfig('qtw', config);
-            loadSectionConfig('scheduler', config);
+            loadSectionConfig('log_cleanup', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
             loadSectionConfig('plugins', config);
@@ -1151,6 +1151,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ? config.weibo.uids 
                         : (Array.isArray(config.weibo.uids) ? config.weibo.uids.join(',') : '');
                     document.getElementById('weibo_concurrency').value = config.weibo.concurrency || 3;
+                    const intervalInput = document.getElementById('weibo_monitor_interval_seconds');
+                    if (intervalInput) {
+                        const val = config.weibo.monitor_interval_seconds || 300;
+                        intervalInput.value = val;
+                    }
                     // 渲染推送通道选择
                     renderTaskPushChannelSelect('weibo_push_channels', config.weibo.push_channels || []);
                 }
@@ -1248,6 +1253,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                         ? config.huya.rooms 
                         : (Array.isArray(config.huya.rooms) ? config.huya.rooms.join(',') : '');
                     document.getElementById('huya_concurrency').value = config.huya.concurrency || 7;
+                    const intervalInput = document.getElementById('huya_monitor_interval_seconds');
+                    if (intervalInput) {
+                        const val = config.huya.monitor_interval_seconds || 65;
+                        intervalInput.value = val;
+                    }
                     // 渲染推送通道选择
                     renderTaskPushChannelSelect('huya_push_channels', config.huya.push_channels || []);
                 }
@@ -1610,13 +1620,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                     renderTaskPushChannelSelect('ssq_500w_push_channels', config.ssq_500w.push_channels || []);
                 }
                 break;
-            case 'scheduler':
-                if (config.scheduler) {
-                    document.getElementById('huya_monitor_interval_seconds').value = config.scheduler.huya_monitor_interval_seconds || 65;
-                    document.getElementById('weibo_monitor_interval_seconds').value = config.scheduler.weibo_monitor_interval_seconds || 300;
-                    document.getElementById('cleanup_logs_hour').value = config.scheduler.cleanup_logs_hour || 2;
-                    document.getElementById('cleanup_logs_minute').value = config.scheduler.cleanup_logs_minute || 0;
-                    document.getElementById('retention_days').value = config.scheduler.retention_days || 3;
+            case 'log_cleanup':
+                if (config.log_cleanup) {
+                    const enableEl = document.getElementById('log_cleanup_enable');
+                    const enableLabelEl = document.getElementById('log_cleanup_enable_label');
+                    if (enableEl) {
+                        enableEl.checked = config.log_cleanup.enable === true || config.log_cleanup.enable === 'true';
+                        if (enableLabelEl) enableLabelEl.textContent = enableEl.checked ? '开启' : '关闭';
+                    }
+                    const timeInput = document.getElementById('log_cleanup_time');
+                    if (timeInput) {
+                        const val = config.log_cleanup.time || '02:10';
+                        timeInput.value = (val && val.length === 5) ? val : '02:10';
+                    }
+                    const retentionInput = document.getElementById('retention_days');
+                    if (retentionInput) {
+                        retentionInput.value = config.log_cleanup.retention_days || 3;
+                    }
                 }
                 break;
             case 'quiet_hours':
@@ -1657,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     cookie: document.getElementById('weibo_cookie').value.trim(),
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
+                    monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,
                     push_channels: getTaskPushChannels('weibo_push_channels')
                 };
                 break;
@@ -1716,6 +1737,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 config.huya = {
                     rooms: document.getElementById('huya_rooms').value.trim(),
                     concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
+                    monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
                     push_channels: getTaskPushChannels('huya_push_channels')
                 };
                 break;
@@ -2035,12 +2057,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 };
                 break;
             }
-            case 'scheduler':
-                config.scheduler = {
-                    huya_monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
-                    weibo_monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,
-                    cleanup_logs_hour: parseInt(document.getElementById('cleanup_logs_hour').value) || 2,
-                    cleanup_logs_minute: parseInt(document.getElementById('cleanup_logs_minute').value) || 0,
+            case 'log_cleanup':
+                config.log_cleanup = {
+                    enable: document.getElementById('log_cleanup_enable')?.checked ?? true,
+                    time: (document.getElementById('log_cleanup_time')?.value || '').trim() || '02:10',
                     retention_days: parseInt(document.getElementById('retention_days').value) || 3
                 };
                 break;
@@ -2171,15 +2191,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.ydwx = collectSectionConfig('ydwx').ydwx;
         config.xingkong = collectSectionConfig('xingkong').xingkong;
         config.qtw = collectSectionConfig('qtw').qtw;
-
-        // 调度器配置
-        config.scheduler = {
-            huya_monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
-            weibo_monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,
-            cleanup_logs_hour: parseInt(document.getElementById('cleanup_logs_hour').value) || 2,
-            cleanup_logs_minute: parseInt(document.getElementById('cleanup_logs_minute').value) || 0,
-            retention_days: parseInt(document.getElementById('retention_days').value) || 3
-        };
 
         // 免打扰时段配置
         config.quiet_hours = {

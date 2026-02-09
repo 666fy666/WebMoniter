@@ -147,6 +147,10 @@
                             <td><input type="number" id="weibo_concurrency" class="form-input" min="1" max="10" placeholder="建议2-5"></td>
                         </tr>
                         <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="weibo_monitor_interval_seconds" class="form-input" min="1" placeholder="默认300秒（5分钟）"></td>
+                        </tr>
+                        <tr>
                             <td class="config-label">推送通道</td>
                             <td>
                                 <div id="weibo_push_channels" class="push-channels-select"></div>
@@ -240,6 +244,10 @@
                         <tr>
                             <td class="config-label">并发数</td>
                             <td><input type="number" id="huya_concurrency" class="form-input" min="1" max="20" placeholder="建议5-10"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="huya_monitor_interval_seconds" class="form-input" min="1" placeholder="默认65秒"></td>
                         </tr>
                         <tr>
                             <td class="config-label">推送通道</td>
@@ -1239,10 +1247,10 @@
                 </div>
             </div>
 
-            <!-- 调度器配置 -->
-            <div class="card config-section fade-in" data-section="scheduler" style="animation-delay: 0.25s;">
+            <!-- 日志清理任务配置 -->
+            <div class="card config-section fade-in" data-section="log_cleanup" style="animation-delay: 0.25s;">
                 <div class="card-header">
-                    <h2>⏰ 调度器配置</h2>
+                    <h2>🧹 日志清理任务配置</h2>
                     <div class="card-actions">
                         <button class="btn btn-secondary section-reload-btn">
                             <span>🔄</span>
@@ -1257,20 +1265,18 @@
                 <div class="card-body">
                     <table class="config-table">
                         <tr>
-                            <td class="config-label">虎牙监控间隔（秒）</td>
-                            <td><input type="number" id="huya_monitor_interval_seconds" class="form-input" min="1" placeholder="默认65秒"></td>
+                            <td class="config-label">启用日志清理任务</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="log_cleanup_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="log_cleanup_enable_label">开启</span>
+                            </td>
                         </tr>
                         <tr>
-                            <td class="config-label">微博监控间隔（秒）</td>
-                            <td><input type="number" id="weibo_monitor_interval_seconds" class="form-input" min="1" placeholder="默认300秒（5分钟）"></td>
-                        </tr>
-                        <tr>
-                            <td class="config-label">日志清理时间（小时）</td>
-                            <td><input type="number" id="cleanup_logs_hour" class="form-input" min="0" max="23" placeholder="默认2点"></td>
-                        </tr>
-                        <tr>
-                            <td class="config-label">日志清理时间（分钟）</td>
-                            <td><input type="number" id="cleanup_logs_minute" class="form-input" min="0" max="59" placeholder="默认0分"></td>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="log_cleanup_time" class="form-input" value="02:10"></td>
                         </tr>
                         <tr>
                             <td class="config-label">日志保留天数</td>

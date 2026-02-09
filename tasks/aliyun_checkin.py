@@ -71,7 +71,7 @@ def _run_aliyun_sync(refresh_token: str) -> tuple[bool, str]:
                         )
                 break
         else:
-            reward_msg = "本月累计签到{}天".format(sign_in_count)
+            reward_msg = f"本月累计签到{sign_in_count}天"
         # 领取接口（按需）
         sign_data = {"signInDay": sign_in_count}
         r3 = requests.post(
@@ -107,7 +107,7 @@ async def run_aliyun_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "AliyunConfig":
+        def from_app_config(cls, config: AppConfig) -> AliyunConfig:
             tokens: list[str] = getattr(config, "aliyun_refresh_tokens", None) or []
             single = (getattr(config, "aliyun_refresh_token", None) or "").strip()
             if not tokens and single:
@@ -125,8 +125,10 @@ async def run_aliyun_checkin_once() -> None:
             if not self.enable:
                 logger.debug("阿里云盘签到未启用，跳过")
                 return False
-            effective = self.refresh_tokens if self.refresh_tokens else (
-                [self.refresh_token] if self.refresh_token else []
+            effective = (
+                self.refresh_tokens
+                if self.refresh_tokens
+                else ([self.refresh_token] if self.refresh_token else [])
             )
             if not effective or not any(t.strip() for t in effective):
                 logger.error("阿里云盘签到配置不完整，缺少 refresh_token 或 refresh_tokens")

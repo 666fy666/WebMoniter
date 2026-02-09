@@ -84,7 +84,7 @@ async def run_fg_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "FgConfig":
+        def from_app_config(cls, config: AppConfig) -> FgConfig:
             cookies: list[str] = getattr(config, "fg_cookies", None) or []
             single = (getattr(config, "fg_cookie", None) or "").strip()
             if not cookies and single:

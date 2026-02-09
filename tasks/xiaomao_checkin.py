@@ -49,12 +49,7 @@ def _get_mt_version_from_store() -> str:
         )
         m = re.search(r'whats-new__latest__version">(.*?)</p>', r.text, re.S)
         if m:
-            return (
-                m.group(1)
-                .replace("版本 ", "")
-                .replace("ç­æ¬¬ ", "")
-                .strip()
-            )
+            return m.group(1).replace("版本 ", "").replace("ç­æ¬¬ ", "").strip()
     except Exception as e:
         logger.warning("小茅预约：从 App Store 获取版本号失败 %s", e)
     return ""
@@ -288,7 +283,7 @@ async def run_xiaomao_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "XiaomaoConfig":
+        def from_app_config(cls, config: AppConfig) -> XiaomaoConfig:
             tokens: list[str] = getattr(config, "xiaomao_tokens", None) or []
             single = (getattr(config, "xiaomao_token", None) or "").strip()
             if not tokens and single:
@@ -324,9 +319,7 @@ async def run_xiaomao_checkin_once() -> None:
         logger.error("小茅预约：未配置 mt_version 且无法从 App Store 获取")
         return
 
-    time_keys = str(
-        int(time.mktime(datetime.date.today().timetuple())) * 1000
-    )
+    time_keys = str(int(time.mktime(datetime.date.today().timetuple())) * 1000)
     # 用第一个账号的经纬度拉取门店地图
     first_line = effective[0]
     parts = first_line.split(",", 6)
@@ -381,9 +374,7 @@ async def run_xiaomao_checkin_once() -> None:
 
 
 def _get_xiaomao_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(
-        getattr(config, "xiaomao_time", "09:00") or "09:00"
-    )
+    hour, minute = parse_checkin_time(getattr(config, "xiaomao_time", "09:00") or "09:00")
     return {"minute": minute, "hour": hour}
 
 

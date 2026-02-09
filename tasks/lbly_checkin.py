@@ -44,7 +44,7 @@ async def run_lbly_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "LblyConfig":
+        def from_app_config(cls, config: AppConfig) -> LblyConfig:
             bodies: list[str] = getattr(config, "lbly_request_bodies", None) or []
             single = (getattr(config, "lbly_request_body", None) or "").strip()
             if not bodies and single:
@@ -81,8 +81,11 @@ async def run_lbly_checkin_once() -> None:
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
         push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list, session, logger,
-            init_fail_prefix="丽宝乐园签到：", channel_names=cfg.push_channels or None,
+            app_config.push_channel_list,
+            session,
+            logger,
+            init_fail_prefix="丽宝乐园签到：",
+            channel_names=cfg.push_channels or None,
         )
         for idx, body in enumerate(effective):
             try:
@@ -93,7 +96,13 @@ async def run_lbly_checkin_once() -> None:
             if push_manager and not is_in_quiet_hours(app_config):
                 title = "丽宝乐园签到成功" if ok else "丽宝乐园签到失败"
                 try:
-                    await push_manager.send_news(title=title, description=msg, to_url="https://m.mallcoo.cn", picurl="", btntxt="打开")
+                    await push_manager.send_news(
+                        title=title,
+                        description=msg,
+                        to_url="https://m.mallcoo.cn",
+                        picurl="",
+                        btntxt="打开",
+                    )
                 except Exception as exc:
                     logger.error("丽宝乐园签到：推送失败 %s", exc)
         if push_manager:

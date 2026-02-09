@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import random
 import time
@@ -34,7 +33,7 @@ class ZgfcConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "ZgfcConfig":
+    def from_app_config(cls, config: AppConfig) -> ZgfcConfig:
         tokens = getattr(config, "zgfc_tokens", None) or []
         tokens = [t.strip() for t in tokens if t and t.strip()]
         return cls(
@@ -223,4 +222,3 @@ def _get_zgfc_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task("zgfc_draw", run_zgfc_draw_once, _get_zgfc_trigger_kwargs)
-

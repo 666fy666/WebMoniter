@@ -34,7 +34,7 @@ class WeatherConfig:
     push_channels: list[str]
 
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> "WeatherConfig":
+    def from_app_config(cls, config: AppConfig) -> WeatherConfig:
         return cls(
             enable=getattr(config, "weather_enable", False),
             city_code=(getattr(config, "weather_city_code", None) or "").strip(),
@@ -164,11 +164,8 @@ async def run_weather_push_once() -> None:
 
 
 def _get_weather_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(
-        getattr(config, "weather_time", "07:30") or "07:30"
-    )
+    hour, minute = parse_checkin_time(getattr(config, "weather_time", "07:30") or "07:30")
     return {"minute": minute, "hour": hour}
 
 
 register_task("weather_push", run_weather_push_once, _get_weather_trigger_kwargs)
-

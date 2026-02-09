@@ -972,10 +972,17 @@ huya:
   rooms: "123,456"
   concurrency: 5
 
-# 调度器配置
-scheduler:
-  huya_monitor_interval_seconds: 60
-  weibo_monitor_interval_seconds: 300
+# 监控间隔配置（按任务配置）
+huya:
+  rooms: "123,456"
+  concurrency: 5
+  monitor_interval_seconds: 60
+
+weibo:
+  cookie: "xxx"
+  uids: "123,456"
+  concurrency: 2
+  monitor_interval_seconds: 300
 
 # 推送通道配置（每个任务可通过 push_channels 字段选择使用哪些通道）
 push_channel:

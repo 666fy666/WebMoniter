@@ -240,11 +240,13 @@ class AppConfig(BaseModel):
     ssq_500w_time: str = "21:30"
     ssq_500w_push_channels: list[str] = []
 
-    # 调度器配置
+    # 监控任务间隔配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
-    cleanup_logs_hour: int = 2  # 日志清理时间（小时），默认2点
-    cleanup_logs_minute: int = 0  # 日志清理时间（分钟），默认0分
+
+    # 日志清理任务配置
+    log_cleanup_enable: bool = True  # 是否启用日志清理任务
+    log_cleanup_time: str = "02:10"  # 日志清理时间（HH:MM），默认 02:10
     retention_days: int = 3  # 日志保留天数，默认3天
 
     # 推送通道配置
@@ -487,11 +489,9 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "time": "ssq_500w_time",
                 "push_channels": "ssq_500w_push_channels",
             },
-            "scheduler": {
-                "huya_monitor_interval_seconds": "huya_monitor_interval_seconds",
-                "weibo_monitor_interval_seconds": "weibo_monitor_interval_seconds",
-                "cleanup_logs_hour": "cleanup_logs_hour",
-                "cleanup_logs_minute": "cleanup_logs_minute",
+            "log_cleanup": {
+                "enable": "log_cleanup_enable",
+                "time": "log_cleanup_time",
                 "retention_days": "retention_days",
             },
             "quiet_hours": {
@@ -597,10 +597,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 accounts = []
                 for a in ty["accounts"]:
                     if isinstance(a, dict):
-                        accounts.append({
-                            "username": str(a.get("username", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        })
+                        accounts.append(
+                            {
+                                "username": str(a.get("username", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
                 if accounts:
                     config_dict["tyyun_accounts"] = accounts
 
@@ -631,10 +633,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 accounts = []
                 for a in mi["accounts"]:
                     if isinstance(a, dict):
-                        accounts.append({
-                            "account": str(a.get("account", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        })
+                        accounts.append(
+                            {
+                                "account": str(a.get("account", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
                 if accounts:
                     config_dict["miui_accounts"] = accounts
 
@@ -669,10 +673,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 accounts = []
                 for a in pz["accounts"]:
                     if isinstance(a, dict):
-                        accounts.append({
-                            "account": str(a.get("account", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        })
+                        accounts.append(
+                            {
+                                "account": str(a.get("account", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
                 if accounts:
                     config_dict["pinzan_accounts"] = accounts
 
@@ -699,10 +705,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 accs = []
                 for a in yd["accounts"]:
                     if isinstance(a, dict):
-                        accs.append({
-                            "device_params": str(a.get("device_params", "")).strip(),
-                            "token": str(a.get("token", "")).strip(),
-                        })
+                        accs.append(
+                            {
+                                "device_params": str(a.get("device_params", "")).strip(),
+                                "token": str(a.get("token", "")).strip(),
+                            }
+                        )
                 if accs:
                     config_dict["ydwx_accounts"] = accs
 

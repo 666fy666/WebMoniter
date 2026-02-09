@@ -144,8 +144,10 @@ class ConfigWatcher:
             "scheduler": [
                 "huya_monitor_interval_seconds",
                 "weibo_monitor_interval_seconds",
-                "cleanup_logs_hour",
-                "cleanup_logs_minute",
+            ],
+            "log_cleanup": [
+                "log_cleanup_enable",
+                "log_cleanup_time",
                 "retention_days",
             ],
             "quiet_hours": ["quiet_hours_enable", "quiet_hours_start", "quiet_hours_end"],

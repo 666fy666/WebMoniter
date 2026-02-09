@@ -47,9 +47,9 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
             "v": "10.4.1",
             "weixin": 1,
             "time": ts,
-            "sign": hashlib.md5(
-                f"f=android&time={ts}&v=10.4.1&weixin=1&key={SIGN_KEY}".encode("utf-8")
-            ).hexdigest().upper(),
+            "sign": hashlib.md5(f"f=android&time={ts}&v=10.4.1&weixin=1&key={SIGN_KEY}".encode())
+            .hexdigest()
+            .upper(),
         }
         r = requests.post(SMZDM_TOKEN_URL, headers=headers, data=data_token, timeout=15)
         r.raise_for_status()
@@ -59,11 +59,13 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
             return False, result.get("error_msg", "获取 token 失败")
         ts2 = int(round(time.time() * 1000))
         sk = "ierkM0OZZbsuBKLoAgQ6OJneLMXBQXmzX+LXkNTuKch8Ui2jGlahuFyWIzBiDq/L"
-        sign2 = hashlib.md5(
-            f"f=android&sk={sk}&time={ts2}&token={token}&v=10.4.1&weixin=1&key={SIGN_KEY}".encode(
-                "utf-8"
+        sign2 = (
+            hashlib.md5(
+                f"f=android&sk={sk}&time={ts2}&token={token}&v=10.4.1&weixin=1&key={SIGN_KEY}".encode()
             )
-        ).hexdigest().upper()
+            .hexdigest()
+            .upper()
+        )
         data_check = {
             "f": "android",
             "v": "10.4.1",
@@ -104,7 +106,7 @@ async def run_smzdm_checkin_once() -> None:
         push_channels: list[str]
 
         @classmethod
-        def from_app_config(cls, config: AppConfig) -> "SmzdmConfig":
+        def from_app_config(cls, config: AppConfig) -> SmzdmConfig:
             cookies: list[str] = getattr(config, "smzdm_cookies", None) or []
             single = (getattr(config, "smzdm_cookie", None) or "").strip()
             if not cookies and single:

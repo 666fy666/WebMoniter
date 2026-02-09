@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -63,12 +64,8 @@ def _run_fr_sync(cookie: str) -> str:
 
         # 查询签到信息
         check_re = requests.get(url=checksign_url, headers=headers, timeout=20).text
-        user = "".join(
-            re.findall(r'" c="1" class="author">(.*?) ', check_re, re.S)
-        ).strip()
-        sign_rank = "".join(
-            re.findall(r" ", check_re, re.S)
-        ).strip()  # 原脚本中示例，不再精细解析
+        user = "".join(re.findall(r'" c="1" class="author">(.*?) ', check_re, re.S)).strip()
+        sign_rank = "".join(re.findall(r" ", check_re, re.S)).strip()  # 原脚本中示例，不再精细解析
 
         # 使用 BeautifulSoup 更稳健地提取部分信息
         soup = BeautifulSoup(check_re, "html.parser")
@@ -144,4 +141,3 @@ def _get_fr_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task("fr_checkin", run_fr_checkin_once, _get_fr_trigger_kwargs)
-
