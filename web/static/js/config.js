@@ -33,6 +33,56 @@ document.addEventListener('DOMContentLoaded', async function() {
     const weiboChaohuaEnableLabel = document.getElementById('weibo_chaohua_enable_label');
     const rainyunEnable = document.getElementById('rainyun_enable');
     const rainyunEnableLabel = document.getElementById('rainyun_enable_label');
+    const enshanEnable = document.getElementById('enshan_enable');
+    const enshanEnableLabel = document.getElementById('enshan_enable_label');
+    const tyyunEnable = document.getElementById('tyyun_enable');
+    const tyyunEnableLabel = document.getElementById('tyyun_enable_label');
+    const aliyunEnable = document.getElementById('aliyun_enable');
+    const aliyunEnableLabel = document.getElementById('aliyun_enable_label');
+    const smzdmEnable = document.getElementById('smzdm_enable');
+    const smzdmEnableLabel = document.getElementById('smzdm_enable_label');
+    const zdmDrawEnable = document.getElementById('zdm_draw_enable');
+    const zdmDrawEnableLabel = document.getElementById('zdm_draw_enable_label');
+    const fgEnable = document.getElementById('fg_enable');
+    const fgEnableLabel = document.getElementById('fg_enable_label');
+    const miuiEnable = document.getElementById('miui_enable');
+    const miuiEnableLabel = document.getElementById('miui_enable_label');
+    const iqiyiEnable = document.getElementById('iqiyi_enable');
+    const iqiyiEnableLabel = document.getElementById('iqiyi_enable_label');
+    const lenovoEnable = document.getElementById('lenovo_enable');
+    const lenovoEnableLabel = document.getElementById('lenovo_enable_label');
+    const lblyEnable = document.getElementById('lbly_enable');
+    const lblyEnableLabel = document.getElementById('lbly_enable_label');
+    const pinzanEnable = document.getElementById('pinzan_enable');
+    const pinzanEnableLabel = document.getElementById('pinzan_enable_label');
+    const dmlEnable = document.getElementById('dml_enable');
+    const dmlEnableLabel = document.getElementById('dml_enable_label');
+    const xiaomaoEnable = document.getElementById('xiaomao_enable');
+    const xiaomaoEnableLabel = document.getElementById('xiaomao_enable_label');
+    const ydwxEnable = document.getElementById('ydwx_enable');
+    const ydwxEnableLabel = document.getElementById('ydwx_enable_label');
+    const xingkongEnable = document.getElementById('xingkong_enable');
+    const xingkongEnableLabel = document.getElementById('xingkong_enable_label');
+    const qtwEnable = document.getElementById('qtw_enable');
+    const qtwEnableLabel = document.getElementById('qtw_enable_label');
+
+    // 新增任务开关
+    const freenomEnable = document.getElementById('freenom_enable');
+    const freenomEnableLabel = document.getElementById('freenom_enable_label');
+    const weatherEnable = document.getElementById('weather_enable');
+    const weatherEnableLabel = document.getElementById('weather_enable_label');
+    const kuakeEnable = document.getElementById('kuake_enable');
+    const kuakeEnableLabel = document.getElementById('kuake_enable_label');
+    const kjwjEnable = document.getElementById('kjwj_enable');
+    const kjwjEnableLabel = document.getElementById('kjwj_enable_label');
+    const frEnable = document.getElementById('fr_enable');
+    const frEnableLabel = document.getElementById('fr_enable_label');
+    const nineEnable = document.getElementById('nine_nine_nine_enable');
+    const nineEnableLabel = document.getElementById('nine_nine_nine_enable_label');
+    const zgfcEnable = document.getElementById('zgfc_enable');
+    const zgfcEnableLabel = document.getElementById('zgfc_enable_label');
+    const ssqEnable = document.getElementById('ssq_500w_enable');
+    const ssqEnableLabel = document.getElementById('ssq_500w_enable_label');
     const tableView = document.getElementById('tableView');
     const textView = document.getElementById('textView');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -258,6 +308,46 @@ document.addEventListener('DOMContentLoaded', async function() {
             rainyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
         });
     }
+    if (enshanEnable && enshanEnableLabel) {
+        enshanEnable.addEventListener('change', function() {
+            enshanEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (tyyunEnable && tyyunEnableLabel) {
+        tyyunEnable.addEventListener('change', function() {
+            tyyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (aliyunEnable && aliyunEnableLabel) {
+        aliyunEnable.addEventListener('change', function() {
+            aliyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (smzdmEnable && smzdmEnableLabel) {
+        smzdmEnable.addEventListener('change', function() {
+            smzdmEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (zdmDrawEnable && zdmDrawEnableLabel) {
+        zdmDrawEnable.addEventListener('change', function() {
+            zdmDrawEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (fgEnable && fgEnableLabel) {
+        fgEnable.addEventListener('change', function() {
+            fgEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+    if (miuiEnable && miuiEnableLabel) miuiEnable.addEventListener('change', function() { miuiEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (iqiyiEnable && iqiyiEnableLabel) iqiyiEnable.addEventListener('change', function() { iqiyiEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (lenovoEnable && lenovoEnableLabel) lenovoEnable.addEventListener('change', function() { lenovoEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (lblyEnable && lblyEnableLabel) lblyEnable.addEventListener('change', function() { lblyEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (pinzanEnable && pinzanEnableLabel) pinzanEnable.addEventListener('change', function() { pinzanEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (dmlEnable && dmlEnableLabel) dmlEnable.addEventListener('change', function() { dmlEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (xiaomaoEnable && xiaomaoEnableLabel) xiaomaoEnable.addEventListener('change', function() { xiaomaoEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (ydwxEnable && ydwxEnableLabel) ydwxEnable.addEventListener('change', function() { ydwxEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (xingkongEnable && xingkongEnableLabel) xingkongEnable.addEventListener('change', function() { xingkongEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (qtwEnable && qtwEnableLabel) qtwEnable.addEventListener('change', function() { qtwEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
 
     // 加载配置
     async function loadConfig() {
@@ -280,6 +370,22 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('checkin', config);
             loadSectionConfig('rainyun', config);
             loadSectionConfig('tieba', config);
+            loadSectionConfig('enshan', config);
+            loadSectionConfig('tyyun', config);
+            loadSectionConfig('aliyun', config);
+            loadSectionConfig('smzdm', config);
+            loadSectionConfig('zdm_draw', config);
+            loadSectionConfig('fg', config);
+            loadSectionConfig('miui', config);
+            loadSectionConfig('iqiyi', config);
+            loadSectionConfig('lenovo', config);
+            loadSectionConfig('lbly', config);
+            loadSectionConfig('pinzan', config);
+            loadSectionConfig('dml', config);
+            loadSectionConfig('xiaomao', config);
+            loadSectionConfig('ydwx', config);
+            loadSectionConfig('xingkong', config);
+            loadSectionConfig('qtw', config);
             loadSectionConfig('scheduler', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
@@ -374,7 +480,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             'huya_push_channels': originalConfig?.huya?.push_channels || [],
             'checkin_push_channels': originalConfig?.checkin?.push_channels || [],
             'rainyun_push_channels': originalConfig?.rainyun?.push_channels || [],
-            'tieba_push_channels': originalConfig?.tieba?.push_channels || []
+            'tieba_push_channels': originalConfig?.tieba?.push_channels || [],
+            'enshan_push_channels': originalConfig?.enshan?.push_channels || [],
+            'tyyun_push_channels': originalConfig?.tyyun?.push_channels || [],
+            'aliyun_push_channels': originalConfig?.aliyun?.push_channels || [],
+            'smzdm_push_channels': originalConfig?.smzdm?.push_channels || [],
+            'zdm_draw_push_channels': originalConfig?.zdm_draw?.push_channels || [],
+            'fg_push_channels': originalConfig?.fg?.push_channels || [],
+            'miui_push_channels': originalConfig?.miui?.push_channels || [],
+            'iqiyi_push_channels': originalConfig?.iqiyi?.push_channels || [],
+            'lenovo_push_channels': originalConfig?.lenovo?.push_channels || [],
+            'lbly_push_channels': originalConfig?.lbly?.push_channels || [],
+            'pinzan_push_channels': originalConfig?.pinzan?.push_channels || [],
+            'dml_push_channels': originalConfig?.dml?.push_channels || [],
+            'xiaomao_push_channels': originalConfig?.xiaomao?.push_channels || [],
+            'ydwx_push_channels': originalConfig?.ydwx?.push_channels || [],
+            'xingkong_push_channels': originalConfig?.xingkong?.push_channels || [],
+            'qtw_push_channels': originalConfig?.qtw?.push_channels || [],
+            'freenom_push_channels': originalConfig?.freenom?.push_channels || [],
+            'weather_push_channels': originalConfig?.weather?.push_channels || [],
+            'kuake_push_channels': originalConfig?.kuake?.push_channels || [],
+            'kjwj_push_channels': originalConfig?.kjwj?.push_channels || [],
+            'fr_push_channels': originalConfig?.fr?.push_channels || [],
+            'nine_nine_nine_push_channels': originalConfig?.nine_nine_nine?.push_channels || [],
+            'zgfc_push_channels': originalConfig?.zgfc?.push_channels || [],
+            'ssq_500w_push_channels': originalConfig?.ssq_500w?.push_channels || []
         };
 
         Object.keys(taskPushChannelConfigs).forEach(containerId => {
@@ -635,6 +765,341 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    function renderEnshanCookies(cookies) {
+        const container = document.getElementById('enshan_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input enshan-cookie-value" placeholder="恩山 Cookie">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove enshan-cookie-remove">删除</button>
+            `;
+            row.querySelector('.enshan-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderTyyunAccounts(accounts) {
+        const container = document.getElementById('tyyun_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ username: '', password: '' }];
+        list.forEach((acc, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="account-fields">
+                    <input type="text" class="form-input tyyun-account-username" placeholder="手机号">
+                    <input type="password" class="form-input tyyun-account-password" placeholder="密码">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove tyyun-account-remove">删除</button>
+            `;
+            row.querySelector('.tyyun-account-username').value = acc.username || '';
+            row.querySelector('.tyyun-account-password').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderAliyunTokens(tokens) {
+        const container = document.getElementById('aliyun_refresh_tokens_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = tokens.length ? tokens : [''];
+        list.forEach((token, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="password" class="form-input aliyun-token-value" placeholder="refresh_token">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove aliyun-token-remove">删除</button>
+            `;
+            row.querySelector('.aliyun-token-value').value = token || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderSmzdmCookies(cookies) {
+        const container = document.getElementById('smzdm_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input smzdm-cookie-value" placeholder="值得买 Cookie">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove smzdm-cookie-remove">删除</button>
+            `;
+            row.querySelector('.smzdm-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderZdmDrawCookies(cookies) {
+        const container = document.getElementById('zdm_draw_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input zdm-draw-cookie-value" placeholder="值得买 Cookie">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove zdm-draw-cookie-remove">删除</button>
+            `;
+            row.querySelector('.zdm-draw-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderFgCookies(cookies) {
+        const container = document.getElementById('fg_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((cookie, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="text" class="form-input fg-cookie-value" placeholder="富贵论坛 Cookie">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove fg-cookie-remove">删除</button>
+            `;
+            row.querySelector('.fg-cookie-value').value = cookie || '';
+            container.appendChild(row);
+        });
+    }
+
+    function renderMiuiAccounts(accounts) {
+        const container = document.getElementById('miui_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ account: '', password: '' }];
+        list.forEach((acc, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.dataset.index = index;
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input miui-account-value" placeholder="手机号"><input type="password" class="form-input miui-password-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove miui-account-remove">删除</button>';
+            row.querySelector('.miui-account-value').value = acc.account || '';
+            row.querySelector('.miui-password-value').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+    function renderIqiyiCookies(cookies) {
+        const container = document.getElementById('iqiyi_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((c, i) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input iqiyi-cookie-value" placeholder="爱奇艺 Cookie"></div><button type="button" class="btn btn-secondary row-remove iqiyi-cookie-remove">删除</button>';
+            row.querySelector('.iqiyi-cookie-value').value = c || '';
+            container.appendChild(row);
+        });
+    }
+    function renderLenovoTokens(tokens) {
+        const container = document.getElementById('lenovo_access_tokens_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = tokens.length ? tokens : [''];
+        list.forEach((t, i) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input lenovo-token-value" placeholder="access_token"></div><button type="button" class="btn btn-secondary row-remove lenovo-token-remove">删除</button>';
+            row.querySelector('.lenovo-token-value').value = t || '';
+            container.appendChild(row);
+        });
+    }
+    function renderLblyBodies(bodies) {
+        const container = document.getElementById('lbly_request_bodies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = bodies.length ? bodies : [''];
+        list.forEach((b, i) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><textarea class="form-input lbly-body-value" rows="2" placeholder="请求体 JSON"></textarea></div><button type="button" class="btn btn-secondary row-remove lbly-body-remove">删除</button>';
+            row.querySelector('.lbly-body-value').value = b || '';
+            container.appendChild(row);
+        });
+    }
+    function renderPinzanAccounts(accounts) {
+        const container = document.getElementById('pinzan_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ account: '', password: '' }];
+        list.forEach((acc, i) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input pinzan-account-value" placeholder="账号"><input type="password" class="form-input pinzan-password-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove pinzan-account-remove">删除</button>';
+            row.querySelector('.pinzan-account-value').value = acc.account || '';
+            row.querySelector('.pinzan-password-value').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+    function renderDmlOpenids(openids) {
+        const container = document.getElementById('dml_openids_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = openids.length ? openids : [''];
+        list.forEach((o, i) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input dml-openid-value" placeholder="openid"></div><button type="button" class="btn btn-secondary row-remove dml-openid-remove">删除</button>';
+            row.querySelector('.dml-openid-value').value = o || '';
+            container.appendChild(row);
+        });
+    }
+    function renderXiaomaoTokens(tokens) {
+        const container = document.getElementById('xiaomao_tokens_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = tokens.length ? tokens : [''];
+        list.forEach((t) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input xiaomao-token-value" placeholder="省份,城市,经度,纬度,设备id,token,MT-Token-Wap"></div><button type="button" class="btn btn-secondary row-remove xiaomao-token-remove">删除</button>';
+            row.querySelector('.xiaomao-token-value').value = t || '';
+            container.appendChild(row);
+        });
+    }
+    function renderYdwxAccounts(accounts) {
+        const container = document.getElementById('ydwx_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ device_params: '', token: '' }];
+        list.forEach((a) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input ydwx-dp-value" placeholder="deviceParams"><input type="text" class="form-input ydwx-token-value" placeholder="token"></div><button type="button" class="btn btn-secondary row-remove ydwx-account-remove">删除</button>';
+            row.querySelector('.ydwx-dp-value').value = a.device_params || '';
+            row.querySelector('.ydwx-token-value').value = a.token || '';
+            container.appendChild(row);
+        });
+    }
+    function renderXingkongAccounts(accounts) {
+        const container = document.getElementById('xingkong_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ username: '', password: '' }];
+        list.forEach((a) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input xingkong-user-value" placeholder="用户名"><input type="password" class="form-input xingkong-pwd-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove xingkong-account-remove">删除</button>';
+            row.querySelector('.xingkong-user-value').value = a.username || '';
+            row.querySelector('.xingkong-pwd-value').value = a.password || '';
+            container.appendChild(row);
+        });
+    }
+    function renderQtwCookies(cookies) {
+        const container = document.getElementById('qtw_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((c) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input qtw-cookie-value" placeholder="千图网 Cookie"></div><button type="button" class="btn btn-secondary row-remove qtw-cookie-remove">删除</button>';
+            row.querySelector('.qtw-cookie-value').value = c || '';
+            container.appendChild(row);
+        });
+    }
+
+    // Freenom 多账号
+    function renderFreenomAccounts(accounts) {
+        const container = document.getElementById('freenom_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ email: '', password: '' }];
+        list.forEach((acc) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input freenom-account-email" placeholder="邮箱"><input type="password" class="form-input freenom-account-password" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove freenom-account-remove">删除</button>';
+            row.querySelector('.freenom-account-email').value = acc.email || '';
+            row.querySelector('.freenom-account-password').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+
+    // 夸克 Cookie 列表
+    function renderKuakeCookies(cookies) {
+        const container = document.getElementById('kuake_cookies_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = cookies.length ? cookies : [''];
+        list.forEach((c) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input kuake-cookie-value" placeholder="夸克 Cookie"></div><button type="button" class="btn btn-secondary row-remove kuake-cookie-remove">删除</button>';
+            row.querySelector('.kuake-cookie-value').value = c || '';
+            container.appendChild(row);
+        });
+    }
+
+    // 科技玩家多账号
+    function renderKjwjAccounts(accounts) {
+        const container = document.getElementById('kjwj_accounts_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = accounts.length ? accounts : [{ username: '', password: '' }];
+        list.forEach((acc) => {
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input kjwj-account-username" placeholder="用户名/邮箱"><input type="password" class="form-input kjwj-account-password" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove kjwj-account-remove">删除</button>';
+            row.querySelector('.kjwj-account-username').value = acc.username || '';
+            row.querySelector('.kjwj-account-password').value = acc.password || '';
+            container.appendChild(row);
+        });
+    }
+
+    // 999 tokens
+    function renderNineTokens(tokens) {
+        const container = document.getElementById('nine_nine_nine_tokens_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = tokens.length ? tokens : [''];
+        list.forEach((t) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input nine-token-value" placeholder="Authorization"></div><button type="button" class="btn btn-secondary row-remove nine-token-remove">删除</button>';
+            row.querySelector('.nine-token-value').value = t || '';
+            container.appendChild(row);
+        });
+    }
+
+    // 福彩 tokens
+    function renderZgfcTokens(tokens) {
+        const container = document.getElementById('zgfc_tokens_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = tokens.length ? tokens : [''];
+        list.forEach((t) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input zgfc-token-value" placeholder="Authorization"></div><button type="button" class="btn btn-secondary row-remove zgfc-token-remove">删除</button>';
+            row.querySelector('.zgfc-token-value').value = t || '';
+            container.appendChild(row);
+        });
+    }
+
     function renderWeiboChaohuaCookies(cookies) {
         const container = document.getElementById('weibo_chaohua_cookies_list');
         if (!container) return;
@@ -815,6 +1280,336 @@ document.addEventListener('DOMContentLoaded', async function() {
                     renderTaskPushChannelSelect('rainyun_push_channels', config.rainyun.push_channels || []);
                 }
                 break;
+            case 'enshan':
+                if (config.enshan) {
+                    if (enshanEnable) {
+                        enshanEnable.checked = config.enshan.enable === true || config.enshan.enable === 'true';
+                        if (enshanEnableLabel) enshanEnableLabel.textContent = enshanEnable.checked ? '开启' : '关闭';
+                    }
+                    const enshanCookieInput = document.getElementById('enshan_cookie');
+                    const enshanTimeInput = document.getElementById('enshan_time');
+                    if (enshanCookieInput) enshanCookieInput.value = config.enshan.cookie || '';
+                    if (enshanTimeInput) enshanTimeInput.value = (config.enshan.time || '02:00').length === 5 ? config.enshan.time : '02:00';
+                    const enshanCookiesList = document.getElementById('enshan_cookies_list');
+                    if (enshanCookiesList) {
+                        const cookies = Array.isArray(config.enshan.cookies) && config.enshan.cookies.length > 0 ? config.enshan.cookies : [''];
+                        renderEnshanCookies(cookies);
+                    }
+                    renderTaskPushChannelSelect('enshan_push_channels', config.enshan.push_channels || []);
+                }
+                break;
+            case 'tyyun':
+                if (config.tyyun) {
+                    if (tyyunEnable) {
+                        tyyunEnable.checked = config.tyyun.enable === true || config.tyyun.enable === 'true';
+                        if (tyyunEnableLabel) tyyunEnableLabel.textContent = tyyunEnable.checked ? '开启' : '关闭';
+                    }
+                    const tyyunUser = document.getElementById('tyyun_username');
+                    const tyyunPwd = document.getElementById('tyyun_password');
+                    if (tyyunUser) tyyunUser.value = config.tyyun.username || '';
+                    if (tyyunPwd) tyyunPwd.value = config.tyyun.password || '';
+                    const tyyunTimeInput = document.getElementById('tyyun_time');
+                    if (tyyunTimeInput) tyyunTimeInput.value = (config.tyyun.time || '04:30').length === 5 ? config.tyyun.time : '04:30';
+                    const tyyunAccountsList = document.getElementById('tyyun_accounts_list');
+                    if (tyyunAccountsList) {
+                        const accounts = Array.isArray(config.tyyun.accounts) && config.tyyun.accounts.length > 0 ? config.tyyun.accounts : [{ username: '', password: '' }];
+                        renderTyyunAccounts(accounts);
+                    }
+                    renderTaskPushChannelSelect('tyyun_push_channels', config.tyyun.push_channels || []);
+                }
+                break;
+            case 'aliyun':
+                if (config.aliyun) {
+                    if (aliyunEnable) {
+                        aliyunEnable.checked = config.aliyun.enable === true || config.aliyun.enable === 'true';
+                        if (aliyunEnableLabel) aliyunEnableLabel.textContent = aliyunEnable.checked ? '开启' : '关闭';
+                    }
+                    const aliyunTokenInput = document.getElementById('aliyun_refresh_token');
+                    if (aliyunTokenInput) aliyunTokenInput.value = config.aliyun.refresh_token || '';
+                    const aliyunTimeInput = document.getElementById('aliyun_time');
+                    if (aliyunTimeInput) aliyunTimeInput.value = (config.aliyun.time || '05:30').length === 5 ? config.aliyun.time : '05:30';
+                    const aliyunTokensList = document.getElementById('aliyun_refresh_tokens_list');
+                    if (aliyunTokensList) {
+                        const tokens = Array.isArray(config.aliyun.refresh_tokens) && config.aliyun.refresh_tokens.length > 0 ? config.aliyun.refresh_tokens : [''];
+                        renderAliyunTokens(tokens);
+                    }
+                    renderTaskPushChannelSelect('aliyun_push_channels', config.aliyun.push_channels || []);
+                }
+                break;
+            case 'smzdm':
+                if (config.smzdm) {
+                    if (smzdmEnable) {
+                        smzdmEnable.checked = config.smzdm.enable === true || config.smzdm.enable === 'true';
+                        if (smzdmEnableLabel) smzdmEnableLabel.textContent = smzdmEnable.checked ? '开启' : '关闭';
+                    }
+                    const smzdmCookieInput = document.getElementById('smzdm_cookie');
+                    if (smzdmCookieInput) smzdmCookieInput.value = config.smzdm.cookie || '';
+                    const smzdmTimeInput = document.getElementById('smzdm_time');
+                    if (smzdmTimeInput) smzdmTimeInput.value = (config.smzdm.time || '00:30').length === 5 ? config.smzdm.time : '00:30';
+                    const smzdmCookiesList = document.getElementById('smzdm_cookies_list');
+                    if (smzdmCookiesList) {
+                        const cookies = Array.isArray(config.smzdm.cookies) && config.smzdm.cookies.length > 0 ? config.smzdm.cookies : [''];
+                        renderSmzdmCookies(cookies);
+                    }
+                    renderTaskPushChannelSelect('smzdm_push_channels', config.smzdm.push_channels || []);
+                }
+                break;
+            case 'zdm_draw':
+                if (config.zdm_draw) {
+                    if (zdmDrawEnable) {
+                        zdmDrawEnable.checked = config.zdm_draw.enable === true || config.zdm_draw.enable === 'true';
+                        if (zdmDrawEnableLabel) zdmDrawEnableLabel.textContent = zdmDrawEnable.checked ? '开启' : '关闭';
+                    }
+                    const zdmDrawCookieInput = document.getElementById('zdm_draw_cookie');
+                    if (zdmDrawCookieInput) zdmDrawCookieInput.value = config.zdm_draw.cookie || '';
+                    const zdmDrawTimeInput = document.getElementById('zdm_draw_time');
+                    if (zdmDrawTimeInput) zdmDrawTimeInput.value = (config.zdm_draw.time || '07:30').length === 5 ? config.zdm_draw.time : '07:30';
+                    const zdmDrawCookiesList = document.getElementById('zdm_draw_cookies_list');
+                    if (zdmDrawCookiesList) {
+                        const cookies = Array.isArray(config.zdm_draw.cookies) && config.zdm_draw.cookies.length > 0 ? config.zdm_draw.cookies : [''];
+                        renderZdmDrawCookies(cookies);
+                    }
+                    renderTaskPushChannelSelect('zdm_draw_push_channels', config.zdm_draw.push_channels || []);
+                }
+                break;
+            case 'fg':
+                if (config.fg) {
+                    if (fgEnable) {
+                        fgEnable.checked = config.fg.enable === true || config.fg.enable === 'true';
+                        if (fgEnableLabel) fgEnableLabel.textContent = fgEnable.checked ? '开启' : '关闭';
+                    }
+                    const fgCookieInput = document.getElementById('fg_cookie');
+                    if (fgCookieInput) fgCookieInput.value = config.fg.cookie || '';
+                    const fgTimeInput = document.getElementById('fg_time');
+                    if (fgTimeInput) fgTimeInput.value = (config.fg.time || '00:01').length === 5 ? config.fg.time : '00:01';
+                    const fgCookiesList = document.getElementById('fg_cookies_list');
+                    if (fgCookiesList) {
+                        const cookies = Array.isArray(config.fg.cookies) && config.fg.cookies.length > 0 ? config.fg.cookies : [''];
+                        renderFgCookies(cookies);
+                    }
+                    renderTaskPushChannelSelect('fg_push_channels', config.fg.push_channels || []);
+                }
+                break;
+            case 'miui':
+                if (config.miui) {
+                    if (miuiEnable) { miuiEnable.checked = config.miui.enable === true || config.miui.enable === 'true'; if (miuiEnableLabel) miuiEnableLabel.textContent = miuiEnable.checked ? '开启' : '关闭'; }
+                    const miuiAcc = document.getElementById('miui_account'); const miuiPwd = document.getElementById('miui_password'); const miuiTime = document.getElementById('miui_time');
+                    if (miuiAcc) miuiAcc.value = config.miui.account || ''; if (miuiPwd) miuiPwd.value = config.miui.password || '';
+                    if (miuiTime) miuiTime.value = (config.miui.time || '08:30').length === 5 ? config.miui.time : '08:30';
+                    const miuiList = document.getElementById('miui_accounts_list');
+                    if (miuiList) { const accs = Array.isArray(config.miui.accounts) && config.miui.accounts.length > 0 ? config.miui.accounts : [{ account: '', password: '' }]; renderMiuiAccounts(accs); }
+                    renderTaskPushChannelSelect('miui_push_channels', config.miui.push_channels || []);
+                }
+                break;
+            case 'iqiyi':
+                if (config.iqiyi) {
+                    if (iqiyiEnable) { iqiyiEnable.checked = config.iqiyi.enable === true || config.iqiyi.enable === 'true'; if (iqiyiEnableLabel) iqiyiEnableLabel.textContent = iqiyiEnable.checked ? '开启' : '关闭'; }
+                    const iqiyiCookie = document.getElementById('iqiyi_cookie'); const iqiyiTime = document.getElementById('iqiyi_time');
+                    if (iqiyiCookie) iqiyiCookie.value = config.iqiyi.cookie || ''; if (iqiyiTime) iqiyiTime.value = (config.iqiyi.time || '06:00').length === 5 ? config.iqiyi.time : '06:00';
+                    const iqiyiList = document.getElementById('iqiyi_cookies_list');
+                    if (iqiyiList) { const cks = Array.isArray(config.iqiyi.cookies) && config.iqiyi.cookies.length > 0 ? config.iqiyi.cookies : ['']; renderIqiyiCookies(cks); }
+                    renderTaskPushChannelSelect('iqiyi_push_channels', config.iqiyi.push_channels || []);
+                }
+                break;
+            case 'lenovo':
+                if (config.lenovo) {
+                    if (lenovoEnable) { lenovoEnable.checked = config.lenovo.enable === true || config.lenovo.enable === 'true'; if (lenovoEnableLabel) lenovoEnableLabel.textContent = lenovoEnable.checked ? '开启' : '关闭'; }
+                    const lenovoToken = document.getElementById('lenovo_access_token'); const lenovoTime = document.getElementById('lenovo_time');
+                    if (lenovoToken) lenovoToken.value = config.lenovo.access_token || ''; if (lenovoTime) lenovoTime.value = (config.lenovo.time || '05:30').length === 5 ? config.lenovo.time : '05:30';
+                    const lenovoList = document.getElementById('lenovo_access_tokens_list');
+                    if (lenovoList) { const toks = Array.isArray(config.lenovo.access_tokens) && config.lenovo.access_tokens.length > 0 ? config.lenovo.access_tokens : ['']; renderLenovoTokens(toks); }
+                    renderTaskPushChannelSelect('lenovo_push_channels', config.lenovo.push_channels || []);
+                }
+                break;
+            case 'lbly':
+                if (config.lbly) {
+                    if (lblyEnable) { lblyEnable.checked = config.lbly.enable === true || config.lbly.enable === 'true'; if (lblyEnableLabel) lblyEnableLabel.textContent = lblyEnable.checked ? '开启' : '关闭'; }
+                    const lblyBody = document.getElementById('lbly_request_body'); const lblyTime = document.getElementById('lbly_time');
+                    if (lblyBody) lblyBody.value = config.lbly.request_body || ''; if (lblyTime) lblyTime.value = (config.lbly.time || '05:30').length === 5 ? config.lbly.time : '05:30';
+                    const lblyList = document.getElementById('lbly_request_bodies_list');
+                    if (lblyList) { const bodies = Array.isArray(config.lbly.request_bodies) && config.lbly.request_bodies.length > 0 ? config.lbly.request_bodies : ['']; renderLblyBodies(bodies); }
+                    renderTaskPushChannelSelect('lbly_push_channels', config.lbly.push_channels || []);
+                }
+                break;
+            case 'pinzan':
+                if (config.pinzan) {
+                    if (pinzanEnable) { pinzanEnable.checked = config.pinzan.enable === true || config.pinzan.enable === 'true'; if (pinzanEnableLabel) pinzanEnableLabel.textContent = pinzanEnable.checked ? '开启' : '关闭'; }
+                    const pzAcc = document.getElementById('pinzan_account'); const pzPwd = document.getElementById('pinzan_password'); const pzTime = document.getElementById('pinzan_time');
+                    if (pzAcc) pzAcc.value = config.pinzan.account || ''; if (pzPwd) pzPwd.value = config.pinzan.password || ''; if (pzTime) pzTime.value = (config.pinzan.time || '08:00').length === 5 ? config.pinzan.time : '08:00';
+                    const pzList = document.getElementById('pinzan_accounts_list');
+                    if (pzList) { const accs = Array.isArray(config.pinzan.accounts) && config.pinzan.accounts.length > 0 ? config.pinzan.accounts : [{ account: '', password: '' }]; renderPinzanAccounts(accs); }
+                    renderTaskPushChannelSelect('pinzan_push_channels', config.pinzan.push_channels || []);
+                }
+                break;
+            case 'dml':
+                if (config.dml) {
+                    if (dmlEnable) { dmlEnable.checked = config.dml.enable === true || config.dml.enable === 'true'; if (dmlEnableLabel) dmlEnableLabel.textContent = dmlEnable.checked ? '开启' : '关闭'; }
+                    const dmlOpenid = document.getElementById('dml_openid'); const dmlTime = document.getElementById('dml_time');
+                    if (dmlOpenid) dmlOpenid.value = config.dml.openid || ''; if (dmlTime) dmlTime.value = (config.dml.time || '06:00').length === 5 ? config.dml.time : '06:00';
+                    const dmlList = document.getElementById('dml_openids_list');
+                    if (dmlList) { const ids = Array.isArray(config.dml.openids) && config.dml.openids.length > 0 ? config.dml.openids : ['']; renderDmlOpenids(ids); }
+                    renderTaskPushChannelSelect('dml_push_channels', config.dml.push_channels || []);
+                }
+                break;
+            case 'xiaomao':
+                if (config.xiaomao) {
+                    if (xiaomaoEnable) { xiaomaoEnable.checked = config.xiaomao.enable === true || config.xiaomao.enable === 'true'; if (xiaomaoEnableLabel) xiaomaoEnableLabel.textContent = xiaomaoEnable.checked ? '开启' : '关闭'; }
+                    const xmToken = document.getElementById('xiaomao_token'); const xmVer = document.getElementById('xiaomao_mt_version'); const xmTime = document.getElementById('xiaomao_time');
+                    if (xmToken) xmToken.value = config.xiaomao.token || ''; if (xmVer) xmVer.value = config.xiaomao.mt_version || ''; if (xmTime) xmTime.value = (config.xiaomao.time || '09:00').length === 5 ? config.xiaomao.time : '09:00';
+                    const xmList = document.getElementById('xiaomao_tokens_list');
+                    if (xmList) { const toks = Array.isArray(config.xiaomao.tokens) && config.xiaomao.tokens.length > 0 ? config.xiaomao.tokens : ['']; renderXiaomaoTokens(toks); }
+                    renderTaskPushChannelSelect('xiaomao_push_channels', config.xiaomao.push_channels || []);
+                }
+                break;
+            case 'ydwx':
+                if (config.ydwx) {
+                    if (ydwxEnable) { ydwxEnable.checked = config.ydwx.enable === true || config.ydwx.enable === 'true'; if (ydwxEnableLabel) ydwxEnableLabel.textContent = ydwxEnable.checked ? '开启' : '关闭'; }
+                    const ydDp = document.getElementById('ydwx_device_params'); const ydTk = document.getElementById('ydwx_token'); const ydTime = document.getElementById('ydwx_time');
+                    if (ydDp) ydDp.value = config.ydwx.device_params || ''; if (ydTk) ydTk.value = config.ydwx.token || ''; if (ydTime) ydTime.value = (config.ydwx.time || '06:00').length === 5 ? config.ydwx.time : '06:00';
+                    const ydList = document.getElementById('ydwx_accounts_list');
+                    if (ydList) { const accs = Array.isArray(config.ydwx.accounts) && config.ydwx.accounts.length > 0 ? config.ydwx.accounts : [{ device_params: '', token: '' }]; renderYdwxAccounts(accs); }
+                    renderTaskPushChannelSelect('ydwx_push_channels', config.ydwx.push_channels || []);
+                }
+                break;
+            case 'xingkong':
+                if (config.xingkong) {
+                    if (xingkongEnable) { xingkongEnable.checked = config.xingkong.enable === true || config.xingkong.enable === 'true'; if (xingkongEnableLabel) xingkongEnableLabel.textContent = xingkongEnable.checked ? '开启' : '关闭'; }
+                    const xkU = document.getElementById('xingkong_username'); const xkP = document.getElementById('xingkong_password'); const xkTime = document.getElementById('xingkong_time');
+                    if (xkU) xkU.value = config.xingkong.username || ''; if (xkP) xkP.value = config.xingkong.password || ''; if (xkTime) xkTime.value = (config.xingkong.time || '07:30').length === 5 ? config.xingkong.time : '07:30';
+                    const xkList = document.getElementById('xingkong_accounts_list');
+                    if (xkList) { const accs = Array.isArray(config.xingkong.accounts) && config.xingkong.accounts.length > 0 ? config.xingkong.accounts : [{ username: '', password: '' }]; renderXingkongAccounts(accs); }
+                    renderTaskPushChannelSelect('xingkong_push_channels', config.xingkong.push_channels || []);
+                }
+                break;
+            case 'qtw':
+                if (config.qtw) {
+                    if (qtwEnable) { qtwEnable.checked = config.qtw.enable === true || config.qtw.enable === 'true'; if (qtwEnableLabel) qtwEnableLabel.textContent = qtwEnable.checked ? '开启' : '关闭'; }
+                    const qtwC = document.getElementById('qtw_cookie'); const qtwTime = document.getElementById('qtw_time');
+                    if (qtwC) qtwC.value = config.qtw.cookie || ''; if (qtwTime) qtwTime.value = (config.qtw.time || '01:30').length === 5 ? config.qtw.time : '01:30';
+                    const qtwList = document.getElementById('qtw_cookies_list');
+                    if (qtwList) { const cks = Array.isArray(config.qtw.cookies) && config.qtw.cookies.length > 0 ? config.qtw.cookies : ['']; renderQtwCookies(cks); }
+                    renderTaskPushChannelSelect('qtw_push_channels', config.qtw.push_channels || []);
+                }
+                break;
+            case 'freenom':
+                if (config.freenom) {
+                    if (freenomEnable) {
+                        freenomEnable.checked = config.freenom.enable === true || config.freenom.enable === 'true';
+                        if (freenomEnableLabel) freenomEnableLabel.textContent = freenomEnable.checked ? '开启' : '关闭';
+                    }
+                    const freenomTime = document.getElementById('freenom_time');
+                    if (freenomTime) freenomTime.value = (config.freenom.time || '07:33').length === 5 ? config.freenom.time : '07:33';
+                    const listEl = document.getElementById('freenom_accounts_list');
+                    if (listEl) {
+                        const accounts = Array.isArray(config.freenom.accounts) && config.freenom.accounts.length > 0 ? config.freenom.accounts : [{ email: '', password: '' }];
+                        renderFreenomAccounts(accounts);
+                    }
+                    renderTaskPushChannelSelect('freenom_push_channels', config.freenom.push_channels || []);
+                }
+                break;
+            case 'weather':
+                if (config.weather) {
+                    if (weatherEnable) {
+                        weatherEnable.checked = config.weather.enable === true || config.weather.enable === 'true';
+                        if (weatherEnableLabel) weatherEnableLabel.textContent = weatherEnable.checked ? '开启' : '关闭';
+                    }
+                    const cityInput = document.getElementById('weather_city_code');
+                    const timeInput = document.getElementById('weather_time');
+                    if (cityInput) cityInput.value = config.weather.city_code || '';
+                    if (timeInput) timeInput.value = (config.weather.time || '07:30').length === 5 ? config.weather.time : '07:30';
+                    renderTaskPushChannelSelect('weather_push_channels', config.weather.push_channels || []);
+                }
+                break;
+            case 'kuake':
+                if (config.kuake) {
+                    if (kuakeEnable) {
+                        kuakeEnable.checked = config.kuake.enable === true || config.kuake.enable === 'true';
+                        if (kuakeEnableLabel) kuakeEnableLabel.textContent = kuakeEnable.checked ? '开启' : '关闭';
+                    }
+                    const single = document.getElementById('kuake_cookie');
+                    const timeInput = document.getElementById('kuake_time');
+                    if (single) single.value = config.kuake.cookie || '';
+                    if (timeInput) timeInput.value = (config.kuake.time || '02:00').length === 5 ? config.kuake.time : '02:00';
+                    const listEl = document.getElementById('kuake_cookies_list');
+                    if (listEl) {
+                        const list = Array.isArray(config.kuake.cookies) && config.kuake.cookies.length > 0 ? config.kuake.cookies : [''];
+                        renderKuakeCookies(list);
+                    }
+                    renderTaskPushChannelSelect('kuake_push_channels', config.kuake.push_channels || []);
+                }
+                break;
+            case 'kjwj':
+                if (config.kjwj) {
+                    if (kjwjEnable) {
+                        kjwjEnable.checked = config.kjwj.enable === true || config.kjwj.enable === 'true';
+                        if (kjwjEnableLabel) kjwjEnableLabel.textContent = kjwjEnable.checked ? '开启' : '关闭';
+                    }
+                    const timeInput = document.getElementById('kjwj_time');
+                    if (timeInput) timeInput.value = (config.kjwj.time || '07:30').length === 5 ? config.kjwj.time : '07:30';
+                    const listEl = document.getElementById('kjwj_accounts_list');
+                    if (listEl) {
+                        const list = Array.isArray(config.kjwj.accounts) && config.kjwj.accounts.length > 0 ? config.kjwj.accounts : [{ username: '', password: '' }];
+                        renderKjwjAccounts(list);
+                    }
+                    renderTaskPushChannelSelect('kjwj_push_channels', config.kjwj.push_channels || []);
+                }
+                break;
+            case 'fr':
+                if (config.fr) {
+                    if (frEnable) {
+                        frEnable.checked = config.fr.enable === true || config.fr.enable === 'true';
+                        if (frEnableLabel) frEnableLabel.textContent = frEnable.checked ? '开启' : '关闭';
+                    }
+                    const cookieInput = document.getElementById('fr_cookie');
+                    const timeInput = document.getElementById('fr_time');
+                    if (cookieInput) cookieInput.value = config.fr.cookie || '';
+                    if (timeInput) timeInput.value = (config.fr.time || '06:30').length === 5 ? config.fr.time : '06:30';
+                    renderTaskPushChannelSelect('fr_push_channels', config.fr.push_channels || []);
+                }
+                break;
+            case 'nine_nine_nine':
+                if (config.nine_nine_nine) {
+                    if (nineEnable) {
+                        nineEnable.checked = config.nine_nine_nine.enable === true || config.nine_nine_nine.enable === 'true';
+                        if (nineEnableLabel) nineEnableLabel.textContent = nineEnable.checked ? '开启' : '关闭';
+                    }
+                    const timeInput = document.getElementById('nine_nine_nine_time');
+                    if (timeInput) timeInput.value = (config.nine_nine_nine.time || '15:15').length === 5 ? config.nine_nine_nine.time : '15:15';
+                    const listEl = document.getElementById('nine_nine_nine_tokens_list');
+                    if (listEl) {
+                        const list = Array.isArray(config.nine_nine_nine.tokens) && config.nine_nine_nine.tokens.length > 0 ? config.nine_nine_nine.tokens : [''];
+                        renderNineTokens(list);
+                    }
+                    renderTaskPushChannelSelect('nine_nine_nine_push_channels', config.nine_nine_nine.push_channels || []);
+                }
+                break;
+            case 'zgfc':
+                if (config.zgfc) {
+                    if (zgfcEnable) {
+                        zgfcEnable.checked = config.zgfc.enable === true || config.zgfc.enable === 'true';
+                        if (zgfcEnableLabel) zgfcEnableLabel.textContent = zgfcEnable.checked ? '开启' : '关闭';
+                    }
+                    const timeInput = document.getElementById('zgfc_time');
+                    if (timeInput) timeInput.value = (config.zgfc.time || '08:00').length === 5 ? config.zgfc.time : '08:00';
+                    const listEl = document.getElementById('zgfc_tokens_list');
+                    if (listEl) {
+                        const list = Array.isArray(config.zgfc.tokens) && config.zgfc.tokens.length > 0 ? config.zgfc.tokens : [''];
+                        renderZgfcTokens(list);
+                    }
+                    renderTaskPushChannelSelect('zgfc_push_channels', config.zgfc.push_channels || []);
+                }
+                break;
+            case 'ssq_500w':
+                if (config.ssq_500w) {
+                    if (ssqEnable) {
+                        ssqEnable.checked = config.ssq_500w.enable === true || config.ssq_500w.enable === 'true';
+                        if (ssqEnableLabel) ssqEnableLabel.textContent = ssqEnable.checked ? '开启' : '关闭';
+                    }
+                    const timeInput = document.getElementById('ssq_500w_time');
+                    if (timeInput) timeInput.value = (config.ssq_500w.time || '21:30').length === 5 ? config.ssq_500w.time : '21:30';
+                    renderTaskPushChannelSelect('ssq_500w_push_channels', config.ssq_500w.push_channels || []);
+                }
+                break;
             case 'scheduler':
                 if (config.scheduler) {
                     document.getElementById('huya_monitor_interval_seconds').value = config.scheduler.huya_monitor_interval_seconds || 65;
@@ -940,6 +1735,306 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (apiKeys.length > 0) config.rainyun.api_keys = apiKeys;
                 break;
             }
+            case 'enshan': {
+                const cookies = [];
+                document.querySelectorAll('#enshan_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.enshan-cookie-value')?.value || '').trim();
+                    if (val) cookies.push(val);
+                });
+                const singleCookie = (document.getElementById('enshan_cookie')?.value || '').trim();
+                config.enshan = {
+                    enable: enshanEnable ? enshanEnable.checked : false,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
+                    time: (document.getElementById('enshan_time')?.value || '').trim() || '02:00',
+                    push_channels: getTaskPushChannels('enshan_push_channels')
+                };
+                if (cookies.length > 0) config.enshan.cookies = cookies;
+                break;
+            }
+            case 'tyyun': {
+                const accounts = [];
+                document.querySelectorAll('#tyyun_accounts_list .multi-account-row').forEach(row => {
+                    const username = (row.querySelector('.tyyun-account-username')?.value || '').trim();
+                    const password = (row.querySelector('.tyyun-account-password')?.value || '').trim();
+                    if (username || password) accounts.push({ username, password });
+                });
+                const singleUser = (document.getElementById('tyyun_username')?.value || '').trim();
+                const singlePwd = (document.getElementById('tyyun_password')?.value || '').trim();
+                const first = accounts[0] || { username: singleUser, password: singlePwd };
+                config.tyyun = {
+                    enable: tyyunEnable ? tyyunEnable.checked : false,
+                    username: first.username,
+                    password: first.password,
+                    time: (document.getElementById('tyyun_time')?.value || '').trim() || '04:30',
+                    push_channels: getTaskPushChannels('tyyun_push_channels')
+                };
+                if (accounts.length > 0) config.tyyun.accounts = accounts;
+                break;
+            }
+            case 'aliyun': {
+                const tokens = [];
+                document.querySelectorAll('#aliyun_refresh_tokens_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.aliyun-token-value')?.value || '').trim();
+                    if (val) tokens.push(val);
+                });
+                const singleToken = (document.getElementById('aliyun_refresh_token')?.value || '').trim();
+                config.aliyun = {
+                    enable: aliyunEnable ? aliyunEnable.checked : false,
+                    refresh_token: tokens.length > 0 ? tokens[0] : singleToken,
+                    time: (document.getElementById('aliyun_time')?.value || '').trim() || '05:30',
+                    push_channels: getTaskPushChannels('aliyun_push_channels')
+                };
+                if (tokens.length > 0) config.aliyun.refresh_tokens = tokens;
+                break;
+            }
+            case 'smzdm': {
+                const cookies = [];
+                document.querySelectorAll('#smzdm_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.smzdm-cookie-value')?.value || '').trim();
+                    if (val) cookies.push(val);
+                });
+                const singleCookie = (document.getElementById('smzdm_cookie')?.value || '').trim();
+                config.smzdm = {
+                    enable: smzdmEnable ? smzdmEnable.checked : false,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
+                    time: (document.getElementById('smzdm_time')?.value || '').trim() || '00:30',
+                    push_channels: getTaskPushChannels('smzdm_push_channels')
+                };
+                if (cookies.length > 0) config.smzdm.cookies = cookies;
+                break;
+            }
+            case 'zdm_draw': {
+                const cookies = [];
+                document.querySelectorAll('#zdm_draw_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.zdm-draw-cookie-value')?.value || '').trim();
+                    if (val) cookies.push(val);
+                });
+                const singleCookie = (document.getElementById('zdm_draw_cookie')?.value || '').trim();
+                config.zdm_draw = {
+                    enable: zdmDrawEnable ? zdmDrawEnable.checked : false,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
+                    time: (document.getElementById('zdm_draw_time')?.value || '').trim() || '07:30',
+                    push_channels: getTaskPushChannels('zdm_draw_push_channels')
+                };
+                if (cookies.length > 0) config.zdm_draw.cookies = cookies;
+                break;
+            }
+            case 'fg': {
+                const cookies = [];
+                document.querySelectorAll('#fg_cookies_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.fg-cookie-value')?.value || '').trim();
+                    if (val) cookies.push(val);
+                });
+                const singleCookie = (document.getElementById('fg_cookie')?.value || '').trim();
+                config.fg = {
+                    enable: fgEnable ? fgEnable.checked : false,
+                    cookie: cookies.length > 0 ? cookies[0] : singleCookie,
+                    time: (document.getElementById('fg_time')?.value || '').trim() || '00:01',
+                    push_channels: getTaskPushChannels('fg_push_channels')
+                };
+                if (cookies.length > 0) config.fg.cookies = cookies;
+                break;
+            }
+            case 'miui': {
+                const accs = [];
+                document.querySelectorAll('#miui_accounts_list .multi-account-row').forEach(row => {
+                    const a = (row.querySelector('.miui-account-value')?.value || '').trim();
+                    const p = (row.querySelector('.miui-password-value')?.value || '').trim();
+                    if (a || p) accs.push({ account: a, password: p });
+                });
+                const singleA = (document.getElementById('miui_account')?.value || '').trim();
+                const singleP = (document.getElementById('miui_password')?.value || '').trim();
+                config.miui = { enable: miuiEnable ? miuiEnable.checked : false, account: accs[0]?.account || singleA, password: accs[0]?.password || singleP, time: (document.getElementById('miui_time')?.value || '').trim() || '08:30', push_channels: getTaskPushChannels('miui_push_channels') };
+                if (accs.length > 0) config.miui.accounts = accs;
+                break;
+            }
+            case 'iqiyi': {
+                const cks = [];
+                document.querySelectorAll('#iqiyi_cookies_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.iqiyi-cookie-value')?.value || '').trim(); if (v) cks.push(v); });
+                const single = (document.getElementById('iqiyi_cookie')?.value || '').trim();
+                config.iqiyi = { enable: iqiyiEnable ? iqiyiEnable.checked : false, cookie: cks[0] || single, time: (document.getElementById('iqiyi_time')?.value || '').trim() || '06:00', push_channels: getTaskPushChannels('iqiyi_push_channels') };
+                if (cks.length > 0) config.iqiyi.cookies = cks;
+                break;
+            }
+            case 'lenovo': {
+                const toks = [];
+                document.querySelectorAll('#lenovo_access_tokens_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.lenovo-token-value')?.value || '').trim(); if (v) toks.push(v); });
+                const single = (document.getElementById('lenovo_access_token')?.value || '').trim();
+                config.lenovo = { enable: lenovoEnable ? lenovoEnable.checked : false, access_token: toks[0] || single, time: (document.getElementById('lenovo_time')?.value || '').trim() || '05:30', push_channels: getTaskPushChannels('lenovo_push_channels') };
+                if (toks.length > 0) config.lenovo.access_tokens = toks;
+                break;
+            }
+            case 'lbly': {
+                const bodies = [];
+                document.querySelectorAll('#lbly_request_bodies_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.lbly-body-value')?.value || '').trim(); if (v) bodies.push(v); });
+                const single = (document.getElementById('lbly_request_body')?.value || '').trim();
+                config.lbly = { enable: lblyEnable ? lblyEnable.checked : false, request_body: bodies[0] || single, time: (document.getElementById('lbly_time')?.value || '').trim() || '05:30', push_channels: getTaskPushChannels('lbly_push_channels') };
+                if (bodies.length > 0) config.lbly.request_bodies = bodies;
+                break;
+            }
+            case 'pinzan': {
+                const accs = [];
+                document.querySelectorAll('#pinzan_accounts_list .multi-account-row').forEach(row => {
+                    const a = (row.querySelector('.pinzan-account-value')?.value || '').trim();
+                    const p = (row.querySelector('.pinzan-password-value')?.value || '').trim();
+                    if (a || p) accs.push({ account: a, password: p });
+                });
+                const singleA = (document.getElementById('pinzan_account')?.value || '').trim();
+                const singleP = (document.getElementById('pinzan_password')?.value || '').trim();
+                config.pinzan = { enable: pinzanEnable ? pinzanEnable.checked : false, account: accs[0]?.account || singleA, password: accs[0]?.password || singleP, time: (document.getElementById('pinzan_time')?.value || '').trim() || '08:00', push_channels: getTaskPushChannels('pinzan_push_channels') };
+                if (accs.length > 0) config.pinzan.accounts = accs;
+                break;
+            }
+            case 'dml': {
+                const ids = [];
+                document.querySelectorAll('#dml_openids_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.dml-openid-value')?.value || '').trim(); if (v) ids.push(v); });
+                const single = (document.getElementById('dml_openid')?.value || '').trim();
+                config.dml = { enable: dmlEnable ? dmlEnable.checked : false, openid: ids[0] || single, time: (document.getElementById('dml_time')?.value || '').trim() || '06:00', push_channels: getTaskPushChannels('dml_push_channels') };
+                if (ids.length > 0) config.dml.openids = ids;
+                break;
+            }
+            case 'xiaomao': {
+                const toks = [];
+                document.querySelectorAll('#xiaomao_tokens_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.xiaomao-token-value')?.value || '').trim(); if (v) toks.push(v); });
+                const single = (document.getElementById('xiaomao_token')?.value || '').trim();
+                config.xiaomao = { enable: xiaomaoEnable ? xiaomaoEnable.checked : false, token: toks[0] || single, mt_version: (document.getElementById('xiaomao_mt_version')?.value || '').trim(), time: (document.getElementById('xiaomao_time')?.value || '').trim() || '09:00', push_channels: getTaskPushChannels('xiaomao_push_channels') };
+                if (toks.length > 0) config.xiaomao.tokens = toks;
+                break;
+            }
+            case 'ydwx': {
+                const accs = [];
+                document.querySelectorAll('#ydwx_accounts_list .multi-account-row').forEach(row => {
+                    const dp = (row.querySelector('.ydwx-dp-value')?.value || '').trim();
+                    const tk = (row.querySelector('.ydwx-token-value')?.value || '').trim();
+                    if (dp || tk) accs.push({ device_params: dp, token: tk });
+                });
+                const singleDp = (document.getElementById('ydwx_device_params')?.value || '').trim();
+                const singleTk = (document.getElementById('ydwx_token')?.value || '').trim();
+                config.ydwx = { enable: ydwxEnable ? ydwxEnable.checked : false, device_params: accs[0]?.device_params || singleDp, token: accs[0]?.token || singleTk, time: (document.getElementById('ydwx_time')?.value || '').trim() || '06:00', push_channels: getTaskPushChannels('ydwx_push_channels') };
+                if (accs.length > 0) config.ydwx.accounts = accs;
+                break;
+            }
+            case 'xingkong': {
+                const accs = [];
+                document.querySelectorAll('#xingkong_accounts_list .multi-account-row').forEach(row => {
+                    const u = (row.querySelector('.xingkong-user-value')?.value || '').trim();
+                    const p = (row.querySelector('.xingkong-pwd-value')?.value || '').trim();
+                    if (u || p) accs.push({ username: u, password: p });
+                });
+                const singleU = (document.getElementById('xingkong_username')?.value || '').trim();
+                const singleP = (document.getElementById('xingkong_password')?.value || '').trim();
+                config.xingkong = { enable: xingkongEnable ? xingkongEnable.checked : false, username: accs[0]?.username || singleU, password: accs[0]?.password || singleP, time: (document.getElementById('xingkong_time')?.value || '').trim() || '07:30', push_channels: getTaskPushChannels('xingkong_push_channels') };
+                if (accs.length > 0) config.xingkong.accounts = accs;
+                break;
+            }
+            case 'qtw': {
+                const cks = [];
+                document.querySelectorAll('#qtw_cookies_list .multi-cookie-row').forEach(row => { const v = (row.querySelector('.qtw-cookie-value')?.value || '').trim(); if (v) cks.push(v); });
+                const single = (document.getElementById('qtw_cookie')?.value || '').trim();
+                config.qtw = { enable: qtwEnable ? qtwEnable.checked : false, cookie: cks[0] || single, time: (document.getElementById('qtw_time')?.value || '').trim() || '01:30', push_channels: getTaskPushChannels('qtw_push_channels') };
+                if (cks.length > 0) config.qtw.cookies = cks;
+                break;
+            }
+            case 'freenom': {
+                const accounts = [];
+                document.querySelectorAll('#freenom_accounts_list .multi-account-row').forEach(row => {
+                    const email = (row.querySelector('.freenom-account-email')?.value || '').trim();
+                    const password = (row.querySelector('.freenom-account-password')?.value || '').trim();
+                    if (email || password) accounts.push({ email, password });
+                });
+                config.freenom = {
+                    enable: freenomEnable ? freenomEnable.checked : false,
+                    time: (document.getElementById('freenom_time')?.value || '').trim() || '07:33',
+                    push_channels: getTaskPushChannels('freenom_push_channels')
+                };
+                if (accounts.length > 0) config.freenom.accounts = accounts;
+                break;
+            }
+            case 'weather': {
+                config.weather = {
+                    enable: weatherEnable ? weatherEnable.checked : false,
+                    city_code: (document.getElementById('weather_city_code')?.value || '').trim(),
+                    time: (document.getElementById('weather_time')?.value || '').trim() || '07:30',
+                    push_channels: getTaskPushChannels('weather_push_channels')
+                };
+                break;
+            }
+            case 'kuake': {
+                const cks = [];
+                document.querySelectorAll('#kuake_cookies_list .multi-cookie-row').forEach(row => {
+                    const v = (row.querySelector('.kuake-cookie-value')?.value || '').trim();
+                    if (v) cks.push(v);
+                });
+                const single = (document.getElementById('kuake_cookie')?.value || '').trim();
+                config.kuake = {
+                    enable: kuakeEnable ? kuakeEnable.checked : false,
+                    cookie: cks[0] || single,
+                    time: (document.getElementById('kuake_time')?.value || '').trim() || '02:00',
+                    push_channels: getTaskPushChannels('kuake_push_channels')
+                };
+                if (cks.length > 0) config.kuake.cookies = cks;
+                break;
+            }
+            case 'kjwj': {
+                const accs = [];
+                document.querySelectorAll('#kjwj_accounts_list .multi-account-row').forEach(row => {
+                    const u = (row.querySelector('.kjwj-account-username')?.value || '').trim();
+                    const p = (row.querySelector('.kjwj-account-password')?.value || '').trim();
+                    if (u || p) accs.push({ username: u, password: p });
+                });
+                config.kjwj = {
+                    enable: kjwjEnable ? kjwjEnable.checked : false,
+                    time: (document.getElementById('kjwj_time')?.value || '').trim() || '07:30',
+                    push_channels: getTaskPushChannels('kjwj_push_channels')
+                };
+                if (accs.length > 0) config.kjwj.accounts = accs;
+                break;
+            }
+            case 'fr': {
+                config.fr = {
+                    enable: frEnable ? frEnable.checked : false,
+                    cookie: (document.getElementById('fr_cookie')?.value || '').trim(),
+                    time: (document.getElementById('fr_time')?.value || '').trim() || '06:30',
+                    push_channels: getTaskPushChannels('fr_push_channels')
+                };
+                break;
+            }
+            case 'nine_nine_nine': {
+                const toks = [];
+                document.querySelectorAll('#nine_nine_nine_tokens_list .multi-cookie-row').forEach(row => {
+                    const v = (row.querySelector('.nine-token-value')?.value || '').trim();
+                    if (v) toks.push(v);
+                });
+                config.nine_nine_nine = {
+                    enable: nineEnable ? nineEnable.checked : false,
+                    time: (document.getElementById('nine_nine_nine_time')?.value || '').trim() || '15:15',
+                    push_channels: getTaskPushChannels('nine_nine_nine_push_channels')
+                };
+                if (toks.length > 0) config.nine_nine_nine.tokens = toks;
+                break;
+            }
+            case 'zgfc': {
+                const toks = [];
+                document.querySelectorAll('#zgfc_tokens_list .multi-cookie-row').forEach(row => {
+                    const v = (row.querySelector('.zgfc-token-value')?.value || '').trim();
+                    if (v) toks.push(v);
+                });
+                config.zgfc = {
+                    enable: zgfcEnable ? zgfcEnable.checked : false,
+                    time: (document.getElementById('zgfc_time')?.value || '').trim() || '08:00',
+                    push_channels: getTaskPushChannels('zgfc_push_channels')
+                };
+                if (toks.length > 0) config.zgfc.tokens = toks;
+                break;
+            }
+            case 'ssq_500w': {
+                config.ssq_500w = {
+                    enable: ssqEnable ? ssqEnable.checked : false,
+                    time: (document.getElementById('ssq_500w_time')?.value || '').trim() || '21:30',
+                    push_channels: getTaskPushChannels('ssq_500w_push_channels')
+                };
+                break;
+            }
             case 'scheduler':
                 config.scheduler = {
                     huya_monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
@@ -1058,6 +2153,24 @@ document.addEventListener('DOMContentLoaded', async function() {
             push_channels: getTaskPushChannels('rainyun_push_channels')
         };
         if (rainyunApiKeys.length > 0) config.rainyun.api_keys = rainyunApiKeys;
+
+        // 恩山 / 天翼云盘 / 阿里云盘 / 什么值得买 / 值得买抽奖 / 富贵论坛（由 collectSectionConfig 合并到 config）
+        config.enshan = collectSectionConfig('enshan').enshan;
+        config.tyyun = collectSectionConfig('tyyun').tyyun;
+        config.aliyun = collectSectionConfig('aliyun').aliyun;
+        config.smzdm = collectSectionConfig('smzdm').smzdm;
+        config.zdm_draw = collectSectionConfig('zdm_draw').zdm_draw;
+        config.fg = collectSectionConfig('fg').fg;
+        config.miui = collectSectionConfig('miui').miui;
+        config.iqiyi = collectSectionConfig('iqiyi').iqiyi;
+        config.lenovo = collectSectionConfig('lenovo').lenovo;
+        config.lbly = collectSectionConfig('lbly').lbly;
+        config.pinzan = collectSectionConfig('pinzan').pinzan;
+        config.dml = collectSectionConfig('dml').dml;
+        config.xiaomao = collectSectionConfig('xiaomao').xiaomao;
+        config.ydwx = collectSectionConfig('ydwx').ydwx;
+        config.xingkong = collectSectionConfig('xingkong').xingkong;
+        config.qtw = collectSectionConfig('qtw').qtw;
 
         // 调度器配置
         config.scheduler = {
@@ -1508,6 +2621,335 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
+    // 恩山多 Cookie
+    const enshanAddCookieBtn = document.getElementById('enshan_add_cookie_btn');
+    if (enshanAddCookieBtn) {
+        enshanAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('enshan_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input enshan-cookie-value" placeholder="恩山 Cookie"></div><button type="button" class="btn btn-secondary row-remove enshan-cookie-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const enshanCookiesList = document.getElementById('enshan_cookies_list');
+    if (enshanCookiesList) {
+        enshanCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('enshan-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && enshanCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 天翼云盘多账号
+    const tyyunAddAccountBtn = document.getElementById('tyyun_add_account_btn');
+    if (tyyunAddAccountBtn) {
+        tyyunAddAccountBtn.addEventListener('click', function() {
+            const container = document.getElementById('tyyun_accounts_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input tyyun-account-username" placeholder="手机号"><input type="password" class="form-input tyyun-account-password" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove tyyun-account-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const tyyunAccountsList = document.getElementById('tyyun_accounts_list');
+    if (tyyunAccountsList) {
+        tyyunAccountsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tyyun-account-remove')) {
+                const row = e.target.closest('.multi-account-row');
+                if (row && tyyunAccountsList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 阿里云盘多 Token
+    const aliyunAddTokenBtn = document.getElementById('aliyun_add_token_btn');
+    if (aliyunAddTokenBtn) {
+        aliyunAddTokenBtn.addEventListener('click', function() {
+            const container = document.getElementById('aliyun_refresh_tokens_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="password" class="form-input aliyun-token-value" placeholder="refresh_token"></div><button type="button" class="btn btn-secondary row-remove aliyun-token-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const aliyunTokensList = document.getElementById('aliyun_refresh_tokens_list');
+    if (aliyunTokensList) {
+        aliyunTokensList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('aliyun-token-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && aliyunTokensList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 什么值得买多 Cookie
+    const smzdmAddCookieBtn = document.getElementById('smzdm_add_cookie_btn');
+    if (smzdmAddCookieBtn) {
+        smzdmAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('smzdm_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input smzdm-cookie-value" placeholder="值得买 Cookie"></div><button type="button" class="btn btn-secondary row-remove smzdm-cookie-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const smzdmCookiesList = document.getElementById('smzdm_cookies_list');
+    if (smzdmCookiesList) {
+        smzdmCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('smzdm-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && smzdmCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 值得买抽奖多 Cookie
+    const zdmDrawAddCookieBtn = document.getElementById('zdm_draw_add_cookie_btn');
+    if (zdmDrawAddCookieBtn) {
+        zdmDrawAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('zdm_draw_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input zdm-draw-cookie-value" placeholder="值得买 Cookie"></div><button type="button" class="btn btn-secondary row-remove zdm-draw-cookie-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const zdmDrawCookiesList = document.getElementById('zdm_draw_cookies_list');
+    if (zdmDrawCookiesList) {
+        zdmDrawCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('zdm-draw-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && zdmDrawCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 富贵论坛多 Cookie
+    const fgAddCookieBtn = document.getElementById('fg_add_cookie_btn');
+    if (fgAddCookieBtn) {
+        fgAddCookieBtn.addEventListener('click', function() {
+            const container = document.getElementById('fg_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input fg-cookie-value" placeholder="富贵论坛 Cookie"></div><button type="button" class="btn btn-secondary row-remove fg-cookie-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const fgCookiesList = document.getElementById('fg_cookies_list');
+    if (fgCookiesList) {
+        fgCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('fg-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && fgCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 小米社区多账号
+    const miuiAddBtn = document.getElementById('miui_add_account_btn');
+    if (miuiAddBtn) {
+        miuiAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('miui_accounts_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input miui-account-value" placeholder="手机号"><input type="password" class="form-input miui-password-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove miui-account-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const miuiAccountsList = document.getElementById('miui_accounts_list');
+    if (miuiAccountsList) {
+        miuiAccountsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('miui-account-remove')) {
+                const row = e.target.closest('.multi-account-row');
+                if (row && miuiAccountsList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 爱奇艺多 Cookie
+    const iqiyiAddBtn = document.getElementById('iqiyi_add_cookie_btn');
+    if (iqiyiAddBtn) {
+        iqiyiAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('iqiyi_cookies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input iqiyi-cookie-value" placeholder="爱奇艺 Cookie"></div><button type="button" class="btn btn-secondary row-remove iqiyi-cookie-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const iqiyiCookiesList = document.getElementById('iqiyi_cookies_list');
+    if (iqiyiCookiesList) {
+        iqiyiCookiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('iqiyi-cookie-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && iqiyiCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 联想乐豆多 token
+    const lenovoAddBtn = document.getElementById('lenovo_add_token_btn');
+    if (lenovoAddBtn) {
+        lenovoAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('lenovo_access_tokens_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input lenovo-token-value" placeholder="access_token"></div><button type="button" class="btn btn-secondary row-remove lenovo-token-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const lenovoTokensList = document.getElementById('lenovo_access_tokens_list');
+    if (lenovoTokensList) {
+        lenovoTokensList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('lenovo-token-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && lenovoTokensList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 丽宝乐园多请求体
+    const lblyAddBtn = document.getElementById('lbly_add_body_btn');
+    if (lblyAddBtn) {
+        lblyAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('lbly_request_bodies_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><textarea class="form-input lbly-body-value" rows="2" placeholder="请求体 JSON"></textarea></div><button type="button" class="btn btn-secondary row-remove lbly-body-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const lblyBodiesList = document.getElementById('lbly_request_bodies_list');
+    if (lblyBodiesList) {
+        lblyBodiesList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('lbly-body-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && lblyBodiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 品赞多账号
+    const pinzanAddBtn = document.getElementById('pinzan_add_account_btn');
+    if (pinzanAddBtn) {
+        pinzanAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('pinzan_accounts_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-account-row';
+            row.innerHTML = '<div class="account-fields"><input type="text" class="form-input pinzan-account-value" placeholder="账号"><input type="password" class="form-input pinzan-password-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove pinzan-account-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const pinzanAccountsList = document.getElementById('pinzan_accounts_list');
+    if (pinzanAccountsList) {
+        pinzanAccountsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pinzan-account-remove')) {
+                const row = e.target.closest('.multi-account-row');
+                if (row && pinzanAccountsList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 达美乐多 openid
+    const dmlAddBtn = document.getElementById('dml_add_openid_btn');
+    if (dmlAddBtn) {
+        dmlAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('dml_openids_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input dml-openid-value" placeholder="openid"></div><button type="button" class="btn btn-secondary row-remove dml-openid-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const dmlOpenidsList = document.getElementById('dml_openids_list');
+    if (dmlOpenidsList) {
+        dmlOpenidsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('dml-openid-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && dmlOpenidsList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 小茅预约多 token
+    const xiaomaoAddBtn = document.getElementById('xiaomao_add_token_btn');
+    if (xiaomaoAddBtn) {
+        xiaomaoAddBtn.addEventListener('click', function() {
+            const container = document.getElementById('xiaomao_tokens_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input xiaomao-token-value" placeholder="省份,城市,经度,纬度,设备id,token,MT-Token-Wap"></div><button type="button" class="btn btn-secondary row-remove xiaomao-token-remove">删除</button>';
+            container.appendChild(row);
+        });
+    }
+    const xiaomaoTokensList = document.getElementById('xiaomao_tokens_list');
+    if (xiaomaoTokensList) {
+        xiaomaoTokensList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('xiaomao-token-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && xiaomaoTokensList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+    // 一点万象多账号
+    const ydwxAddBtn = document.getElementById('ydwx_add_account_btn');
+    if (ydwxAddBtn) ydwxAddBtn.addEventListener('click', function() {
+        const c = document.getElementById('ydwx_accounts_list');
+        if (!c) return;
+        const row = document.createElement('div');
+        row.className = 'multi-account-row';
+        row.innerHTML = '<div class="account-fields"><input type="text" class="form-input ydwx-dp-value" placeholder="deviceParams"><input type="text" class="form-input ydwx-token-value" placeholder="token"></div><button type="button" class="btn btn-secondary row-remove ydwx-account-remove">删除</button>';
+        c.appendChild(row);
+    });
+    const ydwxList = document.getElementById('ydwx_accounts_list');
+    if (ydwxList) ydwxList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('ydwx-account-remove')) {
+            const row = e.target.closest('.multi-account-row');
+            if (row && ydwxList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+        }
+    });
+    // 星空代理多账号
+    const xingkongAddBtn = document.getElementById('xingkong_add_account_btn');
+    if (xingkongAddBtn) xingkongAddBtn.addEventListener('click', function() {
+        const c = document.getElementById('xingkong_accounts_list');
+        if (!c) return;
+        const row = document.createElement('div');
+        row.className = 'multi-account-row';
+        row.innerHTML = '<div class="account-fields"><input type="text" class="form-input xingkong-user-value" placeholder="用户名"><input type="password" class="form-input xingkong-pwd-value" placeholder="密码"></div><button type="button" class="btn btn-secondary row-remove xingkong-account-remove">删除</button>';
+        c.appendChild(row);
+    });
+    const xingkongList = document.getElementById('xingkong_accounts_list');
+    if (xingkongList) xingkongList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('xingkong-account-remove')) {
+            const row = e.target.closest('.multi-account-row');
+            if (row && xingkongList.querySelectorAll('.multi-account-row').length > 1) row.remove();
+        }
+    });
+    // 千图网多 Cookie
+    const qtwAddBtn = document.getElementById('qtw_add_cookie_btn');
+    if (qtwAddBtn) qtwAddBtn.addEventListener('click', function() {
+        const c = document.getElementById('qtw_cookies_list');
+        if (!c) return;
+        const row = document.createElement('div');
+        row.className = 'multi-cookie-row';
+        row.innerHTML = '<div class="cookie-field"><input type="text" class="form-input qtw-cookie-value" placeholder="千图网 Cookie"></div><button type="button" class="btn btn-secondary row-remove qtw-cookie-remove">删除</button>';
+        c.appendChild(row);
+    });
+    const qtwList = document.getElementById('qtw_cookies_list');
+    if (qtwList) qtwList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('qtw-cookie-remove')) {
+            const row = e.target.closest('.multi-cookie-row');
+            if (row && qtwList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+        }
+    });
 
     // 为每个section绑定事件
     document.querySelectorAll('.config-section').forEach(section => {

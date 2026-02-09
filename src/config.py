@@ -73,6 +73,173 @@ class AppConfig(BaseModel):
     rainyun_time: str = "08:30"  # 雨云签到时间（格式：HH:MM），默认 08:30
     rainyun_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
+    # 恩山论坛签到配置（Cookie）
+    enshan_enable: bool = False
+    enshan_cookie: str = ""
+    enshan_cookies: list[str] = []
+    enshan_time: str = "02:00"
+    enshan_push_channels: list[str] = []
+
+    # 天翼云盘签到配置（账号密码，多账号）
+    tyyun_enable: bool = False
+    tyyun_username: str = ""
+    tyyun_password: str = ""
+    tyyun_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    tyyun_time: str = "04:30"
+    tyyun_push_channels: list[str] = []
+
+    # 阿里云盘签到配置（refresh_token，多账号）
+    aliyun_enable: bool = False
+    aliyun_refresh_token: str = ""
+    aliyun_refresh_tokens: list[str] = []
+    aliyun_time: str = "05:30"
+    aliyun_push_channels: list[str] = []
+
+    # 什么值得买签到配置（Cookie，多账号）
+    smzdm_enable: bool = False
+    smzdm_cookie: str = ""
+    smzdm_cookies: list[str] = []
+    smzdm_time: str = "00:30"
+    smzdm_push_channels: list[str] = []
+
+    # 值得买每日抽奖配置（与 smzdm 共用 Cookie）
+    zdm_draw_enable: bool = False
+    zdm_draw_cookie: str = ""
+    zdm_draw_cookies: list[str] = []
+    zdm_draw_time: str = "07:30"
+    zdm_draw_push_channels: list[str] = []
+
+    # 富贵论坛签到配置（Cookie，多账号）
+    fg_enable: bool = False
+    fg_cookie: str = ""
+    fg_cookies: list[str] = []
+    fg_time: str = "00:01"
+    fg_push_channels: list[str] = []
+
+    # 小米社区签到配置（账号+密码，多账号；需 pycryptodome，有封号风险）
+    miui_enable: bool = False
+    miui_account: str = ""
+    miui_password: str = ""
+    miui_accounts: list[dict] = []  # [{"account": str, "password": str}, ...]
+    miui_time: str = "08:30"
+    miui_push_channels: list[str] = []
+
+    # 爱奇艺签到配置（Cookie 须含 P00001/P00003/QC005/__dfp，多 Cookie）
+    iqiyi_enable: bool = False
+    iqiyi_cookie: str = ""
+    iqiyi_cookies: list[str] = []
+    iqiyi_time: str = "06:00"
+    iqiyi_push_channels: list[str] = []
+
+    # 联想乐豆签到配置（access_token，多账号）
+    lenovo_enable: bool = False
+    lenovo_access_token: str = ""
+    lenovo_access_tokens: list[str] = []
+    lenovo_time: str = "05:30"
+    lenovo_push_channels: list[str] = []
+
+    # 丽宝乐园小程序签到配置（请求体 JSON 字符串，多账号）
+    lbly_enable: bool = False
+    lbly_request_body: str = ""
+    lbly_request_bodies: list[str] = []
+    lbly_time: str = "05:30"
+    lbly_push_channels: list[str] = []
+
+    # 品赞代理签到配置（账号#密码，多账号）
+    pinzan_enable: bool = False
+    pinzan_account: str = ""
+    pinzan_password: str = ""
+    pinzan_accounts: list[dict] = []  # [{"account": str, "password": str}, ...]
+    pinzan_time: str = "08:00"
+    pinzan_push_channels: list[str] = []
+
+    # 达美乐任务配置（openid，多账号 dmlck 格式 openid 或 openid,xxx）
+    dml_enable: bool = False
+    dml_openid: str = ""
+    dml_openids: list[str] = []  # 多账号 openid 列表
+    dml_time: str = "06:00"
+    dml_push_channels: list[str] = []
+
+    # 小茅预约（i茅台）配置，参考 only_for_happly/backup/imaotai.py；需 pycryptodome
+    # 每条 token 格式：省份,城市,经度,纬度,设备id,token,MT-Token-Wap（小茅运领奖励，不需要可留空）
+    xiaomao_enable: bool = False
+    xiaomao_token: str = ""  # 单条，与 xiaomao_tokens 二选一
+    xiaomao_tokens: list[str] = []  # 多账号，每条格式同上
+    xiaomao_mt_version: str = ""  # 可选，不填则尝试从 App Store 页获取
+    xiaomao_time: str = "09:00"  # 建议 9:00/9:30 等开放时段
+    xiaomao_push_channels: list[str] = []
+
+    # 一点万象签到（deviceParams + token，多账号，参考 only_for_happly/ydwx.py）
+    ydwx_enable: bool = False
+    ydwx_device_params: str = ""
+    ydwx_token: str = ""
+    ydwx_accounts: list[dict] = []  # [{"device_params": str, "token": str}, ...]
+    ydwx_time: str = "06:00"
+    ydwx_push_channels: list[str] = []
+
+    # 星空代理签到（用户名+密码，多账号，参考 only_for_happly/xingkong.py）
+    xingkong_enable: bool = False
+    xingkong_username: str = ""
+    xingkong_password: str = ""
+    xingkong_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    xingkong_time: str = "07:30"
+    xingkong_push_channels: list[str] = []
+
+    # Freenom 免费域名续期（多账号）
+    freenom_enable: bool = False
+    freenom_accounts: list[dict] = []  # [{"email": str, "password": str}, ...]
+    freenom_time: str = "07:33"
+    freenom_push_channels: list[str] = []
+
+    # 天气推送（城市代码 + 7 日预报）
+    weather_enable: bool = False
+    weather_city_code: str = ""
+    weather_time: str = "07:30"
+    weather_push_channels: list[str] = []
+
+    # 千图网签到（Cookie，多账号，参考 only_for_happly/qtw.py）
+    qtw_enable: bool = False
+    qtw_cookie: str = ""
+    qtw_cookies: list[str] = []
+    qtw_time: str = "01:30"
+    qtw_push_channels: list[str] = []
+
+    # 夸克网盘签到（Cookie，多账号，参考 only_for_happly/kuake.py）
+    kuake_enable: bool = False
+    kuake_cookie: str = ""
+    kuake_cookies: list[str] = []
+    kuake_time: str = "02:00"
+    kuake_push_channels: list[str] = []
+
+    # 科技玩家签到（账号+密码，多账号，参考 only_for_happly/kjwj.py）
+    kjwj_enable: bool = False
+    kjwj_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    kjwj_time: str = "07:30"
+    kjwj_push_channels: list[str] = []
+
+    # 帆软社区签到 + 摇摇乐（Cookie）
+    fr_enable: bool = False
+    fr_cookie: str = ""
+    fr_time: str = "06:30"
+    fr_push_channels: list[str] = []
+
+    # 999 会员中心健康打卡任务（Authorization，多账号）
+    nine_nine_nine_enable: bool = False
+    nine_nine_nine_tokens: list[str] = []
+    nine_nine_nine_time: str = "15:15"
+    nine_nine_nine_push_channels: list[str] = []
+
+    # 中国福彩抽奖活动（Authorization，多账号）
+    zgfc_enable: bool = False
+    zgfc_tokens: list[str] = []
+    zgfc_time: str = "08:00"
+    zgfc_push_channels: list[str] = []
+
+    # 双色球开奖监控 + 守号检测 + 冷号机选
+    ssq_500w_enable: bool = False
+    ssq_500w_time: str = "21:30"
+    ssq_500w_push_channels: list[str] = []
+
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
@@ -175,6 +342,151 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "time": "rainyun_time",
                 "push_channels": "rainyun_push_channels",
             },
+            "enshan": {
+                "enable": "enshan_enable",
+                "cookie": "enshan_cookie",
+                "time": "enshan_time",
+                "push_channels": "enshan_push_channels",
+            },
+            "tyyun": {
+                "enable": "tyyun_enable",
+                "username": "tyyun_username",
+                "password": "tyyun_password",
+                "time": "tyyun_time",
+                "push_channels": "tyyun_push_channels",
+            },
+            "aliyun": {
+                "enable": "aliyun_enable",
+                "refresh_token": "aliyun_refresh_token",
+                "time": "aliyun_time",
+                "push_channels": "aliyun_push_channels",
+            },
+            "smzdm": {
+                "enable": "smzdm_enable",
+                "cookie": "smzdm_cookie",
+                "time": "smzdm_time",
+                "push_channels": "smzdm_push_channels",
+            },
+            "zdm_draw": {
+                "enable": "zdm_draw_enable",
+                "cookie": "zdm_draw_cookie",
+                "time": "zdm_draw_time",
+                "push_channels": "zdm_draw_push_channels",
+            },
+            "fg": {
+                "enable": "fg_enable",
+                "cookie": "fg_cookie",
+                "time": "fg_time",
+                "push_channels": "fg_push_channels",
+            },
+            "miui": {
+                "enable": "miui_enable",
+                "account": "miui_account",
+                "password": "miui_password",
+                "time": "miui_time",
+                "push_channels": "miui_push_channels",
+            },
+            "iqiyi": {
+                "enable": "iqiyi_enable",
+                "cookie": "iqiyi_cookie",
+                "time": "iqiyi_time",
+                "push_channels": "iqiyi_push_channels",
+            },
+            "lenovo": {
+                "enable": "lenovo_enable",
+                "access_token": "lenovo_access_token",
+                "time": "lenovo_time",
+                "push_channels": "lenovo_push_channels",
+            },
+            "lbly": {
+                "enable": "lbly_enable",
+                "request_body": "lbly_request_body",
+                "time": "lbly_time",
+                "push_channels": "lbly_push_channels",
+            },
+            "pinzan": {
+                "enable": "pinzan_enable",
+                "account": "pinzan_account",
+                "password": "pinzan_password",
+                "time": "pinzan_time",
+                "push_channels": "pinzan_push_channels",
+            },
+            "dml": {
+                "enable": "dml_enable",
+                "openid": "dml_openid",
+                "time": "dml_time",
+                "push_channels": "dml_push_channels",
+            },
+            "xiaomao": {
+                "enable": "xiaomao_enable",
+                "token": "xiaomao_token",
+                "mt_version": "xiaomao_mt_version",
+                "time": "xiaomao_time",
+                "push_channels": "xiaomao_push_channels",
+            },
+            "ydwx": {
+                "enable": "ydwx_enable",
+                "device_params": "ydwx_device_params",
+                "token": "ydwx_token",
+                "time": "ydwx_time",
+                "push_channels": "ydwx_push_channels",
+            },
+            "xingkong": {
+                "enable": "xingkong_enable",
+                "username": "xingkong_username",
+                "password": "xingkong_password",
+                "time": "xingkong_time",
+                "push_channels": "xingkong_push_channels",
+            },
+            "freenom": {
+                "enable": "freenom_enable",
+                "time": "freenom_time",
+                "push_channels": "freenom_push_channels",
+            },
+            "weather": {
+                "enable": "weather_enable",
+                "city_code": "weather_city_code",
+                "time": "weather_time",
+                "push_channels": "weather_push_channels",
+            },
+            "qtw": {
+                "enable": "qtw_enable",
+                "cookie": "qtw_cookie",
+                "time": "qtw_time",
+                "push_channels": "qtw_push_channels",
+            },
+            "kuake": {
+                "enable": "kuake_enable",
+                "cookie": "kuake_cookie",
+                "time": "kuake_time",
+                "push_channels": "kuake_push_channels",
+            },
+            "kjwj": {
+                "enable": "kjwj_enable",
+                "time": "kjwj_time",
+                "push_channels": "kjwj_push_channels",
+            },
+            "fr": {
+                "enable": "fr_enable",
+                "cookie": "fr_cookie",
+                "time": "fr_time",
+                "push_channels": "fr_push_channels",
+            },
+            "nine_nine_nine": {
+                "enable": "nine_nine_nine_enable",
+                "time": "nine_nine_nine_time",
+                "push_channels": "nine_nine_nine_push_channels",
+            },
+            "zgfc": {
+                "enable": "zgfc_enable",
+                "time": "zgfc_time",
+                "push_channels": "zgfc_push_channels",
+            },
+            "ssq_500w": {
+                "enable": "ssq_500w_enable",
+                "time": "ssq_500w_time",
+                "push_channels": "ssq_500w_push_channels",
+            },
             "scheduler": {
                 "huya_monitor_interval_seconds": "huya_monitor_interval_seconds",
                 "weibo_monitor_interval_seconds": "weibo_monitor_interval_seconds",
@@ -191,9 +503,28 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
 
         # 通用配置映射处理
         # 需要将 None 转换为空字符串的字段（Pydantic 期望 str 类型）
+        # 注意：YAML 中类似 `account:`、`access_token:` 这类写法会被解析为 None，
+        # 如果不在此列表中转换为 ""，会导致 AppConfig 校验时报 "Input should be a valid string"。
         string_fields = {
-            "cookie", "api_key", "uids", "rooms",
-            "email", "password", "time", "start", "end",
+            "cookie",
+            "api_key",
+            "uids",
+            "rooms",
+            "email",
+            "password",
+            "time",
+            "start",
+            "end",
+            "username",
+            "refresh_token",
+            "token",
+            "mt_version",
+            "device_params",
+            # 下面这些字段在若干签到配置中经常为空配置，需要一并处理
+            "account",
+            "access_token",
+            "request_body",
+            "openid",
         }
 
         for section_key, field_mapping in config_mappings.items():
@@ -250,6 +581,210 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 api_keys = [str(k).strip() for k in rainyun["api_keys"] if k]
                 if api_keys:
                     config_dict["rainyun_api_keys"] = api_keys
+
+        # 特殊处理：恩山多 Cookie
+        if "enshan" in yml_config:
+            en = yml_config.get("enshan") or {}
+            if "cookies" in en and isinstance(en["cookies"], list):
+                cookies = [str(c).strip() for c in en["cookies"] if c]
+                if cookies:
+                    config_dict["enshan_cookies"] = cookies
+
+        # 特殊处理：天翼云盘多账号
+        if "tyyun" in yml_config:
+            ty = yml_config.get("tyyun") or {}
+            if "accounts" in ty and isinstance(ty["accounts"], list):
+                accounts = []
+                for a in ty["accounts"]:
+                    if isinstance(a, dict):
+                        accounts.append({
+                            "username": str(a.get("username", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        })
+                if accounts:
+                    config_dict["tyyun_accounts"] = accounts
+
+        # 特殊处理：阿里云盘多 refresh_token
+        if "aliyun" in yml_config:
+            ali = yml_config.get("aliyun") or {}
+            if "refresh_tokens" in ali and isinstance(ali["refresh_tokens"], list):
+                tokens = [str(t).strip() for t in ali["refresh_tokens"] if t]
+                if tokens:
+                    config_dict["aliyun_refresh_tokens"] = tokens
+
+        # 特殊处理：什么值得买 / 值得买抽奖 / 富贵论坛 多 Cookie
+        for section, config_key in [
+            ("smzdm", "smzdm_cookies"),
+            ("zdm_draw", "zdm_draw_cookies"),
+            ("fg", "fg_cookies"),
+        ]:
+            sec = yml_config.get(section) or {}
+            if section in yml_config and "cookies" in sec and isinstance(sec["cookies"], list):
+                cookies = [str(c).strip() for c in sec["cookies"] if c]
+                if cookies:
+                    config_dict[config_key] = cookies
+
+        # 小米社区多账号
+        if "miui" in yml_config:
+            mi = yml_config.get("miui") or {}
+            if "accounts" in mi and isinstance(mi["accounts"], list):
+                accounts = []
+                for a in mi["accounts"]:
+                    if isinstance(a, dict):
+                        accounts.append({
+                            "account": str(a.get("account", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        })
+                if accounts:
+                    config_dict["miui_accounts"] = accounts
+
+        # 爱奇艺多 Cookie
+        if "iqiyi" in yml_config:
+            iq = yml_config.get("iqiyi") or {}
+            if "cookies" in iq and isinstance(iq["cookies"], list):
+                cookies = [str(c).strip() for c in iq["cookies"] if c]
+                if cookies:
+                    config_dict["iqiyi_cookies"] = cookies
+
+        # 联想乐豆多 access_token
+        if "lenovo" in yml_config:
+            lv = yml_config.get("lenovo") or {}
+            if "access_tokens" in lv and isinstance(lv["access_tokens"], list):
+                tokens = [str(t).strip() for t in lv["access_tokens"] if t]
+                if tokens:
+                    config_dict["lenovo_access_tokens"] = tokens
+
+        # 丽宝乐园多请求体
+        if "lbly" in yml_config:
+            lb = yml_config.get("lbly") or {}
+            if "request_bodies" in lb and isinstance(lb["request_bodies"], list):
+                bodies = [str(b).strip() for b in lb["request_bodies"] if b]
+                if bodies:
+                    config_dict["lbly_request_bodies"] = bodies
+
+        # 品赞多账号
+        if "pinzan" in yml_config:
+            pz = yml_config.get("pinzan") or {}
+            if "accounts" in pz and isinstance(pz["accounts"], list):
+                accounts = []
+                for a in pz["accounts"]:
+                    if isinstance(a, dict):
+                        accounts.append({
+                            "account": str(a.get("account", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        })
+                if accounts:
+                    config_dict["pinzan_accounts"] = accounts
+
+        # 达美乐多 openid
+        if "dml" in yml_config:
+            dm = yml_config.get("dml") or {}
+            if "openids" in dm and isinstance(dm["openids"], list):
+                openids = [str(o).strip() for o in dm["openids"] if o]
+                if openids:
+                    config_dict["dml_openids"] = openids
+
+        # 小茅预约多 token
+        if "xiaomao" in yml_config:
+            xm = yml_config.get("xiaomao") or {}
+            if "tokens" in xm and isinstance(xm["tokens"], list):
+                tokens = [str(t).strip() for t in xm["tokens"] if t]
+                if tokens:
+                    config_dict["xiaomao_tokens"] = tokens
+
+        # 一点万象多账号 (device_params + token)
+        if "ydwx" in yml_config:
+            yd = yml_config.get("ydwx") or {}
+            if "accounts" in yd and isinstance(yd["accounts"], list):
+                accs = []
+                for a in yd["accounts"]:
+                    if isinstance(a, dict):
+                        accs.append({
+                            "device_params": str(a.get("device_params", "")).strip(),
+                            "token": str(a.get("token", "")).strip(),
+                        })
+                if accs:
+                    config_dict["ydwx_accounts"] = accs
+
+        # 星空代理多账号
+        if "xingkong" in yml_config:
+            xk = yml_config.get("xingkong") or {}
+            if "accounts" in xk and isinstance(xk["accounts"], list):
+                accs = []
+                for a in xk["accounts"]:
+                    if isinstance(a, dict):
+                        accs.append(
+                            {
+                                "username": str(a.get("username", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
+                if accs:
+                    config_dict["xingkong_accounts"] = accs
+
+        # 千图网多 Cookie
+        if "qtw" in yml_config:
+            qt = yml_config.get("qtw") or {}
+            if "cookies" in qt and isinstance(qt["cookies"], list):
+                cookies = [str(c).strip() for c in qt["cookies"] if c]
+                if cookies:
+                    config_dict["qtw_cookies"] = cookies
+
+        # 夸克网盘多 Cookie
+        if "kuake" in yml_config:
+            kq = yml_config.get("kuake") or {}
+            if "cookies" in kq and isinstance(kq["cookies"], list):
+                cookies = [str(c).strip() for c in kq["cookies"] if c]
+                if cookies:
+                    config_dict["kuake_cookies"] = cookies
+
+        # 科技玩家多账号
+        if "kjwj" in yml_config:
+            kj = yml_config.get("kjwj") or {}
+            if "accounts" in kj and isinstance(kj["accounts"], list):
+                accs: list[dict] = []
+                for a in kj["accounts"]:
+                    if isinstance(a, dict):
+                        accs.append(
+                            {
+                                "username": str(a.get("username", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
+                if accs:
+                    config_dict["kjwj_accounts"] = accs
+
+        # 999 会员中心多 token
+        if "nine_nine_nine" in yml_config:
+            nnn = yml_config.get("nine_nine_nine") or {}
+            if "tokens" in nnn and isinstance(nnn["tokens"], list):
+                toks = [str(t).strip() for t in nnn["tokens"] if t]
+                if toks:
+                    config_dict["nine_nine_nine_tokens"] = toks
+
+        # 中国福彩抽奖多 token
+        if "zgfc" in yml_config:
+            zc = yml_config.get("zgfc") or {}
+            if "tokens" in zc and isinstance(zc["tokens"], list):
+                toks = [str(t).strip() for t in zc["tokens"] if t]
+                if toks:
+                    config_dict["zgfc_tokens"] = toks
+
+        # Freenom 多账号
+        if "freenom" in yml_config:
+            fn = yml_config.get("freenom") or {}
+            if "accounts" in fn and isinstance(fn["accounts"], list):
+                accs: list[dict] = []
+                for a in fn["accounts"]:
+                    if isinstance(a, dict):
+                        accs.append(
+                            {
+                                "email": str(a.get("email", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                            }
+                        )
+                if accs:
+                    config_dict["freenom_accounts"] = accs
 
         # 推送通道配置（直接复制）
         if "push_channel" in yml_config:

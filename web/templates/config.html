@@ -433,6 +433,812 @@
                 </div>
             </div>
 
+            <!-- 恩山论坛签到配置 -->
+            <div class="card config-section fade-in" data-section="enshan" style="animation-delay: 0.21s;">
+                <div class="card-header">
+                    <h2>📡 恩山论坛签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用恩山签到</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="enshan_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="enshan_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="enshan_cookie" class="form-input" placeholder="恩山 Cookie，多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="enshan_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="enshan_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加 Cookie</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="enshan_time" class="form-input" value="02:00"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="enshan_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 天翼云盘签到配置 -->
+            <div class="card config-section fade-in" data-section="tyyun" style="animation-delay: 0.22s;">
+                <div class="card-header">
+                    <h2>☁️ 天翼云盘签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用天翼云盘签到</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="tyyun_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="tyyun_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">手机号（单账号）</td>
+                            <td><input type="text" id="tyyun_username" class="form-input" placeholder="天翼手机号，多账号时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">密码（单账号）</td>
+                            <td><input type="password" id="tyyun_password" class="form-input" placeholder="密码，多账号时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多账号</td>
+                            <td>
+                                <div id="tyyun_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="tyyun_add_account_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加账号</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="tyyun_time" class="form-input" value="04:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="tyyun_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;"><p>依赖 rsa 库（uv add rsa）。多账号配置 accounts 后会对每个账号依次签到并分别推送。</p></div>
+                </div>
+            </div>
+
+            <!-- 阿里云盘签到配置 -->
+            <div class="card config-section fade-in" data-section="aliyun" style="animation-delay: 0.23s;">
+                <div class="card-header">
+                    <h2>📦 阿里云盘签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用阿里云盘签到</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="aliyun_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="aliyun_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">refresh_token（单账号）</td>
+                            <td><input type="password" id="aliyun_refresh_token" class="form-input" placeholder="阿里云盘 refresh_token，多账号时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 refresh_token</td>
+                            <td>
+                                <div id="aliyun_refresh_tokens_list" class="multi-cookies-list"></div>
+                                <button type="button" id="aliyun_add_token_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加 Token</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="aliyun_time" class="form-input" value="05:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="aliyun_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;"><p>refresh_token 获取见 <a href="https://github.com/bighammer-link/Common-scripts/wiki" target="_blank">相关文档</a>。多 Token 依次签到并分别推送。</p></div>
+                </div>
+            </div>
+
+            <!-- 什么值得买签到配置 -->
+            <div class="card config-section fade-in" data-section="smzdm" style="animation-delay: 0.24s;">
+                <div class="card-header">
+                    <h2>🛒 什么值得买签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用什么值得买签到</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="smzdm_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="smzdm_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="smzdm_cookie" class="form-input" placeholder="值得买 Cookie，多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="smzdm_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="smzdm_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加 Cookie</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="smzdm_time" class="form-input" value="00:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="smzdm_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 值得买每日抽奖配置 -->
+            <div class="card config-section fade-in" data-section="zdm_draw" style="animation-delay: 0.25s;">
+                <div class="card-header">
+                    <h2>🎡 值得买每日抽奖配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用值得买抽奖</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="zdm_draw_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="zdm_draw_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="zdm_draw_cookie" class="form-input" placeholder="可与 smzdm 共用 Cookie，多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="zdm_draw_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="zdm_draw_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加 Cookie</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="zdm_draw_time" class="form-input" value="07:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="zdm_draw_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 富贵论坛签到配置 -->
+            <div class="card config-section fade-in" data-section="fg" style="animation-delay: 0.26s;">
+                <div class="card-header">
+                    <h2>💎 富贵论坛签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用富贵论坛签到</td>
+                            <td>
+                                <label class="switch"><input type="checkbox" id="fg_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="fg_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="fg_cookie" class="form-input" placeholder="富贵论坛 Cookie，多 Cookie 时可不填"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="fg_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="fg_add_cookie_btn" class="btn btn-secondary" style="margin-top: 10px;"><span>➕</span> 添加 Cookie</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="fg_time" class="form-input" value="00:01"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="fg_push_channels" class="push-channels-select"></div><p class="help-text">不选择则使用全部已配置的通道</p></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 小米社区签到配置 -->
+            <div class="card config-section fade-in" data-section="miui" style="animation-delay: 0.27s;">
+                <div class="card-header">
+                    <h2>📱 小米社区签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用小米社区签到</td>
+                            <td><label class="switch"><input type="checkbox" id="miui_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="miui_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">手机号（单账号）</td><td><input type="text" id="miui_account" class="form-input" placeholder="小米账号手机号"></td></tr>
+                        <tr><td class="config-label">密码（单账号）</td><td><input type="password" id="miui_password" class="form-input" placeholder="密码"></td></tr>
+                        <tr><td class="config-label">多账号</td>
+                            <td><div id="miui_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="miui_add_account_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加账号</button></td></tr>
+                        <tr><td class="config-label">签到时间</td><td><input type="time" id="miui_time" class="form-input" value="08:30"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="miui_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                    <div class="help-box" style="margin-top:16px;"><p>需 pycryptodome，有封号风险。多账号用 accounts 配置。</p></div>
+                </div>
+            </div>
+
+            <!-- 爱奇艺签到配置 -->
+            <div class="card config-section fade-in" data-section="iqiyi" style="animation-delay: 0.28s;">
+                <div class="card-header">
+                    <h2>🎬 爱奇艺签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用爱奇艺签到</td>
+                            <td><label class="switch"><input type="checkbox" id="iqiyi_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="iqiyi_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">Cookie（须含 P00001/P00003/QC005/__dfp）</td><td><input type="text" id="iqiyi_cookie" class="form-input" placeholder="单条时填，多 Cookie 用下方列表"></td></tr>
+                        <tr><td class="config-label">多 Cookie</td><td><div id="iqiyi_cookies_list" class="multi-cookies-list"></div>
+                            <button type="button" id="iqiyi_add_cookie_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加 Cookie</button></td></tr>
+                        <tr><td class="config-label">签到时间</td><td><input type="time" id="iqiyi_time" class="form-input" value="06:00"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="iqiyi_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 联想乐豆签到配置 -->
+            <div class="card config-section fade-in" data-section="lenovo" style="animation-delay: 0.29s;">
+                <div class="card-header">
+                    <h2>🔷 联想乐豆签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用联想乐豆签到</td>
+                            <td><label class="switch"><input type="checkbox" id="lenovo_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="lenovo_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">access_token（Headers 中 accesstoken）</td><td><input type="text" id="lenovo_access_token" class="form-input" placeholder="单条填，多账号用下方列表"></td></tr>
+                        <tr><td class="config-label">多 access_token</td><td><div id="lenovo_access_tokens_list" class="multi-cookies-list"></div>
+                            <button type="button" id="lenovo_add_token_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加 Token</button></td></tr>
+                        <tr><td class="config-label">签到时间</td><td><input type="time" id="lenovo_time" class="form-input" value="05:30"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="lenovo_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 丽宝乐园签到配置 -->
+            <div class="card config-section fade-in" data-section="lbly" style="animation-delay: 0.30s;">
+                <div class="card-header">
+                    <h2>🎠 丽宝乐园签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用丽宝乐园签到</td>
+                            <td><label class="switch"><input type="checkbox" id="lbly_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="lbly_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">请求体 JSON（抓包 GetRewardList 的请求体）</td><td><textarea id="lbly_request_body" class="form-textarea" rows="3" placeholder='{"MallID":11192,"Header":{"Token":"xxx"}}'></textarea></td></tr>
+                        <tr><td class="config-label">多账号请求体</td><td><div id="lbly_request_bodies_list" class="multi-cookies-list"></div>
+                            <button type="button" id="lbly_add_body_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加请求体</button></td></tr>
+                        <tr><td class="config-label">签到时间</td><td><input type="time" id="lbly_time" class="form-input" value="05:30"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="lbly_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 品赞代理签到配置 -->
+            <div class="card config-section fade-in" data-section="pinzan" style="animation-delay: 0.31s;">
+                <div class="card-header">
+                    <h2>📦 品赞代理签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用品赞签到</td>
+                            <td><label class="switch"><input type="checkbox" id="pinzan_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="pinzan_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">账号（单）</td><td><input type="text" id="pinzan_account" class="form-input" placeholder="手机号/账号"></td></tr>
+                        <tr><td class="config-label">密码（单）</td><td><input type="password" id="pinzan_password" class="form-input" placeholder="密码"></td></tr>
+                        <tr><td class="config-label">多账号</td><td><div id="pinzan_accounts_list" class="multi-accounts-list"></div>
+                            <button type="button" id="pinzan_add_account_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加账号</button></td></tr>
+                        <tr><td class="config-label">签到时间</td><td><input type="time" id="pinzan_time" class="form-input" value="08:00"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="pinzan_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 达美乐任务配置 -->
+            <div class="card config-section fade-in" data-section="dml" style="animation-delay: 0.32s;">
+                <div class="card-header">
+                    <h2>🍕 达美乐任务配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用达美乐任务</td>
+                            <td><label class="switch"><input type="checkbox" id="dml_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="dml_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">openid（小程序抓包）</td><td><input type="text" id="dml_openid" class="form-input" placeholder="单条填，多账号用下方列表"></td></tr>
+                        <tr><td class="config-label">多 openid</td><td><div id="dml_openids_list" class="multi-cookies-list"></div>
+                            <button type="button" id="dml_add_openid_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加 openid</button></td></tr>
+                        <tr><td class="config-label">执行时间</td><td><input type="time" id="dml_time" class="form-input" value="06:00"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="dml_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 小茅预约（i茅台）配置 -->
+            <div class="card config-section fade-in" data-section="xiaomao" style="animation-delay: 0.33s;">
+                <div class="card-header">
+                    <h2>🥃 小茅预约（i茅台）配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用小茅预约</td>
+                            <td><label class="switch"><input type="checkbox" id="xiaomao_enable"><span class="slider"></span></label>
+                                <span class="switch-label" id="xiaomao_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">预约参数（单条）</td><td><input type="text" id="xiaomao_token" class="form-input" placeholder="省份,城市,经度,纬度,设备id,token,MT-Token-Wap"></td></tr>
+                        <tr><td class="config-label">多账号 token</td><td><div id="xiaomao_tokens_list" class="multi-cookies-list"></div>
+                            <button type="button" id="xiaomao_add_token_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加</button></td></tr>
+                        <tr><td class="config-label">APP 版本号（可选）</td><td><input type="text" id="xiaomao_mt_version" class="form-input" placeholder="如 1.3.6，不填则自动获取"></td></tr>
+                        <tr><td class="config-label">执行时间</td><td><input type="time" id="xiaomao_time" class="form-input" value="09:00"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="xiaomao_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 一点万象 / 星空代理 / 千图网 -->
+            <div class="card config-section fade-in" data-section="ydwx" style="animation-delay: 0.34s;">
+                <div class="card-header"><h2>🏬 一点万象签到</h2>
+                    <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用</td><td><label class="switch"><input type="checkbox" id="ydwx_enable"><span class="slider"></span></label><span class="switch-label" id="ydwx_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">deviceParams</td><td><input type="text" id="ydwx_device_params" class="form-input" placeholder="单条"></td></tr>
+                        <tr><td class="config-label">token</td><td><input type="text" id="ydwx_token" class="form-input" placeholder="单条"></td></tr>
+                        <tr><td class="config-label">多账号</td><td><div id="ydwx_accounts_list" class="multi-cookies-list"></div><button type="button" id="ydwx_add_account_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加</button></td></tr>
+                        <tr><td class="config-label">执行时间</td><td><input type="time" id="ydwx_time" value="06:00" class="form-input"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="ydwx_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="card config-section fade-in" data-section="xingkong" style="animation-delay: 0.35s;">
+                <div class="card-header"><h2>🌟 星空代理签到</h2>
+                    <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用</td><td><label class="switch"><input type="checkbox" id="xingkong_enable"><span class="slider"></span></label><span class="switch-label" id="xingkong_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">用户名</td><td><input type="text" id="xingkong_username" class="form-input"></td></tr>
+                        <tr><td class="config-label">密码</td><td><input type="password" id="xingkong_password" class="form-input"></td></tr>
+                        <tr><td class="config-label">多账号</td><td><div id="xingkong_accounts_list" class="multi-cookies-list"></div><button type="button" id="xingkong_add_account_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加</button></td></tr>
+                        <tr><td class="config-label">执行时间</td><td><input type="time" id="xingkong_time" value="07:30" class="form-input"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="xingkong_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="card config-section fade-in" data-section="qtw" style="animation-delay: 0.36s;">
+                <div class="card-header"><h2>🖼️ 千图网签到</h2>
+                    <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr><td class="config-label">启用</td><td><label class="switch"><input type="checkbox" id="qtw_enable"><span class="slider"></span></label><span class="switch-label" id="qtw_enable_label">关闭</span></td></tr>
+                        <tr><td class="config-label">Cookie（单条）</td><td><input type="text" id="qtw_cookie" class="form-input" placeholder="多账号用下方列表"></td></tr>
+                        <tr><td class="config-label">多 Cookie</td><td><div id="qtw_cookies_list" class="multi-cookies-list"></div><button type="button" id="qtw_add_cookie_btn" class="btn btn-secondary" style="margin-top:10px;"><span>➕</span> 添加</button></td></tr>
+                        <tr><td class="config-label">执行时间</td><td><input type="time" id="qtw_time" value="01:30" class="form-input"></td></tr>
+                        <tr><td class="config-label">推送通道</td><td><div id="qtw_push_channels" class="push-channels-select"></div></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Freenom 域名续期 -->
+            <div class="card config-section fade-in" data-section="freenom" style="animation-delay: 0.37s;">
+                <div class="card-header">
+                    <h2>🌐 Freenom 域名续期</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用 Freenom 续期</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="freenom_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="freenom_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多账号</td>
+                            <td>
+                                <div id="freenom_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="freenom_add_account_btn" class="btn btn-secondary" style="margin-top:10px;">
+                                    <span>➕</span> 添加账号
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="freenom_time" class="form-input" value="07:33"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="freenom_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>使用邮箱+密码登录 Freenom，对 14 天内到期的免费域名尝试续期 12 个月。多账号请在下方列表配置。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 天气推送 -->
+            <div class="card config-section fade-in" data-section="weather" style="animation-delay: 0.38s;">
+                <div class="card-header">
+                    <h2>☁️ 天气推送</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用天气推送</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="weather_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="weather_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">城市代码</td>
+                            <td><input type="text" id="weather_city_code" class="form-input" placeholder="例如 101020100（上海）"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="weather_time" class="form-input" value="07:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="weather_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>根据城市代码推送今日天气与未来 7 日预报，仅作为信息通知。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 夸克网盘签到 -->
+            <div class="card config-section fade-in" data-section="kuake" style="animation-delay: 0.39s;">
+                <div class="card-header">
+                    <h2>🗂️ 夸克网盘签到</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用夸克签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="kuake_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="kuake_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（单条）</td>
+                            <td><input type="text" id="kuake_cookie" class="form-input" placeholder="多账号用下方列表"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 Cookie</td>
+                            <td>
+                                <div id="kuake_cookies_list" class="multi-cookies-list"></div>
+                                <button type="button" id="kuake_add_cookie_btn" class="btn btn-secondary" style="margin-top:10px;">
+                                    <span>➕</span> 添加 Cookie
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="kuake_time" class="form-input" value="02:00"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="kuake_push_channels" class="push-channels-select"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 科技玩家签到 -->
+            <div class="card config-section fade-in" data-section="kjwj" style="animation-delay: 0.40s;">
+                <div class="card-header">
+                    <h2>🧪 科技玩家签到</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用科技玩家签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="kjwj_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="kjwj_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多账号</td>
+                            <td>
+                                <div id="kjwj_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="kjwj_add_account_btn" class="btn btn-secondary" style="margin-top:10px;">
+                                    <span>➕</span> 添加账号
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="kjwj_time" class="form-input" value="07:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="kjwj_push_channels" class="push-channels-select"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 帆软社区签到 + 摇摇乐 -->
+            <div class="card config-section fade-in" data-section="fr" style="animation-delay: 0.41s;">
+                <div class="card-header">
+                    <h2>📊 帆软社区签到 + 摇摇乐</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用帆软签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="fr_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="fr_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie</td>
+                            <td><input type="text" id="fr_cookie" class="form-input" placeholder="帆软社区 Cookie"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="fr_time" class="form-input" value="06:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="fr_push_channels" class="push-channels-select"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 999 会员中心健康打卡 -->
+            <div class="card config-section fade-in" data-section="nine_nine_nine" style="animation-delay: 0.42s;">
+                <div class="card-header">
+                    <h2>💊 999 会员中心健康打卡</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用 999 健康任务</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="nine_nine_nine_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="nine_nine_nine_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Authorization 列表</td>
+                            <td>
+                                <div id="nine_nine_nine_tokens_list" class="multi-cookies-list"></div>
+                                <button type="button" id="nine_nine_nine_add_token_btn" class="btn btn-secondary" style="margin-top:10px;">
+                                    <span>➕</span> 添加 Token
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="nine_nine_nine_time" class="form-input" value="15:15"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="nine_nine_nine_push_channels" class="push-channels-select"></div></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 中国福彩抽奖活动 -->
+            <div class="card config-section fade-in" data-section="zgfc" style="animation-delay: 0.43s;">
+                <div class="card-header">
+                    <h2>🎁 中国福彩抽奖活动</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用福彩抽奖</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="zgfc_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="zgfc_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Authorization 列表</td>
+                            <td>
+                                <div id="zgfc_tokens_list" class="multi-cookies-list"></div>
+                                <button type="button" id="zgfc_add_token_btn" class="btn btn-secondary" style="margin-top:10px;">
+                                    <span>➕</span> 添加 Token
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="zgfc_time" class="form-input" value="08:00"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="zgfc_push_channels" class="push-channels-select"></div></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 双色球开奖通知 -->
+            <div class="card config-section fade-in" data-section="ssq_500w" style="animation-delay: 0.44s;">
+                <div class="card-header">
+                    <h2>🎲 双色球开奖通知（娱乐）</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button>
+                        <button class="btn btn-primary section-save-btn"><span>💾</span> 保存配置</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用双色球通知</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="ssq_500w_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="ssq_500w_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">执行时间</td>
+                            <td><input type="time" id="ssq_500w_time" class="form-input" value="21:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td><div id="ssq_500w_push_channels" class="push-channels-select"></div></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>仅用于获取最新双色球开奖号码、守号检测和冷号机选推荐，不涉及真实购彩。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 调度器配置 -->
             <div class="card config-section fade-in" data-section="scheduler" style="animation-delay: 0.25s;">
                 <div class="card-header">

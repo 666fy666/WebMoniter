@@ -19,6 +19,8 @@ dependencies = [
     "itsdangerous>=2.1.0",
     "beautifulsoup4>=4.12.0",
     "pillow>=10.0.0",
+    "rsa>=4.9",
+    "pycryptodome>=3.19.0",
 ]
 
 [project.optional-dependencies]

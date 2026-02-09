@@ -21,7 +21,7 @@
 
 ---
 
-**Web任务系统**：一个支持 **虎牙直播、微博(超话)、ikuuu、百度贴吧、雨云** 等多平台的任务与签到工具。  
+**Web任务系统**：一个支持 **虎牙直播、微博(超话)、ikuuu、百度贴吧、雨云、恩山、天翼云盘、阿里云盘、什么值得买、富贵论坛、小米社区、爱奇艺、联想乐豆、丽宝乐园、品赞、达美乐、小茅预约** 等多平台的任务与签到工具。  
 使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、钉钉、Telegram、Bark、邮件等），  
 **配置热重载**，开箱即用。
 
@@ -84,7 +84,33 @@
 | 雨云签到     | `rainyun`           | 08:30        | ✅         | `enable: true` 且配置 API Key 时执行；支持多 API Key；自动完成腾讯验证码                     |
 | 百度贴吧签到 | `tieba`             | 08:10        | ✅         | `enable: true` 且配置 Cookie（须含 BDUSS）时执行；支持多 Cookie                              |
 | 微博超话签到 | `weibo_chaohua`     | 23:45        | ✅         | `enable: true` 且配置 Cookie（须含 XSRF-TOKEN）时执行；支持多 Cookie                         |
+| 恩山论坛签到 | `enshan`            | 02:00        | ✅         | Cookie 查询积分/恩山币；支持多 Cookie                                                         |
+| 天翼云盘签到 | `tyyun`             | 04:30        | ✅         | 手机号+密码登录（需 rsa 库），签到并抽奖；支持多账号 `accounts`                                |
+| 阿里云盘签到 | `aliyun`            | 05:30        | ✅         | refresh_token 签到；支持多 `refresh_tokens`                                                    |
+| 什么值得买签到 | `smzdm`           | 00:30        | ✅         | Cookie 签到；支持多 Cookie                                                                     |
+| 值得买每日抽奖 | `zdm_draw`        | 07:30        | ✅         | Cookie 抽奖（可与 smzdm 共用）；支持多 Cookie                                                 |
+| 富贵论坛签到 | `fg`                | 00:01        | ✅         | Cookie 签到；支持多 Cookie                                                                     |
+| 小米社区签到 | `miui`              | 08:30        | ✅         | 手机号+密码登录（需 pycryptodome），签到+拔萝卜；支持多账号；存在封号风险                      |
+| 爱奇艺签到   | `iqiyi`             | 06:00        | ✅         | Cookie 签到（须含 P00001、P00003、QC005、__dfp 等），签到+任务+抽奖+摇一摇；支持多 Cookie     |
+| 联想乐豆签到 | `lenovo`            | 05:30        | ✅         | access_token 签到（RSA 签名）；支持多 `access_tokens`                                          |
+| 丽宝乐园签到 | `lbly`              | 05:30        | ✅         | 请求体 JSON 调用 CheckinV2；支持多 `request_bodies`                                             |
+| 品赞签到     | `pinzan`            | 08:00        | ✅         | 账号+密码登录，领取 IP；支持多账号 `accounts`                                                  |
+| 达美乐签到   | `dml`               | 06:00        | ✅         | openid 完成分享+游戏任务；支持多 `openids`                                                     |
+| 小茅预约     | `xiaomao`           | 09:00        | ✅         | i茅台预约申购 + 小茅运领奖励；配置格式：省份,城市,经度,纬度,设备id,token,MT-Token-Wap；需 pycryptodome |
+| 一点万象签到 | `ydwx`              | 06:00        | ✅         | deviceParams + token 签到；支持多账号 `accounts`（参考 only_for_happly/ydwx.py）                      |
+| 星空代理签到 | `xingkong`          | 07:30        | ✅         | 用户名+密码登录领积分；支持多账号 `accounts`（参考 only_for_happly/xingkong.py）                      |
+| 千图网签到   | `qtw`               | 01:30        | ✅         | Cookie 签到；支持多 Cookie（参考 only_for_happly/qtw.py）                                            |
+| Freenom 续期 | `freenom`           | 07:33        | ✅         | 使用邮箱+密码登录 Freenom，自动为 14 天内到期的免费域名续期 12 个月；支持多账号 `accounts`               |
+| 天气推送     | `weather`           | 07:30        | ✅         | 根据 `city_code` 推送今日天气和未来 7 日预报（仅通知，不写入数据库）                                  |
+| 夸克网盘签到 | `kuake`             | 02:00        | ✅         | 使用 Cookie 为多个夸克账号执行每日签到，领取空间；支持多 Cookie `cookies`                             |
+| 科技玩家签到 | `kjwj`              | 07:30        | ✅         | 使用账号+密码登录科技玩家网站并执行签到；支持多账号 `accounts`                                       |
+| 帆软签到     | `fr`                | 06:30        | ✅         | 帆软社区签到 + 摇摇乐，一次任务推送签到结果及活动信息                                               |
+| 999 健康任务 | `nine_nine_nine`    | 15:15        | ✅         | 999 会员中心健康打卡 + 阅读 + 体检等任务；多 Authorization `tokens`                                 |
+| 福彩抽奖     | `zgfc`              | 08:00        | ✅         | 中国福彩“新年”活动许愿 + 抽奖 + 点赞 + 奖品查询；多 Authorization `tokens`                        |
+| 双色球通知   | `ssq_500w`          | 21:30        | ✅         | 获取最新双色球开奖信息 + 守号检测 + 冷号机选（仅娱乐通知，不涉及真实购彩）                            |
 | Demo 示例    | `plugins.demo_task` | 08:30        | ✅         | 二次开发示例，不需要可在 `job_registry.TASK_MODULES` 中移除                                  |
+
+> 恩山、天翼云盘、阿里云盘、什么值得买、值得买抽奖、富贵论坛、小米社区、爱奇艺、联想乐豆、丽宝乐园、品赞、达美乐、小茅预约、一点万象、星空代理、千图网 等签到/预约逻辑参考自 [only_for_happly](https://github.com/wd210010/only_for_happly)，已按本项目风格接入统一推送与多账号配置。
 
 > **说明**：
 > - 所有定时任务在**项目启动时都会立即执行一次**；各签到类任务内部会根据 `enable` 与配置完整性决定是否真正执行。

@@ -530,6 +530,8 @@ await self.db.execute_insert(sql, data)
 |----------|------------|----------|----------|----------------|------|
 | 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `load_config_from_yml`（checkin 段） | `tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("ikuuu_checkin", ...)`，`TASK_MODULES` 含 `tasks.ikuuu_checkin` |
 | 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_MODULES` 含 `tasks.demo_task` |
+| 定时任务 | Freenom 续期 | `config.yml` → `freenom` | `AppConfig` + `load_config_from_yml`（freenom 段，多账号 accounts） | `tasks/freenom_checkin.py`（`run_freenom_checkin_once`、`_get_freenom_trigger_kwargs`） | `register_task("freenom_checkin", ...)`，`TASK_MODULES` 含 `tasks.freenom_checkin` |
+| 定时任务 | 天气推送   | `config.yml` → `weather` | `AppConfig` + `load_config_from_yml`（weather 段） | `tasks/weather_push.py`（`run_weather_push_once`、`_get_weather_trigger_kwargs`） | `register_task("weather_push", ...)`，`TASK_MODULES` 含 `tasks.weather_push` |
 | 监控任务 | 虎牙监控   | `config.yml` → `huya` + `scheduler.huya_monitor_interval_seconds` | `AppConfig`、`HuyaConfig`、`get_huya_config`、`load_config_from_yml`（huya/scheduler） | `monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_MODULES` 含 `monitors.huya_monitor` |
 
 - **parse_checkin_time**：`src/config.py`，将 `"HH:MM"` 解析为 `(hour, minute)` 字符串元组，供 Cron 使用。
@@ -566,9 +568,9 @@ await self.db.execute_insert(sql, data)
 
 ## 十、Web 前端对新增配置的响应
 
-- **文本视图**：直接读写整份 `config.yml`，新增的任意 key（如 `plugins`）都会完整显示、可编辑，保存后整份写回，**会正确响应**。
-- **表格视图**：当前仅展示固定区块（微博、虎牙、签到、贴吧、调度器、免打扰、推送通道、**插件配置**）。  
-  - 在表格视图中修改并保存时，后端会**合并**写回，因此文件中已有的 `plugins` 等不会丢失。  
-  - 插件配置可在配置页底部的「插件/扩展配置」中以 JSON 形式编辑 `config.plugins`；其他未在表格中列出的顶层 key 需使用文本视图编辑。
+- **文本视图**：直接读写整份 `config.yml`，新增的任意 key（如 `plugins`、`freenom`、`weather` 等）都会完整显示、可编辑，保存后整份写回，**会正确响应**。
+- **表格视图**：当前展示微博、虎牙、各类签到任务（iKuuu、贴吧、雨云、恩山、阿里云盘、什么值得买、Freenom、夸克、科技玩家、帆软、999、zgfc、双色球等）、调度器、免打扰、推送通道以及**插件配置**等固定区块。
+  - 在表格视图中修改并保存时，后端会**合并**写回，因此文件中已有的 `plugins` 或其他顶层节点不会丢失。  
+  - 插件配置可在配置页底部的「插件/扩展配置」中以 JSON 形式编辑 `config.plugins`；尚未在表格中单独列出的顶层 key 需使用文本视图编辑。
 
-若新增了与现有区块同级的配置（例如新的顶层节点），并希望在表格中编辑，需在 Web 前端增加对应区块及 `loadSectionConfig` / `collectSectionConfig` / `collectConfig` 的处理（参考现有 `plugins` 区块实现）。
+若你新增了与现有区块同级的配置（例如新的顶层节点），并希望在表格中编辑，需在 Web 前端增加对应卡片及 `loadSectionConfig` / `collectSectionConfig` / `collectConfig` 的处理（可参考本文档中已集成的 `freenom`/`weather`/`kuake`/`kjwj` 等实现方式）。

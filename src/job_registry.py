@@ -44,6 +44,30 @@ TASK_MODULES: list[str] = [
     "tasks.tieba_checkin",
     "tasks.weibo_chaohua_checkin",
     "tasks.rainyun_checkin",  # 雨云签到
+    "tasks.enshan_checkin",  # 恩山论坛签到
+    "tasks.fg_checkin",  # 富贵论坛签到
+    "tasks.aliyun_checkin",  # 阿里云盘签到
+    "tasks.smzdm_checkin",  # 什么值得买签到
+    "tasks.zdm_draw",  # 值得买每日抽奖
+    "tasks.tyyun_checkin",  # 天翼云盘签到
+    "tasks.miui_checkin",  # 小米社区签到
+    "tasks.iqiyi_checkin",  # 爱奇艺签到
+    "tasks.lenovo_checkin",  # 联想乐豆签到
+    "tasks.lbly_checkin",  # 丽宝乐园签到
+    "tasks.pinzan_checkin",  # 品赞代理签到
+    "tasks.dml_checkin",  # 达美乐任务
+    "tasks.xiaomao_checkin",  # 小茅预约（i茅台）
+    "tasks.ydwx_checkin",  # 一点万象签到
+    "tasks.xingkong_checkin",  # 星空代理签到
+    "tasks.qtw_checkin",  # 千图网签到
+    "tasks.freenom_checkin",  # Freenom 免费域名续期
+    "tasks.weather_push",  # 天气每日推送
+    "tasks.kuake_checkin",  # 夸克网盘签到
+    "tasks.kjwj_checkin",  # 科技玩家签到
+    "tasks.fr_checkin",  # 帆软社区签到 + 摇摇乐
+    "tasks.nine_nine_nine_task",  # 999 会员中心健康打卡
+    "tasks.zgfc_draw",  # 中国福彩抽奖活动
+    "tasks.ssq_500w_notice",  # 双色球开奖通知（守号+冷号机选）
     "tasks.demo_task",  # 二次开发示例，不需要可移除此行
 ]
 
