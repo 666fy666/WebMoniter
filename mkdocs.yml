@@ -1,0 +1,87 @@
+# MkDocs Material 文档站配置
+# 参考 Paddle / Ultralytics 风格：首页引导、清晰导航、使用与二次开发分离
+site_name: WebMoniter 文档
+site_description: 多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发
+site_author: FY
+site_url: https://666fy666.github.io/WebMoniter/
+
+repo_name: 666fy666/WebMoniter
+repo_url: https://github.com/666fy666/WebMoniter
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; FY · MIT License
+
+theme:
+  name: material
+  language: zh
+  logo: assets/favicon.svg
+  favicon: assets/favicon.svg
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 深色模式
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 浅色模式
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: zh
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+
+nav:
+  - 首页: index.md
+  - 快速开始:
+    - 安装与运行: installation.md
+  - 使用指南:
+    - 配置说明: guides/config.md
+    - Web 管理界面: guides/web-ui.md
+    - 监控与定时任务: guides/tasks.md
+    - 监控任务详解: guides/tasks/monitors.md
+    - 定时任务详解: guides/tasks/checkin.md
+    - 推送通道: guides/push-channels.md
+  - 二次开发:
+    - 架构概览: ARCHITECTURE.md
+    - 二次开发指南: SECONDARY_DEVELOPMENT.md
+  - API 参考: API.md
+  - 常见问题: faq.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/666fy666/WebMoniter

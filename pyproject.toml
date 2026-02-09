@@ -30,6 +30,11 @@ dev = [
     "black>=23.11.0",
     "ruff>=0.1.6",
 ]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocs-minify-plugin>=0.8.0",
+]
 
 [build-system]
 requires = ["hatchling"]

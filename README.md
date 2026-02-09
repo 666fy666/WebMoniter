@@ -33,9 +33,14 @@
 [🌐 Web 管理](#-web-管理界面) •
 [⚙️ 配置说明](#️-配置说明)
 
-[📡 API](docs/API.md) •
-[🏗️ 项目架构](docs/ARCHITECTURE.md) •
+[![文档站](https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=flat-square)](https://666fy666.github.io/WebMoniter/) ·
+[📡 API](docs/API.md) ·
+[🏗️ 项目架构](docs/ARCHITECTURE.md) ·
 [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md)
+
+**📖 [完整文档站（使用指南与二次开发）](https://666fy666.github.io/WebMoniter/)**
+
+<sub>文档站由 MkDocs Material 构建；本地预览：先执行 `uv sync --extra docs` 安装文档依赖，再执行 `uv run mkdocs serve`</sub>
 
 ---
 
