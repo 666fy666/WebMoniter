@@ -386,6 +386,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('ydwx', config);
             loadSectionConfig('xingkong', config);
             loadSectionConfig('qtw', config);
+            loadSectionConfig('freenom', config);
+            loadSectionConfig('weather', config);
+            loadSectionConfig('kuake', config);
+            loadSectionConfig('kjwj', config);
+            loadSectionConfig('fr', config);
+            loadSectionConfig('nine_nine_nine', config);
+            loadSectionConfig('zgfc', config);
+            loadSectionConfig('ssq_500w', config);
             loadSectionConfig('log_cleanup', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
@@ -2191,6 +2199,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.ydwx = collectSectionConfig('ydwx').ydwx;
         config.xingkong = collectSectionConfig('xingkong').xingkong;
         config.qtw = collectSectionConfig('qtw').qtw;
+        config.freenom = collectSectionConfig('freenom').freenom;
+        config.weather = collectSectionConfig('weather').weather;
+        config.kuake = collectSectionConfig('kuake').kuake;
+        config.kjwj = collectSectionConfig('kjwj').kjwj;
+        config.fr = collectSectionConfig('fr').fr;
+        config.nine_nine_nine = collectSectionConfig('nine_nine_nine').nine_nine_nine;
+        config.zgfc = collectSectionConfig('zgfc').zgfc;
+        config.ssq_500w = collectSectionConfig('ssq_500w').ssq_500w;
 
         // 免打扰时段配置
         config.quiet_hours = {
