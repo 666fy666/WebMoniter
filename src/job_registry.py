@@ -43,6 +43,7 @@ TASK_MODULES: list[str] = [
     "tasks.ikuuu_checkin",
     "tasks.tieba_checkin",
     "tasks.weibo_chaohua_checkin",
+    "tasks.rainyun_checkin",  # 雨云签到
     "tasks.demo_task",  # 二次开发示例，不需要可移除此行
 ]
 

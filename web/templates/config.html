@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>配置管理 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=3">
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -315,6 +315,65 @@
                 </div>
             </div>
 
+            <!-- 雨云签到配置 -->
+            <div class="card config-section fade-in" data-section="rainyun" style="animation-delay: 0.18s;">
+                <div class="card-header">
+                    <h2>☁️ 雨云签到配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用雨云签到</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="rainyun_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="rainyun_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">API Key</td>
+                            <td><input type="password" id="rainyun_api_key" class="form-input" placeholder="雨云 API 密钥（多 API Key 时可不填）"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多 API Key</td>
+                            <td>
+                                <div id="rainyun_api_keys_list" class="multi-cookies-list"></div>
+                                <button type="button" id="rainyun_add_api_key_btn" class="btn btn-secondary" style="margin-top: 10px;">
+                                    <span>➕</span>
+                                    添加 API Key
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">签到时间</td>
+                            <td><input type="time" id="rainyun_time" class="form-input" value="08:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="rainyun_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>使用 API Key 认证，需通过腾讯验证码验证。获取 API Key：登录<a href="https://app.rainyun.com/" target="_blank">雨云</a> → 总览 → 用户 → 账户设置 → API 密钥。支持多 API Key 依次签到。系统会在指定时间自动执行签到，项目启动时若启用也会执行一次。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 贴吧签到配置 -->
             <div class="card config-section fade-in" data-section="tieba" style="animation-delay: 0.2s;">
                 <div class="card-header">
@@ -524,7 +583,7 @@
 
         </div>
     </div>
-    <script src="/static/js/common.js?v=3"></script>
-    <script src="/static/js/config.js?v=3"></script>
+    <script src="/static/js/common.js?v=4"></script>
+    <script src="/static/js/config.js?v=5"></script>
 </body>
 </html>

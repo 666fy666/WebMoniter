@@ -66,6 +66,13 @@ class AppConfig(BaseModel):
     weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
     weibo_chaohua_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
+    # 雨云签到配置（使用 API Key）
+    rainyun_enable: bool = False  # 是否启用雨云签到
+    rainyun_api_key: str = ""  # 单 API Key（与 rainyun_api_keys 二选一）
+    rainyun_api_keys: list[str] = []  # 多 API Key 列表，非空时优先于 rainyun_api_key
+    rainyun_time: str = "08:30"  # 雨云签到时间（格式：HH:MM），默认 08:30
+    rainyun_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+
     # 调度器配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
@@ -162,6 +169,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "time": "weibo_chaohua_time",
                 "push_channels": "weibo_chaohua_push_channels",
             },
+            "rainyun": {
+                "enable": "rainyun_enable",
+                "api_key": "rainyun_api_key",
+                "time": "rainyun_time",
+                "push_channels": "rainyun_push_channels",
+            },
             "scheduler": {
                 "huya_monitor_interval_seconds": "huya_monitor_interval_seconds",
                 "weibo_monitor_interval_seconds": "weibo_monitor_interval_seconds",
@@ -177,14 +190,20 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         }
 
         # 通用配置映射处理
+        # 需要将 None 转换为空字符串的字段（Pydantic 期望 str 类型）
+        string_fields = {
+            "cookie", "api_key", "uids", "rooms",
+            "email", "password", "time", "start", "end",
+        }
+
         for section_key, field_mapping in config_mappings.items():
             if section_key in yml_config:
                 section = yml_config[section_key]
                 for yaml_field, config_field in field_mapping.items():
                     if yaml_field in section:
                         value = section[yaml_field]
-                        # 特殊处理：cookie字段可能为空字符串
-                        if yaml_field == "cookie" and value is None:
+                        # 特殊处理：字符串字段可能在 YAML 中为空（解析为 None）
+                        if yaml_field in string_fields and value is None:
                             value = ""
                         # 特殊处理：push_channels 字段确保为列表
                         if yaml_field == "push_channels":
@@ -223,6 +242,14 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                             else "weibo_chaohua_cookies"
                         )
                         config_dict[config_field] = cookies
+
+        # 特殊处理：雨云多 API Key 配置
+        if "rainyun" in yml_config:
+            rainyun = yml_config["rainyun"]
+            if "api_keys" in rainyun and isinstance(rainyun["api_keys"], list):
+                api_keys = [str(k).strip() for k in rainyun["api_keys"] if k]
+                if api_keys:
+                    config_dict["rainyun_api_keys"] = api_keys
 
         # 推送通道配置（直接复制）
         if "push_channel" in yml_config:

@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const tiebaEnableLabel = document.getElementById('tieba_enable_label');
     const weiboChaohuaEnable = document.getElementById('weibo_chaohua_enable');
     const weiboChaohuaEnableLabel = document.getElementById('weibo_chaohua_enable_label');
+    const rainyunEnable = document.getElementById('rainyun_enable');
+    const rainyunEnableLabel = document.getElementById('rainyun_enable_label');
     const tableView = document.getElementById('tableView');
     const textView = document.getElementById('textView');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -250,6 +252,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // 雨云签到开关事件
+    if (rainyunEnable && rainyunEnableLabel) {
+        rainyunEnable.addEventListener('change', function() {
+            rainyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
+
     // 加载配置
     async function loadConfig() {
         try {
@@ -269,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('weibo_chaohua', config);
             loadSectionConfig('huya', config);
             loadSectionConfig('checkin', config);
+            loadSectionConfig('rainyun', config);
             loadSectionConfig('tieba', config);
             loadSectionConfig('scheduler', config);
             loadSectionConfig('quiet_hours', config);
@@ -363,6 +373,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             'weibo_chaohua_push_channels': originalConfig?.weibo_chaohua?.push_channels || [],
             'huya_push_channels': originalConfig?.huya?.push_channels || [],
             'checkin_push_channels': originalConfig?.checkin?.push_channels || [],
+            'rainyun_push_channels': originalConfig?.rainyun?.push_channels || [],
             'tieba_push_channels': originalConfig?.tieba?.push_channels || []
         };
 
@@ -644,6 +655,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // 渲染雨云多 API Key 列表
+    function renderRainyunApiKeys(apiKeys) {
+        const container = document.getElementById('rainyun_api_keys_list');
+        if (!container) return;
+        container.innerHTML = '';
+        const list = apiKeys.length ? apiKeys : [''];
+        list.forEach((apiKey, index) => {
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="password" class="form-input rainyun-api-key-value" placeholder="雨云 API Key">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove rainyun-api-key-remove">删除</button>
+            `;
+            row.querySelector('.rainyun-api-key-value').value = apiKey || '';
+            container.appendChild(row);
+        });
+    }
+
     // 加载特定section的配置
     function loadSectionConfig(section, config) {
         switch(section) {
@@ -755,6 +787,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                     renderTaskPushChannelSelect('huya_push_channels', config.huya.push_channels || []);
                 }
                 break;
+            case 'rainyun':
+                if (config.rainyun) {
+                    if (rainyunEnable) {
+                        const enableVal = config.rainyun.enable;
+                        rainyunEnable.checked = enableVal === true || enableVal === 'true';
+                        if (rainyunEnableLabel) {
+                            rainyunEnableLabel.textContent = rainyunEnable.checked ? '开启' : '关闭';
+                        }
+                    }
+                    const apiKeyInput = document.getElementById('rainyun_api_key');
+                    const timeInput = document.getElementById('rainyun_time');
+                    if (apiKeyInput) apiKeyInput.value = config.rainyun.api_key || '';
+                    if (timeInput) {
+                        const timeVal = config.rainyun.time || '08:30';
+                        timeInput.value = timeVal.length === 5 ? timeVal : '08:30';
+                    }
+                    // 多 API Key 列表
+                    const apiKeysListEl = document.getElementById('rainyun_api_keys_list');
+                    if (apiKeysListEl) {
+                        const apiKeys = Array.isArray(config.rainyun.api_keys) && config.rainyun.api_keys.length > 0
+                            ? config.rainyun.api_keys
+                            : [''];
+                        renderRainyunApiKeys(apiKeys);
+                    }
+                    // 渲染推送通道选择
+                    renderTaskPushChannelSelect('rainyun_push_channels', config.rainyun.push_channels || []);
+                }
+                break;
             case 'scheduler':
                 if (config.scheduler) {
                     document.getElementById('huya_monitor_interval_seconds').value = config.scheduler.huya_monitor_interval_seconds || 65;
@@ -864,6 +924,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     push_channels: getTaskPushChannels('huya_push_channels')
                 };
                 break;
+            case 'rainyun': {
+                const apiKeys = [];
+                document.querySelectorAll('#rainyun_api_keys_list .multi-cookie-row').forEach(row => {
+                    const val = (row.querySelector('.rainyun-api-key-value')?.value || '').trim();
+                    if (val) apiKeys.push(val);
+                });
+                const singleApiKey = (document.getElementById('rainyun_api_key')?.value || '').trim();
+                config.rainyun = {
+                    enable: rainyunEnable ? rainyunEnable.checked : false,
+                    api_key: apiKeys.length > 0 ? apiKeys[0] : singleApiKey,
+                    time: (document.getElementById('rainyun_time')?.value || '').trim() || '08:30',
+                    push_channels: getTaskPushChannels('rainyun_push_channels')
+                };
+                if (apiKeys.length > 0) config.rainyun.api_keys = apiKeys;
+                break;
+            }
             case 'scheduler':
                 config.scheduler = {
                     huya_monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
@@ -967,6 +1043,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
             push_channels: getTaskPushChannels('huya_push_channels')
         };
+
+        // 雨云签到配置（含多 API Key）
+        const rainyunApiKeys = [];
+        document.querySelectorAll('#rainyun_api_keys_list .multi-cookie-row').forEach(row => {
+            const val = (row.querySelector('.rainyun-api-key-value')?.value || '').trim();
+            if (val) rainyunApiKeys.push(val);
+        });
+        const singleRainyunApiKey = (document.getElementById('rainyun_api_key')?.value || '').trim();
+        config.rainyun = {
+            enable: rainyunEnable ? rainyunEnable.checked : false,
+            api_key: rainyunApiKeys.length > 0 ? rainyunApiKeys[0] : singleRainyunApiKey,
+            time: (document.getElementById('rainyun_time')?.value || '').trim() || '08:30',
+            push_channels: getTaskPushChannels('rainyun_push_channels')
+        };
+        if (rainyunApiKeys.length > 0) config.rainyun.api_keys = rainyunApiKeys;
 
         // 调度器配置
         config.scheduler = {
@@ -1386,6 +1477,34 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (e.target.classList.contains('weibo-chaohua-cookie-remove')) {
                 const row = e.target.closest('.multi-cookie-row');
                 if (row && weiboChaohuaCookiesList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+            }
+        });
+    }
+
+    // 雨云多 API Key：添加 API Key
+    const rainyunAddApiKeyBtn = document.getElementById('rainyun_add_api_key_btn');
+    if (rainyunAddApiKeyBtn) {
+        rainyunAddApiKeyBtn.addEventListener('click', function() {
+            const container = document.getElementById('rainyun_api_keys_list');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'multi-cookie-row';
+            row.innerHTML = `
+                <div class="cookie-field">
+                    <input type="password" class="form-input rainyun-api-key-value" placeholder="雨云 API Key">
+                </div>
+                <button type="button" class="btn btn-secondary row-remove rainyun-api-key-remove">删除</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+    // 雨云多 API Key：删除行（事件委托）
+    const rainyunApiKeysList = document.getElementById('rainyun_api_keys_list');
+    if (rainyunApiKeysList) {
+        rainyunApiKeysList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('rainyun-api-key-remove')) {
+                const row = e.target.closest('.multi-cookie-row');
+                if (row && rainyunApiKeysList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
             }
         });
     }

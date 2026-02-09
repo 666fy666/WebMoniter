@@ -7,9 +7,7 @@ from pathlib import Path
 GITHUB_OWNER = "666fy666"
 GITHUB_REPO = "WebMoniter"
 GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/tags"
-GITHUB_API_LATEST_TAG = (
-    f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/tags"
-)
+GITHUB_API_LATEST_TAG = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/tags"
 
 
 def get_version() -> str:

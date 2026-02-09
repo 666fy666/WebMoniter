@@ -8,14 +8,13 @@ iKuuu 自动签到脚本：
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import random
 import re
 from dataclasses import dataclass
 from typing import Any
-
-import asyncio
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -92,9 +91,7 @@ async def _extract_ikuuu_domain() -> str | None:
     }
 
     try:
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=15)
-        ) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
             async with session.get(
                 _IKUUU_DISCOVERY_URL, headers=headers, allow_redirects=True
             ) as resp:
@@ -115,9 +112,7 @@ async def _extract_ikuuu_domain() -> str | None:
                 candidates.add(f"ikuuu.{ext}")
 
             #    JS 字符串拼接模式：'ikuuu' + '.nl' 或 "ikuuu" + ".nl"
-            for ext in re.findall(
-                r"""['"]ikuuu['"]\s*\+\s*['"]\.([a-zA-Z]{2,})""", raw_html
-            ):
+            for ext in re.findall(r"""['"]ikuuu['"]\s*\+\s*['"]\.([a-zA-Z]{2,})""", raw_html):
                 candidates.add(f"ikuuu.{ext}")
 
             #    URL 片段拼接模式（完整 TLD）：'uuu.xxx'
@@ -569,7 +564,9 @@ async def _send_checkin_push(
     description = f"{status_emoji} 账号：{masked_email}\n" f"{msg}\n"
     if traffic_info:
         description += f"\n【流量信息】\n{traffic_info}\n"
-    description += f"\n当前域名：{cfg.domain}\n" f"登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
+    description += (
+        f"\n当前域名：{cfg.domain}\n" f"登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
+    )
 
     try:
         await push_manager.send_news(

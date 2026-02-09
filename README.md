@@ -21,7 +21,7 @@
 
 ---
 
-**Web任务系统**：一个支持 **虎牙直播、微博(超话)、ikuuu、百度贴吧** 等多平台的任务与签到工具。  
+**Web任务系统**：一个支持 **虎牙直播、微博(超话)、ikuuu、百度贴吧、雨云** 等多平台的任务与签到工具。  
 使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、钉钉、Telegram、Bark、邮件等），  
 **配置热重载**，开箱即用。
 
@@ -80,7 +80,8 @@
 | 任务名称     | 配置节点 / 任务 ID  | 默认执行时间 | 启动时执行 | 说明                                                                                         |
 |:------------:|:-------------------:|:------------:|:----------:|:---------------------------------------------------------------------------------------------|
 | 日志清理     | `scheduler`         | 02:00        | ✅         | 按 `cleanup_logs_hour`、`cleanup_logs_minute` 执行，保留天数由 `retention_days` 控制         |
-| iKuuu 签到   | `checkin`           | 08:00        | ✅         | `enable: true` 且配置完整时，每日定时签到并在启动时执行一次；**域名自动发现**（从 ikuuu.club 提取）；支持多账号 `accounts` |
+| iKuuu 签到   | `checkin`           | 08:00        | ✅         | `enable: true` 且配置完整时，每日定时签到并在启动时执行一次；从 ikuuu.club 提取）；支持多账号 `accounts` |
+| 雨云签到     | `rainyun`           | 08:30        | ✅         | `enable: true` 且配置 API Key 时执行；支持多 API Key；自动完成腾讯验证码                     |
 | 百度贴吧签到 | `tieba`             | 08:10        | ✅         | `enable: true` 且配置 Cookie（须含 BDUSS）时执行；支持多 Cookie                              |
 | 微博超话签到 | `weibo_chaohua`     | 23:45        | ✅         | `enable: true` 且配置 Cookie（须含 XSRF-TOKEN）时执行；支持多 Cookie                         |
 | Demo 示例    | `plugins.demo_task` | 08:30        | ✅         | 二次开发示例，不需要可在 `job_registry.TASK_MODULES` 中移除                                  |
@@ -94,22 +95,22 @@
 
 | 通道类型           | type             | 推送附带图片 | 说明                                                                                                                                       |
 |:------------------:|:----------------:|:------------:|:-------------------------------------------------------------------------------------------------------------------------------------------|
-| Server酱_Turbo     | serverChan_turbo | ✅           | 🙅‍♀️ 不推荐，不用安装app，但免费用户5次/天 👉 [官网](https://sct.ftqq.com)                                                                   |
-| Server酱_3         | serverChan_3     | ✅           | 🤔 需要安装app 👉 [官网](https://sc3.ft07.com/)                                                                                             |
-| 企业微信自建应用   | wecom_apps       | ✅           | 😢 新用户不再推荐，2022年6月20日之后新创建的应用需配置可信IP 👉 [官网](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)      |
 | 企业微信群聊机器人 | wecom_bot        | ✅           | 🥳 推荐，新建群聊添加自定义机器人即可 👉 [文档](https://developer.work.weixin.qq.com/document/path/99110)                                   |
 | 钉钉群聊机器人     | dingtalk_bot     | ✅           | 🥳 推荐，新建群聊添加自定义机器人，自定义关键词使用"【" 👉 [文档](https://open.dingtalk.com/document/robots/custom-robot-access)            |
-| 飞书自建应用       | feishu_apps      | ✅           | 🤔 可以使用个人版，创建应用并授予机器人权限 👉 [官网](https://open.feishu.cn/app?lang=zh-CN)                                                |
 | 飞书群聊机器人     | feishu_bot       | ❌ (暂不支持) | 🤩 推荐，新建群聊添加自定义机器人，自定义关键词使用"【" 👉 [文档](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)         |
-| Telegram机器人     | telegram_bot     | ✅           | 🪜 需要自备网络环境 👉 [文档](https://core.telegram.org/bots)                                                                               |
-| QQ频道机器人       | qq_bot           | ✅           | 😢 需要自行创建机器人，并启用机器人在频道内发言的权限 👉 [官网](https://q.qq.com/#/app/create-bot)                                          |
+| WxPusher           | wxpusher         | ✅           | 🥳 推荐，微信消息实时推送服务，可通过API实时给个人微信推送消息 👉 [官网](https://wxpusher.zjiecode.com/)                                    |
 | NapCatQQ           | napcat_qq        | ✅           | 🐧 好用，但需要自行部署 NapCatQQ 👉 [项目地址](https://github.com/NapNeko/NapCatQQ)                                                         |
+| Telegram机器人     | telegram_bot     | ✅           | 🪜 需要自备网络环境 👉 [文档](https://core.telegram.org/bots)                                                                               |
 | Bark               | bark             | ❌           | 🍎 适合苹果系用户，十分轻量，但没法推送图片 👉 [App Store](https://apps.apple.com/cn/app/id1403753865)                                      |
-| Gotify             | gotify           | ❌           | 🖥️ 适合自建服务器 👉 [官网](https://gotify.net)                                                                                             |
-| Webhook            | webhook          | ✅ (POST)    | ⚡️ 通用的方式，请求格式详见 [附录](#webhook-支持的请求格式)                                                                                 |
+| 飞书自建应用       | feishu_apps      | ✅           | 🤔 可以使用个人版，创建应用并授予机器人权限 👉 [官网](https://open.feishu.cn/app?lang=zh-CN)                                                |
+| Server酱_3         | serverChan_3     | ✅           | 🤔 需要安装app 👉 [官网](https://sc3.ft07.com/)                                                                                             |
 | PushPlus           | pushplus         | ✅           | 📱 支持多种推送渠道（微信、邮件、Webhook等） 👉 [官网](https://www.pushplus.plus/)                                                          |
-| WxPusher           | wxpusher         | ✅           | 📱 推荐，微信消息实时推送服务，可通过API实时给个人微信推送消息 👉 [官网](https://wxpusher.zjiecode.com/)                                    |
+| Webhook            | webhook          | ✅ (POST)    | ⚡️ 通用的方式，请求格式详见 [附录](#webhook-支持的请求格式)                                                                                 |
+| Gotify             | gotify           | ❌           | 🖥️ 适合自建服务器 👉 [官网](https://gotify.net)                                                                                             |
 | 电子邮件           | email            | ✅           | 📧 通用的方式                                                                                                                               |
+| 企业微信自建应用   | wecom_apps       | ✅           | 😢 新用户不再推荐，2022年6月20日之后新创建的应用需配置可信IP 👉 [官网](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)      |
+| QQ频道机器人       | qq_bot           | ✅           | 😢 需要自行创建机器人，并启用机器人在频道内发言的权限 👉 [官网](https://q.qq.com/#/app/create-bot)                                          |
+| Server酱_Turbo     | serverChan_turbo | ✅           | 🙅‍♀️ 不推荐，不用安装app，但免费用户5次/天 👉 [官网](https://sct.ftqq.com)                                                                   |
 
 <br/>
 
@@ -254,7 +255,7 @@ uv run python main.py &
 
 | 配置类型       | 说明                                                                                                                                                                                   |
 |:--------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **应用配置**   | 所有配置项（微博/虎牙监控、iKuuu/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。 |
+| **应用配置**   | 所有配置项（微博/虎牙监控、iKuuu/雨云/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。 |
 | **Docker 编排** | Docker 部署时的编排与运行参数（镜像、端口、卷挂载、资源限制、健康检查等）见 **[`docker-compose.yml`](docker-compose.yml)**；可按需修改端口、时区、内存限制等，修改后执行 `docker compose up -d` 使变更生效。                                |
 
 **相关链接**：
@@ -338,6 +339,7 @@ uv run python main.py &
 
 - [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push)（[@nfe-w](https://github.com/nfe-w)）
 - [only_for_happly](https://github.com/wd210010/only_for_happly)（[@wd210010](https://github.com/wd210010)）
+- [RainyunCheckIn](https://github.com/FalseHappiness/RainyunCheckIn)（[@FalseHappiness](https://github.com/FalseHappiness)）
 
 ---
 
