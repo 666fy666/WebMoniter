@@ -135,9 +135,6 @@ class ConfigWatcher:
             "huya": ["huya_rooms", "huya_concurrency"],
             "checkin": [
                 "checkin_enable",
-                "checkin_login_url",
-                "checkin_checkin_url",
-                "checkin_user_page_url",
                 "checkin_email",
                 "checkin_password",
                 "checkin_time",

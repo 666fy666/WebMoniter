@@ -40,11 +40,8 @@ class AppConfig(BaseModel):
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
     huya_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
-    # 每日签到配置
+    # 每日签到配置（域名自动从 ikuuu.club 发现，无需手动配置 URL）
     checkin_enable: bool = False  # 是否启用每日签到
-    checkin_login_url: str = ""  # 登录地址
-    checkin_checkin_url: str = ""  # 签到接口地址
-    checkin_user_page_url: str = ""  # 用户信息页地址（用于解析流量信息，可选）
     checkin_email: str = ""  # 单账号：登录账号（与 checkin_password 搭配）
     checkin_password: str = ""  # 单账号：登录密码
     checkin_accounts: list[dict] = (
@@ -148,9 +145,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             },
             "checkin": {
                 "enable": "checkin_enable",
-                "login_url": "checkin_login_url",
-                "checkin_url": "checkin_checkin_url",
-                "user_page_url": "checkin_user_page_url",
                 "email": "checkin_email",
                 "password": "checkin_password",
                 "time": "checkin_time",

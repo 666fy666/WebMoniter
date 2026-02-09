@@ -70,6 +70,8 @@ uv run pytest
 
 iKuuu 签到使用**顶层配置**（与贴吧签到一致）：在 `config.yml` 中有独立节点 `checkin`，在 `AppConfig` 中有对应扁平字段，适合需要强类型、与现有风格统一的场景。
 
+> **域名自动发现**：iKuuu 的可用域名会自动从 `ikuuu.club` 提取，无需在配置中手动填写 URL。系统在每次签到时会访问 `ikuuu.club`，通过多种正则匹配和 HTTP 探测从其混淆 JS 中提取可用域名（如 `ikuuu.nl`、`ikuuu.fyi` 等），并随机选择一个使用。
+
 ### 2.1 配置：config.yml
 
 在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config.yml.sample`）。
@@ -79,9 +81,6 @@ iKuuu 签到使用**顶层配置**（与贴吧签到一致）：在 `config.yml`
 ```yaml
 checkin:
   enable: false
-  login_url: https://ikuuu.nl/auth/login
-  checkin_url: https://ikuuu.nl/user/checkin
-  user_page_url: https://ikuuu.nl/user
   email: your@email.com
   password: your_password
   time: "08:00"   # 每日执行时间 HH:MM
@@ -92,9 +91,6 @@ checkin:
 ```yaml
 checkin:
   enable: true
-  login_url: https://ikuuu.nl/auth/login
-  checkin_url: https://ikuuu.nl/user/checkin
-  user_page_url: https://ikuuu.nl/user
   time: "08:00"
   accounts:
     - email: user1@example.com
@@ -108,11 +104,8 @@ checkin:
 在 `AppConfig` 中增加扁平字段（与 YAML 的 `checkin` 一一对应）：
 
 ```python
-# 每日签到配置
+# 每日签到配置（域名自动从 ikuuu.club 发现，无需手动配置 URL）
 checkin_enable: bool = False
-checkin_login_url: str = ""
-checkin_checkin_url: str = ""
-checkin_user_page_url: str = ""
 checkin_email: str = ""
 checkin_password: str = ""
 checkin_time: str = "08:00"
@@ -126,30 +119,48 @@ checkin_time: str = "08:00"
 **① 配置校验与入口**
 
 - 使用 dataclass 从 `AppConfig` 转成任务用配置，并做 `validate()`（未启用或缺少必填项则直接 return）：
+- 域名通过 `_extract_ikuuu_domain()` 自动从 `ikuuu.club` 提取，URL 由域名自动构建（`@property`）：
 
 ```python
 @dataclass
 class CheckinConfig:
     enable: bool
-    login_url: str
-    checkin_url: str
-    user_page_url: str | None
+    domain: str    # 自动发现的域名，如 ikuuu.nl
     email: str
     password: str
     time: str
 
+    @property
+    def login_url(self) -> str:
+        return f"https://{self.domain}/auth/login"
+
+    @property
+    def checkin_url(self) -> str:
+        return f"https://{self.domain}/user/checkin"
+
+    @property
+    def user_page_url(self) -> str:
+        return f"https://{self.domain}/user"
+
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> CheckinConfig:
+    def from_app_config(cls, config: AppConfig, domain: str) -> CheckinConfig:
         return cls(
             enable=config.checkin_enable,
-            login_url=config.checkin_login_url.strip(),
+            domain=domain,
             # ...
             time=config.checkin_time.strip() or "08:00",
         )
 
 async def run_checkin_once() -> None:
     app_config = get_config(reload=True)
-    cfg = CheckinConfig.from_app_config(app_config)
+    if not app_config.checkin_enable:
+        return
+    # 自动发现 ikuuu 可用域名
+    domain = await _extract_ikuuu_domain()
+    if not domain:
+        logger.error("ikuuu签到：无法自动发现可用域名，跳过本次执行")
+        return
+    cfg = CheckinConfig.from_app_config(app_config, domain=domain)
     if not cfg.validate():
         return
     # 业务逻辑：登录 → 签到 → 获取流量信息
@@ -184,7 +195,7 @@ async def _send_checkin_push(push_manager, title, msg, success, cfg, traffic_inf
     await push_manager.send_news(
         title=f"{title}（{masked_email}）",
         description=...,
-        to_url=cfg.user_page_url or cfg.login_url,
+        to_url=cfg.user_page_url,
         picurl="...",
         btntxt="查看账户",
     )

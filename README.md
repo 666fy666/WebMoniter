@@ -17,6 +17,7 @@
 [![GitHub Forks](https://img.shields.io/github/forks/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
 [![Docker Pulls](https://img.shields.io/docker/pulls/fengyu666/webmoniter?style=flat-square)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![Docker Image Version](https://img.shields.io/docker/v/fengyu666/webmoniter/latest?style=flat-square&logo=docker&sort=semver)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![GitHub Release](https://img.shields.io/github/v/release/666fy666/WebMoniter?style=flat-square&logo=github&label=EXE)](https://github.com/666fy666/WebMoniter/releases/latest)
 
 ---
 
@@ -28,6 +29,7 @@
 
 [🚀 快速开始](#-快速开始) •
 [🐳 Docker 部署](#-docker-部署推荐) •
+[💻 Windows 部署](#-windows-部署) •
 [🌐 Web 管理](#-web-管理界面) •
 [⚙️ 配置说明](#️-配置说明)
 
@@ -51,6 +53,7 @@
   - [推送通道支持](#推送通道支持)
 - [🚀 快速开始](#-快速开始)
   - [🐳 Docker 部署（推荐）](#-docker-部署推荐)
+  - [💻 Windows 部署](#-windows-部署)
   - [🌐 Web 管理界面](#-web-管理界面)
   - [📦 本地安装](#-本地安装)
   - [🆙 更新](#-更新)
@@ -77,7 +80,7 @@
 | 任务名称     | 配置节点 / 任务 ID  | 默认执行时间 | 启动时执行 | 说明                                                                                         |
 |:------------:|:-------------------:|:------------:|:----------:|:---------------------------------------------------------------------------------------------|
 | 日志清理     | `scheduler`         | 02:00        | ✅         | 按 `cleanup_logs_hour`、`cleanup_logs_minute` 执行，保留天数由 `retention_days` 控制         |
-| iKuuu 签到   | `checkin`           | 08:00        | ✅         | `enable: true` 且配置完整时，每日定时签到并在启动时执行一次；支持多账号 `accounts`           |
+| iKuuu 签到   | `checkin`           | 08:00        | ✅         | `enable: true` 且配置完整时，每日定时签到并在启动时执行一次；**域名自动发现**（从 ikuuu.club 提取）；支持多账号 `accounts` |
 | 百度贴吧签到 | `tieba`             | 08:10        | ✅         | `enable: true` 且配置 Cookie（须含 BDUSS）时执行；支持多 Cookie                              |
 | 微博超话签到 | `weibo_chaohua`     | 23:45        | ✅         | `enable: true` 且配置 Cookie（须含 XSRF-TOKEN）时执行；支持多 Cookie                         |
 | Demo 示例    | `plugins.demo_task` | 08:30        | ✅         | 二次开发示例，不需要可在 `job_registry.TASK_MODULES` 中移除                                  |
@@ -136,6 +139,26 @@ docker compose up -d
 > 💡 **提示**：
 > - `config.yml` 支持热重载（约 5 秒生效），无需重启
 > - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
+
+<br/>
+
+---
+
+### 💻 Windows 部署
+
+> **无需安装 Python 环境**，下载即用。
+
+1. 前往 [GitHub Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载最新的 `WebMoniter-vX.X.X-windows-x64.zip`
+2. 解压到任意目录
+3. 将 `config.yml.sample` 复制为 `config.yml`，并按需编辑配置
+4. 双击 `WebMoniter.exe` 启动（会弹出控制台窗口显示日志）
+
+访问 `http://localhost:8866`，默认账号 `admin` / `123`。
+
+> 💡 **提示**：
+> - 首次运行 Windows 防火墙可能提示网络访问权限，请允许
+> - 关闭控制台窗口即可停止程序
+> - `config.yml` 支持热重载，修改配置无需重启
 
 <br/>
 
@@ -211,10 +234,11 @@ uv run python main.py &
 
 ### 🆙 更新
 
-| 部署方式 | 命令                                                |
-|:--------:|:----------------------------------------------------|
-| Docker   | `docker compose pull && docker compose up -d`       |
-| 本地     | `git pull` → `uv sync --locked` → 重启应用          |
+| 部署方式 | 命令                                                        |
+|:--------:|:------------------------------------------------------------|
+| Docker   | `docker compose pull && docker compose up -d`               |
+| Windows  | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`）       |
+| 本地     | `git pull` → `uv sync --locked` → 重启应用                  |
 
 > 💡 配置支持热重载，多数更新无需重启。更新前建议备份 `config.yml`、`data/`。
 
@@ -310,8 +334,10 @@ uv run python main.py &
 ---
 
 ## 📄 参考与致谢
+本项目参考了以下优秀项目，特此表示感谢：
 
-本项目参考了 [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push) 项目的设计思路和推送通道实现，特此表示感谢！
+- [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push)（[@nfe-w](https://github.com/nfe-w)）
+- [only_for_happly](https://github.com/wd210010/only_for_happly)（[@wd210010](https://github.com/wd210010)）
 
 ---
 

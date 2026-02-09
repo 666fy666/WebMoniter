@@ -43,13 +43,11 @@ huya:
 # =============================================================================
 # iKuuu 签到配置
 # =============================================================================
+# 域名自动从 ikuuu.club 发现，无需手动配置
 # 按配置每天固定时间（默认 08:00）自动签到，项目启动时也会执行一次（enable: true 且配置完整时）
 # 多账号：配置 accounts 列表，每项包含 email、password，会对每个账号依次登录、签到并分别推送；不配置时使用单账号 email/password
 checkin:
   enable: false  # 是否启用每日签到
-  login_url:  # 登录地址，例如 https://ikuuu.nl/auth/login
-  checkin_url:  # 签到接口地址，例如 https://ikuuu.nl/user/checkin
-  user_page_url:  # 用户信息页地址（用于解析剩余流量，可选），例如 https://ikuuu.nl/user
   email:  # 单账号登录邮箱（多账号时可不填）
   password:  # 单账号登录密码
   # accounts:  # 多账号，配置后优先于单账号

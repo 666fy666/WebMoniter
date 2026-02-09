@@ -1,0 +1,107 @@
+name: Build Windows EXE and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 只在推送版本 tag 时触发（与 Docker 构建一致）
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-exe-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write  # 需要写权限来创建 Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract version from pyproject.toml
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(python -c "import re; print(re.search(r'version\s*=\s*\"([^\"]+)\"', open('pyproject.toml').read()).group(1))")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $VERSION"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install .
+
+      - name: Patch version for PyInstaller bundle
+        shell: python
+        run: |
+          version = "${{ steps.version.outputs.version }}"
+          with open("src/version.py", "r", encoding="utf-8") as f:
+              content = f.read()
+          # 将运行时版本检测替换为硬编码版本号，避免 PyInstaller 打包后路径问题
+          content = content.replace(
+              "__version__ = get_version()",
+              f'__version__ = "{version}"'
+          )
+          with open("src/version.py", "w", encoding="utf-8") as f:
+              f.write(content)
+          print(f"Patched version to: {version}")
+
+      - name: Build EXE with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller --onedir --console --name WebMoniter \
+            --paths . \
+            --hidden-import monitors \
+            --hidden-import monitors.huya_monitor \
+            --hidden-import monitors.weibo_monitor \
+            --hidden-import tasks \
+            --hidden-import tasks.log_cleanup \
+            --hidden-import tasks.ikuuu_checkin \
+            --hidden-import tasks.tieba_checkin \
+            --hidden-import tasks.weibo_chaohua_checkin \
+            --hidden-import tasks.demo_task \
+            --hidden-import uvicorn.logging \
+            --hidden-import uvicorn.loops.auto \
+            --hidden-import uvicorn.protocols.http.auto \
+            --hidden-import uvicorn.protocols.http.h11_impl \
+            --hidden-import uvicorn.protocols.http.httptools_impl \
+            --hidden-import uvicorn.protocols.websockets.auto \
+            --hidden-import uvicorn.protocols.websockets.wsproto_impl \
+            --hidden-import uvicorn.lifespan.on \
+            --hidden-import uvicorn.lifespan.off \
+            main.py
+
+      - name: Prepare distribution
+        shell: bash
+        run: |
+          # 复制 Web 模板和静态资源到发布目录（运行时通过 CWD 相对路径访问）
+          cp -r web dist/WebMoniter/
+          # 复制 pyproject.toml（用于版本号回退检测）
+          cp pyproject.toml dist/WebMoniter/
+          # 复制示例配置文件
+          cp config.yml.sample dist/WebMoniter/
+
+      - name: Create ZIP archive
+        shell: bash
+        run: |
+          cd dist
+          7z a -tzip "../WebMoniter-v${{ steps.version.outputs.version }}-windows-x64.zip" WebMoniter/
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebMoniter-v${{ steps.version.outputs.version }}-windows-x64
+          path: WebMoniter-v${{ steps.version.outputs.version }}-windows-x64.zip
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WebMoniter-v${{ steps.version.outputs.version }}-windows-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

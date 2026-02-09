@@ -1,7 +1,7 @@
 """iKuuu/SSPanel ikuuu签到任务模块
 
 iKuuu 自动签到脚本：
-- 使用配置文件中的登录地址、签到地址、账号、密码等参数
+- 自动从 ikuuu.club 提取可用域名，无需手动配置域名/URL
 - 支持每天固定时间（默认 08:00）自动签到
 - 项目启动时也会执行一次签到
 """
@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import base64
 import logging
+import random
 import re
 from dataclasses import dataclass
 from typing import Any
+
+import asyncio
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -24,23 +27,187 @@ from src.push_channel.manager import UnifiedPushManager, build_push_manager
 
 logger = logging.getLogger(__name__)
 
+# ikuuu 域名发现入口
+_IKUUU_DISCOVERY_URL = "http://ikuuu.club"
+
+# ikuuu 历史使用过的 TLD，按首字母分组
+# 用于解析混淆 JS 中被拆分的域名片段（如 'uuu.f' + 混淆函数() → ikuuu.fyi）
+_IKUUU_TLD_CANDIDATES: dict[str, list[str]] = {
+    "a": ["art"],
+    "b": ["bar", "biz"],
+    "c": ["co", "com", "cam"],
+    "d": ["de", "dev"],
+    "e": ["eu"],
+    "f": ["fyi", "fun"],
+    "g": ["group"],
+    "i": ["io"],
+    "m": ["me"],
+    "n": ["nl", "net"],
+    "o": ["one", "org"],
+    "p": ["pro"],
+    "s": ["site", "store"],
+    "t": ["top", "tv"],
+    "u": ["us"],
+    "w": ["world", "win"],
+}
+
+
+async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> str | None:
+    """尝试通过 HTTP HEAD 请求验证域名是否可用，返回域名或 None。"""
+    try:
+        async with session.head(
+            f"https://{domain}",
+            timeout=aiohttp.ClientTimeout(total=5),
+            allow_redirects=True,
+        ) as resp:
+            if resp.status < 500:
+                return domain
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+async def _extract_ikuuu_domain() -> str | None:
+    """从 ikuuu.club 自动提取可用域名（如 ikuuu.nl、ikuuu.fyi 等）
+
+    ikuuu.club 页面使用混淆 JS 动态渲染域名列表，域名不在纯文本中，
+    而是以字符串拼接方式藏在 JavaScript 源码里，例如：
+      'ikuuu' + '.nl'       →  完整 TLD 可直接提取
+      '://ik' + 'uuu.f' + 混淆函数()  →  TLD 被拆分，只能拿到首字母 'f'
+    因此需要对原始 HTML 源码做多种模式匹配，对于只提取到首字母的情况，
+    通过 HTTP 探测已知 TLD 候选列表来还原完整域名。
+
+    流程：
+    1. 访问 ikuuu.club（可能重定向或展示包含混淆 JS 的域名页面）
+    2. 从最终 URL、原始 HTML/JS 源码中提取 ikuuu.xxx 格式的域名
+    3. 对于只拿到 TLD 首字母的片段，通过 HTTP 探测补全
+    4. 随机选择一个可用域名返回
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+        )
+    }
+
+    try:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=15)
+        ) as session:
+            async with session.get(
+                _IKUUU_DISCOVERY_URL, headers=headers, allow_redirects=True
+            ) as resp:
+                raw_html = await resp.text()
+                final_url = str(resp.url)
+
+            # ── 收集所有候选域名 ──
+            candidates: set[str] = set()
+
+            # 1. 从重定向后的最终 URL 中提取
+            redirect_match = re.search(r"ikuuu\.([a-zA-Z]{2,})", final_url)
+            if redirect_match:
+                candidates.add(f"ikuuu.{redirect_match.group(1)}")
+
+            # 2. 从原始 HTML/JS 源码中提取（关键：页面域名藏在混淆 JS 里）
+            #    直接匹配：ikuuu.xxx（出现在任何位置）
+            for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})\b", raw_html):
+                candidates.add(f"ikuuu.{ext}")
+
+            #    JS 字符串拼接模式：'ikuuu' + '.nl' 或 "ikuuu" + ".nl"
+            for ext in re.findall(
+                r"""['"]ikuuu['"]\s*\+\s*['"]\.([a-zA-Z]{2,})""", raw_html
+            ):
+                candidates.add(f"ikuuu.{ext}")
+
+            #    URL 片段拼接模式（完整 TLD）：'uuu.xxx'
+            for ext in re.findall(r"""['"]uuu\.([a-zA-Z]{2,})""", raw_html):
+                candidates.add(f"ikuuu.{ext}")
+
+            # 3. 从 BeautifulSoup 解析的纯文本中提取
+            soup = BeautifulSoup(raw_html, "html.parser")
+            text_content = soup.get_text()
+            for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})\b", text_content):
+                candidates.add(f"ikuuu.{ext}")
+
+            # 4. 从页面链接中提取
+            for a_tag in soup.find_all("a", href=True):
+                href = a_tag["href"]
+                for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})", href):
+                    candidates.add(f"ikuuu.{ext}")
+
+            # ── 处理被混淆 JS 拆分的不完整 TLD 片段 ──
+            # 匹配如 'uuu.f' 这样只有首字母的情况（后半被混淆函数拼接）
+            partial_chars: set[str] = set()
+            for char in re.findall(r"""['"]uuu\.([a-zA-Z])['"]""", raw_html):
+                c = char.lower()
+                # 跳过已有完整域名中以该字母开头的 TLD
+                if not any(d.split(".")[-1].startswith(c) for d in candidates):
+                    partial_chars.add(c)
+
+            # 对每个不完整首字母，通过 HTTP 探测已知 TLD 候选
+            if partial_chars:
+                probe_tasks = []
+                for char in partial_chars:
+                    for tld in _IKUUU_TLD_CANDIDATES.get(char, []):
+                        probe_tasks.append(_probe_domain(session, f"ikuuu.{tld}"))
+
+                if probe_tasks:
+                    results = await asyncio.gather(*probe_tasks, return_exceptions=True)
+                    for result in results:
+                        if isinstance(result, str):
+                            candidates.add(result)
+                            logger.debug("ikuuu签到：HTTP 探测确认域名 %s 可用", result)
+
+            # 排除 ikuuu.club 本身（这是发现入口，不是实际服务域名）
+            candidates.discard("ikuuu.club")
+
+            if candidates:
+                selected = random.choice(list(candidates))
+                logger.info(
+                    "ikuuu签到：自动发现域名 %s（候选: %s）",
+                    selected,
+                    ", ".join(sorted(candidates)),
+                )
+                return selected
+
+        logger.warning("ikuuu签到：未能从 %s 提取到可用域名", _IKUUU_DISCOVERY_URL)
+        return None
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("ikuuu签到：自动提取域名失败：%s", exc, exc_info=True)
+        return None
+
 
 @dataclass
 class CheckinConfig:
     """签到相关配置（可表示单账号或用于多账号时的公共字段）"""
 
     enable: bool
-    login_url: str
-    checkin_url: str
-    user_page_url: str | None
+    domain: str  # 自动发现的域名，如 ikuuu.nl
     email: str
     password: str
     time: str
     accounts: list[dict]  # 多账号列表 [{"email": str, "password": str}, ...]，执行时优先遍历此列表
     push_channels: list[str]  # 推送通道名称列表，为空时使用全部通道
 
+    @property
+    def login_url(self) -> str:
+        """登录地址（由域名自动构建）"""
+        return f"https://{self.domain}/auth/login"
+
+    @property
+    def checkin_url(self) -> str:
+        """签到接口地址（由域名自动构建）"""
+        return f"https://{self.domain}/user/checkin"
+
+    @property
+    def user_page_url(self) -> str:
+        """用户信息页地址（由域名自动构建）"""
+        return f"https://{self.domain}/user"
+
     @classmethod
-    def from_app_config(cls, config: AppConfig) -> CheckinConfig:
+    def from_app_config(cls, config: AppConfig, domain: str) -> CheckinConfig:
         # 多账号优先：checkin_accounts 非空时使用，否则用单账号组一条
         if getattr(config, "checkin_accounts", None):
             accounts = [
@@ -62,9 +229,7 @@ class CheckinConfig:
         push_channels: list[str] = getattr(config, "checkin_push_channels", None) or []
         return cls(
             enable=config.checkin_enable,
-            login_url=config.checkin_login_url.strip(),
-            checkin_url=config.checkin_checkin_url.strip(),
-            user_page_url=(config.checkin_user_page_url or "").strip() or None,
+            domain=domain,
             email=first.get("email", ""),
             password=first.get("password", ""),
             time=config.checkin_time.strip() or "08:00",
@@ -76,9 +241,7 @@ class CheckinConfig:
         """返回仅替换邮箱/密码的副本，用于单账号登录与推送。"""
         return CheckinConfig(
             enable=self.enable,
-            login_url=self.login_url,
-            checkin_url=self.checkin_url,
-            user_page_url=self.user_page_url,
+            domain=self.domain,
             email=email,
             password=password,
             time=self.time,
@@ -93,10 +256,8 @@ class CheckinConfig:
             return False
 
         missing_fields: list[str] = []
-        if not self.login_url:
-            missing_fields.append("checkin.login_url")
-        if not self.checkin_url:
-            missing_fields.append("checkin.checkin_url")
+        if not self.domain:
+            missing_fields.append("域名（自动发现失败）")
         if not self.accounts:
             missing_fields.append("checkin.accounts 或 checkin.email/password")
         else:
@@ -246,10 +407,7 @@ async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: s
 async def _get_user_traffic(
     session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str
 ) -> str | None:
-    """获取并输出流量信息（可选），返回用于推送的流量摘要文本，失败或无配置则返回 None。"""
-    if not cfg.user_page_url:
-        # 用户未配置用户信息页地址，直接跳过
-        return None
+    """获取并输出流量信息，返回用于推送的流量摘要文本，失败则返回 None。"""
 
     headers = {
         "User-Agent": (
@@ -319,7 +477,19 @@ async def _get_user_traffic(
 async def run_checkin_once() -> None:
     """执行一次完整的 iKuuu/SSPanel 签到流程（支持多账号：登录 → 签到 → 获取流量信息 → 推送）"""
     app_config = get_config(reload=True)
-    cfg = CheckinConfig.from_app_config(app_config)
+
+    if not app_config.checkin_enable:
+        logger.debug("ikuuu签到未启用，跳过执行")
+        return
+
+    # 自动发现 ikuuu 可用域名
+    logger.info("ikuuu签到：正在自动发现可用域名...")
+    domain = await _extract_ikuuu_domain()
+    if not domain:
+        logger.error("ikuuu签到：无法自动发现可用域名，跳过本次执行")
+        return
+
+    cfg = CheckinConfig.from_app_config(app_config, domain=domain)
 
     if not cfg.validate():
         return
@@ -399,13 +569,13 @@ async def _send_checkin_push(
     description = f"{status_emoji} 账号：{masked_email}\n" f"{msg}\n"
     if traffic_info:
         description += f"\n【流量信息】\n{traffic_info}\n"
-    description += f"\n登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
+    description += f"\n当前域名：{cfg.domain}\n" f"登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
 
     try:
         await push_manager.send_news(
             title=f"{title}",
             description=description,
-            to_url=cfg.user_page_url or cfg.login_url,
+            to_url=cfg.user_page_url,
             picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
             btntxt="查看账户",
         )

@@ -667,16 +667,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                             checkinEnableLabel.textContent = checkinEnable.checked ? '开启' : '关闭';
                         }
                     }
-                    const loginUrlInput = document.getElementById('checkin_login_url');
-                    const checkinUrlInput = document.getElementById('checkin_checkin_url');
-                    const userPageUrlInput = document.getElementById('checkin_user_page_url');
                     const emailInput = document.getElementById('checkin_email');
                     const passwordInput = document.getElementById('checkin_password');
                     const timeInput = document.getElementById('checkin_time');
 
-                    if (loginUrlInput) loginUrlInput.value = config.checkin.login_url || '';
-                    if (checkinUrlInput) checkinUrlInput.value = config.checkin.checkin_url || '';
-                    if (userPageUrlInput) userPageUrlInput.value = config.checkin.user_page_url || '';
                     if (emailInput) emailInput.value = config.checkin.email || '';
                     if (passwordInput) passwordInput.value = config.checkin.password || '';
                     if (timeInput) {
@@ -823,9 +817,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const first = accounts[0] || { email: singleEmail, password: singlePassword };
                 config.checkin = {
                     enable: checkinEnable ? checkinEnable.checked : false,
-                    login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
-                    checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
-                    user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
                     email: first.email,
                     password: first.password,
                     time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00',
@@ -1005,9 +996,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const firstCheckin = checkinAccounts[0] || { email: singleCheckinEmail, password: singleCheckinPassword };
         config.checkin = {
             enable: checkinEnable ? checkinEnable.checked : false,
-            login_url: (document.getElementById('checkin_login_url')?.value || '').trim(),
-            checkin_url: (document.getElementById('checkin_checkin_url')?.value || '').trim(),
-            user_page_url: (document.getElementById('checkin_user_page_url')?.value || '').trim(),
             email: firstCheckin.email,
             password: firstCheckin.password,
             time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00',
