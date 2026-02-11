@@ -3,6 +3,8 @@
 import asyncio
 import logging
 from datetime import datetime
+from pathlib import Path
+import re
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
@@ -139,6 +141,103 @@ class WeiboMonitor(BaseMonitor):
         truncated_text = truncated_encoded.decode("utf-8", errors="ignore")
         return truncated_text + "......"
 
+    def _sanitize_username(self, username: str) -> str:
+        """将用户名转换为适合作为文件夹名的安全字符串"""
+        # 替换 Windows 与常见文件系统中的非法字符
+        return re.sub(r'[\\/:*?"<>|]', "_", username).strip() or "unknown_user"
+
+    def _get_weibo_data_dir(self) -> Path:
+        """获取用于存放微博相关数据的根目录（data/weibo）"""
+        # 与数据库一样，基于项目根目录的 data 目录
+        base_path = Path(__file__).resolve().parent.parent  # 项目根目录
+        data_dir = base_path / "data" / "weibo"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir
+
+    async def _download_image(self, url: str, save_path: Path) -> bool:
+        """下载单张图片到指定路径，失败时仅记录日志"""
+        if not url:
+            return False
+
+        try:
+            session = await self._get_session()
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    self.logger.warning(
+                        "下载微博头像失败，HTTP状态码: %s, URL: %s", resp.status, url
+                    )
+                    return False
+                content = await resp.read()
+
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_bytes(content)
+            self.logger.debug("已保存微博头像到: %s", save_path)
+            return True
+        except Exception as e:
+            self.logger.warning("下载微博头像失败: %s, URL: %s", e, url)
+            return False
+
+    async def _save_user_images(self, user_info: dict) -> None:
+        """
+        将微博用户主页中的头像、封面图保存到 data/weibo/<用户名>/ 目录下。
+
+        包含：profile_image_url、avatar_large、avatar_hd、cover_image_phone。
+
+        说明：
+        - 微博返回的图片链接带有 Expires 与 ssig 等参数，属于临时链接；
+        - 这里在监控获取到数据、链接仍然有效时尽快下载并持久化到本地；
+        - 如果链接已经过期或下载失败，只记录日志，不影响主流程。
+        """
+        try:
+            username = user_info.get("screen_name") or "unknown_user"
+            safe_username = self._sanitize_username(username)
+            user_dir = self._get_weibo_data_dir() / safe_username
+
+            profile_url = user_info.get("profile_image_url") or ""
+            avatar_large_url = user_info.get("avatar_large") or ""
+            avatar_hd_url = user_info.get("avatar_hd") or ""
+            cover_image_phone_url = user_info.get("cover_image_phone") or ""
+
+            # 如果都没有可用链接，直接返回
+            if not any([profile_url, avatar_large_url, avatar_hd_url, cover_image_phone_url]):
+                return
+
+            # 固定文件名，便于后续引用
+            tasks: list[asyncio.Task] = []
+
+            if profile_url:
+                tasks.append(
+                    asyncio.create_task(
+                        self._download_image(profile_url, user_dir / "profile_image.jpg")
+                    )
+                )
+            if avatar_large_url:
+                tasks.append(
+                    asyncio.create_task(
+                        self._download_image(avatar_large_url, user_dir / "avatar_large.jpg")
+                    )
+                )
+            if avatar_hd_url:
+                tasks.append(
+                    asyncio.create_task(
+                        self._download_image(avatar_hd_url, user_dir / "avatar_hd.jpg")
+                    )
+                )
+            if cover_image_phone_url:
+                tasks.append(
+                    asyncio.create_task(
+                        self._download_image(
+                            cover_image_phone_url, user_dir / "cover_image_phone.jpg"
+                        )
+                    )
+                )
+
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+        except Exception as e:
+            # 防御性处理，避免头像下载影响监控主流程
+            self.logger.warning("保存微博头像时发生异常（已忽略）: %s", e)
+
     async def get_info(self, uid: str) -> dict:
         """获取微博信息"""
         session = await self._get_session()
@@ -159,6 +258,10 @@ class WeiboMonitor(BaseMonitor):
 
         # 解析用户信息
         user_info = res_info["data"]["user"]
+
+        # 在链接仍然有效时，尝试将头像图片保存到本地 data/weibo/<用户名>/ 目录
+        await self._save_user_images(user_info)
+
         verified_reason = user_info.get("verified_reason", "人气博主")
         user_description = (
             user_info["description"] if user_info["description"] else "peace and love"
