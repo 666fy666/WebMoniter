@@ -1,5 +1,4 @@
 # MkDocs Material 文档站配置
-# 参考 Paddle / Ultralytics 风格：首页引导、清晰导航、使用与二次开发分离
 site_name: WebMoniter 文档
 site_description: 多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发
 site_author: FY
@@ -68,6 +67,7 @@ nav:
   - 首页: index.md
   - 快速开始:
     - 安装与运行: installation.md
+    - 青龙面板部署: QINGLONG.md
   - 使用指南:
     - 配置说明: guides/config.md
     - Web 管理界面: guides/web-ui.md

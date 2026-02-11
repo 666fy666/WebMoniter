@@ -79,9 +79,16 @@ douyu:
 
 ---
 
+## 青龙面板
+
+若使用 [青龙面板](https://github.com/whyour/qinglong)，可通过 `ql/` 脚本运行定时任务，配置改为**环境变量**（`WEBMONITER_*` 前缀），推送走**青龙内置通知**。详见 [青龙面板兼容指南](../QINGLONG.md)。
+
+---
+
 ## 相关文档
 
-- [监控任务详解](tasks/monitors.md) — 微博、虎牙的完整配置与获取方式  
+- [监控任务详解](tasks/monitors.md) — 微博、虎牙、哔哩哔哩、抖音、斗鱼、小红书的完整配置  
 - [定时任务详解](tasks/checkin.md) — 各签到/定时任务的配置与获取方式  
 - [推送通道配置详解](push-channels.md) — 各推送渠道的配置与官方文档  
+- [青龙面板兼容指南](../QINGLONG.md) — 青龙环境变量与 QLAPI 推送  
 - [架构概览](../ARCHITECTURE.md) — 配置热重载与扩展机制  

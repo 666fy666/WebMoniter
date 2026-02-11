@@ -976,6 +976,19 @@ def get_config(reload: bool = False) -> AppConfig:
     """
     global _config_cache, _config_file_mtime
 
+    # 青龙面板兼容：当通过 ql/*.py 脚本运行时，从环境变量加载配置
+    import os
+    if os.environ.get("WEBMONITER_QL_CRON"):
+        try:
+            from src import ql_compat
+            task_id = getattr(ql_compat, "_current_ql_task_id", None)
+            if task_id is not None:
+                cfg = ql_compat.load_config_from_env(task_id)
+                _config_cache = AppConfig(**cfg)
+                return _config_cache
+        except Exception:  # noqa: BLE001
+            pass
+
     old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
 
     # 检查配置文件修改时间（优化热重载效率）

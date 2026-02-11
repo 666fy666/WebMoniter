@@ -573,3 +573,16 @@ await self.db.execute_insert(sql, data)
   - 插件配置可在配置页底部的「插件/扩展配置」中以 JSON 形式编辑 `config.plugins`；尚未在表格中单独列出的顶层 key 需使用文本视图编辑。
 
 若你新增了与现有区块同级的配置（例如新的顶层节点），并希望在表格中编辑，需在 Web 前端增加对应卡片及 `loadSectionConfig` / `collectSectionConfig` / `collectConfig` 的处理（可参考本文档中已集成的 `freenom`/`weather`/`kuake`/`kjwj` 等实现方式）。
+
+---
+
+## 十一、青龙面板单任务脚本（ql/*.py）
+
+青龙环境下，主程序不运行，而是由青龙按 Cron 调用 `ql/*.py` 单任务脚本。这些脚本：
+
+- 通过 `ql/_runner.py` 作为统一入口，根据脚本名或命令行参数调用对应任务逻辑
+- 配置来自**环境变量**（`WEBMONITER_*` 前缀），由 `src/ql_compat.py` 的 `load_config_from_env()` 解析
+- 推送通过 **qlapi** 通道，调用青龙内置的 `QLAPI.systemNotify`
+- 与 `tasks/*`、`monitors/*` 主流程解耦，共用同一套业务逻辑（如签到、监控 API 调用）
+
+**新增青龙脚本**：复制 `ql/ikuuu_checkin.py` 等示例，按需修改任务名、环境变量名，并在 `ql/_runner.py` 中注册。详见 [青龙面板兼容指南](QINGLONG.md)。

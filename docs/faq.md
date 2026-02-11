@@ -17,8 +17,12 @@
 
 ??? question "如何调整监控频率？"
     在 `config.yml` 中修改对应间隔（秒）即可，无需重启：
-    - 微博：`weibo.monitor_interval_seconds`
-    - 虎牙：`huya.monitor_interval_seconds`
+    - 微博：`weibo.monitor_interval_seconds`（默认 300）
+    - 虎牙：`huya.monitor_interval_seconds`（默认 65）
+    - 哔哩哔哩：`bilibili.monitor_interval_seconds`（默认 60）
+    - 抖音：`douyin.monitor_interval_seconds`（默认 30）
+    - 斗鱼：`douyu.monitor_interval_seconds`（默认 300）
+    - 小红书：`xhs.monitor_interval_seconds`（默认 300）
 
 ---
 
@@ -40,3 +44,8 @@
 
 ??? question "免打扰时段内会遗漏消息吗？"
     免打扰时段内，监控任务会**照常执行**并更新数据库，但**不会推送通知**。若担心遗漏，可查看日志或数据记录，或关闭免打扰配置。
+
+---
+
+??? question "青龙面板如何部署？"
+    在青龙「环境变量」中添加 `WEBMONITER_*` 前缀的变量（如 `WEBMONITER_CHECKIN_ENABLE`、`WEBMONITER_CHECKIN_EMAIL`），拉取或克隆项目后，在「定时任务」中添加 `task ql/ikuuu_checkin.py` 等脚本。推送自动走青龙内置通知（QLAPI）。详见 [青龙面板兼容指南](QINGLONG.md)。

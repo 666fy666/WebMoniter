@@ -30,6 +30,7 @@
 [🚀 快速开始](#-快速开始) •
 [🐳 Docker 部署](#-docker-部署推荐) •
 [💻 Windows 部署](#-windows-部署) •
+[🐉 青龙面板](#-青龙面板部署) •
 [🌐 Web 管理](#-web-管理界面) •
 [⚙️ 配置说明](#️-配置说明)
 
@@ -50,28 +51,31 @@
 
 <br/>
 
-## 📋 目录
+<details>
+<summary><strong>📋 目录</strong></summary>
 
 - [📊 支持的平台和推送通道](#-支持的平台和推送通道)
-  - [监控平台支持](#监控平台支持)
-  - [定时任务支持](#定时任务支持)
-  - [推送通道支持](#推送通道支持)
-- [🚀 快速开始](#-快速开始)
-  - [🐳 Docker 部署（推荐）](#-docker-部署推荐)
-  - [💻 Windows 部署](#-windows-部署)
-  - [🌐 Web 管理界面](#-web-管理界面)
-  - [📦 本地安装](#-本地安装)
-  - [🆙 更新](#-更新)
+- [🚀 快速开始](#-快速开始)（Docker · Windows · 青龙 · Web 管理 · 本地安装 · 更新）
 - [⚙️ 配置说明](#️-配置说明)
 - [🔌 API 调用](#-api-调用)
 - [❓ 常见问题](#-常见问题)
 - [📄 参考与致谢](#-参考与致谢)
+- [📄 许可证](#-许可证)
+- [Contributors](#contributors)
+- [Star History](#star-history)
+
+</details>
 
 <br/>
 
 ---
 
 ## 📊 支持的平台和推送通道
+
+支持 **虎牙/微博/哔哩哔哩/抖音/斗鱼/小红书** 监控，**30+ 定时任务**（iKuuu、贴吧、雨云、阿里云盘、什么值得买等），**15+ 推送通道**（企业微信、钉钉、飞书、Telegram、Bark 等）。详情见 [文档站](https://666fy666.github.io/WebMoniter/)。
+
+<details>
+<summary><strong>📋 展开查看完整列表（监控 / 定时任务 / 推送通道）</strong></summary>
 
 ### 监控平台支持
 
@@ -149,6 +153,8 @@
 | QQ频道机器人       | qq_bot           | ✅           | 😢 需要自行创建机器人，并启用机器人在频道内发言的权限 👉 [官网](https://q.qq.com/#/app/create-bot)                                          |
 | Server酱_Turbo     | serverChan_turbo | ✅           | 🙅‍♀️ 不推荐，不用安装app，但免费用户5次/天 👉 [官网](https://sct.ftqq.com)                                                                   |
 
+</details>
+
 <br/>
 
 ---
@@ -202,40 +208,48 @@ docker compose up -d
 
 ---
 
+### 🐉 青龙面板部署
+
+> **适用**：已安装 [青龙面板](https://github.com/whyour/qinglong) 的用户，通过环境变量配置，推送走青龙内置通知（QLAPI）。
+
+**快速步骤**：
+
+1. **添加环境变量**（青龙 → 环境变量）：如 `WEBMONITER_CHECKIN_ENABLE=true`、`WEBMONITER_CHECKIN_EMAIL`、`WEBMONITER_CHECKIN_PASSWORD`
+2. **拉取脚本**：订阅 `https://github.com/666fy666/WebMoniter`，白名单 `ql/*.py`；或 `ql raw` 拉取单个脚本
+3. **添加定时任务**：命令 `task WebMoniter/ql/ikuuu_checkin.py`，定时规则 `0 8 * * *`（示例）
+
+> 💡 **推送通知**：青龙环境下自动使用**青龙系统通知**，在青龙「系统设置 → 通知设置」中配置推送方式即可，无需额外配置。
+
+📖 **完整操作指南**（环境变量一览、多账号配置、常见问题）见 **[青龙面板兼容指南](docs/QINGLONG.md)**。
+
+<br/>
+
+---
+
 ### 🌐 Web 管理界面
+
+配置管理、任务管理、数据展示、日志查看。默认账号 `admin` / `123`（生产环境请修改）。
+
+<details>
+<summary><strong>📷 展开查看界面截图</strong></summary>
 
 <table>
 <tr>
-<td width="70%">
-
-**配置管理**：可视化编辑配置，支持表格视图和文本视图
-
-<img src="web/static/web首页.png" alt="首页截图" width="100%">
-
-</td>
-<td width="30%">
-
-**密码修改**：生产环境请修改默认登录凭据
-
-<img src="web/static/密码修改.png" alt="密码修改截图" width="100%">
-
-> ⚠️ 默认账号仅用于测试
-
-</td>
+<td width="70%"><strong>配置管理</strong>：可视化编辑配置<br/><img src="web/static/web首页.png" alt="首页截图" width="100%"></td>
+<td width="30%"><strong>密码修改</strong><br/><img src="web/static/密码修改.png" alt="密码修改截图" width="100%"><br/><small>⚠️ 默认账号仅用于测试</small></td>
 </tr>
 </table>
 
-**任务管理**：查看所有监控任务与定时任务，支持手动触发执行
-
+**任务管理**：查看所有监控任务与定时任务，支持手动触发<br/>
 <img src="web/static/任务管理.png" alt="任务管理截图" width="600">
 
-**数据展示**：查看微博、虎牙等平台的监控数据
-
+**数据展示**：微博、虎牙等平台监控数据<br/>
 <img src="web/static/数据展示.png" alt="数据展示截图" width="600">
 
-**日志查看**：实时查看当天日志内容
-
+**日志查看**：实时查看当天日志<br/>
 <img src="web/static/日志查看.png" alt="日志查看截图" width="600">
+
+</details>
 
 <br/>
 
@@ -295,9 +309,7 @@ uv run python main.py &
 | **应用配置**   | 所有配置项（微博/虎牙监控、iKuuu/雨云/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。 |
 | **Docker 编排** | Docker 部署时的编排与运行参数（镜像、端口、卷挂载、资源限制、健康检查等）见 **[`docker-compose.yml`](docker-compose.yml)**；可按需修改端口、时区、内存限制等，修改后执行 `docker compose up -d` 使变更生效。                                |
 
-**相关链接**：
-- 监控与推送类型一览见 [📊 支持的平台和推送通道](#-支持的平台和推送通道)
-- 定时任务一览见 [定时任务支持](#定时任务支持)
+**相关链接**：[支持的平台和推送通道](#-支持的平台和推送通道) · [文档站](https://666fy666.github.io/WebMoniter/)
 
 <br/>
 
@@ -381,6 +393,7 @@ uv run python main.py &
 ---
 
 ## 📄 参考与致谢
+
 本项目参考了以下优秀项目，特此表示感谢：
 
 - [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push)（[@nfe-w](https://github.com/nfe-w)）

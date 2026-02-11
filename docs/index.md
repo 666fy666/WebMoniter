@@ -10,9 +10,9 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博** 等平台监控
 
 :material-rocket-launch: **快速开始**
 
-使用 Docker 或 Windows 一键包，几分钟内完成部署并访问 Web 管理界面。
+使用 Docker 或 Windows 一键包，几分钟内完成部署并访问 Web 管理界面。若已使用青龙面板，可直接拉取 `ql/` 脚本，通过环境变量配置。
 
-[安装与运行 →](installation.md)
+[安装与运行](installation.md) · [青龙面板部署](QINGLONG.md)
 
 ---
 

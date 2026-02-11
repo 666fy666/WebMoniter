@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""青龙 - 双色球开奖通知。环境变量: WEBMONITER_SSQ_500W_ENABLE"""
+from ql._runner import run_task
+from tasks.ssq_500w_notice import run_ssq_500w_notice_once
+if __name__ == "__main__":
+    run_task("ssq_500w_notice", run_ssq_500w_notice_once)

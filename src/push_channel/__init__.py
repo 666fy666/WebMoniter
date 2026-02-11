@@ -18,6 +18,7 @@ from .webhook import Webhook
 from .wecom_apps import WeComApps
 from .wecom_bot import WeComBot
 from .wxpusher import WxPusher
+from .qlapi import QLAPIPushChannel
 
 _channel_type_to_class = {
     "serverChan_turbo": ServerChanTurbo,
@@ -37,6 +38,7 @@ _channel_type_to_class = {
     "pushplus": PushPlus,
     "wxpusher": WxPusher,
     "demo": Demo,
+    "qlapi": QLAPIPushChannel,
 }
 
 

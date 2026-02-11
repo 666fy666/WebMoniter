@@ -419,5 +419,5 @@ API 返回的错误格式：
 
 ## 相关文档
 
-- [README](../README.md) - 项目概览与快速开始
+- [文档首页](index.md) - 项目概览与快速开始
 - [二次开发指南](SECONDARY_DEVELOPMENT.md) - 代码规范、black/ruff、测试等
