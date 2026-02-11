@@ -993,21 +993,25 @@ WebMoniter/
 ```yaml
 # 监控配置
 weibo:
+  enable: true   # 是否启用，默认 true；设为 false 时任务暂停
   cookie: "xxx"
   uids: "123,456"
   concurrency: 2
 
 huya:
+  enable: true
   rooms: "123,456"
   concurrency: 5
 
 # 监控间隔配置（按任务配置）
 huya:
+  enable: true
   rooms: "123,456"
   concurrency: 5
   monitor_interval_seconds: 60
 
 weibo:
+  enable: true
   cookie: "xxx"
   uids: "123,456"
   concurrency: 2

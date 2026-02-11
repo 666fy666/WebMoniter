@@ -313,6 +313,7 @@ register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
 
 ```yaml
 huya:
+  enable: true                  # 是否启用该监控，默认 true；设为 false 时任务暂停
   rooms: 991108,333003,518518   # 逗号分隔的房间号
   concurrency: 5
   monitor_interval_seconds: 65   # 轮询间隔（秒）
@@ -320,7 +321,7 @@ huya:
 
 ### 4.2 配置：src/config.py
 
-- **AppConfig** 中增加扁平字段：`huya_rooms`、`huya_concurrency`、`huya_monitor_interval_seconds`。
+- **AppConfig** 中增加扁平字段：`huya_enable`、`huya_rooms`、`huya_concurrency`、`huya_monitor_interval_seconds`。
 - **load_config_from_yml**：从 `yml_config["huya"]` 读到上述字段写入 `config_dict`。
 - 提供 **get_huya_config()** 返回结构化配置（列表 + 并发数），供监控类使用：
 
@@ -410,7 +411,7 @@ MONITOR_MODULES: list[str] = [
 若希望修改 `config.yml` 中虎牙相关配置后热重载生效，需在 `src/config_watcher.py` 的 `_config_changed()` 里比较 `huya_rooms`、`huya_concurrency` 等（项目内已包含 huya 的比较）。  
 调度间隔 `huya_monitor_interval_seconds` 已在 scheduler 配置比较中，无需单独写。
 
-小结：监控任务 = **config.yml（业务节点 + scheduler 间隔）→ AppConfig + get_xxx_config + load_config_from_yml → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。
+小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + get_xxx_config + load_config_from_yml → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。`enable: false` 时任务会被暂停，热重载生效。
 
 ---
 

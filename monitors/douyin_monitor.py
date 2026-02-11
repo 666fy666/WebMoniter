@@ -224,8 +224,7 @@ class DouyinMonitor(BaseMonitor):
             await self.push.send_news(
                 title=f"{data['name']} {status_text}",
                 description=(
-                    f"抖音号: {data['douyin_id']}\n"
-                    f"标题: {room_title}\n\n{quote}\n\n{timestamp}"
+                    f"抖音号: {data['douyin_id']}\n" f"标题: {room_title}\n\n{quote}\n\n{timestamp}"
                 ),
                 to_url=f"https://live.douyin.com/{data['douyin_id']}",
                 picurl=pic_url,
@@ -270,9 +269,7 @@ class DouyinMonitor(BaseMonitor):
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                self.logger.error(
-                    f"处理 {self.douyin_config.douyin_ids[i]} 时出错: {result}"
-                )
+                self.logger.error(f"处理 {self.douyin_config.douyin_ids[i]} 时出错: {result}")
         self.logger.debug("执行完成 %s", self.monitor_name)
 
     @property

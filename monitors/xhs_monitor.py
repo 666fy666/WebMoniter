@@ -16,6 +16,7 @@ XHS_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
+
 def _extract_initial_state(html: str) -> str:
     """从页面中提取 window.__INITIAL_STATE__ 的 JSON 内容"""
     prefix = "window.__INITIAL_STATE__="
@@ -218,7 +219,10 @@ class XhsMonitor(BaseMonitor):
             return
 
         title_text = data.get("latest_note_title", "") or "新笔记"
-        pic_url = data.get("pic_url") or "https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg"
+        pic_url = (
+            data.get("pic_url")
+            or "https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg"
+        )
         note_id = data.get("note_id", "")
         jump_url = (
             f"https://www.xiaohongshu.com/explore/{note_id}"
@@ -276,9 +280,7 @@ class XhsMonitor(BaseMonitor):
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                self.logger.error(
-                    f"处理用户 {self.xhs_config.profile_ids[i]} 时出错: {result}"
-                )
+                self.logger.error(f"处理用户 {self.xhs_config.profile_ids[i]} 时出错: {result}")
         self.logger.debug("执行完成 %s", self.monitor_name)
 
     @property

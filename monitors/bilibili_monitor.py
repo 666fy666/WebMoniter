@@ -1,16 +1,15 @@
 """哔哩哔哩监控模块（动态 + 开播/下播）"""
 
 import asyncio
-import json
 import logging
 import time
-from datetime import datetime
 from collections import deque
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 from src.config import AppConfig, get_config, is_in_quiet_hours
+from src.job_registry import register_monitor
 from src.monitor import BaseMonitor
 
 BILIBILI_USER_AGENT = (
@@ -58,7 +57,7 @@ class BilibiliMonitor(BaseMonitor):
             results = await self.db.execute_query(sql)
             self.old_dynamic_dict = {}
             for row in results:
-                uid, uname, dynamic_id, dynamic_text = row[0], row[1], row[2], row[3]
+                uid, _, dynamic_id, _ = row[0], row[1], row[2], row[3]
                 self.old_dynamic_dict[uid] = deque(maxlen=DEQUE_LEN)
                 if dynamic_id:
                     self.old_dynamic_dict[uid].append(dynamic_id)
@@ -227,7 +226,8 @@ class BilibiliMonitor(BaseMonitor):
                 title=f"【B站】【{uname}】{title_msg}",
                 description=f"{content[:100]}{'...' if len(content) > 100 else ''}",
                 to_url=f"https://www.bilibili.com/opus/{dynamic_id}",
-                picurl=pic_url or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
+                picurl=pic_url
+                or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")
@@ -240,9 +240,7 @@ class BilibiliMonitor(BaseMonitor):
         if self.bilibili_config.cookie:
             headers["Cookie"] = self.bilibili_config.cookie
 
-        async with session.post(
-            url, headers=headers, json={"uids": [int(uid)]}
-        ) as resp:
+        async with session.post(url, headers=headers, json={"uids": [int(uid)]}) as resp:
             if resp.status != 200:
                 raise ValueError(f"B站直播请求失败: {resp.status}")
             data = await resp.json()
@@ -388,7 +386,5 @@ async def run_bilibili_monitor() -> None:
 def _get_bilibili_trigger_kwargs(config: AppConfig) -> dict:
     return {"seconds": config.bilibili_monitor_interval_seconds}
 
-
-from src.job_registry import register_monitor
 
 register_monitor("bilibili_monitor", run_bilibili_monitor, _get_bilibili_trigger_kwargs)

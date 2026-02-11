@@ -14,6 +14,7 @@ from src.config_watcher import ConfigWatcher
 from src.cookie_cache import get_cookie_cache
 from src.database import close_shared_connection
 from src.job_registry import (
+    MONITOR_JOB_ENABLE_FIELD_MAP,
     MONITOR_JOBS,
     TASK_JOBS,
     discover_and_import,
@@ -47,6 +48,11 @@ async def register_monitors(scheduler: TaskScheduler) -> None:
                 job_id=desc.job_id,
                 **kwargs,
             )
+    # 监控任务：若配置中未启用，则暂停调度
+    for desc in MONITOR_JOBS:
+        enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(desc.job_id)
+        if enable_field is not None and not getattr(config, enable_field, True):
+            scheduler.pause_job(desc.job_id)
 
     # 启动时立即执行一次所有任务
     # 监控任务每次都执行，定时任务会自动检查当天是否已运行过
@@ -75,13 +81,20 @@ async def on_config_changed(
         updates = []
 
         for desc in MONITOR_JOBS:
-            kwargs = desc.get_trigger_kwargs(new_config)
-            update_info = scheduler.update_interval_job(
-                job_id=desc.job_id,
-                **kwargs,
-            )
-            if update_info:
-                updates.append(update_info)
+            enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(desc.job_id)
+            enabled = enable_field is None or getattr(new_config, enable_field, True)
+            if enabled:
+                scheduler.resume_job(desc.job_id)
+                kwargs = desc.get_trigger_kwargs(new_config)
+                update_info = scheduler.update_interval_job(
+                    job_id=desc.job_id,
+                    **kwargs,
+                )
+                if update_info:
+                    updates.append(update_info)
+            else:
+                scheduler.pause_job(desc.job_id)
+                updates.append(f"{desc.job_id}(已暂停)")
 
         for desc in TASK_JOBS:
             kwargs = desc.get_trigger_kwargs(new_config)

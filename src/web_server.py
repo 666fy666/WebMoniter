@@ -110,8 +110,14 @@ def _simple_merge_dict(target: dict, source: dict) -> None:
             _simple_merge_dict(target[key], value)
         elif isinstance(target[key], list) and isinstance(value, list):
             if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
-                existing_map = {item.get("name"): idx for idx, item in enumerate(target[key]) if isinstance(item, dict) and "name" in item}
-                new_names = {item.get("name") for item in value if isinstance(item, dict) and "name" in item}
+                existing_map = {
+                    item.get("name"): idx
+                    for idx, item in enumerate(target[key])
+                    if isinstance(item, dict) and "name" in item
+                }
+                new_names = {
+                    item.get("name") for item in value if isinstance(item, dict) and "name" in item
+                }
                 for new_item in value:
                     if isinstance(new_item, dict) and "name" in new_item:
                         name = new_item["name"]
@@ -119,7 +125,11 @@ def _simple_merge_dict(target: dict, source: dict) -> None:
                             _simple_merge_dict(target[key][existing_map[name]], new_item)
                         else:
                             target[key].append(new_item)
-                target[key][:] = [item for item in target[key] if not isinstance(item, dict) or "name" not in item or item["name"] in new_names]
+                target[key][:] = [
+                    item
+                    for item in target[key]
+                    if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
+                ]
             else:
                 target[key] = value
         else:
@@ -598,13 +608,17 @@ async def save_config_api(request: Request):
                         try:
                             yaml_content = _merge_and_dump_config(config_path, config_data)
                         except Exception as ex:
-                            return JSONResponse({"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400)
+                            return JSONResponse(
+                                {"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400
+                            )
                 else:
                     # 使用标准方式（没有 ruamel.yaml 或文件不存在）：先合并再保存，避免覆盖未收集的配置
                     try:
                         yaml_content = _merge_and_dump_config(config_path, config_data)
                     except Exception as ex:
-                        return JSONResponse({"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400)
+                        return JSONResponse(
+                            {"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400
+                        )
         except Exception:
             # 如果不是JSON，尝试获取Form数据（兼容旧版本）
             form_data = await request.form()
@@ -741,7 +755,11 @@ def _bilibili_dynamic_row_to_item(row: tuple) -> dict:
         "uname": row[1],
         "dynamic_id": row[2],
         "dynamic_text": row[3] or "",
-        "url": f"https://www.bilibili.com/opus/{row[2]}" if row[2] else f"https://space.bilibili.com/{row[0]}",
+        "url": (
+            f"https://www.bilibili.com/opus/{row[2]}"
+            if row[2]
+            else f"https://space.bilibili.com/{row[0]}"
+        ),
     }
 
 
@@ -788,13 +806,25 @@ def _row_to_item(platform: str, row: tuple) -> dict:
 
 # 各平台 SELECT 列与表名
 _PLATFORM_SELECT = {
-    "weibo": ("weibo", "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :pk"),
+    "weibo": (
+        "weibo",
+        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :pk",
+    ),
     "huya": ("huya", "SELECT room, name, is_live FROM huya WHERE room = :pk"),
-    "bilibili_live": ("bilibili_live", "SELECT uid, uname, room_id, is_live FROM bilibili_live WHERE uid = :pk"),
-    "bilibili_dynamic": ("bilibili_dynamic", "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic WHERE uid = :pk"),
+    "bilibili_live": (
+        "bilibili_live",
+        "SELECT uid, uname, room_id, is_live FROM bilibili_live WHERE uid = :pk",
+    ),
+    "bilibili_dynamic": (
+        "bilibili_dynamic",
+        "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic WHERE uid = :pk",
+    ),
     "douyin": ("douyin", "SELECT douyin_id, name, is_live FROM douyin WHERE douyin_id = :pk"),
     "douyu": ("douyu", "SELECT room, name, is_live FROM douyu WHERE room = :pk"),
-    "xhs": ("xhs", "SELECT profile_id, user_name, latest_note_title FROM xhs WHERE profile_id = :pk"),
+    "xhs": (
+        "xhs",
+        "SELECT profile_id, user_name, latest_note_title FROM xhs WHERE profile_id = :pk",
+    ),
 }
 
 
@@ -858,12 +888,18 @@ async def get_table_data(
     if platform not in VALID_PLATFORMS or platform not in _PLATFORM_LIST_SQL:
         logger.warning("请求了无效的数据平台: %r，有效平台: %s", platform, sorted(VALID_PLATFORMS))
         return JSONResponse(
-            {"error": "无效的平台", "platform": platform, "valid_platforms": sorted(VALID_PLATFORMS)},
+            {
+                "error": "无效的平台",
+                "platform": platform,
+                "valid_platforms": sorted(VALID_PLATFORMS),
+            },
             status_code=400,
         )
 
     _, _, filter_param_name = PLATFORM_CONFIG[platform]
-    filter_param = uid if filter_param_name == "uid" else (room if filter_param_name == "room" else id)
+    filter_param = (
+        uid if filter_param_name == "uid" else (room if filter_param_name == "room" else id)
+    )
 
     try:
         db = AsyncDatabase()

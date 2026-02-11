@@ -35,12 +35,12 @@
 
 | 类型       | 配置节点示例 | 说明 |
 |:----------:|:-------------|:-----|
-| 微博监控   | `weibo`      | Cookie、UID 列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#微博监控) |
-| 虎牙监控   | `huya`       | 房间号列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#虎牙监控) |
-| 哔哩哔哩   | `bilibili`   | UID 列表、Cookie（可选）、动态+开播/下播检测，详见 [监控任务详解](tasks/monitors.md#哔哩哔哩监控) |
-| 抖音直播   | `douyin`     | 抖音号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#抖音直播监控) |
-| 斗鱼直播   | `douyu`      | 房间号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#斗鱼直播监控) |
-| 小红书     | `xhs`        | Profile ID 列表、Cookie（可选）、动态检测，详见 [监控任务详解](tasks/monitors.md#小红书动态监控) |
+| 微博监控   | `weibo`      | `enable`、Cookie、UID 列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#微博监控) |
+| 虎牙监控   | `huya`       | `enable`、房间号列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#虎牙监控) |
+| 哔哩哔哩   | `bilibili`   | `enable`、UID 列表、Cookie（可选）、动态+开播/下播检测，详见 [监控任务详解](tasks/monitors.md#哔哩哔哩监控) |
+| 抖音直播   | `douyin`     | `enable`、抖音号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#抖音直播监控) |
+| 斗鱼直播   | `douyu`      | `enable`、房间号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#斗鱼直播监控) |
+| 小红书     | `xhs`        | `enable`、Profile ID 列表、Cookie（可选）、动态检测，详见 [监控任务详解](tasks/monitors.md#小红书动态监控) |
 | 各签到任务 | `checkin`、`tieba`、`rainyun` 等 | 每类任务有独立节点，含 `enable`、账号/Cookie/Token、`time`、`push_channels`，详见 [定时任务详解](tasks/checkin.md) |
 | 推送通道   | `push_channel` | 列表形式，每项需 `name`、`type` 及该类型所需参数，详见 [推送通道配置详解](push-channels.md) |
 | 日志清理   | `log_cleanup` | 执行时间、日志保留天数 |

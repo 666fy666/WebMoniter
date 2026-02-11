@@ -20,7 +20,7 @@
 | 微博 | 监控用户最新动态 | `weibo` | [监控任务详解 → 微博监控](tasks/monitors.md#微博监控) |
 | 虎牙 | 监控直播间开播 | `huya` | [监控任务详解 → 虎牙监控](tasks/monitors.md#虎牙监控) |
 
-完整配置项、Cookie/UID/房间号获取方式见 **[监控任务详解](tasks/monitors.md)**。
+完整配置项、Cookie/UID/房间号获取方式见 **[监控任务详解](tasks/monitors.md)**。各监控支持 `enable` 配置，设为 `false` 可暂停，热重载生效。
 
 ---
 

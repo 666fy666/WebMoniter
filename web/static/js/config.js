@@ -66,6 +66,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     const qtwEnable = document.getElementById('qtw_enable');
     const qtwEnableLabel = document.getElementById('qtw_enable_label');
 
+    // 监控任务开关
+    const weiboEnable = document.getElementById('weibo_enable');
+    const weiboEnableLabel = document.getElementById('weibo_enable_label');
+    const huyaEnable = document.getElementById('huya_enable');
+    const huyaEnableLabel = document.getElementById('huya_enable_label');
+    const bilibiliEnable = document.getElementById('bilibili_enable');
+    const bilibiliEnableLabel = document.getElementById('bilibili_enable_label');
+    const douyinEnable = document.getElementById('douyin_enable');
+    const douyinEnableLabel = document.getElementById('douyin_enable_label');
+    const douyuEnable = document.getElementById('douyu_enable');
+    const douyuEnableLabel = document.getElementById('douyu_enable_label');
+    const xhsEnable = document.getElementById('xhs_enable');
+    const xhsEnableLabel = document.getElementById('xhs_enable_label');
+
     // 新增任务开关
     const freenomEnable = document.getElementById('freenom_enable');
     const freenomEnableLabel = document.getElementById('freenom_enable_label');
@@ -176,15 +190,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 
+    // 全部折叠/展开：作用范围为当前模块下可见的卡片（若尚未初始化模块过滤则作用全部）
+    function getVisibleSectionsForCollapse() {
+        const activeTab = document.querySelector('.config-module-tab.active');
+        const currentModule = activeTab ? activeTab.dataset.module : null;
+        const sections = document.querySelectorAll('.config-section');
+        if (!currentModule) return sections;
+        return Array.from(sections).filter(s => s.dataset.module === currentModule && !s.classList.contains('config-card-hidden'));
+    }
+
     // 全部折叠按钮
     const collapseAllBtn = document.getElementById('collapseAllBtn');
     if (collapseAllBtn) {
         collapseAllBtn.addEventListener('click', function() {
-            const sections = document.querySelectorAll('.config-section');
-            const collapsedSections = [];
-            sections.forEach(section => {
+            const visibleSections = getVisibleSectionsForCollapse();
+            const allSections = document.querySelectorAll('.config-section');
+            const collapsedSections = loadCollapsedState();
+            visibleSections.forEach(section => {
                 section.classList.add('collapsed');
-                collapsedSections.push(section.dataset.section);
+                const name = section.dataset.section;
+                if (name && !collapsedSections.includes(name)) collapsedSections.push(name);
             });
             saveCollapsedState(collapsedSections);
         });
@@ -194,15 +219,98 @@ document.addEventListener('DOMContentLoaded', async function() {
     const expandAllBtn = document.getElementById('expandAllBtn');
     if (expandAllBtn) {
         expandAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.config-section').forEach(section => {
+            const visibleSections = getVisibleSectionsForCollapse();
+            const collapsedSections = loadCollapsedState();
+            visibleSections.forEach(section => {
                 section.classList.remove('collapsed');
+                const name = section.dataset.section;
+                if (name) {
+                    const idx = collapsedSections.indexOf(name);
+                    if (idx > -1) collapsedSections.splice(idx, 1);
+                }
             });
-            saveCollapsedState([]);
+            saveCollapsedState(collapsedSections);
         });
     }
 
     // 初始化折叠状态
     initCollapsedState();
+
+    // 配置模块切换与模糊搜索
+    const configModuleTabs = document.querySelectorAll('.config-module-tab');
+    const configModuleSearch = document.getElementById('configModuleSearch');
+    const configSections = document.querySelectorAll('.config-section[data-module]');
+
+    const MODULE_PLACEHOLDERS = {
+        monitor: '在监控任务中搜索（如：微博、bilibili、虎牙...）',
+        scheduled: '在定时任务中搜索（如：ikuuu、贴吧、签到...）',
+        push: '在推送配置中搜索',
+        plugins: '在插件中搜索'
+    };
+
+    function getCardSearchText(card) {
+        const h2 = card.querySelector('.card-header h2');
+        const section = card.dataset.section || '';
+        const title = h2 ? h2.textContent.trim() : '';
+        return `${title} ${section}`.toLowerCase();
+    }
+
+    function fuzzyMatch(text, query) {
+        if (!query.trim()) return true;
+        const q = query.trim().toLowerCase();
+        const normalized = text.toLowerCase();
+        let qi = 0;
+        for (let i = 0; i < normalized.length && qi < q.length; i++) {
+            if (normalized[i] === q[qi]) qi++;
+        }
+        return qi === q.length;
+    }
+
+    function applyConfigModuleFilter() {
+        const activeTab = document.querySelector('.config-module-tab.active');
+        const currentModule = activeTab ? activeTab.dataset.module : 'monitor';
+        const searchQuery = configModuleSearch ? configModuleSearch.value : '';
+
+        configSections.forEach(card => {
+            const cardModule = card.dataset.module || '';
+            const matchesModule = cardModule === currentModule;
+            const searchText = getCardSearchText(card);
+            const matchesSearch = fuzzyMatch(searchText, searchQuery);
+
+            const hide = !matchesModule || !matchesSearch;
+            card.classList.toggle('config-card-hidden', hide);
+        });
+    }
+
+    function setActiveModule(moduleName) {
+        configModuleTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.module === moduleName);
+        });
+        if (configModuleSearch) {
+            configModuleSearch.placeholder = MODULE_PLACEHOLDERS[moduleName] || '搜索...';
+            configModuleSearch.value = '';
+        }
+        applyConfigModuleFilter();
+    }
+
+    configModuleTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            setActiveModule(this.dataset.module);
+        });
+    });
+
+    if (configModuleSearch) {
+        configModuleSearch.addEventListener('input', applyConfigModuleFilter);
+        configModuleSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                applyConfigModuleFilter();
+                this.blur();
+            }
+        });
+    }
+
+    setActiveModule('monitor');
 
     // 加载YAML配置
     async function loadYamlConfig() {
@@ -348,6 +456,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (ydwxEnable && ydwxEnableLabel) ydwxEnable.addEventListener('change', function() { ydwxEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (xingkongEnable && xingkongEnableLabel) xingkongEnable.addEventListener('change', function() { xingkongEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (qtwEnable && qtwEnableLabel) qtwEnable.addEventListener('change', function() { qtwEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+
+    // 监控任务开关事件
+    if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (douyinEnable && douyinEnableLabel) douyinEnable.addEventListener('change', function() { douyinEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (douyuEnable && douyuEnableLabel) douyuEnable.addEventListener('change', function() { douyuEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    if (xhsEnable && xhsEnableLabel) xhsEnable.addEventListener('change', function() { xhsEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
 
     // 加载配置
     async function loadConfig() {
@@ -1162,6 +1278,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         switch(section) {
             case 'weibo':
                 if (config.weibo) {
+                    if (weiboEnable) {
+                        const enableVal = config.weibo.enable;
+                        weiboEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (weiboEnableLabel) weiboEnableLabel.textContent = weiboEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('weibo_cookie').value = config.weibo.cookie || '';
                     document.getElementById('weibo_uids').value = typeof config.weibo.uids === 'string' 
                         ? config.weibo.uids 
@@ -1265,6 +1386,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'huya':
                 if (config.huya) {
+                    if (huyaEnable) {
+                        const enableVal = config.huya.enable;
+                        huyaEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (huyaEnableLabel) huyaEnableLabel.textContent = huyaEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('huya_rooms').value = typeof config.huya.rooms === 'string' 
                         ? config.huya.rooms 
                         : (Array.isArray(config.huya.rooms) ? config.huya.rooms.join(',') : '');
@@ -1279,6 +1405,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'bilibili':
                 if (config.bilibili) {
+                    if (bilibiliEnable) {
+                        const enableVal = config.bilibili.enable;
+                        bilibiliEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (bilibiliEnableLabel) bilibiliEnableLabel.textContent = bilibiliEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('bilibili_cookie').value = config.bilibili.cookie || '';
                     document.getElementById('bilibili_uids').value = typeof config.bilibili.uids === 'string' 
                         ? config.bilibili.uids 
@@ -1293,6 +1424,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'douyin':
                 if (config.douyin) {
+                    if (douyinEnable) {
+                        const enableVal = config.douyin.enable;
+                        douyinEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (douyinEnableLabel) douyinEnableLabel.textContent = douyinEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('douyin_douyin_ids').value = typeof config.douyin.douyin_ids === 'string' 
                         ? config.douyin.douyin_ids 
                         : (Array.isArray(config.douyin.douyin_ids) ? config.douyin.douyin_ids.join(',') : '');
@@ -1304,6 +1440,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'douyu':
                 if (config.douyu) {
+                    if (douyuEnable) {
+                        const enableVal = config.douyu.enable;
+                        douyuEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (douyuEnableLabel) douyuEnableLabel.textContent = douyuEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('douyu_rooms').value = typeof config.douyu.rooms === 'string' 
                         ? config.douyu.rooms 
                         : (Array.isArray(config.douyu.rooms) ? config.douyu.rooms.join(',') : '');
@@ -1315,6 +1456,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'xhs':
                 if (config.xhs) {
+                    if (xhsEnable) {
+                        const enableVal = config.xhs.enable;
+                        xhsEnable.checked = enableVal !== false && enableVal !== 'false';
+                        if (xhsEnableLabel) xhsEnableLabel.textContent = xhsEnable.checked ? '开启' : '关闭';
+                    }
                     document.getElementById('xhs_cookie').value = config.xhs.cookie || '';
                     document.getElementById('xhs_profile_ids').value = typeof config.xhs.profile_ids === 'string' 
                         ? config.xhs.profile_ids 
@@ -1737,6 +1883,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         switch(section) {
             case 'weibo':
                 config.weibo = {
+                    enable: weiboEnable ? weiboEnable.checked : true,
                     cookie: document.getElementById('weibo_cookie').value.trim(),
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
@@ -1798,6 +1945,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             case 'huya':
                 config.huya = {
+                    enable: huyaEnable ? huyaEnable.checked : true,
                     rooms: document.getElementById('huya_rooms').value.trim(),
                     concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
                     monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds').value) || 65,
@@ -1806,6 +1954,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'bilibili':
                 config.bilibili = {
+                    enable: bilibiliEnable ? bilibiliEnable.checked : true,
                     cookie: (document.getElementById('bilibili_cookie')?.value || '').trim(),
                     uids: document.getElementById('bilibili_uids').value.trim(),
                     skip_forward: document.getElementById('bilibili_skip_forward')?.checked !== false,
@@ -1816,6 +1965,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'douyin':
                 config.douyin = {
+                    enable: douyinEnable ? douyinEnable.checked : true,
                     douyin_ids: document.getElementById('douyin_douyin_ids').value.trim(),
                     concurrency: parseInt(document.getElementById('douyin_concurrency').value) || 2,
                     monitor_interval_seconds: parseInt(document.getElementById('douyin_monitor_interval_seconds').value) || 30,
@@ -1824,6 +1974,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'douyu':
                 config.douyu = {
+                    enable: douyuEnable ? douyuEnable.checked : true,
                     rooms: document.getElementById('douyu_rooms').value.trim(),
                     concurrency: parseInt(document.getElementById('douyu_concurrency').value) || 2,
                     monitor_interval_seconds: parseInt(document.getElementById('douyu_monitor_interval_seconds').value) || 300,
@@ -1832,6 +1983,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'xhs':
                 config.xhs = {
+                    enable: xhsEnable ? xhsEnable.checked : true,
                     cookie: (document.getElementById('xhs_cookie')?.value || '').trim(),
                     profile_ids: document.getElementById('xhs_profile_ids').value.trim(),
                     concurrency: parseInt(document.getElementById('xhs_concurrency').value) || 2,
@@ -2229,6 +2381,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 微博监控配置
         config.weibo = {
+            enable: weiboEnable ? weiboEnable.checked : true,
             cookie: document.getElementById('weibo_cookie').value.trim(),
             uids: document.getElementById('weibo_uids').value.trim(),
             concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
@@ -2253,6 +2406,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 虎牙配置
         config.huya = {
+            enable: huyaEnable ? huyaEnable.checked : true,
             rooms: document.getElementById('huya_rooms').value.trim(),
             concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
             monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds')?.value) || 65,

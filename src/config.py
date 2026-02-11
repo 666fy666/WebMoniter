@@ -62,17 +62,20 @@ class AppConfig(BaseModel):
     """应用配置"""
 
     # 微博
+    weibo_enable: bool = True  # 是否启用微博监控
     weibo_cookie: str = ""
     weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
     weibo_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 虎牙
+    huya_enable: bool = True  # 是否启用虎牙监控
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
     huya_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
     # 哔哩哔哩
+    bilibili_enable: bool = True  # 是否启用哔哩哔哩监控
     bilibili_cookie: str = ""
     bilibili_payload: str = ""
     bilibili_uids: str = ""
@@ -81,16 +84,19 @@ class AppConfig(BaseModel):
     bilibili_push_channels: list[str] = []
 
     # 抖音
+    douyin_enable: bool = True  # 是否启用抖音直播监控
     douyin_douyin_ids: str = ""
     douyin_concurrency: int = 2
     douyin_push_channels: list[str] = []
 
     # 斗鱼
+    douyu_enable: bool = True  # 是否启用斗鱼直播监控
     douyu_rooms: str = ""
     douyu_concurrency: int = 2
     douyu_push_channels: list[str] = []
 
     # 小红书
+    xhs_enable: bool = True  # 是否启用小红书动态监控
     xhs_cookie: str = ""
     xhs_profile_ids: str = ""
     xhs_concurrency: int = 2
@@ -405,6 +411,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 定义配置映射：{yaml_key: {field_mapping: {yaml_field: config_field}}}
         config_mappings = {
             "weibo": {
+                "enable": "weibo_enable",
                 "cookie": "weibo_cookie",
                 "uids": "weibo_uids",
                 "concurrency": "weibo_concurrency",
@@ -412,12 +419,14 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "push_channels": "weibo_push_channels",
             },
             "huya": {
+                "enable": "huya_enable",
                 "rooms": "huya_rooms",
                 "concurrency": "huya_concurrency",
                 "monitor_interval_seconds": "huya_monitor_interval_seconds",
                 "push_channels": "huya_push_channels",
             },
             "bilibili": {
+                "enable": "bilibili_enable",
                 "cookie": "bilibili_cookie",
                 "payload": "bilibili_payload",
                 "uids": "bilibili_uids",
@@ -427,18 +436,21 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "push_channels": "bilibili_push_channels",
             },
             "douyin": {
+                "enable": "douyin_enable",
                 "douyin_ids": "douyin_douyin_ids",
                 "concurrency": "douyin_concurrency",
                 "monitor_interval_seconds": "douyin_monitor_interval_seconds",
                 "push_channels": "douyin_push_channels",
             },
             "douyu": {
+                "enable": "douyu_enable",
                 "rooms": "douyu_rooms",
                 "concurrency": "douyu_concurrency",
                 "monitor_interval_seconds": "douyu_monitor_interval_seconds",
                 "push_channels": "douyu_push_channels",
             },
             "xhs": {
+                "enable": "xhs_enable",
                 "cookie": "xhs_cookie",
                 "profile_ids": "xhs_profile_ids",
                 "concurrency": "xhs_concurrency",

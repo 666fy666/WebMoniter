@@ -215,6 +215,26 @@ class TaskScheduler:
             return f"{job_id}(间隔: {hours}小时)"
         return None
 
+    def pause_job(self, job_id: str) -> bool:
+        """暂停指定任务，用于监控启用开关关闭时。"""
+        try:
+            self.scheduler.pause_job(job_id)
+            self.logger.debug("已暂停任务: %s", job_id)
+            return True
+        except Exception as e:
+            self.logger.warning("暂停任务 %s 失败: %s", job_id, e)
+            return False
+
+    def resume_job(self, job_id: str) -> bool:
+        """恢复指定任务，用于监控启用开关打开时。"""
+        try:
+            self.scheduler.resume_job(job_id)
+            self.logger.debug("已恢复任务: %s", job_id)
+            return True
+        except Exception as e:
+            self.logger.warning("恢复任务 %s 失败: %s", job_id, e)
+            return False
+
     def update_cron_job(
         self,
         job_id: str,

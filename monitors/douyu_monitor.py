@@ -144,7 +144,10 @@ class DouyuMonitor(BaseMonitor):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status_text = "开播了🐟🐟🐟" if res == 1 else "下播了💤💤💤"
         room_title = data.get("room_name", "") or "直播间"
-        pic_url = data.get("room_pic") or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg"
+        pic_url = (
+            data.get("room_pic")
+            or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg"
+        )
 
         try:
             await self.push.send_news(
@@ -193,9 +196,7 @@ class DouyuMonitor(BaseMonitor):
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                self.logger.error(
-                    f"处理房间 {self.douyu_config.rooms[i]} 时出错: {result}"
-                )
+                self.logger.error(f"处理房间 {self.douyu_config.rooms[i]} 时出错: {result}")
         self.logger.debug("执行完成 %s", self.monitor_name)
 
     @property

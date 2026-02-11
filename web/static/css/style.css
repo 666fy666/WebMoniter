@@ -659,6 +659,67 @@ input:focus + .slider {
     padding: 8px 16px;
 }
 
+/* 配置模块导航（监控/定时/推送/插件） */
+.config-module-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.config-module-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.config-module-tab {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.config-module-tab:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-light);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.config-module-tab.active {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.config-module-search-wrap {
+    flex: 1;
+    min-width: 200px;
+}
+
+.config-module-search {
+    width: 100%;
+    max-width: 320px;
+    padding: 8px 14px 8px 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+}
+
+.config-section.config-card-hidden {
+    display: none !important;
+}
+
 .config-table {
     width: 100%;
     border-collapse: collapse;

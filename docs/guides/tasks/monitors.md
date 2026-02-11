@@ -12,6 +12,7 @@
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `cookie` | 字符串 | ✅ | 微博网页版登录后的 Cookie，用于请求接口 |
 | `uids` | 字符串 | ✅ | 要监控的用户 UID，多个用英文逗号分隔，如 `1234567890,9876543210` |
 | `concurrency` | 整数 | 否 | 并发数，建议 2～5，避免触发限流，默认 2 |
@@ -38,6 +39,7 @@
 
 ```yaml
 weibo:
+  enable: true                                 # 是否启用微博监控
   cookie: "SUB=xxx; SUBP=xxx; ALF=xxx; ..."   # 从浏览器开发者工具复制完整 Cookie
   uids: 1234567890,9876543210                  # 要监控的用户 UID，逗号分隔
   concurrency: 2
@@ -59,6 +61,7 @@ weibo:
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `rooms` | 字符串 | ✅ | 要监控的房间号，多个用英文逗号分隔，如 `123456,654321` |
 | `concurrency` | 整数 | 否 | 并发数，建议 5～10，默认 5 |
 | `monitor_interval_seconds` | 整数 | 否 | 监控间隔（秒），默认 65 |
@@ -74,6 +77,7 @@ weibo:
 
 ```yaml
 huya:
+  enable: true
   rooms: 123456,654321
   concurrency: 5
   monitor_interval_seconds: 65
@@ -94,6 +98,7 @@ huya:
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `uids` | 字符串 | ✅ | 要监控的 UP 主 UID，多个用英文逗号分隔 |
 | `cookie` | 字符串 | 否 | 可选，防 ban，建议用小号 |
 | `payload` | 字符串 | 否 | 可选，用于 -352 时自动获取 buvid3 |
@@ -110,6 +115,7 @@ huya:
 
 ```yaml
 bilibili:
+  enable: true
   cookie: ""
   payload: ""
   uids: 1795147802,1669777785
@@ -129,6 +135,7 @@ bilibili:
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `douyin_ids` | 字符串 | ✅ | 抖音号列表，逗号分隔，如 ASOULjiaran,Nana7mi0715 |
 | `concurrency` | 整数 | 否 | 并发数，默认 2 |
 | `monitor_interval_seconds` | 整数 | 否 | 监控间隔（秒），默认 30 |
@@ -142,6 +149,7 @@ bilibili:
 
 ```yaml
 douyin:
+  enable: true
   douyin_ids: ASOULjiaran,Nana7mi0715
   concurrency: 2
   monitor_interval_seconds: 30
@@ -158,6 +166,7 @@ douyin:
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `rooms` | 字符串 | ✅ | 房间号列表，逗号分隔 |
 | `concurrency` | 整数 | 否 | 并发数，默认 2 |
 | `monitor_interval_seconds` | 整数 | 否 | 监控间隔（秒），默认 300 |
@@ -171,6 +180,7 @@ douyin:
 
 ```yaml
 douyu:
+  enable: true
   rooms: 307876,12306
   concurrency: 2
   monitor_interval_seconds: 300
@@ -187,6 +197,7 @@ douyu:
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
+| `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `profile_ids` | 字符串 | ✅ | Profile ID 列表，逗号分隔 |
 | `cookie` | 字符串 | 否 | 可选，防 ban |
 | `concurrency` | 整数 | 否 | 并发数，默认 2 |
@@ -201,6 +212,7 @@ douyu:
 
 ```yaml
 xhs:
+  enable: true
   cookie: ""
   profile_ids: 52d8c541b4c4d60e6c867480
   concurrency: 2
@@ -212,6 +224,7 @@ xhs:
 
 ## 通用说明
 
+- **启用开关**：各监控任务支持 `enable` 配置，设为 `false` 时暂停该监控，热重载生效；未配置时默认为 `true`。  
 - **启动时**：程序启动后会按配置的间隔开始轮询，无需额外触发。  
 - **热重载**：修改各监控任务配置并保存 `config.yml` 后，约 5 秒内生效，无需重启。  
 - **推送**：若配置了 `quiet_hours`（免打扰），在免打扰时段内不会推送，但监控仍会执行并更新数据。  

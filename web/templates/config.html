@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>配置管理 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=4">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -117,8 +117,22 @@
                     全部展开
                 </button>
             </div>
+
+            <!-- 模块切换与搜索 -->
+            <div class="config-module-nav">
+                <div class="config-module-tabs">
+                    <button class="config-module-tab active" data-module="monitor">📡 监控任务</button>
+                    <button class="config-module-tab" data-module="scheduled">⏰ 定时任务</button>
+                    <button class="config-module-tab" data-module="push">📢 推送配置</button>
+                    <button class="config-module-tab" data-module="plugins">🔌 插件</button>
+                </div>
+                <div class="config-module-search-wrap">
+                    <input type="text" id="configModuleSearch" class="form-input config-module-search" placeholder="在监控任务中搜索..." autocomplete="off">
+                </div>
+            </div>
+
             <!-- 微博监控配置 -->
-            <div class="card config-section fade-in" data-section="weibo">
+            <div class="card config-section fade-in" data-section="weibo" data-module="monitor">
                 <div class="card-header">
                     <h2>📱 微博监控配置</h2>
                     <div class="card-actions">
@@ -134,6 +148,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用微博监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="weibo_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="weibo_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">Cookie</td>
                             <td><input type="text" id="weibo_cookie" class="form-input" placeholder="请输入微博Cookie"></td>
@@ -162,7 +186,7 @@
             </div>
 
             <!-- 微博超话签到配置 -->
-            <div class="card config-section fade-in" data-section="weibo_chaohua" style="animation-delay: 0.05s;">
+            <div class="card config-section fade-in" data-section="weibo_chaohua" data-module="scheduled" style="animation-delay: 0.05s;">
                 <div class="card-header">
                     <h2>💬 微博超话签到配置</h2>
                     <div class="card-actions">
@@ -221,7 +245,7 @@
             </div>
 
             <!-- 虎牙监控配置 -->
-            <div class="card config-section fade-in" data-section="huya" style="animation-delay: 0.1s;">
+            <div class="card config-section fade-in" data-section="huya" data-module="monitor" style="animation-delay: 0.1s;">
                 <div class="card-header">
                     <h2>🐯 虎牙监控配置</h2>
                     <div class="card-actions">
@@ -237,6 +261,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用虎牙监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="huya_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="huya_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">房间号列表</td>
                             <td><textarea id="huya_rooms" class="form-textarea" rows="3" placeholder="请输入房间号列表，逗号分隔"></textarea></td>
@@ -261,7 +295,7 @@
             </div>
 
             <!-- 哔哩哔哩监控配置 -->
-            <div class="card config-section fade-in" data-section="bilibili" style="animation-delay: 0.12s;">
+            <div class="card config-section fade-in" data-section="bilibili" data-module="monitor" style="animation-delay: 0.12s;">
                 <div class="card-header">
                     <h2>📺 哔哩哔哩监控配置</h2>
                     <div class="card-actions">
@@ -277,6 +311,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用哔哩哔哩监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="bilibili_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="bilibili_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">Cookie（可选）</td>
                             <td><input type="text" id="bilibili_cookie" class="form-input" placeholder="可选，防ban"></td>
@@ -314,7 +358,7 @@
             </div>
 
             <!-- 抖音直播监控配置 -->
-            <div class="card config-section fade-in" data-section="douyin" style="animation-delay: 0.14s;">
+            <div class="card config-section fade-in" data-section="douyin" data-module="monitor" style="animation-delay: 0.14s;">
                 <div class="card-header">
                     <h2>🎬 抖音直播监控配置</h2>
                     <div class="card-actions">
@@ -330,6 +374,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用抖音直播监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="douyin_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="douyin_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">抖音号列表</td>
                             <td><textarea id="douyin_douyin_ids" class="form-textarea" rows="3" placeholder="逗号分隔，如 ASOULjiaran,Nana7mi0715"></textarea></td>
@@ -354,7 +408,7 @@
             </div>
 
             <!-- 斗鱼直播监控配置 -->
-            <div class="card config-section fade-in" data-section="douyu" style="animation-delay: 0.16s;">
+            <div class="card config-section fade-in" data-section="douyu" data-module="monitor" style="animation-delay: 0.16s;">
                 <div class="card-header">
                     <h2>🐟 斗鱼直播监控配置</h2>
                     <div class="card-actions">
@@ -370,6 +424,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用斗鱼直播监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="douyu_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="douyu_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">房间号列表</td>
                             <td><textarea id="douyu_rooms" class="form-textarea" rows="3" placeholder="逗号分隔，如 307876,12306"></textarea></td>
@@ -394,7 +458,7 @@
             </div>
 
             <!-- 小红书动态监控配置 -->
-            <div class="card config-section fade-in" data-section="xhs" style="animation-delay: 0.18s;">
+            <div class="card config-section fade-in" data-section="xhs" data-module="monitor" style="animation-delay: 0.18s;">
                 <div class="card-header">
                     <h2>📕 小红书动态监控配置</h2>
                     <div class="card-actions">
@@ -410,6 +474,16 @@
                 </div>
                 <div class="card-body">
                     <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用小红书动态监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="xhs_enable" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="xhs_enable_label">开启</span>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="config-label">Cookie（可选）</td>
                             <td><input type="text" id="xhs_cookie" class="form-input" placeholder="可选，防ban"></td>
@@ -438,7 +512,7 @@
             </div>
 
             <!-- ikuuu签到配置 -->
-            <div class="card config-section fade-in" data-section="checkin" style="animation-delay: 0.15s;">
+            <div class="card config-section fade-in" data-section="checkin" data-module="scheduled" style="animation-delay: 0.15s;">
                 <div class="card-header">
                     <h2>📅 ikuuu签到配置</h2>
                     <div class="card-actions">
@@ -501,7 +575,7 @@
             </div>
 
             <!-- 雨云签到配置 -->
-            <div class="card config-section fade-in" data-section="rainyun" style="animation-delay: 0.18s;">
+            <div class="card config-section fade-in" data-section="rainyun" data-module="scheduled" style="animation-delay: 0.18s;">
                 <div class="card-header">
                     <h2>☁️ 雨云签到配置</h2>
                     <div class="card-actions">
@@ -560,7 +634,7 @@
             </div>
 
             <!-- 贴吧签到配置 -->
-            <div class="card config-section fade-in" data-section="tieba" style="animation-delay: 0.2s;">
+            <div class="card config-section fade-in" data-section="tieba" data-module="scheduled" style="animation-delay: 0.2s;">
                 <div class="card-header">
                     <h2>📌 贴吧签到配置</h2>
                     <div class="card-actions">
@@ -619,7 +693,7 @@
             </div>
 
             <!-- 恩山论坛签到配置 -->
-            <div class="card config-section fade-in" data-section="enshan" style="animation-delay: 0.21s;">
+            <div class="card config-section fade-in" data-section="enshan" data-module="scheduled" style="animation-delay: 0.21s;">
                 <div class="card-header">
                     <h2>📡 恩山论坛签到配置</h2>
                     <div class="card-actions">
@@ -660,7 +734,7 @@
             </div>
 
             <!-- 天翼云盘签到配置 -->
-            <div class="card config-section fade-in" data-section="tyyun" style="animation-delay: 0.22s;">
+            <div class="card config-section fade-in" data-section="tyyun" data-module="scheduled" style="animation-delay: 0.22s;">
                 <div class="card-header">
                     <h2>☁️ 天翼云盘签到配置</h2>
                     <div class="card-actions">
@@ -706,7 +780,7 @@
             </div>
 
             <!-- 阿里云盘签到配置 -->
-            <div class="card config-section fade-in" data-section="aliyun" style="animation-delay: 0.23s;">
+            <div class="card config-section fade-in" data-section="aliyun" data-module="scheduled" style="animation-delay: 0.23s;">
                 <div class="card-header">
                     <h2>📦 阿里云盘签到配置</h2>
                     <div class="card-actions">
@@ -748,7 +822,7 @@
             </div>
 
             <!-- 什么值得买签到配置 -->
-            <div class="card config-section fade-in" data-section="smzdm" style="animation-delay: 0.24s;">
+            <div class="card config-section fade-in" data-section="smzdm" data-module="scheduled" style="animation-delay: 0.24s;">
                 <div class="card-header">
                     <h2>🛒 什么值得买签到配置</h2>
                     <div class="card-actions">
@@ -789,7 +863,7 @@
             </div>
 
             <!-- 值得买每日抽奖配置 -->
-            <div class="card config-section fade-in" data-section="zdm_draw" style="animation-delay: 0.25s;">
+            <div class="card config-section fade-in" data-section="zdm_draw" data-module="scheduled" style="animation-delay: 0.25s;">
                 <div class="card-header">
                     <h2>🎡 值得买每日抽奖配置</h2>
                     <div class="card-actions">
@@ -830,7 +904,7 @@
             </div>
 
             <!-- 富贵论坛签到配置 -->
-            <div class="card config-section fade-in" data-section="fg" style="animation-delay: 0.26s;">
+            <div class="card config-section fade-in" data-section="fg" data-module="scheduled" style="animation-delay: 0.26s;">
                 <div class="card-header">
                     <h2>💎 富贵论坛签到配置</h2>
                     <div class="card-actions">
@@ -871,7 +945,7 @@
             </div>
 
             <!-- 小米社区签到配置 -->
-            <div class="card config-section fade-in" data-section="miui" style="animation-delay: 0.27s;">
+            <div class="card config-section fade-in" data-section="miui" data-module="scheduled" style="animation-delay: 0.27s;">
                 <div class="card-header">
                     <h2>📱 小米社区签到配置</h2>
                     <div class="card-actions">
@@ -897,7 +971,7 @@
             </div>
 
             <!-- 爱奇艺签到配置 -->
-            <div class="card config-section fade-in" data-section="iqiyi" style="animation-delay: 0.28s;">
+            <div class="card config-section fade-in" data-section="iqiyi" data-module="scheduled" style="animation-delay: 0.28s;">
                 <div class="card-header">
                     <h2>🎬 爱奇艺签到配置</h2>
                     <div class="card-actions">
@@ -920,7 +994,7 @@
             </div>
 
             <!-- 联想乐豆签到配置 -->
-            <div class="card config-section fade-in" data-section="lenovo" style="animation-delay: 0.29s;">
+            <div class="card config-section fade-in" data-section="lenovo" data-module="scheduled" style="animation-delay: 0.29s;">
                 <div class="card-header">
                     <h2>🔷 联想乐豆签到配置</h2>
                     <div class="card-actions">
@@ -943,7 +1017,7 @@
             </div>
 
             <!-- 丽宝乐园签到配置 -->
-            <div class="card config-section fade-in" data-section="lbly" style="animation-delay: 0.30s;">
+            <div class="card config-section fade-in" data-section="lbly" data-module="scheduled" style="animation-delay: 0.30s;">
                 <div class="card-header">
                     <h2>🎠 丽宝乐园签到配置</h2>
                     <div class="card-actions">
@@ -966,7 +1040,7 @@
             </div>
 
             <!-- 品赞代理签到配置 -->
-            <div class="card config-section fade-in" data-section="pinzan" style="animation-delay: 0.31s;">
+            <div class="card config-section fade-in" data-section="pinzan" data-module="scheduled" style="animation-delay: 0.31s;">
                 <div class="card-header">
                     <h2>📦 品赞代理签到配置</h2>
                     <div class="card-actions">
@@ -990,7 +1064,7 @@
             </div>
 
             <!-- 达美乐任务配置 -->
-            <div class="card config-section fade-in" data-section="dml" style="animation-delay: 0.32s;">
+            <div class="card config-section fade-in" data-section="dml" data-module="scheduled" style="animation-delay: 0.32s;">
                 <div class="card-header">
                     <h2>🍕 达美乐任务配置</h2>
                     <div class="card-actions">
@@ -1013,7 +1087,7 @@
             </div>
 
             <!-- 小茅预约（i茅台）配置 -->
-            <div class="card config-section fade-in" data-section="xiaomao" style="animation-delay: 0.33s;">
+            <div class="card config-section fade-in" data-section="xiaomao" data-module="scheduled" style="animation-delay: 0.33s;">
                 <div class="card-header">
                     <h2>🥃 小茅预约（i茅台）配置</h2>
                     <div class="card-actions">
@@ -1037,7 +1111,7 @@
             </div>
 
             <!-- 一点万象 / 星空代理 / 千图网 -->
-            <div class="card config-section fade-in" data-section="ydwx" style="animation-delay: 0.34s;">
+            <div class="card config-section fade-in" data-section="ydwx" data-module="scheduled" style="animation-delay: 0.34s;">
                 <div class="card-header"><h2>🏬 一点万象签到</h2>
                     <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
                 </div>
@@ -1052,7 +1126,7 @@
                     </table>
                 </div>
             </div>
-            <div class="card config-section fade-in" data-section="xingkong" style="animation-delay: 0.35s;">
+            <div class="card config-section fade-in" data-section="xingkong" data-module="scheduled" style="animation-delay: 0.35s;">
                 <div class="card-header"><h2>🌟 星空代理签到</h2>
                     <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
                 </div>
@@ -1067,7 +1141,7 @@
                     </table>
                 </div>
             </div>
-            <div class="card config-section fade-in" data-section="qtw" style="animation-delay: 0.36s;">
+            <div class="card config-section fade-in" data-section="qtw" data-module="scheduled" style="animation-delay: 0.36s;">
                 <div class="card-header"><h2>🖼️ 千图网签到</h2>
                     <div class="card-actions"><button class="btn btn-secondary section-reload-btn"><span>🔄</span> 重新加载</button><button class="btn btn-primary section-save-btn"><span>💾</span> 保存</button></div>
                 </div>
@@ -1083,7 +1157,7 @@
             </div>
 
             <!-- Freenom 域名续期 -->
-            <div class="card config-section fade-in" data-section="freenom" style="animation-delay: 0.37s;">
+            <div class="card config-section fade-in" data-section="freenom" data-module="scheduled" style="animation-delay: 0.37s;">
                 <div class="card-header">
                     <h2>🌐 Freenom 域名续期</h2>
                     <div class="card-actions">
@@ -1131,7 +1205,7 @@
             </div>
 
             <!-- 天气推送 -->
-            <div class="card config-section fade-in" data-section="weather" style="animation-delay: 0.38s;">
+            <div class="card config-section fade-in" data-section="weather" data-module="scheduled" style="animation-delay: 0.38s;">
                 <div class="card-header">
                     <h2>☁️ 天气推送</h2>
                     <div class="card-actions">
@@ -1174,7 +1248,7 @@
             </div>
 
             <!-- 夸克网盘签到 -->
-            <div class="card config-section fade-in" data-section="kuake" style="animation-delay: 0.39s;">
+            <div class="card config-section fade-in" data-section="kuake" data-module="scheduled" style="animation-delay: 0.39s;">
                 <div class="card-header">
                     <h2>🗂️ 夸克网盘签到</h2>
                     <div class="card-actions">
@@ -1222,7 +1296,7 @@
             </div>
 
             <!-- 科技玩家签到 -->
-            <div class="card config-section fade-in" data-section="kjwj" style="animation-delay: 0.40s;">
+            <div class="card config-section fade-in" data-section="kjwj" data-module="scheduled" style="animation-delay: 0.40s;">
                 <div class="card-header">
                     <h2>🧪 科技玩家签到</h2>
                     <div class="card-actions">
@@ -1266,7 +1340,7 @@
             </div>
 
             <!-- 帆软社区签到 + 摇摇乐 -->
-            <div class="card config-section fade-in" data-section="fr" style="animation-delay: 0.41s;">
+            <div class="card config-section fade-in" data-section="fr" data-module="scheduled" style="animation-delay: 0.41s;">
                 <div class="card-header">
                     <h2>📊 帆软社区签到 + 摇摇乐</h2>
                     <div class="card-actions">
@@ -1305,7 +1379,7 @@
             </div>
 
             <!-- 999 会员中心健康打卡 -->
-            <div class="card config-section fade-in" data-section="nine_nine_nine" style="animation-delay: 0.42s;">
+            <div class="card config-section fade-in" data-section="nine_nine_nine" data-module="scheduled" style="animation-delay: 0.42s;">
                 <div class="card-header">
                     <h2>💊 999 会员中心健康打卡</h2>
                     <div class="card-actions">
@@ -1347,7 +1421,7 @@
             </div>
 
             <!-- 中国福彩抽奖活动 -->
-            <div class="card config-section fade-in" data-section="zgfc" style="animation-delay: 0.43s;">
+            <div class="card config-section fade-in" data-section="zgfc" data-module="scheduled" style="animation-delay: 0.43s;">
                 <div class="card-header">
                     <h2>🎁 中国福彩抽奖活动</h2>
                     <div class="card-actions">
@@ -1389,7 +1463,7 @@
             </div>
 
             <!-- 双色球开奖通知 -->
-            <div class="card config-section fade-in" data-section="ssq_500w" style="animation-delay: 0.44s;">
+            <div class="card config-section fade-in" data-section="ssq_500w" data-module="scheduled" style="animation-delay: 0.44s;">
                 <div class="card-header">
                     <h2>🎲 双色球开奖通知（娱乐）</h2>
                     <div class="card-actions">
@@ -1425,7 +1499,7 @@
             </div>
 
             <!-- 日志清理任务配置 -->
-            <div class="card config-section fade-in" data-section="log_cleanup" style="animation-delay: 0.25s;">
+            <div class="card config-section fade-in" data-section="log_cleanup" data-module="scheduled" style="animation-delay: 0.25s;">
                 <div class="card-header">
                     <h2>🧹 日志清理任务配置</h2>
                     <div class="card-actions">
@@ -1464,7 +1538,7 @@
             </div>
 
             <!-- 免打扰时段配置 -->
-            <div class="card config-section fade-in" data-section="quiet_hours" style="animation-delay: 0.3s;">
+            <div class="card config-section fade-in" data-section="quiet_hours" data-module="push" style="animation-delay: 0.3s;">
                 <div class="card-header">
                     <h2>🔕 免打扰时段配置</h2>
                     <div class="card-actions">
@@ -1506,7 +1580,7 @@
             </div>
 
             <!-- 推送通道配置 -->
-            <div class="card config-section fade-in" data-section="push_channel" style="animation-delay: 0.35s;">
+            <div class="card config-section fade-in" data-section="push_channel" data-module="push" style="animation-delay: 0.35s;">
                 <div class="card-header">
                     <h2>📢 推送通道配置</h2>
                 </div>
@@ -1518,7 +1592,7 @@
             </div>
 
             <!-- 插件/扩展配置（二次开发，如 plugins.demo_task） -->
-            <div class="card config-section fade-in" data-section="plugins" style="animation-delay: 0.4s;">
+            <div class="card config-section fade-in" data-section="plugins" data-module="plugins" style="animation-delay: 0.4s;">
                 <div class="card-header">
                     <h2>🔌 插件/扩展配置</h2>
                     <div class="card-actions">
@@ -1573,6 +1647,6 @@
         </div>
     </div>
     <script src="/static/js/common.js?v=4"></script>
-    <script src="/static/js/config.js?v=5"></script>
+    <script src="/static/js/config.js?v=6"></script>
 </body>
 </html>

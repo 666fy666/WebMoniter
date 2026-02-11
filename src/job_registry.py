@@ -79,6 +79,17 @@ MONITOR_JOBS: list[JobDescriptor] = []
 TASK_JOBS: list[JobDescriptor] = []
 
 
+# 监控任务启用开关映射：job_id -> AppConfig 中对应的 enable 字段名
+MONITOR_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
+    "weibo_monitor": "weibo_enable",
+    "huya_monitor": "huya_enable",
+    "bilibili_monitor": "bilibili_enable",
+    "douyin_monitor": "douyin_enable",
+    "douyu_monitor": "douyu_enable",
+    "xhs_monitor": "xhs_enable",
+}
+
+
 def register_monitor(
     job_id: str,
     run_func: Callable[[], Awaitable[None]],
@@ -88,13 +99,24 @@ def register_monitor(
     注册一个监控任务（间隔触发）。
     应在监控模块加载时调用，例如：register_monitor("huya_monitor", run_huya_monitor, lambda c: {"seconds": c.huya_monitor_interval_seconds})
     """
+
+    @functools.wraps(run_func)
+    async def wrapped_run_func() -> None:
+        enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(job_id)
+        if enable_field is not None:
+            config = get_config()
+            if not getattr(config, enable_field, True):
+                logger.debug("%s: 当前配置未启用，跳过执行", job_id)
+                return
+        await run_func()
+
     MONITOR_JOBS.append(
         JobDescriptor(
             job_id=job_id,
-            run_func=run_func,
+            run_func=wrapped_run_func,
             trigger="interval",
             get_trigger_kwargs=get_trigger_kwargs,
-            original_run_func=run_func,  # 监控任务无包装，原始函数即为 run_func
+            original_run_func=run_func,
         )
     )
     logger.debug("已注册监控任务: %s", job_id)
