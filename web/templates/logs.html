@@ -100,7 +100,14 @@
             <div class="card fade-in">
                 <div class="card-header">
                     <h2>📋 今日日志</h2>
-                    <div class="card-actions">
+                    <div class="card-actions" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <span style="color: var(--text-secondary); font-size: 13px; white-space: nowrap;">日志来源:</span>
+                            <select id="logSourceSelect" class="form-input" style="min-width: 160px; padding: 6px 10px;">
+                                <option value="">📋 今日总日志</option>
+                                <!-- 任务选项由 JS 动态填充 -->
+                            </select>
+                        </label>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
                             <input type="checkbox" id="autoScroll" checked style="width: 16px; height: 16px; cursor: pointer;"> 
                             <span>自动滚动</span>
@@ -124,6 +131,6 @@
         </div>
     </div>
     <script src="/static/js/common.js?v=4"></script>
-    <script src="/static/js/logs.js?v=1"></script>
+    <script src="/static/js/logs.js?v=2"></script>
 </body>
 </html>

@@ -227,6 +227,31 @@ GET /api/monitor-status/xhs/{id}
 
 ```http
 GET /api/logs?lines=100
+GET /api/logs?lines=100&task=ikuuu_checkin
+```
+
+参数：
+- `lines`：返回最近 N 行日志，默认 100
+- `task`：（可选）指定任务 ID 时，返回该任务的今日专属日志；不传则返回今日总日志
+
+不传 `task` 时读取 `main_YYYYMMDD.log`；传 `task` 时读取 `task_{job_id}_YYYYMMDD.log`。
+
+#### 获取任务日志列表
+
+```http
+GET /api/logs/tasks
+```
+
+返回今日有日志文件的任务 ID 列表，以及全部任务列表（用于前端下拉选择）：
+
+```json
+{
+  "all_tasks": [
+    {"job_id": "ikuuu_checkin", "has_log_today": true},
+    {"job_id": "huya_monitor", "has_log_today": false}
+  ],
+  "tasks_with_logs": ["ikuuu_checkin", "log_cleanup"]
+}
 ```
 
 ---

@@ -503,7 +503,8 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `GET /api/config`：获取配置
 - `POST /api/config`：保存配置（触发热重载）
 - `GET /api/data/{platform}`：获取监控数据
-- `GET /api/logs`：获取日志内容
+- `GET /api/logs`：获取日志内容（可选 `task` 参数指定任务今日日志）
+- `GET /api/logs/tasks`：获取任务日志列表
 - `GET /api/monitor-status/{platform}`：获取监控状态（无需登录）
 - `GET /api/version`：获取版本信息（无需登录，用于前端检测新版本）
 
@@ -530,15 +531,21 @@ def get_push_channel(config: dict, session) -> PushChannel:
 **日志文件结构**：
 ```
 logs/
-  main_20250130.log
+  main_20250130.log           # 今日总日志
   main_20250129.log
-  main_20250128.log
-  cleanup_20250130.log
+  task_ikuuu_checkin_20250130.log   # 各任务专属日志（按任务名+日期）
+  task_huya_monitor_20250130.log
+  task_log_cleanup_20250130.log
 ```
 
+- 总日志 `main_*.log`：所有输出汇总
+- 任务日志 `task_{job_id}_*.log`：每个任务执行时单独写入
+
+**任务日志实现**：`job_registry` 在任务执行前将任务专属文件 Handler 挂到 `logging.root`，执行结束后移除。这样可统一捕获监控类（`BaseMonitor` 的 `__class__.__name__` logger）、推送通道、定时任务模块等所有相关输出，避免仅挂模块 logger 时漏掉监控/推送日志。
+
 **日志清理**：
-- 定时任务每天执行一次（默认02:00）
-- 删除超过 `retention_days` 天的日志文件
+- 定时任务每天执行一次（默认 02:10）
+- 删除超过 `retention_days` 天的日志文件（包括总日志和各任务日志）
 - 从文件名提取日期或使用文件修改时间
 
 ---
@@ -933,7 +940,8 @@ WebMoniter/
 │   └── cookie_cache.json    # Cookie缓存
 │
 └── logs/                   # 日志目录（运行时创建）
-    └── main_*.log          # 日志文件（按日期）
+    ├── main_*.log          # 总日志（按日期）
+    └── task_*.log         # 各任务专属日志（task_{job_id}_YYYYMMDD.log）
 ```
 
 ---

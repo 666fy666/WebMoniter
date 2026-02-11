@@ -118,6 +118,46 @@ class LogManager:
         date_str = datetime.now().strftime(date_format)
         return self.log_dir / f"{name}_{date_str}.log"
 
+    def get_task_log_file(self, job_id: str, date_format: str = "%Y%m%d") -> Path:
+        """
+        获取任务专属日志文件路径（按任务名和日期分类）
+
+        Args:
+            job_id: 任务ID
+            date_format: 日期格式
+
+        Returns:
+            任务日志文件路径，格式为 task_{job_id}_{YYYYMMDD}.log
+        """
+        date_str = datetime.now().strftime(date_format)
+        # 任务名中可能包含非法文件名字符，用下划线替换
+        safe_job_id = job_id.replace("/", "_").replace("\\", "_")
+        return self.log_dir / f"task_{safe_job_id}_{date_str}.log"
+
+    def list_task_log_files_for_date(self, date_str: str) -> list[str]:
+        """
+        列出指定日期下所有任务日志文件对应的 job_id 列表
+
+        Args:
+            date_str: 日期字符串，格式 YYYYMMDD
+
+        Returns:
+            job_id 列表（从 task_xxx_YYYYMMDD.log 中解析出 xxx）
+        """
+        prefix = "task_"
+        date_suffix = f"_{date_str}"
+        job_ids = []
+        try:
+            for log_file in self.log_dir.glob("task_*.log"):
+                name = log_file.stem  # task_xxx_YYYYMMDD
+                if name.endswith(date_suffix) and name.startswith(prefix):
+                    middle = name[len(prefix) : -len(date_suffix)]
+                    if middle:
+                        job_ids.append(middle)
+        except Exception as e:
+            self.logger.warning(f"列出任务日志文件时出错: {e}")
+        return sorted(set(job_ids))
+
     def setup_file_logging(
         self,
         name: str,
@@ -151,6 +191,27 @@ class LogManager:
             )
         )
         return file_handler
+
+    def setup_task_file_logging(
+        self,
+        job_id: str,
+        log_level: str = "INFO",
+        date_format: str = "%Y%m%d",
+    ) -> DailyRotatingFileHandler:
+        """
+        创建设置任务专属文件日志处理器（按日期自动轮转）
+
+        Args:
+            job_id: 任务ID
+            log_level: 日志级别
+            date_format: 日期格式
+
+        Returns:
+            文件处理器，日志文件格式为 task_{job_id}_{YYYYMMDD}.log
+        """
+        safe_job_id = job_id.replace("/", "_").replace("\\", "_")
+        name = f"task_{safe_job_id}"
+        return self.setup_file_logging(name=name, log_level=log_level, date_format=date_format)
 
     def cleanup_old_logs(self, cleanup_log_name: str = "cleanup"):
         """

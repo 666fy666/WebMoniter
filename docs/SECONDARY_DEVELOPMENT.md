@@ -521,6 +521,8 @@ await self.db.execute_insert(sql, data)
 虎牙在类内使用 `self.push`（BaseMonitor 在 `initialize` 里已创建，会自动读取任务配置的 `push_channels`）；iKuuu/Demo 在 async 函数内自己创建 `push_manager` 并在同一 session 生命周期内 close。  
 推送失败建议用 `logger.error(..., exc_info=True)` 记录，不中断主流程。
 
+**任务专属日志**：新增任务无需额外处理，系统会在执行时自动将输出写入 `task_{job_id}_YYYYMMDD.log`。Handler 挂载在 root logger，可捕获任务内所有 logger（模块、类、推送通道等）的输出。
+
 ---
 
 ## 七、示例文件与代码位置一览

@@ -78,6 +78,14 @@ function renderTasks(tasks) {
                         <span class="btn-icon">${isRunning ? '⏳' : '▶️'}</span>
                         <span class="btn-text">${isRunning ? '运行中...' : '运行'}</span>
                     </button>
+                    <button 
+                        class="btn btn-secondary view-log-btn" 
+                        data-job-id="${task.job_id}"
+                        title="查看今日日志"
+                    >
+                        <span class="btn-icon">📝</span>
+                        <span class="btn-text">查看日志</span>
+                    </button>
                 </div>
             </div>
         `;
@@ -90,6 +98,79 @@ function renderTasks(tasks) {
     document.querySelectorAll('.run-task-btn').forEach(btn => {
         btn.addEventListener('click', () => runTask(btn.dataset.jobId));
     });
+    // 绑定查看日志按钮事件
+    document.querySelectorAll('.view-log-btn').forEach(btn => {
+        btn.addEventListener('click', () => openTaskLogModal(btn.dataset.jobId));
+    });
+}
+
+// 当前查看日志的任务ID（用于弹窗）
+let currentTaskLogJobId = null;
+
+// 打开任务日志弹窗
+function openTaskLogModal(jobId) {
+    currentTaskLogJobId = jobId;
+    const modal = document.getElementById('taskLogModal');
+    const titleEl = document.getElementById('taskLogModalTitle');
+    if (modal && titleEl) {
+        titleEl.textContent = '📝 任务日志 - ' + jobId;
+        modal.classList.add('show');
+        loadTaskLogInModal(jobId);
+    }
+}
+
+// 关闭任务日志弹窗
+function closeTaskLogModal() {
+    const modal = document.getElementById('taskLogModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+    currentTaskLogJobId = null;
+}
+
+// 在弹窗中加载任务日志
+async function loadTaskLogInModal(jobId) {
+    const container = document.getElementById('taskLogModalContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">加载中...</div>';
+
+    try {
+        const response = await fetch('/api/logs?lines=200&task=' + encodeURIComponent(jobId));
+        const data = await response.json();
+
+        if (data.error) {
+            container.innerHTML = '<div class="error-message show">' + escapeHtml(data.error) + '</div>';
+            return;
+        }
+
+        if (!data.logs || data.logs.length === 0) {
+            container.innerHTML = '<div class="loading">今日暂无日志</div>';
+            return;
+        }
+
+        let html = '';
+        data.logs.forEach(line => {
+            const trimmedLine = (line || '').trim();
+            if (!trimmedLine) return;
+            let className = 'log-line';
+            if (trimmedLine.includes('ERROR') || trimmedLine.includes('错误')) className += ' error';
+            else if (trimmedLine.includes('WARNING') || trimmedLine.includes('警告')) className += ' warning';
+            else if (trimmedLine.includes('INFO') || trimmedLine.includes('信息')) className += ' info';
+            else if (trimmedLine.includes('DEBUG') || trimmedLine.includes('调试')) className += ' debug';
+            html += '<div class="' + className + '">' + escapeHtml(trimmedLine) + '</div>';
+        });
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    } catch (error) {
+        container.innerHTML = '<div class="error-message show">加载失败: ' + escapeHtml(error.message) + '</div>';
+    }
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // 获取过滤器标签
@@ -180,4 +261,27 @@ document.addEventListener('DOMContentLoaded', function() {
             loadTasks();
         });
     });
+
+    // 任务日志弹窗：关闭按钮、遮罩点击、刷新按钮
+    const closeTaskLogModalBtn = document.getElementById('closeTaskLogModal');
+    const closeTaskLogBtn = document.getElementById('closeTaskLogBtn');
+    const refreshTaskLogBtn = document.getElementById('refreshTaskLogBtn');
+    const taskLogModal = document.getElementById('taskLogModal');
+
+    if (closeTaskLogModalBtn) {
+        closeTaskLogModalBtn.addEventListener('click', closeTaskLogModal);
+    }
+    if (closeTaskLogBtn) {
+        closeTaskLogBtn.addEventListener('click', closeTaskLogModal);
+    }
+    if (taskLogModal && taskLogModal.querySelector('.modal-overlay')) {
+        taskLogModal.querySelector('.modal-overlay').addEventListener('click', closeTaskLogModal);
+    }
+    if (refreshTaskLogBtn) {
+        refreshTaskLogBtn.addEventListener('click', function() {
+            if (currentTaskLogJobId) {
+                loadTaskLogInModal(currentTaskLogJobId);
+            }
+        });
+    }
 });

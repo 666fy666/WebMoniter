@@ -3,6 +3,7 @@
 let autoScrollEnabled = true;
 let refreshInterval = null;
 let retryCount = 0;
+let currentLogTask = ''; // 当前选中的任务ID，空表示今日总日志
 const MAX_RETRIES = 5; // 增加重试次数，适应手机端网络不稳定
 const REQUEST_TIMEOUT = 60000; // 60秒超时，适应手机端网络延迟
 const BASE_RETRY_DELAY = 1000; // 基础重试延迟1秒
@@ -22,6 +23,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshLogsBtn = document.getElementById('refreshLogsBtn');
     const clearLogsBtn = document.getElementById('clearLogsBtn');
     const autoScrollCheckbox = document.getElementById('autoScroll');
+    const logSourceSelect = document.getElementById('logSourceSelect');
+
+    // 加载任务列表并填充下拉框
+    async function loadLogTasks() {
+        if (!logSourceSelect) return;
+        try {
+            const response = await fetch('/api/logs/tasks');
+            const data = await response.json();
+            if (data.error) return;
+            // 保留「今日总日志」，追加各任务选项
+            while (logSourceSelect.options.length > 1) {
+                logSourceSelect.remove(1);
+            }
+            (data.all_tasks || []).forEach(function(t) {
+                const opt = document.createElement('option');
+                opt.value = t.job_id;
+                opt.textContent = (t.has_log_today ? '📝 ' : '📋 ') + t.job_id;
+                logSourceSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.warn('加载任务列表失败:', e);
+        }
+    }
+
+    // 日志来源切换
+    if (logSourceSelect) {
+        logSourceSelect.addEventListener('change', function() {
+            currentLogTask = this.value || '';
+            cachedLogs = null; // 切换任务时清除缓存，避免显示错误日志
+            loadLogs(true, true);
+        });
+    }
 
     // 带超时的fetch请求，支持AbortController
     function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT, abortSignal = null) {
@@ -104,8 +137,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        const logsUrl = currentLogTask
+            ? '/api/logs?lines=500&task=' + encodeURIComponent(currentLogTask)
+            : '/api/logs?lines=500';
         try {
-            const { promise: fetchPromise } = fetchWithTimeout('/api/logs?lines=500', {
+            const { promise: fetchPromise } = fetchWithTimeout(logsUrl, {
                 method: 'GET',
             }, REQUEST_TIMEOUT, controller.signal);
 
@@ -151,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 空日志也保存到缓存
                 cachedLogs = [];
                 cachedLogsTime = Date.now();
-                logsContainer.innerHTML = '<div class="loading">今日暂无日志</div>';
+                logsContainer.innerHTML = '<div class="logs-empty">今日暂无日志</div>';
             }
         } catch (error) {
             // 如果请求被取消或已被新请求替代，不处理错误（静默失败）
@@ -289,14 +325,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    // 刷新日志（手动刷新时强制刷新）
+    // 刷新日志（手动刷新时强制刷新，并更新任务列表）
     refreshLogsBtn.addEventListener('click', function() {
+        loadLogTasks();
         loadLogs(true, true);
     });
 
     // 清空显示
     clearLogsBtn.addEventListener('click', function() {
-        logsContainer.innerHTML = '<div class="loading">日志已清空</div>';
+        logsContainer.innerHTML = '<div class="logs-empty">日志已清空</div>';
     });
 
     // 自动滚动开关
@@ -343,7 +380,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 启动智能刷新
     scheduleNextRefresh();
 
-    // 初始加载
+    // 初始加载：先加载任务列表，再加载日志
+    loadLogTasks();
     loadLogs();
 
     // 页面可见性变化时重新加载（移动端切换应用后回来时）

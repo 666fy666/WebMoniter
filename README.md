@@ -246,7 +246,7 @@ docker compose up -d
 **数据展示**：微博、虎牙等平台监控数据<br/>
 <img src="web/static/数据展示.png" alt="数据展示截图" width="600">
 
-**日志查看**：实时查看当天日志<br/>
+**日志查看**：实时查看当天总日志或各任务专属日志，支持下拉切换日志来源<br/>
 <img src="web/static/日志查看.png" alt="日志查看截图" width="600">
 
 </details>

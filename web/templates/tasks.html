@@ -79,6 +79,29 @@
         </div>
     </div>
 
+    <!-- 查看任务日志弹窗 -->
+    <div id="taskLogModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3 id="taskLogModalTitle">📝 任务日志</h3>
+                <button class="modal-close" id="closeTaskLogModal">&times;</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow: auto; padding: 0;">
+                <div id="taskLogModalContent" class="logs-container" style="min-height: 300px; margin: 0;">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="refreshTaskLogBtn" class="btn btn-secondary">
+                    <span>🔄</span>
+                    刷新
+                </button>
+                <button class="btn btn-secondary" id="closeTaskLogBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 版本更新提示横幅 -->
     <div id="updateBanner" class="update-banner">
         <div class="update-banner-content">
@@ -130,6 +153,6 @@
         </div>
     </div>
     <script src="/static/js/common.js?v=4"></script>
-    <script src="/static/js/tasks.js?v=1"></script>
+    <script src="/static/js/tasks.js?v=2"></script>
 </body>
 </html>

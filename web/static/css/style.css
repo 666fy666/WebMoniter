@@ -1086,6 +1086,17 @@ table tr.data-row-link:hover {
     animation: spin 1s linear infinite;
 }
 
+/* 无日志/空状态：仅显示文字，无转圈动画 */
+.logs-empty {
+    text-align: center;
+    padding: 60px 40px;
+    color: var(--text-muted);
+}
+
+.logs-container .logs-empty {
+    color: #94a3b8;  /* 深色背景下的柔和文字色 */
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
@@ -1787,6 +1798,9 @@ table tr.data-row-link:hover {
 .task-actions {
     flex-shrink: 0;
     margin-left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .run-task-btn {
@@ -2039,6 +2053,10 @@ table tr.data-row-link:hover {
 
 .modal-header h3::before {
     content: '🔐';
+}
+
+#taskLogModal .modal-header h3::before {
+    content: none;
     font-size: 20px;
 }
 

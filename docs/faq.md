@@ -8,7 +8,7 @@
 ---
 
 ??? question "监控任务没有执行怎么办？"
-    1. 查看日志：`logs/main_*.log` 或 `docker compose logs`
+    1. 查看日志：`logs/main_*.log`（总日志）或 `logs/task_{job_id}_*.log`（任务专属日志），也可在 Web 日志页面切换查看
     2. 确认 `config.yml` 格式正确（YAML 语法）
     3. 检查网络与 Cookie 是否有效
     4. 确认监控任务已启用（如 `enable: true`，或对应监控块已配置）
@@ -31,6 +31,10 @@
     |:----------:|:------------:|:------------:|
     | Docker 部署 | `./data/` 目录 | `./logs/` 目录 |
     | 本地部署   | `./data/` 目录 | `./logs/` 目录 |
+
+    日志目录内含：
+    - `main_YYYYMMDD.log`：当日总日志
+    - `task_{任务ID}_YYYYMMDD.log`：各任务专属日志
 
 ---
 

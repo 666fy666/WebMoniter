@@ -19,7 +19,12 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.config import get_config, load_config_from_yml
 from src.database import AsyncDatabase
-from src.job_registry import MONITOR_JOBS, TASK_JOBS, discover_and_import
+from src.job_registry import (
+    MONITOR_JOBS,
+    TASK_JOBS,
+    discover_and_import,
+    run_task_with_logging,
+)
 
 # 尝试导入 ruamel.yaml 以保留注释
 try:
@@ -421,7 +426,7 @@ async def run_task_api(request: Request, task_id: str):
         try:
             # 优先使用原始函数（不检查当天是否已运行），如果没有则使用包装后的函数
             run_func = target_job.original_run_func or target_job.run_func
-            await run_func()
+            await run_task_with_logging(task_id, run_func)
             logger.info(f"任务 {task_id} 手动执行完成")
             return JSONResponse(
                 {
@@ -1002,8 +1007,8 @@ def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
 
 
 @app.get("/api/logs")
-async def get_logs(request: Request, lines: int = 100):
-    """获取日志内容"""
+async def get_logs(request: Request, lines: int = 100, task: str | None = None):
+    """获取日志内容。不传 task 时返回今日总日志，传 task 时返回指定任务的今日日志"""
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
@@ -1012,10 +1017,17 @@ async def get_logs(request: Request, lines: int = 100):
         from src.log_manager import LogManager
 
         log_manager = LogManager()
-        log_file = log_manager.get_log_file("main", date_format="%Y%m%d")
+        date_str = datetime.now().strftime("%Y%m%d")
+
+        if task:
+            log_file = log_manager.get_task_log_file(task, date_format="%Y%m%d")
+        else:
+            log_file = log_manager.get_log_file("main", date_format="%Y%m%d")
 
         if not log_file.exists():
-            return JSONResponse({"logs": [], "message": "今日暂无日志"})
+            return JSONResponse(
+                {"logs": [], "message": "今日暂无日志" if not task else f"任务 {task} 今日暂无日志"}
+            )
 
         try:
             recent_lines, total_lines = await asyncio.wait_for(
@@ -1030,6 +1042,38 @@ async def get_logs(request: Request, lines: int = 100):
     except Exception as e:
         logger.error(f"读取日志失败: {e}", exc_info=True)
         return JSONResponse({"error": f"读取日志失败: {str(e)}"}, status_code=500)
+
+
+@app.get("/api/logs/tasks")
+async def get_log_tasks_list(request: Request):
+    """获取今日有日志文件的任务 ID 列表，以及全部任务列表（用于前端下拉选择）"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        from src.log_manager import LogManager
+
+        discover_and_import()
+        log_manager = LogManager()
+        date_str = datetime.now().strftime("%Y%m%d")
+        tasks_with_logs = log_manager.list_task_log_files_for_date(date_str)
+
+        all_tasks = []
+        for job in MONITOR_JOBS + TASK_JOBS:
+            all_tasks.append(
+                {"job_id": job.job_id, "has_log_today": job.job_id in tasks_with_logs}
+            )
+
+        return JSONResponse(
+            {
+                "all_tasks": all_tasks,
+                "tasks_with_logs": tasks_with_logs,
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取任务日志列表失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/monitor-status/{platform}/{item_id}")

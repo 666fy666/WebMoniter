@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.config import AppConfig, get_config
+from src.log_manager import LogManager
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,40 @@ MONITOR_JOBS: list[JobDescriptor] = []
 TASK_JOBS: list[JobDescriptor] = []
 
 
+def _add_task_file_handler(job_id: str, run_func: Callable[[], Awaitable[None]]):
+    """
+    为任务执行添加专属日志文件处理器。任务执行期间，将 handler 挂到 root logger，
+    以便捕获所有相关日志（含监控类、定时任务类等通过 __class__.__name__ 命名的 logger）。
+    调用方应在 finally 中调用 _remove_task_file_handler 清理。
+    """
+    log_manager = LogManager()
+    handler = log_manager.setup_task_file_logging(job_id)
+    logging.root.addHandler(handler)
+    return handler
+
+
+def _remove_task_file_handler(run_func: Callable[[], Awaitable[None]], handler):
+    """移除并关闭任务专属日志处理器"""
+    try:
+        logging.root.removeHandler(handler)
+        handler.close()
+    except Exception as e:
+        logger.debug("移除任务日志处理器时出错（可忽略）: %s", e)
+
+
+async def run_task_with_logging(
+    job_id: str, run_func: Callable[[], Awaitable[None]]
+) -> None:
+    """
+    在任务专属日志支持下执行任务。用于手动触发时确保也写入任务专属日志文件。
+    """
+    handler = _add_task_file_handler(job_id, run_func)
+    try:
+        await run_func()
+    finally:
+        _remove_task_file_handler(run_func, handler)
+
+
 # 监控任务启用开关映射：job_id -> AppConfig 中对应的 enable 字段名
 MONITOR_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
     "weibo_monitor": "weibo_enable",
@@ -108,7 +143,11 @@ def register_monitor(
             if not getattr(config, enable_field, True):
                 logger.debug("%s: 当前配置未启用，跳过执行", job_id)
                 return
-        await run_func()
+        handler = _add_task_file_handler(job_id, run_func)
+        try:
+            await run_func()
+        finally:
+            _remove_task_file_handler(run_func, handler)
 
     MONITOR_JOBS.append(
         JobDescriptor(
@@ -192,17 +231,30 @@ def register_task(
             if await check_run_today(job_id):
                 logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
                 return
+            handler = _add_task_file_handler(job_id, run_func)
             try:
-                await run_func()
-                # 任务执行成功后标记为已运行
-                await mark_as_run_today(job_id)
-            except Exception:
-                # 任务失败不标记，允许后续重试
-                raise
+                try:
+                    await run_func()
+                    # 任务执行成功后标记为已运行
+                    await mark_as_run_today(job_id)
+                except Exception:
+                    # 任务失败不标记，允许后续重试
+                    raise
+            finally:
+                _remove_task_file_handler(run_func, handler)
 
         actual_run_func = wrapped_run_func
     else:
-        actual_run_func = run_func
+        # skip_if_run_today=False 时也需要添加任务专属日志
+        @functools.wraps(run_func)
+        async def wrapped_run_func_no_skip() -> None:
+            handler = _add_task_file_handler(job_id, run_func)
+            try:
+                await run_func()
+            finally:
+                _remove_task_file_handler(run_func, handler)
+
+        actual_run_func = wrapped_run_func_no_skip
 
     TASK_JOBS.append(
         JobDescriptor(
