@@ -1,12 +1,10 @@
-from urllib.parse import quote, urlencode
-
 from aiohttp import ClientResponseError
 
 from . import PushChannel
 
 
 class Bark(PushChannel):
-    """Bark 推送通道"""
+    """Bark 推送通道（使用 V2 API）"""
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
@@ -17,28 +15,27 @@ class Bark(PushChannel):
 
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):
         """推送消息"""
-        # URL编码标题和内容
-        encoded_title = quote(title)
-        encoded_content = quote(content)
-        push_url = f"{self.server_url}/{self.key}/{encoded_title}/{encoded_content}"
+        push_url = f"{self.server_url}/push"
 
-        params = {}
+        payload = {
+            "device_key": self.key,
+            "title": title,
+            "body": content,
+        }
         if jump_url:
-            params["url"] = jump_url
+            payload["url"] = jump_url
 
         if extend_data:
             query_task_config = extend_data.get("query_task_config")
             if query_task_config and "name" in query_task_config:
-                params["group"] = query_task_config["name"]
+                payload["group"] = query_task_config["name"]
             avatar_url = extend_data.get("avatar_url")
             if avatar_url:
-                params["icon"] = avatar_url
-
-        push_url = f"{push_url}?{urlencode(params)}" if params else push_url
+                payload["icon"] = avatar_url
 
         try:
             session = await self._get_session()
-            async with session.get(push_url) as response:
+            async with session.post(push_url, json=payload) as response:
                 response.raise_for_status()
                 result = await response.json()
                 if result.get("code") == 200:

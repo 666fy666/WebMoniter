@@ -61,6 +61,9 @@ class XhsConfig(BaseModel):
 class AppConfig(BaseModel):
     """应用配置"""
 
+    # 基础访问地址，用于构造对外可访问的 HTTP 链接（例如微博封面图 URL）
+    base_url: str = ""
+
     # 微博
     weibo_enable: bool = True  # 是否启用微博监控
     weibo_cookie: str = ""
@@ -410,6 +413,10 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 将嵌套的YAML配置转换为扁平化格式
         # 定义配置映射：{yaml_key: {field_mapping: {yaml_field: config_field}}}
         config_mappings = {
+            "app": {
+                # 例如 app.base_url: "http://localhost:8866"
+                "base_url": "base_url",
+            },
             "weibo": {
                 "enable": "weibo_enable",
                 "cookie": "weibo_cookie",

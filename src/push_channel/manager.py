@@ -88,6 +88,7 @@ class UnifiedPushManager:
         btntxt: str = "阅读全文",
         author: str = "FengYu",
         description_func=None,
+        extend_data: dict | None = None,
         **kwargs,
     ) -> dict:
         """
@@ -97,10 +98,11 @@ class UnifiedPushManager:
             title: 标题
             description: 内容描述（默认值，如果 description_func 不为 None，则会被忽略）
             to_url: 跳转链接
-            picurl: 图片URL
+            picurl: 图片URL（部分通道可通过 extend_data 传入本地图片路径自行上传）
             btntxt: 按钮文本
             author: 作者
             description_func: 可选的函数，接收 channel 参数，返回该通道的 description
+            extend_data: 额外扩展数据，会原样传递给各通道的 push 方法
 
         Returns:
             包含所有推送结果的字典
@@ -116,6 +118,12 @@ class UnifiedPushManager:
         tasks = []
         channel_names = []
 
+        # 基础扩展数据，每个通道都会收到
+        base_extend_data = {"btntxt": btntxt, "author": author}
+        # 如果调用方传入了自定义扩展数据，则进行合并（调用方优先）
+        if extend_data:
+            base_extend_data.update(extend_data)
+
         for channel in self.push_channels:
             channel_names.append(channel.name)
             # 如果提供了 description_func，则使用它来生成该通道的 description
@@ -129,6 +137,7 @@ class UnifiedPushManager:
                     picurl,
                     btntxt,
                     author,
+                    base_extend_data,
                 )
             )
 
@@ -156,6 +165,7 @@ class UnifiedPushManager:
         picurl: str,
         btntxt: str,
         author: str,
+        extend_data: dict | None,
     ):
         """带错误处理的发送包装器"""
         try:
@@ -166,7 +176,7 @@ class UnifiedPushManager:
                 content=description,
                 jump_url=to_url,
                 pic_url=picurl if picurl else None,
-                extend_data={"btntxt": btntxt, "author": author},
+                extend_data=extend_data,
             )
             return {"status": "success"}
         except Exception as e:

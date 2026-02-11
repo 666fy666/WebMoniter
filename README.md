@@ -139,13 +139,13 @@
 | 企业微信群聊机器人 | wecom_bot        | ✅           | 🥳 推荐，新建群聊添加自定义机器人即可 👉 [文档](https://developer.work.weixin.qq.com/document/path/99110)                                   |
 | 钉钉群聊机器人     | dingtalk_bot     | ✅           | 🥳 推荐，新建群聊添加自定义机器人，自定义关键词使用"【" 👉 [文档](https://open.dingtalk.com/document/robots/custom-robot-access)            |
 | 飞书群聊机器人     | feishu_bot       | ❌ (暂不支持) | 🤩 推荐，新建群聊添加自定义机器人，自定义关键词使用"【" 👉 [文档](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)         |
-| WxPusher           | wxpusher         | ✅           | 🥳 推荐，微信消息实时推送服务，可通过API实时给个人微信推送消息 👉 [官网](https://wxpusher.zjiecode.com/)                                    |
+| WxPusher           | wxpusher         | ✅           | 🥳 推荐，微信消息实时推送服务，可通过API实时给个人微信推送消息；配置 `app.base_url` 后可直接展示微博用户封面图 👉 [官网](https://wxpusher.zjiecode.com/) |
 | NapCatQQ           | napcat_qq        | ✅           | 🐧 好用，但需要自行部署 NapCatQQ 👉 [项目地址](https://github.com/NapNeko/NapCatQQ)                                                         |
-| Telegram机器人     | telegram_bot     | ✅           | 🪜 需要自备网络环境 👉 [文档](https://core.telegram.org/bots)                                                                               |
+| Telegram机器人     | telegram_bot     | ✅           | 🪜 需要自备网络环境；在微博监控下会优先上传本地封面图作为推送图片 👉 [文档](https://core.telegram.org/bots)                                  |
 | Bark               | bark             | ❌           | 🍎 适合苹果系用户，十分轻量，但没法推送图片 👉 [App Store](https://apps.apple.com/cn/app/id1403753865)                                      |
 | 飞书自建应用       | feishu_apps      | ✅           | 🤔 可以使用个人版，创建应用并授予机器人权限 👉 [官网](https://open.feishu.cn/app?lang=zh-CN)                                                |
 | Server酱_3         | serverChan_3     | ✅           | 🤔 需要安装app 👉 [官网](https://sc3.ft07.com/)                                                                                             |
-| PushPlus           | pushplus         | ✅           | 📱 支持多种推送渠道（微信、邮件、Webhook等） 👉 [官网](https://www.pushplus.plus/)                                                          |
+| PushPlus           | pushplus         | ✅           | 📱 支持多种推送渠道（微信、邮件、Webhook等）；配置 `app.base_url` 后可直接展示微博用户封面图 👉 [官网](https://www.pushplus.plus/)          |
 | Webhook            | webhook          | ✅ (POST)    | ⚡️ 通用的方式，请求格式详见 [附录](#webhook-支持的请求格式)                                                                                 |
 | Gotify             | gotify           | ❌           | 🖥️ 适合自建服务器 👉 [官网](https://gotify.net)                                                                                             |
 | 电子邮件           | email            | ✅           | 📧 通用的方式                                                                                                                               |

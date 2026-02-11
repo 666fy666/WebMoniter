@@ -1537,6 +1537,37 @@
                 </div>
             </div>
 
+            <!-- 应用基础配置 -->
+            <div class="card config-section fade-in" data-section="app" data-module="push" style="animation-delay: 0.25s;">
+                <div class="card-header">
+                    <h2>🌐 应用基础配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">Base URL</td>
+                            <td>
+                                <input type="text" id="app_base_url" class="form-input" placeholder="例如：http://localhost:8866 或 http://your-domain.com:8866">
+                                <p class="help-text">
+                                    用于拼接微博封面图等资源的完整访问链接。
+                                    建议填写你实际访问 Web 管理界面的地址；留空时，将继续使用固定示例图片。
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
             <!-- 免打扰时段配置 -->
             <div class="card config-section fade-in" data-section="quiet_hours" data-module="push" style="animation-delay: 0.3s;">
                 <div class="card-header">

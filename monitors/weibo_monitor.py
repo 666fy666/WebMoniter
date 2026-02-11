@@ -155,24 +155,45 @@ class WeiboMonitor(BaseMonitor):
         return data_dir
 
     async def _download_image(self, url: str, save_path: Path) -> bool:
-        """下载单张图片到指定路径，失败时仅记录日志"""
+        """下载单张图片到指定路径，失败时仅记录日志；已存在则跳过。"""
         if not url:
             return False
 
+        # 如果文件已存在，跳过下载，避免重复请求
+        if save_path.exists():
+            self.logger.debug("微博图片已存在，跳过下载: %s", save_path)
+            return True
+
         try:
             session = await self._get_session()
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    self.logger.warning(
-                        "下载微博头像失败，HTTP状态码: %s, URL: %s", resp.status, url
-                    )
-                    return False
-                content = await resp.read()
 
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            save_path.write_bytes(content)
-            self.logger.debug("已保存微博头像到: %s", save_path)
-            return True
+            # 部分字段可能是用分号拼接的多个候选 URL，这里逐个尝试
+            candidates = [u.strip() for u in str(url).split(";") if u.strip()]
+            if not candidates:
+                return False
+
+            last_status: int | None = None
+
+            for candidate in candidates:
+                async with session.get(candidate) as resp:
+                    last_status = resp.status
+                    if resp.status != 200:
+                        # 非 200 则尝试下一个候选
+                        continue
+
+                    content = await resp.read()
+                    save_path.parent.mkdir(parents=True, exist_ok=True)
+                    save_path.write_bytes(content)
+                    self.logger.debug("已保存微博头像到: %s (URL: %s)", save_path, candidate)
+                    return True
+
+            # 所有候选都失败，记录最后一次状态码和原始 URL 串
+            self.logger.warning(
+                "下载微博头像失败，所有候选 URL 均返回非 200（最后状态码: %s）, 原始URL: %s",
+                last_status,
+                url,
+            )
+            return False
         except Exception as e:
             self.logger.warning("下载微博头像失败: %s, URL: %s", e, url)
             return False
@@ -484,15 +505,36 @@ class WeiboMonitor(BaseMonitor):
         action = "发布" if diff > 0 else "删除"
         count = abs(diff)
 
+        # 为方案一/方案二准备封面图信息：
+        # - 方案一：如果配置了 base_url，则优先构造对外可访问的封面图 URL 供大部分通道使用；
+        # - 方案二：同时将本地路径通过 extend_data.local_pic_path 传给支持本地上传的通道（如 Telegram）。
+        cover_pic_url = None
+        local_pic_path = None
+        try:
+            safe_username = self._sanitize_username(data.get("用户名", "unknown_user"))
+            cover_path = self._get_weibo_data_dir() / safe_username / "cover_image_phone.jpg"
+            if cover_path.is_file():
+                local_pic_path = str(cover_path)
+
+                # 如果配置了 base_url，则构造 HTTP 访问地址
+                base_url = (self.config.base_url or "").rstrip("/")
+                if base_url:
+                    cover_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone.jpg"
+        except Exception as e:
+            self.logger.debug("构造本地封面图路径失败（已忽略）: %s", e)
+
         try:
             # 使用 description_func 来为不同通道生成不同的内容
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖
                 description_func=lambda channel: self._build_description_for_channel(channel, data),
-                picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
+                # 方案一：如果有封面图 URL 则优先使用；否则仍然使用原先的固定 Bing 图
+                picurl=cover_pic_url
+                or "https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url=f"https://m.weibo.cn/detail/{data['mid']}",
                 btntxt="阅读全文",
+                extend_data={"local_pic_path": local_pic_path} if local_pic_path else None,
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

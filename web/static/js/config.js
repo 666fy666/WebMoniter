@@ -515,6 +515,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('zgfc', config);
             loadSectionConfig('ssq_500w', config);
             loadSectionConfig('log_cleanup', config);
+            loadSectionConfig('app', config);
             loadSectionConfig('quiet_hours', config);
             loadSectionConfig('push_channel', config);
             loadSectionConfig('plugins', config);
@@ -1276,6 +1277,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 加载特定section的配置
     function loadSectionConfig(section, config) {
         switch(section) {
+            case 'app':
+                if (config.app) {
+                    const input = document.getElementById('app_base_url');
+                    if (input) {
+                        input.value = config.app.base_url || '';
+                    }
+                }
+                break;
             case 'weibo':
                 if (config.weibo) {
                     if (weiboEnable) {
@@ -1881,6 +1890,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     function collectSectionConfig(section) {
         const config = {};
         switch(section) {
+            case 'app': {
+                const baseUrlInput = document.getElementById('app_base_url');
+                config.app = {
+                    base_url: (baseUrlInput?.value || '').trim()
+                };
+                break;
+            }
             case 'weibo':
                 config.weibo = {
                     enable: weiboEnable ? weiboEnable.checked : true,

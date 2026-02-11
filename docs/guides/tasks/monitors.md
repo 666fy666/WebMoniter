@@ -47,6 +47,26 @@ weibo:
   push_channels: []                            # 为空则使用全部通道
 ```
 
+### 头像与封面图缓存 & 推送图片
+
+微博监控在拉取用户信息时，会自动：
+
+- 将头像相关图片缓存到 `data/weibo/<用户名>/` 目录下，包含：
+  - `profile_image.jpg`（`profile_image_url`）
+  - `avatar_large.jpg`（`avatar_large`）
+  - `avatar_hd.jpg`（`avatar_hd`）
+  - `cover_image_phone.jpg`（`cover_image_phone`，手机端封面图）
+- 首次下载成功后会复用本地文件，后续监控只在文件不存在时才尝试重新下载。
+
+配合 `config.yml` 中的 `app.base_url` 与 Web 服务暴露的静态目录：
+
+- 当 `app.base_url` 配置为例如 `http://localhost:8866` 时，封面图可通过  
+  `http://localhost:8866/weibo_img/<用户名>/cover_image_phone.jpg` 访问；
+- 大部分支持 `picurl` 的推送通道（如企业微信应用、钉钉机器人、PushPlus 等）会直接使用该 URL 作为卡片图片；
+- 对于支持本地图片上传的通道（当前为 `telegram_bot`），系统会优先读取本地 `cover_image_phone.jpg`，通过官方 Bot API 上传原图。
+
+> 提示：微博侧的图片链接通常带有过期时间与签名参数，系统会在链接仍有效时尽快缓存到本地；若远端链接已全部失效，则该用户将不再更新本地封面图，但不影响监控与文本推送。
+
 ### 参考
 
 - 微博开放平台（了解接口与限制）：[https://open.weibo.com](https://open.weibo.com)

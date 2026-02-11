@@ -53,6 +53,10 @@ templates = Jinja2Templates(directory="web/templates")
 # 静态文件目录
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
+# 微博相关静态资源目录（用于暴露 data/weibo 下的图片，如封面图）
+# 只负责将本地文件映射为 HTTP 访问路径，不做权限控制
+app.mount("/weibo_img", StaticFiles(directory="data/weibo"), name="weibo_img")
+
 # 凭据文件路径
 AUTH_FILE = Path("data/auth.json")
 
