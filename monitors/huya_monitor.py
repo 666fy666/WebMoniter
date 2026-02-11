@@ -20,6 +20,11 @@ HUYA_COOKIE = ""
 # 预编译正则表达式
 RE_PROFILE = re.compile(r'"tProfileInfo":({.*?})')
 RE_STATUS = re.compile(r'"eLiveStatus":(\d+)')
+# 当前房间的封面：来自 roomInfo.tLiveInfo/tReplayInfo 的 sScreenshot（页面中第一个非空即当前房间）
+RE_SCREENSHOT = re.compile(r'"sScreenshot":"(https?:\\u002F\\u002F[^"]+)"')
+
+# 开播/下播推送无主播图时的默认图片
+HUYA_DEFAULT_PIC = "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg"
 
 
 class HuyaMonitor(BaseMonitor):
@@ -97,10 +102,19 @@ class HuyaMonitor(BaseMonitor):
         # 直播状态转换: 2代表正在直播 -> 存为 "1"，否则 "0"
         status_num = "1" if live_status == 2 else "0"
 
+        # 每个主播对应图片：优先当前房间的 sScreenshot（直播/回放封面），其次 tProfileInfo.sAvatar180（主播头像）
+        room_pic = ""
+        screenshot_match = RE_SCREENSHOT.search(page_content)
+        if screenshot_match:
+            room_pic = screenshot_match.group(1).replace("\\u002F", "/")
+        if not room_pic:
+            room_pic = (profile_info.get("sAvatar180") or "").strip()
+
         return {
             "room": room_id,
             "name": profile_info["sNick"],
             "is_live": status_num,
+            "room_pic": room_pic,
         }
 
     def check_info(self, data: dict, old_info: tuple) -> int:
@@ -179,13 +193,14 @@ class HuyaMonitor(BaseMonitor):
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status_text = "开播了🐯🐯🐯" if res == 1 else "下播了🐟🐟🐟"
+        picurl = (data.get("room_pic") or "").strip() or HUYA_DEFAULT_PIC
 
         try:
             await self.push.send_news(
                 title=f"{data['name']} {status_text}",
                 description=f"房间号: {data['room']}\n\n{quote}\n\n{timestamp}",
                 to_url=f"https://m.huya.com/{data['room']}",
-                picurl="https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
+                picurl=picurl,
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")
@@ -203,7 +218,7 @@ class HuyaMonitor(BaseMonitor):
                     "虎牙监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
                     "请及时更新config.yml文件中的虎牙Cookie配置，以确保监控正常运行。"
                 ),
-                picurl="https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
+                picurl=HUYA_DEFAULT_PIC,
                 to_url="https://www.huya.com/login",
                 btntxt="前往登录",
             )
