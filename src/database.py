@@ -110,6 +110,61 @@ class AsyncDatabase:
         """
         )
 
+        # 创建 bilibili 表（动态：uid+dynamic_id；直播：uid+room_id+is_live）
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bilibili_dynamic (
+                uid TEXT PRIMARY KEY,
+                uname TEXT NOT NULL,
+                dynamic_id TEXT,
+                dynamic_text TEXT
+            )
+        """
+        )
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bilibili_live (
+                uid TEXT PRIMARY KEY,
+                uname TEXT NOT NULL,
+                room_id TEXT,
+                is_live TEXT
+            )
+        """
+        )
+
+        # 创建 douyin 表
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS douyin (
+                douyin_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                is_live TEXT
+            )
+        """
+        )
+
+        # 创建 douyu 表
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS douyu (
+                room TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                is_live TEXT
+            )
+        """
+        )
+
+        # 创建 xhs 表
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS xhs (
+                profile_id TEXT PRIMARY KEY,
+                user_name TEXT NOT NULL,
+                latest_note_title TEXT
+            )
+        """
+        )
+
         await conn.commit()
 
     async def _check_connection_health(self) -> bool:

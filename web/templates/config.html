@@ -223,7 +223,7 @@
             <!-- 虎牙监控配置 -->
             <div class="card config-section fade-in" data-section="huya" style="animation-delay: 0.1s;">
                 <div class="card-header">
-                    <h2>🎮 虎牙监控配置</h2>
+                    <h2>🐯 虎牙监控配置</h2>
                     <div class="card-actions">
                         <button class="btn btn-secondary section-reload-btn">
                             <span>🔄</span>
@@ -253,6 +253,183 @@
                             <td class="config-label">推送通道</td>
                             <td>
                                 <div id="huya_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 哔哩哔哩监控配置 -->
+            <div class="card config-section fade-in" data-section="bilibili" style="animation-delay: 0.12s;">
+                <div class="card-header">
+                    <h2>📺 哔哩哔哩监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">Cookie（可选）</td>
+                            <td><input type="text" id="bilibili_cookie" class="form-input" placeholder="可选，防ban"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">UID 列表</td>
+                            <td><textarea id="bilibili_uids" class="form-textarea" rows="3" placeholder="逗号分隔，如 1795147802,1669777785"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">跳过转发动态</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="bilibili_skip_forward" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="bilibili_concurrency" class="form-input" min="1" max="10" value="2"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="bilibili_monitor_interval_seconds" class="form-input" min="1" placeholder="默认60"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="bilibili_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 抖音直播监控配置 -->
+            <div class="card config-section fade-in" data-section="douyin" style="animation-delay: 0.14s;">
+                <div class="card-header">
+                    <h2>🎬 抖音直播监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">抖音号列表</td>
+                            <td><textarea id="douyin_douyin_ids" class="form-textarea" rows="3" placeholder="逗号分隔，如 ASOULjiaran,Nana7mi0715"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="douyin_concurrency" class="form-input" min="1" max="10" value="2"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="douyin_monitor_interval_seconds" class="form-input" min="1" placeholder="默认30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="douyin_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 斗鱼直播监控配置 -->
+            <div class="card config-section fade-in" data-section="douyu" style="animation-delay: 0.16s;">
+                <div class="card-header">
+                    <h2>🐟 斗鱼直播监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">房间号列表</td>
+                            <td><textarea id="douyu_rooms" class="form-textarea" rows="3" placeholder="逗号分隔，如 307876,12306"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="douyu_concurrency" class="form-input" min="1" max="10" value="2"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="douyu_monitor_interval_seconds" class="form-input" min="1" placeholder="默认300"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="douyu_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 小红书动态监控配置 -->
+            <div class="card config-section fade-in" data-section="xhs" style="animation-delay: 0.18s;">
+                <div class="card-header">
+                    <h2>📕 小红书动态监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">Cookie（可选）</td>
+                            <td><input type="text" id="xhs_cookie" class="form-input" placeholder="可选，防ban"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Profile ID 列表</td>
+                            <td><textarea id="xhs_profile_ids" class="form-textarea" rows="3" placeholder="逗号分隔，如 52d8c541b4c4d60e6c867480"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="xhs_concurrency" class="form-input" min="1" max="10" value="2"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="xhs_monitor_interval_seconds" class="form-input" min="1" placeholder="默认300"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="xhs_push_channels" class="push-channels-select"></div>
                                 <p class="help-text">不选择则使用全部已配置的通道</p>
                             </td>
                         </tr>

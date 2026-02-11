@@ -9,6 +9,7 @@ import asyncio
 import logging
 
 from src.config import AppConfig, get_config
+from src.config_db_sync import sync_config_to_db
 from src.config_watcher import ConfigWatcher
 from src.cookie_cache import get_cookie_cache
 from src.database import close_shared_connection
@@ -63,11 +64,14 @@ async def on_config_changed(
     old_config: AppConfig | None, new_config: AppConfig, scheduler: TaskScheduler
 ) -> None:
     """
-    配置变化时的回调 - 按注册表更新调度器中的任务间隔/执行时间。
+    配置变化时的回调 - 同步数据库（删除已移除的 uid/room）、按注册表更新调度器中的任务间隔/执行时间。
     """
     logger = logging.getLogger(__name__)
 
     try:
+        # 1. 配置与数据库同步：从配置中删除的 uid/room 对应删除数据库记录
+        await sync_config_to_db(old_config, new_config)
+
         updates = []
 
         for desc in MONITOR_JOBS:
@@ -100,7 +104,17 @@ async def on_config_changed(
                 )
 
         if updates:
-            logger.info("配置已更新: %s", ", ".join(updates))
+            monitor_count = sum(1 for u in updates if "间隔:" in u)
+            cron_count = sum(1 for u in updates if "执行时间:" in u)
+            other = [u for u in updates if "间隔:" not in u and "执行时间:" not in u]
+            parts = []
+            if monitor_count:
+                parts.append(f"{monitor_count} 个监控任务")
+            if cron_count:
+                parts.append(f"{cron_count} 个定时任务")
+            if other:
+                parts.extend(other)
+            logger.info("配置已更新: %s", ", ".join(parts))
     except Exception as e:
         logger.error("更新调度器任务间隔失败: %s", e, exc_info=True)
 

@@ -133,6 +133,10 @@ class ConfigWatcher:
         config_groups = {
             "weibo": ["weibo_cookie", "weibo_uids", "weibo_concurrency"],
             "huya": ["huya_rooms", "huya_concurrency"],
+            "bilibili": ["bilibili_uids", "bilibili_concurrency"],
+            "douyin": ["douyin_douyin_ids", "douyin_concurrency"],
+            "douyu": ["douyu_rooms", "douyu_concurrency"],
+            "xhs": ["xhs_profile_ids", "xhs_concurrency"],
             "checkin": [
                 "checkin_enable",
                 "checkin_email",
@@ -144,6 +148,10 @@ class ConfigWatcher:
             "scheduler": [
                 "huya_monitor_interval_seconds",
                 "weibo_monitor_interval_seconds",
+                "bilibili_monitor_interval_seconds",
+                "douyin_monitor_interval_seconds",
+                "douyu_monitor_interval_seconds",
+                "xhs_monitor_interval_seconds",
             ],
             "log_cleanup": [
                 "log_cleanup_enable",

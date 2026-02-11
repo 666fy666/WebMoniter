@@ -75,10 +75,14 @@
 
 ### 监控平台支持
 
-| 平台类型 | type   | 动态检测 | 开播检测 |
-|:--------:|:------:|:--------:|:--------:|
-| 虎牙     | huya   | ❌       | ✅       |
-| 微博     | weibo  | ✅       | ❌       |
+| 平台类型 | type     | 动态检测 | 开播/下播检测 |
+|:--------:|:--------:|:--------:|:-------------:|
+| 虎牙     | huya    | ❌       | ✅            |
+| 微博     | weibo   | ✅       | ❌            |
+| 哔哩哔哩 | bilibili| ✅       | ✅            |
+| 抖音     | douyin  | ❌       | ✅            |
+| 斗鱼     | douyu   | ❌       | ✅            |
+| 小红书   | xhs     | ✅       | ❌            |
 
 ### 定时任务支持
 
@@ -334,6 +338,10 @@ uv run python main.py &
 
 - 微博监控：修改 `weibo.monitor_interval_seconds`（秒）  
 - 虎牙监控：修改 `huya.monitor_interval_seconds`（秒）  
+- 哔哩哔哩监控：修改 `bilibili.monitor_interval_seconds`（秒）  
+- 抖音监控：修改 `douyin.monitor_interval_seconds`（秒）  
+- 斗鱼监控：修改 `douyu.monitor_interval_seconds`（秒）  
+- 小红书监控：修改 `xhs.monitor_interval_seconds`（秒）  
 
 **无需重启服务**，系统支持热重载，会在 5 秒内自动检测并更新任务间隔时间。
 

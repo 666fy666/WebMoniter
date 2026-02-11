@@ -97,6 +97,55 @@ def verify_password(password: str, password_hash: str) -> bool:
     return hash_password(password) == password_hash
 
 
+def _simple_merge_dict(target: dict, source: dict) -> None:
+    """递归合并 source 到 target，保留 target 中未被 source 覆盖的键（避免前端未收集的配置丢失）"""
+    for key, value in source.items():
+        if key in ("cookies", "accounts") and isinstance(value, list) and len(value) == 0:
+            if key in target and isinstance(target[key], list):
+                del target[key]
+            continue
+        if key not in target:
+            target[key] = value
+        elif isinstance(target[key], dict) and isinstance(value, dict):
+            _simple_merge_dict(target[key], value)
+        elif isinstance(target[key], list) and isinstance(value, list):
+            if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
+                existing_map = {item.get("name"): idx for idx, item in enumerate(target[key]) if isinstance(item, dict) and "name" in item}
+                new_names = {item.get("name") for item in value if isinstance(item, dict) and "name" in item}
+                for new_item in value:
+                    if isinstance(new_item, dict) and "name" in new_item:
+                        name = new_item["name"]
+                        if name in existing_map:
+                            _simple_merge_dict(target[key][existing_map[name]], new_item)
+                        else:
+                            target[key].append(new_item)
+                target[key][:] = [item for item in target[key] if not isinstance(item, dict) or "name" not in item or item["name"] in new_names]
+            else:
+                target[key] = value
+        else:
+            target[key] = value
+
+
+def _merge_and_dump_config(config_path: Path, config_data: dict) -> str:
+    """将前端提交的 config_data 合并到现有 config.yml，再导出为 YAML 字符串，避免未收集的配置丢失"""
+    original = {}
+    if config_path.exists():
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                original = yaml.safe_load(f)
+            if original is None:
+                original = {}
+        except Exception as e:
+            logger.warning(f"读取现有配置失败，将使用前端数据: {e}")
+    _simple_merge_dict(original, config_data)
+    return yaml.dump(
+        original,
+        allow_unicode=True,
+        default_flow_style=False,
+        sort_keys=False,
+    )
+
+
 def check_login(session_id: str | None) -> bool:
     """检查用户是否已登录"""
     return session_id is not None and session_id in active_sessions
@@ -297,6 +346,10 @@ def _get_job_description(job_id: str) -> str:
     descriptions = {
         "huya_monitor": "虎牙直播状态监控",
         "weibo_monitor": "微博动态监控",
+        "bilibili_monitor": "哔哩哔哩动态+直播监控",
+        "douyin_monitor": "抖音直播状态监控",
+        "douyu_monitor": "斗鱼直播状态监控",
+        "xhs_monitor": "小红书动态监控",
         "log_cleanup": "日志文件清理",
         "ikuuu_checkin": "ikuuu 每日签到",
         "tieba_checkin": "百度贴吧签到",
@@ -542,24 +595,16 @@ async def save_config_api(request: Request):
                         yaml_content = output.getvalue()
                     except Exception as e:
                         logger.warning(f"使用 ruamel.yaml 保留注释失败，回退到标准方式: {e}")
-                        # 回退到标准方式
-                        yaml_content = yaml.dump(
-                            config_data,
-                            allow_unicode=True,
-                            default_flow_style=False,
-                            sort_keys=False,
-                        )
+                        try:
+                            yaml_content = _merge_and_dump_config(config_path, config_data)
+                        except Exception as ex:
+                            return JSONResponse({"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400)
                 else:
-                    # 使用标准 yaml.dump（没有 ruamel.yaml 或文件不存在）
+                    # 使用标准方式（没有 ruamel.yaml 或文件不存在）：先合并再保存，避免覆盖未收集的配置
                     try:
-                        yaml_content = yaml.dump(
-                            config_data,
-                            allow_unicode=True,
-                            default_flow_style=False,
-                            sort_keys=False,
-                        )
-                    except Exception as e:
-                        return JSONResponse({"error": f"转换YAML失败: {str(e)}"}, status_code=400)
+                        yaml_content = _merge_and_dump_config(config_path, config_data)
+                    except Exception as ex:
+                        return JSONResponse({"error": f"合并并转换YAML失败: {str(ex)}"}, status_code=400)
         except Exception:
             # 如果不是JSON，尝试获取Form数据（兼容旧版本）
             form_data = await request.form()
@@ -620,9 +665,18 @@ async def save_config_api(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-# 平台主键与查询列
-PLATFORM_PRIMARY_KEY = {"weibo": "UID", "huya": "room"}
-VALID_PLATFORMS = frozenset(PLATFORM_PRIMARY_KEY)
+# 平台配置：table_name, primary_key, filter_query_param
+PLATFORM_CONFIG = {
+    "weibo": ("weibo", "UID", "uid"),
+    "huya": ("huya", "room", "room"),
+    "bilibili_live": ("bilibili_live", "uid", "uid"),
+    "bilibili_dynamic": ("bilibili_dynamic", "uid", "uid"),
+    "douyin": ("douyin", "douyin_id", "id"),
+    "douyu": ("douyu", "room", "room"),
+    "xhs": ("xhs", "profile_id", "id"),
+}
+PLATFORM_PRIMARY_KEY = {k: v[1] for k, v in PLATFORM_CONFIG.items()}
+VALID_PLATFORMS = frozenset(PLATFORM_CONFIG)
 
 
 def _weibo_row_to_item(row: tuple) -> dict:
@@ -671,6 +725,79 @@ def _huya_row_to_status_item(row: tuple) -> dict:
     return {"room": row[0], "name": row[1], "is_live": row[2]}
 
 
+def _bilibili_live_row_to_item(row: tuple) -> dict:
+    return {
+        "uid": row[0],
+        "uname": row[1],
+        "room_id": row[2],
+        "is_live": row[3],
+        "url": f"https://live.bilibili.com/{row[2]}" if row[2] else "",
+    }
+
+
+def _bilibili_dynamic_row_to_item(row: tuple) -> dict:
+    return {
+        "uid": row[0],
+        "uname": row[1],
+        "dynamic_id": row[2],
+        "dynamic_text": row[3] or "",
+        "url": f"https://www.bilibili.com/opus/{row[2]}" if row[2] else f"https://space.bilibili.com/{row[0]}",
+    }
+
+
+def _douyin_row_to_item(row: tuple) -> dict:
+    return {
+        "douyin_id": row[0],
+        "name": row[1],
+        "is_live": row[2],
+        "url": f"https://live.douyin.com/{row[0]}",
+    }
+
+
+def _douyu_row_to_item(row: tuple) -> dict:
+    return {
+        "room": row[0],
+        "name": row[1],
+        "is_live": row[2],
+        "url": f"https://www.douyu.com/{row[0]}",
+    }
+
+
+def _xhs_row_to_item(row: tuple) -> dict:
+    return {
+        "profile_id": row[0],
+        "user_name": row[1],
+        "latest_note_title": row[2] or "",
+        "url": f"https://www.xiaohongshu.com/user/profile/{row[0]}",
+    }
+
+
+def _row_to_item(platform: str, row: tuple) -> dict:
+    """根据平台将行转为 API 返回项。"""
+    converters = {
+        "weibo": _weibo_row_to_item,
+        "huya": _huya_row_to_item,
+        "bilibili_live": _bilibili_live_row_to_item,
+        "bilibili_dynamic": _bilibili_dynamic_row_to_item,
+        "douyin": _douyin_row_to_item,
+        "douyu": _douyu_row_to_item,
+        "xhs": _xhs_row_to_item,
+    }
+    return converters.get(platform, lambda r: dict(zip(range(len(r)), r)))(row)
+
+
+# 各平台 SELECT 列与表名
+_PLATFORM_SELECT = {
+    "weibo": ("weibo", "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :pk"),
+    "huya": ("huya", "SELECT room, name, is_live FROM huya WHERE room = :pk"),
+    "bilibili_live": ("bilibili_live", "SELECT uid, uname, room_id, is_live FROM bilibili_live WHERE uid = :pk"),
+    "bilibili_dynamic": ("bilibili_dynamic", "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic WHERE uid = :pk"),
+    "douyin": ("douyin", "SELECT douyin_id, name, is_live FROM douyin WHERE douyin_id = :pk"),
+    "douyu": ("douyu", "SELECT room, name, is_live FROM douyu WHERE room = :pk"),
+    "xhs": ("xhs", "SELECT profile_id, user_name, latest_note_title FROM xhs WHERE profile_id = :pk"),
+}
+
+
 @app.get("/api/data/{platform}/{item_id}")
 async def get_data_item(request: Request, platform: str, item_id: str):
     """按平台与主键 ID 获取单条监控数据（需登录）。"""
@@ -681,36 +808,36 @@ async def get_data_item(request: Request, platform: str, item_id: str):
     if platform not in VALID_PLATFORMS:
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
+    if platform not in _PLATFORM_SELECT:
+        return JSONResponse({"error": "无效的平台"}, status_code=400)
+
     try:
         db = AsyncDatabase()
         await db.initialize()
-
-        if platform == "weibo":
-            rows = await db.execute_query(
-                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :uid",
-                {"uid": item_id},
-            )
-        else:
-            rows = await db.execute_query(
-                "SELECT room, name, is_live FROM huya WHERE room = :room",
-                {"room": item_id},
-            )
-
+        _, sql = _PLATFORM_SELECT[platform]
+        rows = await db.execute_query(sql, {"pk": item_id})
         await db.close()
 
         if not rows:
             return JSONResponse({"error": "未找到该资源"}, status_code=404)
 
-        row = rows[0]
-        if platform == "weibo":
-            data = _weibo_row_to_item(row)
-        else:
-            data = _huya_row_to_item(row)
-
+        data = _row_to_item(platform, rows[0])
         return JSONResponse({"data": data})
     except Exception as e:
         logger.error(f"获取单条数据失败: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# 各平台列表查询 SQL（不含 WHERE，含占位符）
+_PLATFORM_LIST_SQL = {
+    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo",
+    "huya": "SELECT room, name, is_live FROM huya",
+    "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
+    "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",
+    "douyin": "SELECT douyin_id, name, is_live FROM douyin",
+    "douyu": "SELECT room, name, is_live FROM douyu",
+    "xhs": "SELECT profile_id, user_name, latest_note_title FROM xhs",
+}
 
 
 @app.get("/api/data/{platform}")
@@ -721,51 +848,45 @@ async def get_table_data(
     page_size: int = 100,
     uid: str | None = None,
     room: str | None = None,
+    id: str | None = None,
 ):
-    """获取监控数据列表（需登录）。支持分页与按用户/房间过滤。"""
+    """获取监控数据列表（需登录）。支持分页与按主键过滤。"""
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    if platform not in VALID_PLATFORMS:
-        return JSONResponse({"error": "无效的平台"}, status_code=400)
+    if platform not in VALID_PLATFORMS or platform not in _PLATFORM_LIST_SQL:
+        logger.warning("请求了无效的数据平台: %r，有效平台: %s", platform, sorted(VALID_PLATFORMS))
+        return JSONResponse(
+            {"error": "无效的平台", "platform": platform, "valid_platforms": sorted(VALID_PLATFORMS)},
+            status_code=400,
+        )
 
-    # 平台与过滤参数对应关系
-    filter_param = uid if platform == "weibo" else room
-    filter_column = PLATFORM_PRIMARY_KEY[platform]
+    _, _, filter_param_name = PLATFORM_CONFIG[platform]
+    filter_param = uid if filter_param_name == "uid" else (room if filter_param_name == "room" else id)
 
     try:
         db = AsyncDatabase()
         await db.initialize()
 
         where_clause = ""
-        params: dict = {}
+        params: dict = {"limit": page_size, "offset": (page - 1) * page_size}
         if filter_param:
-            where_clause = f" WHERE {filter_column} = :filter_val"
+            pk_col = PLATFORM_PRIMARY_KEY[platform]
+            where_clause = f" WHERE {pk_col} = :filter_val"
             params["filter_val"] = filter_param
 
-        count_sql = f"SELECT COUNT(*) FROM {platform}{where_clause}"
-        count_result = await db.execute_query(count_sql, params if params else None)
+        table_name = PLATFORM_CONFIG[platform][0]
+        count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
+        count_params = {k: v for k, v in params.items() if k in ("filter_val",)}
+        count_result = await db.execute_query(count_sql, count_params if count_params else None)
         total = count_result[0][0] if count_result else 0
 
-        offset = (page - 1) * page_size
-        params["limit"] = page_size
-        params["offset"] = offset
-        if platform == "weibo":
-            sql = (
-                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid "
-                f"FROM weibo{where_clause} LIMIT :limit OFFSET :offset"
-            )
-        else:
-            sql = f"SELECT room, name, is_live FROM huya{where_clause} LIMIT :limit OFFSET :offset"
-
+        base_sql = _PLATFORM_LIST_SQL[platform]
+        sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
         rows = await db.execute_query(sql, params)
 
-        if platform == "weibo":
-            data = [_weibo_row_to_item(row) for row in rows]
-        else:
-            data = [_huya_row_to_item(row) for row in rows]
-
+        data = [_row_to_item(platform, row) for row in rows]
         await db.close()
 
         return JSONResponse(

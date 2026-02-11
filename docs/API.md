@@ -98,10 +98,15 @@ Content-Type: application/json
 
 #### 平台与主键说明
 
-| 平台   | `platform` | 主键 ID 含义 | 示例 |
-|--------|------------|--------------|------|
-| 微博   | `weibo`    | 用户 UID     | `1234567890` |
-| 虎牙   | `huya`     | 房间号 room  | `123456` |
+| 平台             | `platform`          | 主键 ID 含义        | 示例                         |
+|------------------|---------------------|---------------------|------------------------------|
+| 微博             | `weibo`             | 用户 UID            | `1234567890`                 |
+| 虎牙             | `huya`              | 房间号 room         | `123456`                     |
+| 哔哩哔哩直播     | `bilibili_live`     | UP 主 UID           | `1795147802`                 |
+| 哔哩哔哩动态     | `bilibili_dynamic`  | UP 主 UID           | `1795147802`                 |
+| 抖音直播         | `douyin`            | 抖音号（字符串）    | `ASOULjiaran`                |
+| 斗鱼直播         | `douyu`             | 房间号 room         | `307876`                     |
+| 小红书动态       | `xhs`               | 用户 profile_id     | `52d8c541b4c4d60e6c867480`   |
 
 #### 列表：分页 + 可选过滤
 
@@ -109,13 +114,16 @@ Content-Type: application/json
 GET /api/data/{platform}?page=1&page_size=100
 GET /api/data/weibo?uid=1234567890&page=1&page_size=20
 GET /api/data/huya?room=123456&page=1&page_size=20
+GET /api/data/bilibili_live?uid=1795147802&page=1&page_size=20
+GET /api/data/douyin?id=ASOULjiaran&page=1&page_size=20
 ```
 
-- `platform`：`weibo` 或 `huya`
+- `platform`：见上表中 `platform` 列
 - `page`：页码，从 1 开始（默认 1）
 - `page_size`：每页条数（默认 100）
-- `uid`：仅当 `platform=weibo` 时有效，按用户 UID 过滤
-- `room`：仅当 `platform=huya` 时有效，按房间号过滤
+- `uid`：当 `platform` 为 `weibo`、`bilibili_live`、`bilibili_dynamic` 时按 UID 过滤
+- `room`：当 `platform` 为 `huya`、`douyu` 时按房间号过滤
+- `id`：当 `platform` 为 `douyin`、`xhs` 时按抖音号 / profile_id 过滤
 
 返回示例：
 

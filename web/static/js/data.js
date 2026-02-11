@@ -11,6 +11,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataTableContainer = document.getElementById('dataTableContainer');
     const pagination = document.getElementById('pagination');
 
+    const tableTitles = {
+        weibo: '📱 微博数据',
+        huya: '🐯 虎牙数据',
+        bilibili_live: '📺 哔哩哔哩直播',
+        bilibili_dynamic: '📺 哔哩哔哩动态',
+        douyin: '🎬 抖音直播',
+        douyu: '🐟 斗鱼直播',
+        xhs: '📕 小红书数据'
+    };
+
     // 切换标签页
     tabButtons.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -18,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentTable = this.dataset.table;
             currentPage = 1;
-            tableTitle.textContent = currentTable === 'weibo' ? '📱 微博数据' : '🎮 虎牙数据';
+            tableTitle.textContent = tableTitles[currentTable] || currentTable;
             loadTableData();
         });
     });
@@ -75,16 +85,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${escapeHtml(row.mid)}</td>
                 </tr>`;
             });
-        } else {
-            html += '<th>房间号</th><th>主播名称</th><th>直播状态</th>';
+        } else if (currentTable === 'huya' || currentTable === 'douyin' || currentTable === 'douyu') {
+            const pkCol = currentTable === 'douyin' ? 'douyin_id' : 'room';
+            const pkVal = currentTable === 'douyin' ? (row => row.douyin_id) : (row => row.room);
+            const linkTitles = { huya: '虎牙直播间', douyin: '抖音直播间', douyu: '斗鱼直播间' };
+            html += `<th>${currentTable === 'douyin' ? '抖音号' : '房间号'}</th><th>主播名称</th><th>直播状态</th>`;
             html += '</tr></thead><tbody>';
             rows.forEach(row => {
                 const statusText = row.is_live === '1' ? '<span style="color: #10b981; font-weight: 500;">🟢 直播中</span>' : '<span style="color: #94a3b8;">⚪ 未开播</span>';
-                const url = row.url || `https://www.huya.com/${row.room}`;
-                html += `<tr class="data-row-link" data-href="${escapeAttr(url)}" title="点击跳转到虎牙直播间">
-                    <td>${escapeHtml(row.room)}</td>
+                const url = row.url || '';
+                html += `<tr class="data-row-link" data-href="${escapeAttr(url)}" title="点击跳转到${linkTitles[currentTable]}">
+                    <td>${escapeHtml(pkVal(row))}</td>
                     <td>${escapeHtml(row.name)}</td>
                     <td>${statusText}</td>
+                </tr>`;
+            });
+        } else if (currentTable === 'bilibili_live') {
+            html += '<th>UID</th><th>UP主</th><th>房间号</th><th>直播状态</th>';
+            html += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                const statusText = row.is_live === '1' ? '<span style="color: #10b981; font-weight: 500;">🟢 直播中</span>' : '<span style="color: #94a3b8;">⚪ 未开播</span>';
+                html += `<tr class="data-row-link" data-href="${escapeAttr(row.url || '')}" title="点击跳转到B站直播间">
+                    <td>${escapeHtml(row.uid)}</td>
+                    <td>${escapeHtml(row.uname)}</td>
+                    <td>${escapeHtml(row.room_id)}</td>
+                    <td>${statusText}</td>
+                </tr>`;
+            });
+        } else if (currentTable === 'bilibili_dynamic') {
+            html += '<th>UID</th><th>UP主</th><th>动态ID</th><th>动态内容</th>';
+            html += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                html += `<tr class="data-row-link" data-href="${escapeAttr(row.url || '')}" title="点击跳转到B站动态">
+                    <td>${escapeHtml(row.uid)}</td>
+                    <td>${escapeHtml(row.uname)}</td>
+                    <td>${escapeHtml(row.dynamic_id)}</td>
+                    <td style="max-width: 400px; word-wrap: break-word;">${escapeHtml((row.dynamic_text || '').slice(0, 200))}${(row.dynamic_text || '').length > 200 ? '...' : ''}</td>
+                </tr>`;
+            });
+        } else if (currentTable === 'xhs') {
+            html += '<th>Profile ID</th><th>用户名</th><th>最新笔记标题</th>';
+            html += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                html += `<tr class="data-row-link" data-href="${escapeAttr(row.url || '')}" title="点击跳转到小红书">
+                    <td>${escapeHtml(row.profile_id)}</td>
+                    <td>${escapeHtml(row.user_name)}</td>
+                    <td style="max-width: 400px; word-wrap: break-word;">${escapeHtml(row.latest_note_title || '')}</td>
                 </tr>`;
             });
         }

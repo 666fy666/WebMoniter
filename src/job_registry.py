@@ -35,6 +35,10 @@ class JobDescriptor:
 MONITOR_MODULES: list[str] = [
     "monitors.huya_monitor",
     "monitors.weibo_monitor",
+    "monitors.bilibili_monitor",
+    "monitors.douyin_monitor",
+    "monitors.douyu_monitor",
+    "monitors.xhs_monitor",
 ]
 
 # 定时任务（Cron 执行）模块列表，新增定时任务时在此追加模块路径即可

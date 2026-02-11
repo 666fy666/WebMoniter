@@ -37,6 +37,10 @@
 |:----------:|:-------------|:-----|
 | 微博监控   | `weibo`      | Cookie、UID 列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#微博监控) |
 | 虎牙监控   | `huya`       | 房间号列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#虎牙监控) |
+| 哔哩哔哩   | `bilibili`   | UID 列表、Cookie（可选）、动态+开播/下播检测，详见 [监控任务详解](tasks/monitors.md#哔哩哔哩监控) |
+| 抖音直播   | `douyin`     | 抖音号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#抖音直播监控) |
+| 斗鱼直播   | `douyu`      | 房间号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#斗鱼直播监控) |
+| 小红书     | `xhs`        | Profile ID 列表、Cookie（可选）、动态检测，详见 [监控任务详解](tasks/monitors.md#小红书动态监控) |
 | 各签到任务 | `checkin`、`tieba`、`rainyun` 等 | 每类任务有独立节点，含 `enable`、账号/Cookie/Token、`time`、`push_channels`，详见 [定时任务详解](tasks/checkin.md) |
 | 推送通道   | `push_channel` | 列表形式，每项需 `name`、`type` 及该类型所需参数，详见 [推送通道配置详解](push-channels.md) |
 | 日志清理   | `log_cleanup` | 执行时间、日志保留天数 |
@@ -51,6 +55,27 @@
 
 - **为空**：使用全部已配置的推送通道。  
 - **非空**：仅使用列出的通道，便于不同任务推送到不同群或应用。
+
+---
+
+## ID 与列表字段的书写格式
+
+`uids`、`rooms`、`douyin_ids`、`profile_ids` 等字段为逗号分隔的 ID 列表，在 YAML 中**带单引号和不带单引号均可**：
+
+```yaml
+# 以下写法均有效
+weibo:
+  uids: 3669102477,5479678683
+bilibili:
+  uids: '946974'           # 单引号
+  uids: 946974             # 无引号
+douyin:
+  douyin_ids: 'ASOULjiaran'
+douyu:
+  rooms: 307876,123456
+```
+
+系统在加载时会统一转为字符串处理，**无需刻意统一**。若希望风格一致，可统一使用单引号（如 `uids: '123,456'`），语义更明确。
 
 ---
 

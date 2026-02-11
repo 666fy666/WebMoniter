@@ -367,6 +367,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('weibo', config);
             loadSectionConfig('weibo_chaohua', config);
             loadSectionConfig('huya', config);
+            loadSectionConfig('bilibili', config);
+            loadSectionConfig('douyin', config);
+            loadSectionConfig('douyu', config);
+            loadSectionConfig('xhs', config);
             loadSectionConfig('checkin', config);
             loadSectionConfig('rainyun', config);
             loadSectionConfig('tieba', config);
@@ -486,6 +490,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             'weibo_push_channels': originalConfig?.weibo?.push_channels || [],
             'weibo_chaohua_push_channels': originalConfig?.weibo_chaohua?.push_channels || [],
             'huya_push_channels': originalConfig?.huya?.push_channels || [],
+            'bilibili_push_channels': originalConfig?.bilibili?.push_channels || [],
+            'douyin_push_channels': originalConfig?.douyin?.push_channels || [],
+            'douyu_push_channels': originalConfig?.douyu?.push_channels || [],
+            'xhs_push_channels': originalConfig?.xhs?.push_channels || [],
             'checkin_push_channels': originalConfig?.checkin?.push_channels || [],
             'rainyun_push_channels': originalConfig?.rainyun?.push_channels || [],
             'tieba_push_channels': originalConfig?.tieba?.push_channels || [],
@@ -1266,8 +1274,55 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const val = config.huya.monitor_interval_seconds || 65;
                         intervalInput.value = val;
                     }
-                    // 渲染推送通道选择
                     renderTaskPushChannelSelect('huya_push_channels', config.huya.push_channels || []);
+                }
+                break;
+            case 'bilibili':
+                if (config.bilibili) {
+                    document.getElementById('bilibili_cookie').value = config.bilibili.cookie || '';
+                    document.getElementById('bilibili_uids').value = typeof config.bilibili.uids === 'string' 
+                        ? config.bilibili.uids 
+                        : (Array.isArray(config.bilibili.uids) ? config.bilibili.uids.join(',') : '');
+                    const skipEl = document.getElementById('bilibili_skip_forward');
+                    if (skipEl) skipEl.checked = config.bilibili.skip_forward !== false;
+                    document.getElementById('bilibili_concurrency').value = config.bilibili.concurrency || 2;
+                    const blInterval = document.getElementById('bilibili_monitor_interval_seconds');
+                    if (blInterval) blInterval.value = config.bilibili.monitor_interval_seconds || 60;
+                    renderTaskPushChannelSelect('bilibili_push_channels', config.bilibili.push_channels || []);
+                }
+                break;
+            case 'douyin':
+                if (config.douyin) {
+                    document.getElementById('douyin_douyin_ids').value = typeof config.douyin.douyin_ids === 'string' 
+                        ? config.douyin.douyin_ids 
+                        : (Array.isArray(config.douyin.douyin_ids) ? config.douyin.douyin_ids.join(',') : '');
+                    document.getElementById('douyin_concurrency').value = config.douyin.concurrency || 2;
+                    const dyInterval = document.getElementById('douyin_monitor_interval_seconds');
+                    if (dyInterval) dyInterval.value = config.douyin.monitor_interval_seconds || 30;
+                    renderTaskPushChannelSelect('douyin_push_channels', config.douyin.push_channels || []);
+                }
+                break;
+            case 'douyu':
+                if (config.douyu) {
+                    document.getElementById('douyu_rooms').value = typeof config.douyu.rooms === 'string' 
+                        ? config.douyu.rooms 
+                        : (Array.isArray(config.douyu.rooms) ? config.douyu.rooms.join(',') : '');
+                    document.getElementById('douyu_concurrency').value = config.douyu.concurrency || 2;
+                    const dyuInterval = document.getElementById('douyu_monitor_interval_seconds');
+                    if (dyuInterval) dyuInterval.value = config.douyu.monitor_interval_seconds || 300;
+                    renderTaskPushChannelSelect('douyu_push_channels', config.douyu.push_channels || []);
+                }
+                break;
+            case 'xhs':
+                if (config.xhs) {
+                    document.getElementById('xhs_cookie').value = config.xhs.cookie || '';
+                    document.getElementById('xhs_profile_ids').value = typeof config.xhs.profile_ids === 'string' 
+                        ? config.xhs.profile_ids 
+                        : (Array.isArray(config.xhs.profile_ids) ? config.xhs.profile_ids.join(',') : '');
+                    document.getElementById('xhs_concurrency').value = config.xhs.concurrency || 2;
+                    const xhsInterval = document.getElementById('xhs_monitor_interval_seconds');
+                    if (xhsInterval) xhsInterval.value = config.xhs.monitor_interval_seconds || 300;
+                    renderTaskPushChannelSelect('xhs_push_channels', config.xhs.push_channels || []);
                 }
                 break;
             case 'rainyun':
@@ -1749,6 +1804,41 @@ document.addEventListener('DOMContentLoaded', async function() {
                     push_channels: getTaskPushChannels('huya_push_channels')
                 };
                 break;
+            case 'bilibili':
+                config.bilibili = {
+                    cookie: (document.getElementById('bilibili_cookie')?.value || '').trim(),
+                    uids: document.getElementById('bilibili_uids').value.trim(),
+                    skip_forward: document.getElementById('bilibili_skip_forward')?.checked !== false,
+                    concurrency: parseInt(document.getElementById('bilibili_concurrency').value) || 2,
+                    monitor_interval_seconds: parseInt(document.getElementById('bilibili_monitor_interval_seconds').value) || 60,
+                    push_channels: getTaskPushChannels('bilibili_push_channels')
+                };
+                break;
+            case 'douyin':
+                config.douyin = {
+                    douyin_ids: document.getElementById('douyin_douyin_ids').value.trim(),
+                    concurrency: parseInt(document.getElementById('douyin_concurrency').value) || 2,
+                    monitor_interval_seconds: parseInt(document.getElementById('douyin_monitor_interval_seconds').value) || 30,
+                    push_channels: getTaskPushChannels('douyin_push_channels')
+                };
+                break;
+            case 'douyu':
+                config.douyu = {
+                    rooms: document.getElementById('douyu_rooms').value.trim(),
+                    concurrency: parseInt(document.getElementById('douyu_concurrency').value) || 2,
+                    monitor_interval_seconds: parseInt(document.getElementById('douyu_monitor_interval_seconds').value) || 300,
+                    push_channels: getTaskPushChannels('douyu_push_channels')
+                };
+                break;
+            case 'xhs':
+                config.xhs = {
+                    cookie: (document.getElementById('xhs_cookie')?.value || '').trim(),
+                    profile_ids: document.getElementById('xhs_profile_ids').value.trim(),
+                    concurrency: parseInt(document.getElementById('xhs_concurrency').value) || 2,
+                    monitor_interval_seconds: parseInt(document.getElementById('xhs_monitor_interval_seconds').value) || 300,
+                    push_channels: getTaskPushChannels('xhs_push_channels')
+                };
+                break;
             case 'rainyun': {
                 const apiKeys = [];
                 document.querySelectorAll('#rainyun_api_keys_list .multi-cookie-row').forEach(row => {
@@ -2142,6 +2232,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             cookie: document.getElementById('weibo_cookie').value.trim(),
             uids: document.getElementById('weibo_uids').value.trim(),
             concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
+            monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds')?.value) || 300,
             push_channels: getTaskPushChannels('weibo_push_channels')
         };
 
@@ -2164,8 +2255,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.huya = {
             rooms: document.getElementById('huya_rooms').value.trim(),
             concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
+            monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds')?.value) || 65,
             push_channels: getTaskPushChannels('huya_push_channels')
         };
+
+        // 哔哩哔哩 / 抖音 / 斗鱼 / 小红书配置
+        config.bilibili = collectSectionConfig('bilibili').bilibili;
+        config.douyin = collectSectionConfig('douyin').douyin;
+        config.douyu = collectSectionConfig('douyu').douyu;
+        config.xhs = collectSectionConfig('xhs').xhs;
 
         // 雨云签到配置（含多 API Key）
         const rainyunApiKeys = [];
@@ -2214,6 +2312,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             start: document.getElementById('quiet_hours_start').value || '22:00',
             end: document.getElementById('quiet_hours_end').value || '08:00'
         };
+
+        // 日志清理配置
+        config.log_cleanup = collectSectionConfig('log_cleanup').log_cleanup;
 
         // 每日签到配置（含多账号）：多账号区仅收集非空行；单账号用单账号输入框
         const checkinAccounts = [];

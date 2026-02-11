@@ -868,15 +868,44 @@ WebMoniter/
 ├── monitors/               # 监控模块
 │   ├── __init__.py
 │   ├── huya_monitor.py     # 虎牙直播监控
-│   └── weibo_monitor.py    # 微博监控
+│   ├── weibo_monitor.py    # 微博监控
+│   ├── bilibili_monitor.py # 哔哩哔哩动态+直播监控
+│   ├── douyin_monitor.py   # 抖音直播监控
+│   ├── douyu_monitor.py    # 斗鱼直播监控
+│   └── xhs_monitor.py      # 小红书动态监控
 │
 ├── tasks/                  # 定时任务模块
 │   ├── __init__.py
 │   ├── demo_task.py        # 示例任务
-│   ├── ikuuu_checkin.py    # iKuuu签到
 │   ├── log_cleanup.py      # 日志清理
+│   ├── ikuuu_checkin.py    # iKuuu签到
 │   ├── tieba_checkin.py    # 百度贴吧签到
-│   └── weibo_chaohua_checkin.py  # 微博超话签到
+│   ├── weibo_chaohua_checkin.py  # 微博超话签到
+│   ├── rainyun_checkin.py       # 雨云签到
+│   ├── enshan_checkin.py        # 恩山论坛签到
+│   ├── fg_checkin.py            # 富贵论坛签到
+│   ├── aliyun_checkin.py        # 阿里云盘签到
+│   ├── smzdm_checkin.py         # 什么值得买签到
+│   ├── zdm_draw.py              # 值得买每日抽奖
+│   ├── tyyun_checkin.py         # 天翼云盘签到
+│   ├── miui_checkin.py          # 小米社区签到
+│   ├── iqiyi_checkin.py         # 爱奇艺签到
+│   ├── lenovo_checkin.py        # 联想乐豆签到
+│   ├── lbly_checkin.py          # 丽宝乐园签到
+│   ├── pinzan_checkin.py        # 品赞签到
+│   ├── dml_checkin.py           # 达美乐任务
+│   ├── xiaomao_checkin.py       # 小茅预约（i茅台）
+│   ├── ydwx_checkin.py          # 一点万象签到
+│   ├── xingkong_checkin.py      # 星空代理签到
+│   ├── freenom_checkin.py       # Freenom 免费域名续期
+│   ├── weather_push.py          # 天气每日推送
+│   ├── qtw_checkin.py           # 千图网签到
+│   ├── kuake_checkin.py         # 夸克网盘签到
+│   ├── kjwj_checkin.py          # 科技玩家签到
+│   ├── fr_checkin.py            # 帆软社区签到 + 摇摇乐
+│   ├── nine_nine_nine_task.py   # 999 会员中心健康打卡任务
+│   ├── zgfc_draw.py             # 中国福彩抽奖活动
+│   └── ssq_500w_notice.py       # 七星彩/双色球开奖通知
 │
 ├── web/                    # Web前端资源
 │   ├── static/             # 静态文件
@@ -1031,6 +1060,33 @@ push_channel:
 - `room`：房间号（主键）
 - `name`：主播名称
 - `is_live`：直播状态（"1"=直播中，"0"=未开播）
+
+**bilibili_dynamic表**（B 站动态）：
+- `uid`：UP 主 UID（主键）
+- `uname`：UP 主昵称
+- `dynamic_id`：最近一条动态 ID
+- `dynamic_text`：最近一条动态的文本内容
+
+**bilibili_live表**（B 站直播）：
+- `uid`：UP 主 UID（主键）
+- `uname`：UP 主昵称
+- `room_id`：直播间房间号
+- `is_live`：直播状态
+
+**douyin表**：
+- `douyin_id`：抖音号（主键）
+- `name`：用户名
+- `is_live`：直播状态
+
+**douyu表**：
+- `room`：房间号（主键）
+- `name`：主播名称
+- `is_live`：直播状态
+
+**xhs表**（小红书）：
+- `profile_id`：用户 profile_id（主键）
+- `user_name`：用户名
+- `latest_note_title`：最近一条笔记标题
 
 **task_run_history表**（定时任务运行记录）：
 - `job_id`：任务ID（主键）

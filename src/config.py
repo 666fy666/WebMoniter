@@ -26,6 +26,38 @@ class HuyaConfig(BaseModel):
     concurrency: int = 7  # 并发数，默认7，建议5-10
 
 
+class BilibiliConfig(BaseModel):
+    """哔哩哔哩配置"""
+
+    cookie: str = ""
+    payload: str = ""
+    uids: list[str]
+    skip_forward: bool = True
+    concurrency: int = 2
+
+
+class DouyinConfig(BaseModel):
+    """抖音配置"""
+
+    douyin_ids: list[str]
+    concurrency: int = 2
+
+
+class DouyuConfig(BaseModel):
+    """斗鱼配置"""
+
+    rooms: list[str]
+    concurrency: int = 2
+
+
+class XhsConfig(BaseModel):
+    """小红书配置"""
+
+    cookie: str = ""
+    profile_ids: list[str]
+    concurrency: int = 2
+
+
 class AppConfig(BaseModel):
     """应用配置"""
 
@@ -39,6 +71,30 @@ class AppConfig(BaseModel):
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
     huya_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+
+    # 哔哩哔哩
+    bilibili_cookie: str = ""
+    bilibili_payload: str = ""
+    bilibili_uids: str = ""
+    bilibili_skip_forward: bool = True
+    bilibili_concurrency: int = 2
+    bilibili_push_channels: list[str] = []
+
+    # 抖音
+    douyin_douyin_ids: str = ""
+    douyin_concurrency: int = 2
+    douyin_push_channels: list[str] = []
+
+    # 斗鱼
+    douyu_rooms: str = ""
+    douyu_concurrency: int = 2
+    douyu_push_channels: list[str] = []
+
+    # 小红书
+    xhs_cookie: str = ""
+    xhs_profile_ids: str = ""
+    xhs_concurrency: int = 2
+    xhs_push_channels: list[str] = []
 
     # 每日签到配置（域名自动从 ikuuu.club 发现，无需手动配置 URL）
     checkin_enable: bool = False  # 是否启用每日签到
@@ -243,6 +299,10 @@ class AppConfig(BaseModel):
     # 监控任务间隔配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
     weibo_monitor_interval_seconds: int = 300  # 微博监控间隔（秒），默认300秒（5分钟）
+    bilibili_monitor_interval_seconds: int = 60  # 哔哩哔哩监控间隔（秒），默认60秒
+    douyin_monitor_interval_seconds: int = 30  # 抖音监控间隔（秒），默认30秒
+    douyu_monitor_interval_seconds: int = 300  # 斗鱼监控间隔（秒），默认300秒
+    xhs_monitor_interval_seconds: int = 300  # 小红书监控间隔（秒），默认300秒
 
     # 日志清理任务配置
     log_cleanup_enable: bool = True  # 是否启用日志清理任务
@@ -281,6 +341,42 @@ class AppConfig(BaseModel):
             concurrency=self.huya_concurrency,
         )
 
+    def get_bilibili_config(self) -> BilibiliConfig:
+        """获取哔哩哔哩配置"""
+        uids = [uid.strip() for uid in (self.bilibili_uids or "").split(",") if uid.strip()]
+        return BilibiliConfig(
+            cookie=self.bilibili_cookie or "",
+            payload=self.bilibili_payload or "",
+            uids=uids,
+            skip_forward=self.bilibili_skip_forward,
+            concurrency=self.bilibili_concurrency,
+        )
+
+    def get_douyin_config(self) -> DouyinConfig:
+        """获取抖音配置"""
+        ids = [i.strip() for i in (self.douyin_douyin_ids or "").split(",") if i.strip()]
+        return DouyinConfig(
+            douyin_ids=ids,
+            concurrency=self.douyin_concurrency,
+        )
+
+    def get_douyu_config(self) -> DouyuConfig:
+        """获取斗鱼配置"""
+        rooms = [room.strip() for room in (self.douyu_rooms or "").split(",") if room.strip()]
+        return DouyuConfig(
+            rooms=rooms,
+            concurrency=self.douyu_concurrency,
+        )
+
+    def get_xhs_config(self) -> XhsConfig:
+        """获取小红书配置"""
+        ids = [i.strip() for i in (self.xhs_profile_ids or "").split(",") if i.strip()]
+        return XhsConfig(
+            cookie=self.xhs_cookie or "",
+            profile_ids=ids,
+            concurrency=self.xhs_concurrency,
+        )
+
 
 def load_config_from_yml(yml_path: str = "config.yml") -> dict:
     """
@@ -312,12 +408,42 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "cookie": "weibo_cookie",
                 "uids": "weibo_uids",
                 "concurrency": "weibo_concurrency",
+                "monitor_interval_seconds": "weibo_monitor_interval_seconds",
                 "push_channels": "weibo_push_channels",
             },
             "huya": {
                 "rooms": "huya_rooms",
                 "concurrency": "huya_concurrency",
+                "monitor_interval_seconds": "huya_monitor_interval_seconds",
                 "push_channels": "huya_push_channels",
+            },
+            "bilibili": {
+                "cookie": "bilibili_cookie",
+                "payload": "bilibili_payload",
+                "uids": "bilibili_uids",
+                "skip_forward": "bilibili_skip_forward",
+                "concurrency": "bilibili_concurrency",
+                "monitor_interval_seconds": "bilibili_monitor_interval_seconds",
+                "push_channels": "bilibili_push_channels",
+            },
+            "douyin": {
+                "douyin_ids": "douyin_douyin_ids",
+                "concurrency": "douyin_concurrency",
+                "monitor_interval_seconds": "douyin_monitor_interval_seconds",
+                "push_channels": "douyin_push_channels",
+            },
+            "douyu": {
+                "rooms": "douyu_rooms",
+                "concurrency": "douyu_concurrency",
+                "monitor_interval_seconds": "douyu_monitor_interval_seconds",
+                "push_channels": "douyu_push_channels",
+            },
+            "xhs": {
+                "cookie": "xhs_cookie",
+                "profile_ids": "xhs_profile_ids",
+                "concurrency": "xhs_concurrency",
+                "monitor_interval_seconds": "xhs_monitor_interval_seconds",
+                "push_channels": "xhs_push_channels",
             },
             "checkin": {
                 "enable": "checkin_enable",
@@ -510,6 +636,9 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             "api_key",
             "uids",
             "rooms",
+            "douyin_ids",
+            "profile_ids",
+            "payload",
             "email",
             "password",
             "time",
@@ -542,6 +671,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                                 value = []
                             elif isinstance(value, str):
                                 value = [v.strip() for v in value.split(",") if v.strip()]
+                        # 特殊处理：uids/rooms/douyin_ids/profile_ids 支持 YAML 列表格式或数字，转为逗号分隔字符串
+                        if yaml_field in ("uids", "rooms", "douyin_ids", "profile_ids"):
+                            if isinstance(value, list):
+                                value = ",".join(str(v).strip() for v in value if v)
+                            elif not isinstance(value, str):
+                                value = str(value) if value is not None else ""
                         config_dict[config_field] = value
 
         # 特殊处理：多账号配置
