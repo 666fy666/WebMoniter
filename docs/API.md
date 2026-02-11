@@ -151,7 +151,18 @@ GET /api/data/huya/{room}
 
 ### 4. 监控状态（无需登录）
 
-监控状态接口与数据查询对应，同样支持「全部 / 按平台 / 按 ID」三种粒度，**无需登录**。
+监控状态接口与数据查询对应，同样支持「全部 / 按平台 / 按 ID」三种粒度，**无需登录**。  
+支持的监控平台与上文数据查询一致：
+
+| 平台             | `platform`          | 主键 ID 含义        |
+|------------------|---------------------|---------------------|
+| 微博             | `weibo`             | 用户 UID            |
+| 虎牙             | `huya`              | 房间号 room         |
+| 哔哩哔哩直播     | `bilibili_live`     | UP 主 UID           |
+| 哔哩哔哩动态     | `bilibili_dynamic`  | UP 主 UID           |
+| 抖音直播         | `douyin`            | 抖音号（字符串）    |
+| 斗鱼直播         | `douyu`             | 房间号 room         |
+| 小红书动态       | `xhs`               | 用户 profile_id     |
 
 #### 全部监控状态
 
@@ -159,53 +170,53 @@ GET /api/data/huya/{room}
 GET /api/monitor-status
 ```
 
-返回示例：
+返回结构：
 
-```json
-{
-  "success": true,
-  "data": {
-    "weibo": [
-      {
-        "UID": "1234567890",
-        "用户名": "示例用户",
-        "认证信息": "认证信息",
-        "简介": "用户简介",
-        "粉丝数": 10000,
-        "微博数": 500,
-        "文本": "最新微博内容",
-        "mid": "微博ID"
-      }
-    ],
-    "huya": [
-      {
-        "room": "123456",
-        "name": "主播名称",
-        "is_live": true
-      }
-    ]
-  },
-  "timestamp": "2024-01-01T12:00:00"
-}
-```
+- `success`: 是否成功  
+- `data`: 一个对象，key 为平台名（如 `weibo`、`huya`、`bilibili_live` 等），value 为该平台下所有监控对象的数组（字段与 `/api/data/{platform}` 中 `data` 元素一致）  
+- `timestamp`: ISO 格式时间戳
 
 #### 按平台
 
 ```http
 GET /api/monitor-status/weibo
 GET /api/monitor-status/huya
+GET /api/monitor-status/bilibili_live
+GET /api/monitor-status/bilibili_dynamic
+GET /api/monitor-status/douyin
+GET /api/monitor-status/douyu
+GET /api/monitor-status/xhs
 ```
 
-返回该平台下所有监控项的数组，格式同上（`data` 为数组）。
+返回该平台下所有监控项的数组，字段与对应 `/api/data/{platform}` 的单条 `data` 一致，例如：
+
+- `weibo`：`UID`、`用户名`、`认证信息`、`简介`、`粉丝数`、`微博数`、`文本`、`mid`、`url`  
+- `huya`：`room`、`name`、`is_live`、`url`  
+- `bilibili_live`：`uid`、`uname`、`room_id`、`is_live`、`url`  
+- `bilibili_dynamic`：`uid`、`uname`、`dynamic_id`、`dynamic_text`、`url`  
+- `douyin`：`douyin_id`、`name`、`is_live`、`url`  
+- `douyu`：`room`、`name`、`is_live`、`url`  
+- `xhs`：`profile_id`、`user_name`、`latest_note_title`、`url`
 
 #### 按平台 + 主键 ID（单条）
 
 ```http
 GET /api/monitor-status/weibo/{uid}
 GET /api/monitor-status/huya/{room}
+GET /api/monitor-status/bilibili_live/{uid}
+GET /api/monitor-status/bilibili_dynamic/{uid}
+GET /api/monitor-status/douyin/{id}
+GET /api/monitor-status/douyu/{room}
+GET /api/monitor-status/xhs/{id}
 ```
 
-示例：`GET /api/monitor-status/weibo/1234567890`、`GET /api/monitor-status/huya/123456`  
+示例：
+
+- `GET /api/monitor-status/weibo/1234567890`
+- `GET /api/monitor-status/huya/123456`
+- `GET /api/monitor-status/bilibili_live/1795147802`
+- `GET /api/monitor-status/douyin/ASOULjiaran`
+
 成功时 `data` 为单条对象；未找到时返回 `404`。
 
 ---

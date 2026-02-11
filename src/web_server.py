@@ -998,7 +998,7 @@ async def get_logs(request: Request, lines: int = 100):
 
 @app.get("/api/monitor-status/{platform}/{item_id}")
 async def get_monitor_status_item(request: Request, platform: str, item_id: str):
-    """按平台与主键 ID 获取单条监控状态（无需登录）。"""
+    """按平台与主键 ID 获取单条监控状态（无需登录）。支持所有已持久化的平台。"""
     if platform not in VALID_PLATFORMS:
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
@@ -1006,28 +1006,25 @@ async def get_monitor_status_item(request: Request, platform: str, item_id: str)
         db = AsyncDatabase()
         await db.initialize()
 
-        if platform == "weibo":
-            rows = await db.execute_query(
-                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :uid",
-                {"uid": item_id},
-            )
-            data = [_weibo_row_to_status_item(row) for row in rows]
-        else:
-            rows = await db.execute_query(
-                "SELECT room, name, is_live FROM huya WHERE room = :room",
-                {"room": item_id},
-            )
-            data = [_huya_row_to_status_item(row) for row in rows]
+        if platform not in _PLATFORM_SELECT:
+            return JSONResponse({"error": "无效的平台"}, status_code=400)
+
+        _, sql = _PLATFORM_SELECT[platform]
+        rows = await db.execute_query(sql, {"pk": item_id})
 
         await db.close()
 
-        if not data:
+        if not rows:
             return JSONResponse({"error": "未找到该资源"}, status_code=404)
+
+        # 复用 data 接口的字段定义，monitor-status 只是不需要登录
+        data = _row_to_item(platform, rows[0])
+        # 对于状态接口，通常不强制返回 url 字段，若有则一并返回，便于前端直接跳转
 
         return JSONResponse(
             {
                 "success": True,
-                "data": data[0],
+                "data": data,
                 "timestamp": datetime.now().isoformat(),
             }
         )
@@ -1038,7 +1035,7 @@ async def get_monitor_status_item(request: Request, platform: str, item_id: str)
 
 @app.get("/api/monitor-status/{platform}")
 async def get_monitor_status_by_platform(request: Request, platform: str):
-    """按平台获取监控状态列表（无需登录）。"""
+    """按平台获取监控状态列表（无需登录）。支持所有已持久化的平台。"""
     if platform not in VALID_PLATFORMS:
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
@@ -1046,16 +1043,15 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
         db = AsyncDatabase()
         await db.initialize()
 
-        if platform == "weibo":
-            weibo_rows = await db.execute_query(
-                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
-            )
-            data = [_weibo_row_to_status_item(row) for row in weibo_rows]
-        else:
-            huya_rows = await db.execute_query("SELECT room, name, is_live FROM huya")
-            data = [_huya_row_to_status_item(row) for row in huya_rows]
+        if platform not in _PLATFORM_LIST_SQL:
+            return JSONResponse({"error": "无效的平台"}, status_code=400)
+
+        base_sql = _PLATFORM_LIST_SQL[platform]
+        rows = await db.execute_query(base_sql)
 
         await db.close()
+
+        data = [_row_to_item(platform, row) for row in rows]
 
         return JSONResponse(
             {
@@ -1071,29 +1067,28 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
 
 @app.get("/api/monitor-status")
 async def get_monitor_status(request: Request):
-    """获取全部监控任务状态（无需登录）。"""
+    """获取全部监控任务状态（无需登录）。返回所有已持久化平台的聚合结果。"""
 
     try:
         db = AsyncDatabase()
         await db.initialize()
 
-        weibo_rows = await db.execute_query(
-            "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
-        )
-        weibo_data = [_weibo_row_to_status_item(row) for row in weibo_rows]
+        all_data: dict[str, list[dict]] = {}
 
-        huya_rows = await db.execute_query("SELECT room, name, is_live FROM huya")
-        huya_data = [_huya_row_to_status_item(row) for row in huya_rows]
+        for platform, base_sql in _PLATFORM_LIST_SQL.items():
+            try:
+                rows = await db.execute_query(base_sql)
+                all_data[platform] = [_row_to_item(platform, row) for row in rows]
+            except Exception as e:  # 单个平台出错不影响整体
+                logger.error(f"获取平台 {platform} 监控状态失败: {e}", exc_info=True)
+                all_data[platform] = []
 
         await db.close()
 
         return JSONResponse(
             {
                 "success": True,
-                "data": {
-                    "weibo": weibo_data,
-                    "huya": huya_data,
-                },
+                "data": all_data,
                 "timestamp": datetime.now().isoformat(),
             }
         )
