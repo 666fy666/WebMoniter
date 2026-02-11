@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.config import AppConfig, get_config
-from src.log_manager import LogManager
+from src.log_manager import LogManager, TaskLogFilter, _current_job_id
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +83,12 @@ TASK_JOBS: list[JobDescriptor] = []
 def _add_task_file_handler(job_id: str, run_func: Callable[[], Awaitable[None]]):
     """
     为任务执行添加专属日志文件处理器。任务执行期间，将 handler 挂到 root logger，
-    以便捕获所有相关日志（含监控类、定时任务类等通过 __class__.__name__ 命名的 logger）。
-    调用方应在 finally 中调用 _remove_task_file_handler 清理。
+    并通过 TaskLogFilter 仅写入当前 job_id 的日志，避免多任务并发时各任务日志混入同一文件。
+    调用方应在 finally 中调用 _remove_task_file_handler 清理，并重置 _current_job_id。
     """
     log_manager = LogManager()
     handler = log_manager.setup_task_file_logging(job_id)
+    handler.addFilter(TaskLogFilter(job_id))
     logging.root.addHandler(handler)
     return handler
 
@@ -108,9 +109,11 @@ async def run_task_with_logging(
     在任务专属日志支持下执行任务。用于手动触发时确保也写入任务专属日志文件。
     """
     handler = _add_task_file_handler(job_id, run_func)
+    token = _current_job_id.set(job_id)
     try:
         await run_func()
     finally:
+        _current_job_id.reset(token)
         _remove_task_file_handler(run_func, handler)
 
 
@@ -144,9 +147,11 @@ def register_monitor(
                 logger.debug("%s: 当前配置未启用，跳过执行", job_id)
                 return
         handler = _add_task_file_handler(job_id, run_func)
+        token = _current_job_id.set(job_id)
         try:
             await run_func()
         finally:
+            _current_job_id.reset(token)
             _remove_task_file_handler(run_func, handler)
 
     MONITOR_JOBS.append(
@@ -232,6 +237,7 @@ def register_task(
                 logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
                 return
             handler = _add_task_file_handler(job_id, run_func)
+            token = _current_job_id.set(job_id)
             try:
                 try:
                     await run_func()
@@ -241,6 +247,7 @@ def register_task(
                     # 任务失败不标记，允许后续重试
                     raise
             finally:
+                _current_job_id.reset(token)
                 _remove_task_file_handler(run_func, handler)
 
         actual_run_func = wrapped_run_func
@@ -249,9 +256,11 @@ def register_task(
         @functools.wraps(run_func)
         async def wrapped_run_func_no_skip() -> None:
             handler = _add_task_file_handler(job_id, run_func)
+            token = _current_job_id.set(job_id)
             try:
                 await run_func()
             finally:
+                _current_job_id.reset(token)
                 _remove_task_file_handler(run_func, handler)
 
         actual_run_func = wrapped_run_func_no_skip

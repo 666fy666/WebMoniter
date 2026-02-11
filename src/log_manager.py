@@ -1,11 +1,17 @@
 """日志管理模块 - 统一管理日志文件"""
 
+import contextvars
 import logging
 import logging.handlers
 import re
 import time
 from datetime import datetime
 from pathlib import Path
+
+# 当前执行中的任务 ID，用于任务专属日志文件只记录该任务的日志（避免多任务并发时混在一起）
+_current_job_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "current_job_id", default=None
+)
 
 
 class DailyRotatingFileHandler(logging.FileHandler):
@@ -84,6 +90,18 @@ class DailyRotatingFileHandler(logging.FileHandler):
 
         # 调用父类的emit方法写入日志
         super().emit(record)
+
+
+class TaskLogFilter(logging.Filter):
+    """仅当「当前执行中的任务」与 handler 所属任务一致时才写入，避免多任务并发时各任务日志混入同一文件。"""
+
+    def __init__(self, job_id: str):
+        super().__init__()
+        self.job_id = job_id
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        current = _current_job_id.get()
+        return current == self.job_id
 
 
 class LogManager:
