@@ -5,11 +5,14 @@
 // - 微博：头像 + 封面图 + 文本信息流
 // - 虎牙/抖音/斗鱼/B站直播：直播卡片网格
 // - 其他：信息卡片列表
+// - 支持拖拽卡片改变显示顺序，顺序持久化到 localStorage
 //
 
 let currentTable = 'huya';
 let currentPage = 1;
 const pageSize = 100;
+const STORAGE_KEY_PREFIX = 'data-card-order-';
+let sortableInstance = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -62,7 +65,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            renderCards(data.data || []);
+            let rows = data.data || [];
+            rows = applySavedOrder(rows);
+            renderCards(rows);
             renderPagination(data.total_pages, data.total);
         } catch (error) {
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
@@ -78,10 +83,82 @@ document.addEventListener('DOMContentLoaded', function () {
         return (replaced || 'unknown_user').trim();
     }
 
+    // 从数据行提取唯一 ID，用于拖拽排序持久化
+    function getCardId(row, index) {
+        if (currentTable === 'weibo') return String(row.UID ?? row.mid ?? index);
+        if (currentTable === 'huya' || currentTable === 'douyu') return String(row.room ?? index);
+        if (currentTable === 'bilibili_live') return String(row.room_id ?? row.uid ?? index);
+        if (currentTable === 'bilibili_dynamic') return String(row.dynamic_id ?? row.uid ?? index);
+        if (currentTable === 'douyin') return String(row.douyin_id ?? index);
+        if (currentTable === 'xhs') return String(row.profile_id ?? index);
+        return String(index);
+    }
+
+    // 从 localStorage 读取保存的排序，并应用到数据行
+    function applySavedOrder(rows) {
+        if (!rows || rows.length === 0) return rows;
+        const key = `${STORAGE_KEY_PREFIX}${currentTable}-${currentPage}`;
+        try {
+            const saved = localStorage.getItem(key);
+            if (!saved) return rows;
+            const order = JSON.parse(saved);
+            const idToRow = new Map();
+            rows.forEach((r, i) => idToRow.set(getCardId(r, i), r));
+            const result = [];
+            for (const id of order) {
+                const row = idToRow.get(id);
+                if (row) result.push(row);
+            }
+            // 若有新数据（ID 不在保存顺序中），追加到末尾
+            rows.forEach((r, i) => {
+                const id = getCardId(r, i);
+                if (!order.includes(id)) result.push(r);
+            });
+            return result.length > 0 ? result : rows;
+        } catch {
+            return rows;
+        }
+    }
+
+    // 保存当前卡片顺序到 localStorage
+    function saveCardOrder() {
+        const grid = dataTableContainer.querySelector('.data-card-grid');
+        if (!grid) return;
+        const cards = grid.querySelectorAll('.data-card[data-id]');
+        const order = Array.from(cards).map((c) => c.getAttribute('data-id'));
+        if (order.length === 0) return;
+        const key = `${STORAGE_KEY_PREFIX}${currentTable}-${currentPage}`;
+        try {
+            localStorage.setItem(key, JSON.stringify(order));
+        } catch (e) {
+            console.warn('保存卡片顺序失败:', e);
+        }
+    }
+
+    // 初始化拖拽排序
+    function initSortable() {
+        if (sortableInstance) {
+            sortableInstance.destroy();
+            sortableInstance = null;
+        }
+        const grid = dataTableContainer.querySelector('.data-card-grid');
+        if (!grid || typeof Sortable === 'undefined') return;
+        sortableInstance = new Sortable(grid, {
+            handle: '.data-card-drag-handle',
+            animation: 200,
+            ghostClass: 'data-card-dragging',
+            chosenClass: 'data-card-chosen',
+            dragClass: 'data-card-drag',
+            onEnd: function () {
+                saveCardOrder();
+            },
+        });
+    }
+
     // 渲染不同平台的卡片
     function renderCards(rows) {
         if (!rows || rows.length === 0) {
-            dataTableContainer.innerHTML = '<div class="loading">暂无数据</div>';
+            dataTableContainer.innerHTML = '<div class="empty-state">暂无数据</div>';
             pagination.innerHTML = '';
             return;
         }
@@ -89,8 +166,9 @@ document.addEventListener('DOMContentLoaded', function () {
         let html = '';
 
         if (currentTable === 'weibo') {
-            html += '<div class="data-card-grid weibo-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid weibo-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 const safeName = sanitizeUsername(row.用户名);
                 const encodedDir = encodeURIComponent(safeName);
                 const coverUrl = `/weibo_img/${encodedDir}/cover_image_phone.jpg`;
@@ -110,7 +188,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         : compactText || '暂无最新微博内容';
 
                 html += `
-<article class="data-card weibo-card data-card-link" data-href="${escapeAttr(url)}">
+<article class="data-card weibo-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <div class="weibo-card-cover">
     <div class="weibo-card-cover-bg" style="background-image: url('${escapeAttr(
         coverUrl,
@@ -147,8 +226,9 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else if (currentTable === 'douyin' || currentTable === 'bilibili_live') {
             // 抖音直播 / B站直播：与 B站动态 统一的 feed 卡片样式
-            html += '<div class="data-card-grid feed-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid feed-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 let roomLabel = '';
                 let roomValue = '';
                 let platformBadgeClass = '';
@@ -172,7 +252,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const name = row.name || row.uname || '';
 
                 html += `
-<article class="data-card feed-card data-card-link" data-href="${escapeAttr(url)}">
+<article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(name)}</div>
@@ -191,8 +272,9 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else if (currentTable === 'huya' || currentTable === 'douyu') {
             // 虎牙/斗鱼：保留原直播卡片（带封面/头像的网格卡片）
-            html += '<div class="data-card-grid live-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid live-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 let roomLabel = '';
                 let roomValue = '';
                 let platformLabel = '';
@@ -220,7 +302,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 html += `
 <article class="data-card live-card data-card-link ${
     isLive ? 'live-card-on' : 'live-card-off'
-}" data-href="${escapeAttr(url)}">
+}" data-id="${cardId}" data-href="${escapeAttr(url)}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <div class="live-card-media">
     <div class="live-card-cover${
         coverUrl ? ' live-card-cover-has-img' : ''
@@ -260,8 +343,9 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else if (currentTable === 'bilibili_dynamic') {
             // B站动态：类似动态流
-            html += '<div class="data-card-grid feed-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid feed-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 const url =
                     row.url ||
                     (row.dynamic_id
@@ -273,7 +357,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const brief = text.length > 200 ? `${text.slice(0, 200)}...` : text || '暂无动态内容';
 
                 html += `
-<article class="data-card feed-card data-card-link" data-href="${escapeAttr(url)}">
+<article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(row.uname || '')}</div>
@@ -294,8 +379,9 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else if (currentTable === 'xhs') {
             // 小红书：笔记卡片
-            html += '<div class="data-card-grid feed-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid feed-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 const url =
                     row.url ||
                     (row.profile_id
@@ -303,7 +389,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         : '');
 
                 html += `
-<article class="data-card feed-card data-card-link" data-href="${escapeAttr(url)}">
+<article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(row.user_name || '')}</div>
@@ -324,10 +411,12 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else {
             // 兜底：简单信息卡片
-            html += '<div class="data-card-grid feed-card-grid">';
-            rows.forEach((row) => {
+            html += '<div class="data-card-grid feed-card-grid data-card-sortable">';
+            rows.forEach((row, idx) => {
+                const cardId = escapeAttr(getCardId(row, idx));
                 html += `
-<article class="data-card feed-card">
+<article class="data-card feed-card" data-id="${cardId}">
+  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <pre class="feed-card-raw">${escapeHtml(JSON.stringify(row, null, 2))}</pre>
 </article>`;
             });
@@ -336,10 +425,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         dataTableContainer.innerHTML = html;
 
-        // 卡片点击统一跳转
+        // 卡片点击统一跳转（拖拽手柄不触发跳转）
         dataTableContainer.querySelectorAll('.data-card-link').forEach((card) => {
             card.addEventListener('click', function (e) {
-                // 若点击的是内部带 href 的链接，不拦截
+                if (e.target.closest('.data-card-drag-handle')) return;
                 if (e.target.tagName === 'A' && e.target.href) return;
                 const href = this.getAttribute('data-href');
                 if (href) {
@@ -347,6 +436,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
+
+        // 拖拽手柄阻止默认拖拽行为（使用 Sortable 的 handle）
+        dataTableContainer.querySelectorAll('.data-card-drag-handle').forEach((h) => {
+            h.addEventListener('mousedown', (e) => e.stopPropagation());
+            h.addEventListener('click', (e) => e.stopPropagation());
+        });
+
+        initSortable();
     }
 
     // 属性转义（用于 data-href 等）

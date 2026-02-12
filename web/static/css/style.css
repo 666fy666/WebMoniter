@@ -891,6 +891,7 @@ input:focus + .slider {
 }
 
 .data-card {
+    position: relative;
     background: var(--bg-card);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
@@ -904,6 +905,52 @@ input:focus + .slider {
     transform: translateY(-3px);
     box-shadow: var(--shadow-lg);
     border-color: var(--primary-light);
+}
+
+/* 卡片拖拽手柄 */
+.data-card-drag-handle {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: grab;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(4px);
+    box-shadow: var(--shadow-sm);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.data-card-drag-handle:hover {
+    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.data-card-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* 拖拽时的占位和选中状态 */
+.data-card-dragging {
+    opacity: 0.4;
+}
+
+.data-card-chosen {
+    box-shadow: var(--shadow-xl);
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.data-card-drag {
+    opacity: 0.95;
+    box-shadow: var(--shadow-xl);
 }
 
 /* ---- 微博信息流卡片 ---- */
@@ -1191,6 +1238,7 @@ input:focus + .slider {
     align-items: flex-start;
     gap: 10px;
     margin-bottom: 8px;
+    padding-left: 36px; /* 为左上角拖拽手柄留出空间 */
 }
 
 .feed-card-user {
