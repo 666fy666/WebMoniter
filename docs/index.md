@@ -8,42 +8,34 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博** 等平台监控
 
 ## 界面预览
 
-> 以下截图来自实际 Web 管理界面，示例账号与数据仅供演示。
+> 以下截图来自实际 Web 管理界面，示例账号与数据仅供演示。点击图片可查看大图。
 
-<table>
-  <tr>
-    <td width="50%">
-      <strong>配置管理</strong>：可视化编辑所有监控与签到配置<br/>
-      <img src="../web/static/配置管理.png" alt="配置管理截图" />
-    </td>
-    <td width="50%">
-      <strong>密码修改</strong>：首次安装请尽快修改默认密码<br/>
-      <img src="../web/static/密码修改.png" alt="密码修改截图" />
-    </td>
-  </tr>
-</table>
+### 配置管理 & 密码修改
 
-<br/>
+左侧 **配置管理** 支持可视化编辑所有监控与签到配置，表格视图与 YAML 文本可切换；右侧 **密码修改** 用于修改 Web 登录密码，生产环境请务必修改默认账号。
 
-<table>
-  <tr>
-    <td width="50%">
-      <strong>任务管理</strong>：查看所有监控任务与定时任务，支持手动触发<br/>
-      <img src="../web/static/任务管理.png" alt="任务管理截图" />
-    </td>
-    <td width="50%">
-      <strong>数据展示</strong>：微博、虎牙等平台监控数据一目了然<br/>
-      <img src="../web/static/数据展示.png" alt="数据展示截图" />
-    </td>
-  </tr>
-</table>
+| 配置管理 | 密码修改 |
+|:--------:|:--------:|
+| ![配置管理](assets/screenshots/配置管理.png) | ![密码修改](assets/screenshots/密码修改.png) |
+| 可视化编辑 config.yml，支持热重载 | 首次安装请尽快修改默认密码 |
 
-<br/>
+### 任务管理
 
-<p>
-  <strong>日志查看</strong>：实时查看当天总日志或各任务专属日志，支持下拉切换日志来源<br/>
-  <img src="../web/static/日志查看.png" alt="日志查看截图" />
-</p>
+查看所有监控任务与定时任务，支持「立即运行」手动触发、「查看日志」查看该任务今日日志。
+
+![任务管理](assets/screenshots/任务管理.png){ width="800" }
+
+### 数据展示
+
+按平台（微博、虎牙、哔哩哔哩等）查看监控记录，支持分页与筛选（按 UID、房间号等）。
+
+![数据展示](assets/screenshots/数据展示.png){ width="800" }
+
+### 日志查看
+
+实时查看当天总日志或各任务专属日志，支持下拉切换日志来源，便于排查问题。
+
+![日志查看](assets/screenshots/日志查看.png){ width="800" }
 
 ---
 

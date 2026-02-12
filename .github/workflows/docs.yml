@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'docs/**'
+      - 'web/static/**'
       - 'mkdocs.yml'
       - 'pyproject.toml'
       - '.github/workflows/docs.yml'
@@ -34,6 +35,11 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra docs --locked
+
+      - name: Sync screenshots from web/static
+        run: |
+          mkdir -p docs/assets/screenshots
+          cp -f web/static/*.png docs/assets/screenshots/ 2>/dev/null || true
 
       - name: Deploy to GitHub Pages
         run: uv run mkdocs gh-deploy --force
