@@ -129,14 +129,14 @@ class ConfigWatcher:
         if old_config is None:
             return True
 
-        # 定义需要比较的配置字段组
+        # 定义需要比较的配置字段组（含监控 enable、任务 enable/time，用于触发调度器热更新）
         config_groups = {
-            "weibo": ["weibo_cookie", "weibo_uids", "weibo_concurrency"],
-            "huya": ["huya_rooms", "huya_concurrency"],
-            "bilibili": ["bilibili_uids", "bilibili_concurrency"],
-            "douyin": ["douyin_douyin_ids", "douyin_concurrency"],
-            "douyu": ["douyu_rooms", "douyu_concurrency"],
-            "xhs": ["xhs_profile_ids", "xhs_concurrency"],
+            "weibo": ["weibo_enable", "weibo_cookie", "weibo_uids", "weibo_concurrency"],
+            "huya": ["huya_enable", "huya_rooms", "huya_concurrency"],
+            "bilibili": ["bilibili_enable", "bilibili_uids", "bilibili_concurrency"],
+            "douyin": ["douyin_enable", "douyin_douyin_ids", "douyin_concurrency"],
+            "douyu": ["douyu_enable", "douyu_rooms", "douyu_concurrency"],
+            "xhs": ["xhs_enable", "xhs_profile_ids", "xhs_concurrency"],
             "checkin": [
                 "checkin_enable",
                 "checkin_email",
@@ -145,6 +145,31 @@ class ConfigWatcher:
             ],
             "tieba": ["tieba_enable", "tieba_cookie", "tieba_time"],
             "weibo_chaohua": ["weibo_chaohua_enable", "weibo_chaohua_cookie", "weibo_chaohua_time"],
+            "rainyun": ["rainyun_enable", "rainyun_time"],
+            "enshan": ["enshan_enable", "enshan_time"],
+            "tyyun": ["tyyun_enable", "tyyun_time"],
+            "aliyun": ["aliyun_enable", "aliyun_time"],
+            "smzdm": ["smzdm_enable", "smzdm_time"],
+            "zdm_draw": ["zdm_draw_enable", "zdm_draw_time"],
+            "fg": ["fg_enable", "fg_time"],
+            "miui": ["miui_enable", "miui_time"],
+            "iqiyi": ["iqiyi_enable", "iqiyi_time"],
+            "lenovo": ["lenovo_enable", "lenovo_time"],
+            "lbly": ["lbly_enable", "lbly_time"],
+            "pinzan": ["pinzan_enable", "pinzan_time"],
+            "dml": ["dml_enable", "dml_time"],
+            "xiaomao": ["xiaomao_enable", "xiaomao_time"],
+            "ydwx": ["ydwx_enable", "ydwx_time"],
+            "xingkong": ["xingkong_enable", "xingkong_time"],
+            "freenom": ["freenom_enable", "freenom_time"],
+            "weather": ["weather_enable", "weather_time"],
+            "qtw": ["qtw_enable", "qtw_time"],
+            "kuake": ["kuake_enable", "kuake_time"],
+            "kjwj": ["kjwj_enable", "kjwj_time"],
+            "fr": ["fr_enable", "fr_time"],
+            "nine_nine_nine": ["nine_nine_nine_enable", "nine_nine_nine_time"],
+            "zgfc": ["zgfc_enable", "zgfc_time"],
+            "ssq_500w": ["ssq_500w_enable", "ssq_500w_time"],
             "scheduler": [
                 "huya_monitor_interval_seconds",
                 "weibo_monitor_interval_seconds",
@@ -210,5 +235,5 @@ class ConfigWatcher:
             await self.on_config_changed(old_config, new_config)
         else:
             # 同步函数，在线程池中执行
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, self.on_config_changed, old_config, new_config)

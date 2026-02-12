@@ -408,8 +408,8 @@ MONITOR_MODULES: list[str] = [
 
 ### 4.5 配置热重载（可选）
 
-若希望修改 `config.yml` 中虎牙相关配置后热重载生效，需在 `src/config_watcher.py` 的 `_config_changed()` 里比较 `huya_rooms`、`huya_concurrency` 等（项目内已包含 huya 的比较）。  
-调度间隔 `huya_monitor_interval_seconds` 已在 scheduler 配置比较中，无需单独写。
+项目已对现有监控与定时任务的 **enable**、**间隔/执行时间**（`monitor_interval_seconds`、`time`）、**免打扰**、**推送通道**等字段做完整覆盖，修改后约 5 秒内热重载生效。  
+**新增监控或定时任务时**，需在 `src/config_watcher.py` 的 `_config_changed()` 里增加对新字段的比较（如 `my_monitor_rooms`、`my_monitor_enable`、`my_task_time` 等），否则相关配置变更不会触发调度器更新。
 
 小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + get_xxx_config + load_config_from_yml → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。`enable: false` 时任务会被暂停，热重载生效。
 

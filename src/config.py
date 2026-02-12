@@ -1030,6 +1030,22 @@ def get_config(reload: bool = False) -> AppConfig:
     return config
 
 
+def _parse_quiet_time(time_str: str) -> time | None:
+    """解析 HH:MM 格式时间为 time 对象，非法格式返回 None"""
+    if not time_str or not isinstance(time_str, str):
+        return None
+    parts = (time_str or "").strip().split(":", 2)
+    if len(parts) < 2:
+        return None
+    try:
+        h, m = int(parts[0].strip()), int(parts[1].strip())
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            return time(h, m)
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 def is_in_quiet_hours(config: AppConfig) -> bool:
     """
     检查当前时间是否在免打扰时段内
@@ -1043,31 +1059,22 @@ def is_in_quiet_hours(config: AppConfig) -> bool:
     if not config.quiet_hours_enable:
         return False
 
-    try:
-        # 解析时间字符串（格式：HH:MM）
-        start_time_str = config.quiet_hours_start
-        end_time_str = config.quiet_hours_end
-
-        # 解析开始和结束时间
-        start_hour, start_minute = map(int, start_time_str.split(":"))
-        end_hour, end_minute = map(int, end_time_str.split(":"))
-
-        start_time = time(start_hour, start_minute)
-        end_time = time(end_hour, end_minute)
-
-        # 获取当前时间
-        now = datetime.now().time()
-
-        # 判断是否跨天（例如：22:00 到 08:00）
-        if start_time > end_time:
-            # 跨天情况：当前时间 >= 开始时间 或 当前时间 <= 结束时间
-            return now >= start_time or now <= end_time
-        else:
-            # 不跨天情况：开始时间 <= 当前时间 <= 结束时间
-            return start_time <= now <= end_time
-    except Exception as e:
-        logger.warning(f"检查免打扰时段时出错: {e}，默认返回False")
+    start_time = _parse_quiet_time(config.quiet_hours_start)
+    end_time = _parse_quiet_time(config.quiet_hours_end)
+    if start_time is None or end_time is None:
+        logger.warning(
+            "免打扰时段配置格式有误（应为 HH:MM），start=%s, end=%s，默认返回False",
+            config.quiet_hours_start,
+            config.quiet_hours_end,
+        )
         return False
+
+    now = datetime.now().time()
+
+    # 判断是否跨天（例如：22:00 到 08:00）
+    if start_time > end_time:
+        return now >= start_time or now <= end_time
+    return start_time <= now <= end_time
 
 
 def parse_checkin_time(checkin_time: str) -> tuple[str, str]:

@@ -180,7 +180,7 @@ class UnifiedPushManager:
             )
             return {"status": "success"}
         except Exception as e:
-            raise Exception(f"{channel.name}推送失败: {e}")
+            raise Exception(f"{channel.name}推送失败: {e}") from e
 
     async def close(self):
         """关闭所有推送服务"""

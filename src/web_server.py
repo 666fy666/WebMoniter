@@ -956,57 +956,52 @@ async def get_table_data(
 
 def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
     """同步读取日志文件最后 N 行。处理文件写入时的读取冲突，带重试。返回 (最近行列表, 总行数)。"""
+
+    def _do_read() -> tuple[list, int]:
+        with open(file_path, encoding="utf-8", errors="ignore") as f:
+            f.seek(0, os.SEEK_END)
+            file_size = f.tell()
+
+            if file_size < 1024 * 1024:  # 小于1MB
+                f.seek(0)
+                all_lines = f.readlines()
+            else:
+                estimated_bytes = num_lines * 200
+                read_start = max(0, file_size - estimated_bytes)
+                f.seek(read_start)
+                if read_start > 0:
+                    f.readline()
+                all_lines = f.readlines()
+
+            if len(all_lines) > num_lines:
+                recent_lines = all_lines[-num_lines:]
+            else:
+                recent_lines = all_lines
+            return recent_lines, len(all_lines)
+
+    def _do_read_binary() -> tuple[list, int]:
+        with open(file_path, "rb") as f:
+            content = f.read()
+        text = content.decode("utf-8", errors="ignore")
+        all_lines = text.splitlines(keepends=True)
+        recent_lines = all_lines[-num_lines:] if len(all_lines) > num_lines else all_lines
+        return recent_lines, len(all_lines)
+
     max_retries = 5
     retry_delay = 0.2
 
     for attempt in range(max_retries):
         try:
-            try:
-                with open(file_path, encoding="utf-8", errors="ignore") as f:
-                    f.seek(0, os.SEEK_END)
-                    file_size = f.tell()
-
-                    if file_size < 1024 * 1024:  # 小于1MB
-                        f.seek(0)
-                        all_lines = f.readlines()
-                    else:
-                        estimated_bytes = num_lines * 200
-                        read_start = max(0, file_size - estimated_bytes)
-                        f.seek(read_start)
-                        if read_start > 0:
-                            f.readline()
-                        all_lines = f.readlines()
-
-                    if len(all_lines) > num_lines:
-                        recent_lines = all_lines[-num_lines:]
-                    else:
-                        recent_lines = all_lines
-                    return recent_lines, len(all_lines)
-
-            except (OSError, PermissionError):
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay * (attempt + 1))
-                    continue
-                raise
-
-        except (OSError, PermissionError):
+            return _do_read()
+        except (OSError, PermissionError) as e:
             if attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             try:
-                with open(file_path, "rb") as f:
-                    content = f.read()
-                    text = content.decode("utf-8", errors="ignore")
-                    all_lines = text.splitlines(keepends=True)
-                    if len(all_lines) > num_lines:
-                        recent_lines = all_lines[-num_lines:]
-                    else:
-                        recent_lines = all_lines
-                    return recent_lines, len(all_lines)
+                return _do_read_binary()
             except Exception as final_e:
                 logger.error(f"读取日志文件失败（所有方法都失败）: {final_e}")
                 raise
-
         except Exception as e:
             logger.error(f"读取日志文件时发生未知错误: {e}")
             if attempt < max_retries - 1:
