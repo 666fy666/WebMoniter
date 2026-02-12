@@ -985,9 +985,11 @@ def get_config(reload: bool = False) -> AppConfig:
 
     # 青龙面板兼容：当通过 ql/*.py 脚本运行时，从环境变量加载配置
     import os
+
     if os.environ.get("WEBMONITER_QL_CRON"):
         try:
             from src import ql_compat
+
             task_id = getattr(ql_compat, "_current_ql_task_id", None)
             if task_id is not None:
                 cfg = ql_compat.load_config_from_env(task_id)

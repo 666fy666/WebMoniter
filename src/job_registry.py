@@ -102,9 +102,7 @@ def _remove_task_file_handler(run_func: Callable[[], Awaitable[None]], handler):
         logger.debug("移除任务日志处理器时出错（可忽略）: %s", e)
 
 
-async def run_task_with_logging(
-    job_id: str, run_func: Callable[[], Awaitable[None]]
-) -> None:
+async def run_task_with_logging(job_id: str, run_func: Callable[[], Awaitable[None]]) -> None:
     """
     在任务专属日志支持下执行任务。用于手动触发时确保也写入任务专属日志文件。
     """

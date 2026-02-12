@@ -2,9 +2,9 @@
 
 import asyncio
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
-import re
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
@@ -100,7 +100,7 @@ class WeiboMonitor(BaseMonitor):
 
         # 构建推送时的description固定部分
         push_prefix = "Ta说:👇\n"
-        push_separator = "\n" + "=" * 28 + "\n认证:"
+        push_separator = "\n" + "=" * 25 + "\n认证:"
         push_verified = verified_reason
         push_description_prefix = "\n\n简介:"
         push_description = description
@@ -425,7 +425,7 @@ class WeiboMonitor(BaseMonitor):
                 # 使用完整内容（旧数据或没有原始数据的情况）
                 description = (
                     f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 25}\n"
+                    f"{'=' * 22}\n"
                     f"认证:{data['认证信息']}\n\n"
                     f"简介:{data['简介']}"
                 )
@@ -475,7 +475,7 @@ class WeiboMonitor(BaseMonitor):
             # 构建完整的推送描述
             description = (
                 f"Ta说:👇\n{text}\n"
-                f"{'=' * 25}\n"
+                f"{'=' * 22}\n"
                 f"认证:{verified_reason}\n\n"
                 f"简介:{user_description}"
             )
@@ -483,7 +483,7 @@ class WeiboMonitor(BaseMonitor):
             # 其他通道使用完整内容
             description = (
                 f"Ta说:👇\n{data['文本']}\n"
-                f"{'=' * 28}\n"
+                f"{'=' * 25}\n"
                 f"认证:{data['认证信息']}\n\n"
                 f"简介:{data['简介']}"
             )

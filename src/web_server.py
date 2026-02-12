@@ -1027,7 +1027,6 @@ async def get_logs(request: Request, lines: int = 100, task: str | None = None):
         from src.log_manager import LogManager
 
         log_manager = LogManager()
-        date_str = datetime.now().strftime("%Y%m%d")
 
         if task:
             log_file = log_manager.get_task_log_file(task, date_format="%Y%m%d")
@@ -1071,9 +1070,7 @@ async def get_log_tasks_list(request: Request):
 
         all_tasks = []
         for job in MONITOR_JOBS + TASK_JOBS:
-            all_tasks.append(
-                {"job_id": job.job_id, "has_log_today": job.job_id in tasks_with_logs}
-            )
+            all_tasks.append({"job_id": job.job_id, "has_log_today": job.job_id in tasks_with_logs})
 
         return JSONResponse(
             {

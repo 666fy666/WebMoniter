@@ -10,6 +10,7 @@ from .feishu_bot import FeishuBot
 from .gotify import Gotify
 from .napcat_qq import NapCatQQ
 from .pushplus import PushPlus
+from .qlapi import QLAPIPushChannel
 from .qq_bot import QQBot
 from .server_chan_3 import ServerChan3
 from .server_chan_turbo import ServerChanTurbo
@@ -18,7 +19,6 @@ from .webhook import Webhook
 from .wecom_apps import WeComApps
 from .wecom_bot import WeComBot
 from .wxpusher import WxPusher
-from .qlapi import QLAPIPushChannel
 
 _channel_type_to_class = {
     "serverChan_turbo": ServerChanTurbo,

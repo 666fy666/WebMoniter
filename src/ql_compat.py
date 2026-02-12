@@ -104,25 +104,59 @@ def load_config_from_env(task_id: str | None = None) -> dict:
 
     # 按任务映射环境变量
     task_env_map: dict[str, tuple[str, dict | None]] = {
-        "ikuuu_checkin": ("CHECKIN", {"EMAIL": "checkin_email", "PASSWORD": "checkin_password", "TIME": "checkin_time"}),
+        "ikuuu_checkin": (
+            "CHECKIN",
+            {"EMAIL": "checkin_email", "PASSWORD": "checkin_password", "TIME": "checkin_time"},
+        ),
         "tieba_checkin": ("TIEBA", {"COOKIE": "tieba_cookie", "TIME": "tieba_time"}),
-        "weibo_chaohua_checkin": ("WEIBO_CHAOHUA", {"COOKIE": "weibo_chaohua_cookie", "TIME": "weibo_chaohua_time"}),
+        "weibo_chaohua_checkin": (
+            "WEIBO_CHAOHUA",
+            {"COOKIE": "weibo_chaohua_cookie", "TIME": "weibo_chaohua_time"},
+        ),
         "rainyun_checkin": ("RAINYUN", {"API_KEY": "rainyun_api_key", "TIME": "rainyun_time"}),
         "enshan_checkin": ("ENSHAN", {"COOKIE": "enshan_cookie", "TIME": "enshan_time"}),
-        "tyyun_checkin": ("TYYUN", {"USERNAME": "tyyun_username", "PASSWORD": "tyyun_password", "TIME": "tyyun_time"}),
-        "aliyun_checkin": ("ALIYUN", {"REFRESH_TOKEN": "aliyun_refresh_token", "TIME": "aliyun_time"}),
+        "tyyun_checkin": (
+            "TYYUN",
+            {"USERNAME": "tyyun_username", "PASSWORD": "tyyun_password", "TIME": "tyyun_time"},
+        ),
+        "aliyun_checkin": (
+            "ALIYUN",
+            {"REFRESH_TOKEN": "aliyun_refresh_token", "TIME": "aliyun_time"},
+        ),
         "smzdm_checkin": ("SMZDM", {"COOKIE": "smzdm_cookie", "TIME": "smzdm_time"}),
         "zdm_draw": ("ZDM_DRAW", {"COOKIE": "zdm_draw_cookie", "TIME": "zdm_draw_time"}),
         "fg_checkin": ("FG", {"COOKIE": "fg_cookie", "TIME": "fg_time"}),
-        "miui_checkin": ("MIUI", {"ACCOUNT": "miui_account", "PASSWORD": "miui_password", "TIME": "miui_time"}),
+        "miui_checkin": (
+            "MIUI",
+            {"ACCOUNT": "miui_account", "PASSWORD": "miui_password", "TIME": "miui_time"},
+        ),
         "iqiyi_checkin": ("IQIYI", {"COOKIE": "iqiyi_cookie", "TIME": "iqiyi_time"}),
-        "lenovo_checkin": ("LENOVO", {"ACCESS_TOKEN": "lenovo_access_token", "TIME": "lenovo_time"}),
+        "lenovo_checkin": (
+            "LENOVO",
+            {"ACCESS_TOKEN": "lenovo_access_token", "TIME": "lenovo_time"},
+        ),
         "lbly_checkin": ("LBLY", {"REQUEST_BODY": "lbly_request_body", "TIME": "lbly_time"}),
-        "pinzan_checkin": ("PINZAN", {"ACCOUNT": "pinzan_account", "PASSWORD": "pinzan_password", "TIME": "pinzan_time"}),
+        "pinzan_checkin": (
+            "PINZAN",
+            {"ACCOUNT": "pinzan_account", "PASSWORD": "pinzan_password", "TIME": "pinzan_time"},
+        ),
         "dml_checkin": ("DML", {"OPENID": "dml_openid", "TIME": "dml_time"}),
-        "xiaomao_checkin": ("XIAOMAO", {"TOKEN": "xiaomao_token", "MT_VERSION": "xiaomao_mt_version", "TIME": "xiaomao_time"}),
-        "ydwx_checkin": ("YDWX", {"DEVICE_PARAMS": "ydwx_device_params", "TOKEN": "ydwx_token", "TIME": "ydwx_time"}),
-        "xingkong_checkin": ("XINGKONG", {"USERNAME": "xingkong_username", "PASSWORD": "xingkong_password", "TIME": "xingkong_time"}),
+        "xiaomao_checkin": (
+            "XIAOMAO",
+            {"TOKEN": "xiaomao_token", "MT_VERSION": "xiaomao_mt_version", "TIME": "xiaomao_time"},
+        ),
+        "ydwx_checkin": (
+            "YDWX",
+            {"DEVICE_PARAMS": "ydwx_device_params", "TOKEN": "ydwx_token", "TIME": "ydwx_time"},
+        ),
+        "xingkong_checkin": (
+            "XINGKONG",
+            {
+                "USERNAME": "xingkong_username",
+                "PASSWORD": "xingkong_password",
+                "TIME": "xingkong_time",
+            },
+        ),
         "freenom_checkin": ("FREENOM", {"TIME": "freenom_time"}),
         "weather_push": ("WEATHER", {"CITY_CODE": "weather_city_code", "TIME": "weather_time"}),
         "qtw_checkin": ("QTW", {"COOKIE": "qtw_cookie", "TIME": "qtw_time"}),
@@ -212,7 +246,10 @@ def load_config_from_env(task_id: str | None = None) -> dict:
             data = json.loads(acc)
             if isinstance(data, list):
                 cfg["checkin_accounts"] = [
-                    {"email": str(a.get("email", "")).strip(), "password": str(a.get("password", "")).strip()}
+                    {
+                        "email": str(a.get("email", "")).strip(),
+                        "password": str(a.get("password", "")).strip(),
+                    }
                     for a in data
                     if isinstance(a, dict)
                 ]
@@ -262,9 +299,15 @@ def load_config_from_env(task_id: str | None = None) -> dict:
         if val:
             if "|" in val or val.startswith("["):
                 try:
-                    cfg[config_key] = json.loads(val) if val.startswith("[") else [v.strip() for v in val.split("|") if v.strip()]
+                    cfg[config_key] = (
+                        json.loads(val)
+                        if val.startswith("[")
+                        else [v.strip() for v in val.split("|") if v.strip()]
+                    )
                 except json.JSONDecodeError:
-                    cfg[config_key] = [v.strip() for v in val.replace("|", ",").split(",") if v.strip()]
+                    cfg[config_key] = [
+                        v.strip() for v in val.replace("|", ",").split(",") if v.strip()
+                    ]
             else:
                 cfg[config_key] = [val]
 
@@ -316,6 +359,7 @@ def get_qlapi():
     try:
         # 方式1：全局 QLAPI（青龙注入）
         import builtins
+
         if hasattr(builtins, "QLAPI"):
             return getattr(builtins, "QLAPI")
     except Exception:  # noqa: BLE001
@@ -323,6 +367,7 @@ def get_qlapi():
     try:
         # 方式2：ql 包
         import ql  # type: ignore
+
         return getattr(ql, "QLAPI", None)
     except ImportError:
         pass

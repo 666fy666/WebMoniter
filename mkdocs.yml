@@ -69,17 +69,21 @@ nav:
     - 安装与运行: installation.md
     - 青龙面板部署: QINGLONG.md
   - 使用指南:
-    - 配置说明: guides/config.md
-    - Web 管理界面: guides/web-ui.md
-    - 监控与定时任务: guides/tasks.md
-    - 监控任务详解: guides/tasks/monitors.md
-    - 定时任务详解: guides/tasks/checkin.md
-    - 推送通道: guides/push-channels.md
+    - 配置与设置:
+      - 配置说明: guides/config.md
+      - Web 管理界面: guides/web-ui.md
+    - 任务管理:
+      - 任务概览: guides/tasks.md
+      - 监控任务详解: guides/tasks/monitors.md
+      - 定时任务详解: guides/tasks/checkin.md
+    - 推送与通知:
+      - 推送通道配置: guides/push-channels.md
   - 二次开发:
     - 架构概览: ARCHITECTURE.md
     - 二次开发指南: SECONDARY_DEVELOPMENT.md
-  - API 参考: API.md
-  - 常见问题: faq.md
+    - API 参考: API.md
+  - 帮助与支持:
+    - 常见问题: faq.md
 
 extra:
   social:

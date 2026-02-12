@@ -185,7 +185,9 @@ docker compose up -d
 
 ---
 
-### 💻 Windows 部署
+<span id="-windows-部署"></span>
+<details>
+<summary><strong>💻 Windows 部署</strong></summary>
 
 > **无需安装 Python 环境**，下载即用。
 
@@ -201,11 +203,15 @@ docker compose up -d
 > - 关闭控制台窗口即可停止程序
 > - `config.yml` 支持热重载，修改配置无需重启
 
+</details>
+
 <br/>
 
 ---
 
-### 🐉 青龙面板部署
+<span id="-青龙面板部署"></span>
+<details>
+<summary><strong>🐉 青龙面板部署</strong></summary>
 
 > **适用**：已安装 [青龙面板](https://github.com/whyour/qinglong) 的用户，通过环境变量配置，推送走青龙内置通知（QLAPI）。
 
@@ -218,6 +224,8 @@ docker compose up -d
 > 💡 **推送通知**：青龙环境下自动使用**青龙系统通知**，在青龙「系统设置 → 通知设置」中配置推送方式即可，无需额外配置。
 
 📖 **完整操作指南**（环境变量一览、多账号配置、常见问题）见 **[青龙面板兼容指南](docs/QINGLONG.md)**。
+
+</details>
 
 <br/>
 
