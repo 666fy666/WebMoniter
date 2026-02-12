@@ -10,11 +10,15 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![APScheduler](https://img.shields.io/badge/scheduler-APScheduler-red?style=flat-square)](https://apscheduler.readthedocs.io/)
+[![uv](https://img.shields.io/badge/uv-FFD43B?style=flat-square&logo=python&logoColor=3776AB)](https://github.com/astral-sh/uv)
+[![docs](https://img.shields.io/badge/docs-MkDocs%20Material-1997B5?style=flat-square&logo=readme&logoColor=white)](https://666fy666.github.io/WebMoniter/)
 
 [![GitHub Stars](https://img.shields.io/github/stars/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
 [![GitHub Forks](https://img.shields.io/github/forks/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter/commits/main)
 [![Docker Pulls](https://img.shields.io/docker/pulls/fengyu666/webmoniter?style=flat-square)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![Docker Image Version](https://img.shields.io/docker/v/fengyu666/webmoniter/latest?style=flat-square&logo=docker&sort=semver)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![GitHub Release](https://img.shields.io/github/v/release/666fy666/WebMoniter?style=flat-square&logo=github&label=EXE)](https://github.com/666fy666/WebMoniter/releases/latest)
@@ -34,7 +38,7 @@
 [🌐 Web 管理](#-web-管理界面) •
 [⚙️ 配置说明](#️-配置说明)
 
-[![文档站](https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=flat-square)](https://666fy666.github.io/WebMoniter/) ·
+[📚 文档站](https://666fy666.github.io/WebMoniter/) ·
 [📡 API](docs/API.md) ·
 [🏗️ 项目架构](docs/ARCHITECTURE.md) ·
 [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md)
