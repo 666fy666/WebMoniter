@@ -508,11 +508,16 @@ class WeiboMonitor(BaseMonitor):
         # 为方案一/方案二准备封面图信息：
         # - 方案一：如果配置了 base_url，则优先构造对外可访问的封面图 URL 供大部分通道使用；
         # - 方案二：同时将本地路径通过 extend_data.local_pic_path 传给支持本地上传的通道（如 Telegram）。
+        # 同时，为 Bark 等通道准备头像 icon（extend_data.avatar_url）。
         cover_pic_url = None
         local_pic_path = None
+        avatar_url = None
         try:
             safe_username = self._sanitize_username(data.get("用户名", "unknown_user"))
-            cover_path = self._get_weibo_data_dir() / safe_username / "cover_image_phone.jpg"
+            user_dir = self._get_weibo_data_dir() / safe_username
+
+            # 封面图（用于大图展示）
+            cover_path = user_dir / "cover_image_phone.jpg"
             if cover_path.is_file():
                 local_pic_path = str(cover_path)
 
@@ -520,10 +525,27 @@ class WeiboMonitor(BaseMonitor):
                 base_url = (self.config.base_url or "").rstrip("/")
                 if base_url:
                     cover_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone.jpg"
+
+            # 头像（用于 Bark icon）
+            profile_path = user_dir / "profile_image.jpg"
+            if profile_path.is_file():
+                base_url = (self.config.base_url or "").rstrip("/")
+                if base_url:
+                    avatar_url = f"{base_url}/weibo_img/{safe_username}/profile_image.jpg"
         except Exception as e:
             self.logger.debug("构造本地封面图路径失败（已忽略）: %s", e)
 
         try:
+            extend_data: dict | None = None
+            # 将本地封面图路径传递给支持本地上传图片的通道
+            if local_pic_path:
+                extend_data = {"local_pic_path": local_pic_path}
+            # 为 Bark 等通道传递头像 URL，用作 icon
+            if avatar_url:
+                if extend_data is None:
+                    extend_data = {}
+                extend_data["avatar_url"] = avatar_url
+
             # 使用 description_func 来为不同通道生成不同的内容
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
@@ -534,7 +556,7 @@ class WeiboMonitor(BaseMonitor):
                 or "https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url=f"https://m.weibo.cn/detail/{data['mid']}",
                 btntxt="阅读全文",
-                extend_data={"local_pic_path": local_pic_path} if local_pic_path else None,
+                extend_data=extend_data,
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

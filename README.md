@@ -51,8 +51,7 @@
 
 <br/>
 
-<details>
-<summary><strong>📋 目录</strong></summary>
+## 📋 目录
 
 - [📊 支持的平台和推送通道](#-支持的平台和推送通道)
 - [🚀 快速开始](#-快速开始)（Docker · Windows · 青龙 · Web 管理 · 本地安装 · 更新）
@@ -63,8 +62,6 @@
 - [📄 许可证](#-许可证)
 - [Contributors](#contributors)
 - [Star History](#star-history)
-
-</details>
 
 <br/>
 
@@ -235,7 +232,7 @@ docker compose up -d
 
 <table>
 <tr>
-<td width="70%"><strong>配置管理</strong>：可视化编辑配置<br/><img src="web/static/web首页.png" alt="首页截图" width="100%"></td>
+<td width="70%"><strong>配置管理</strong>：可视化编辑配置<br/><img src="web/static/配置管理.png" alt="配置管理截图" width="100%"></td>
 <td width="30%"><strong>密码修改</strong><br/><img src="web/static/密码修改.png" alt="密码修改截图" width="100%"><br/><small>⚠️ 默认账号仅用于测试</small></td>
 </tr>
 </table>

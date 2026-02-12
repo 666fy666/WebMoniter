@@ -102,7 +102,9 @@ class HuyaMonitor(BaseMonitor):
         # 直播状态转换: 2代表正在直播 -> 存为 "1"，否则 "0"
         status_num = "1" if live_status == 2 else "0"
 
-        # 每个主播对应图片：优先当前房间的 sScreenshot（直播/回放封面），其次 tProfileInfo.sAvatar180（主播头像）
+        # 每个主播对应图片：
+        # - room_pic: 优先当前房间的 sScreenshot（直播/回放封面），其次 tProfileInfo.sAvatar180（主播头像）
+        # - avatar_url: 始终使用 tProfileInfo.sAvatar180，用于 Bark 等通道作为 icon
         room_pic = ""
         screenshot_match = RE_SCREENSHOT.search(page_content)
         if screenshot_match:
@@ -110,11 +112,14 @@ class HuyaMonitor(BaseMonitor):
         if not room_pic:
             room_pic = (profile_info.get("sAvatar180") or "").strip()
 
+        avatar_url = (profile_info.get("sAvatar180") or "").strip()
+
         return {
             "room": room_id,
             "name": profile_info["sNick"],
             "is_live": status_num,
             "room_pic": room_pic,
+            "avatar_url": avatar_url,
         }
 
     def check_info(self, data: dict, old_info: tuple) -> int:
@@ -194,13 +199,20 @@ class HuyaMonitor(BaseMonitor):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status_text = "开播了🐯🐯🐯" if res == 1 else "下播了🐟🐟🐟"
         picurl = (data.get("room_pic") or "").strip() or HUYA_DEFAULT_PIC
+        avatar_url = (data.get("avatar_url") or "").strip()
 
         try:
+            extend_data = {}
+            # 为 Bark 等通道传递主播头像 URL，用作 icon
+            if avatar_url:
+                extend_data["avatar_url"] = avatar_url
+
             await self.push.send_news(
                 title=f"{data['name']} {status_text}",
                 description=f"房间号: {data['room']}\n\n{quote}\n\n{timestamp}",
                 to_url=f"https://m.huya.com/{data['room']}",
                 picurl=picurl,
+                extend_data=extend_data or None,
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")
