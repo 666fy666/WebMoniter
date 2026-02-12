@@ -99,7 +99,7 @@ class AsyncDatabase:
         """
         )
 
-        # 创建 huya 表
+        # 创建 huya 表（基础字段）
         await conn.execute(
             """
             CREATE TABLE IF NOT EXISTS huya (
@@ -109,6 +109,17 @@ class AsyncDatabase:
             )
         """
         )
+        # 兼容旧版本：为 huya 表增加 room_pic / avatar_url 字段（若不存在）
+        try:
+            async with conn.execute("PRAGMA table_info(huya)") as cursor:
+                columns = [row[1] for row in await cursor.fetchall()]
+            if "room_pic" not in columns:
+                await conn.execute("ALTER TABLE huya ADD COLUMN room_pic TEXT")
+            if "avatar_url" not in columns:
+                await conn.execute("ALTER TABLE huya ADD COLUMN avatar_url TEXT")
+        except Exception as e:
+            # 表结构升级失败不会影响主流程，只记录告警方便排查
+            _logger.warning(f"为 huya 表添加图片字段失败（不影响主流程）: {e}")
 
         # 创建 bilibili 表（动态：uid+dynamic_id；直播：uid+room_id+is_live）
         await conn.execute(

@@ -55,7 +55,9 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 # 微博相关静态资源目录（用于暴露 data/weibo 下的图片，如封面图）
 # 只负责将本地文件映射为 HTTP 访问路径，不做权限控制
-app.mount("/weibo_img", StaticFiles(directory="data/weibo"), name="weibo_img")
+WEIBO_IMG_DIR = Path("data/weibo")
+WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/weibo_img", StaticFiles(directory=str(WEIBO_IMG_DIR)), name="weibo_img")
 
 # 凭据文件路径
 AUTH_FILE = Path("data/auth.json")
@@ -725,6 +727,9 @@ def _huya_row_to_item(row: tuple) -> dict:
         "room": row[0],
         "name": row[1],
         "is_live": row[2],
+        # 兼容旧数据：如果数据库中尚无这些列，SQL 会返回 NULL，这里用空字符串兜底
+        "room_pic": row[3] if len(row) > 3 else "",
+        "avatar_url": row[4] if len(row) > 4 else "",
         "url": f"https://www.huya.com/{row[0]}",
     }
 
@@ -870,7 +875,8 @@ async def get_data_item(request: Request, platform: str, item_id: str):
 # 各平台列表查询 SQL（不含 WHERE，含占位符）
 _PLATFORM_LIST_SQL = {
     "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo",
-    "huya": "SELECT room, name, is_live FROM huya",
+    # 新增 room_pic / avatar_url 字段，便于前端展示头像和封面图
+    "huya": "SELECT room, name, is_live, room_pic, avatar_url FROM huya",
     "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
     "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",
     "douyin": "SELECT douyin_id, name, is_live FROM douyin",

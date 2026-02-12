@@ -118,6 +118,7 @@ class HuyaMonitor(BaseMonitor):
             "room": room_id,
             "name": profile_info["sNick"],
             "is_live": status_num,
+            # 用于推送和前端展示的封面图/头像链接
             "room_pic": room_pic,
             "avatar_url": avatar_url,
         }
@@ -153,8 +154,12 @@ class HuyaMonitor(BaseMonitor):
             if res == 2:
                 self.logger.debug(f"{data['name']} 最近直播状态没变化🐟")
             else:
-                # 状态发生变化
-                sql = "UPDATE huya SET name=%(name)s, is_live=%(is_live)s WHERE room=%(room)s"
+                # 状态或头像/封面发生变化，更新数据库
+                sql = (
+                    "UPDATE huya SET name=%(name)s, is_live=%(is_live)s, "
+                    "room_pic=%(room_pic)s, avatar_url=%(avatar_url)s "
+                    "WHERE room=%(room)s"
+                )
                 await self.db.execute_update(sql, data)
 
                 status_msg = "开播啦🐯🐯🐯" if res == 1 else "下播了🐟🐟🐟"
@@ -163,7 +168,10 @@ class HuyaMonitor(BaseMonitor):
                 await self.push_notification(data, res)
         else:
             # 新录入
-            sql = "INSERT INTO huya (room, name, is_live) VALUES (%(room)s, %(name)s, %(is_live)s)"
+            sql = (
+                "INSERT INTO huya (room, name, is_live, room_pic, avatar_url) "
+                "VALUES (%(room)s, %(name)s, %(is_live)s, %(room_pic)s, %(avatar_url)s)"
+            )
             await self.db.execute_insert(sql, data)
 
             if self._is_first_time:

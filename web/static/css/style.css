@@ -864,54 +864,395 @@ input:focus + .slider {
 }
 
 /* ==========================================
-   数据表格
+   数据展示：卡片/网格布局
    ========================================== */
 .table-container {
-    overflow-x: auto;
-    max-height: 600px;
-    overflow-y: auto;
+    /* 数据区域现在主要承载卡片网格，但保留兼容性 */
+    overflow-x: hidden;
+    max-height: 100%;
+}
+
+.data-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.weibo-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.feed-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.live-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.data-card {
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal),
+        border-color var(--transition-normal), background-color var(--transition-normal);
 }
 
-table {
+.data-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-light);
+}
+
+/* ---- 微博信息流卡片 ---- */
+.weibo-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.weibo-card-cover {
+    position: relative;
+    height: 160px;
+    background: radial-gradient(circle at top left, #fee2e2, #eff6ff 40%, #e0f2fe 100%);
+    /* 允许头像从封面区域“溢出”，避免被截断 */
+    overflow: visible;
+}
+
+.weibo-card-cover-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.9;
+    transform: scale(1.02);
+    filter: saturate(1.05);
+}
+
+.weibo-card-avatar-wrap {
+    position: absolute;
+    left: 20px;
+    bottom: -26px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-card);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.weibo-card-avatar {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-table th {
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-    padding: 14px 16px;
-    text-align: left;
+.weibo-card-avatar.avatar-fallback {
+    background: linear-gradient(135deg, #e5e7eb, #cbd5e1);
+}
+
+.weibo-card-body {
+    padding: 24px 20px 18px;
+    padding-top: 32px; /* 让头像悬浮时不压住文本 */
+}
+
+.weibo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.weibo-card-user {
+    min-width: 0;
+}
+
+.weibo-card-name {
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
-    border-bottom: 2px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    line-height: 1.3;
+}
+
+.weibo-card-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.weibo-card-verify {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    color: #92400e;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.weibo-card-stats {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.weibo-card-stats .stat-item {
     white-space: nowrap;
 }
 
-table td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-light);
+.weibo-card-stats .stat-dot {
+    color: #cbd5e1;
+}
+
+.weibo-card-text {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.weibo-card-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+.weibo-card-link-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.weibo-card-link-hint::after {
+    content: '↗';
+    font-size: 11px;
+}
+
+/* ---- 直播卡片 ---- */
+.live-card {
+    border-radius: var(--radius-md);
+    background: radial-gradient(circle at top left, #eff6ff, #ffffff 40%, #f9fafb 100%);
+}
+
+.live-card-on {
+    border-left: 4px solid var(--success-color);
+}
+
+.live-card-off {
+    border-left: 4px solid #cbd5e1;
+}
+
+.live-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.live-card-title {
+    min-width: 0;
+}
+
+.platform-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(59, 130, 246, 0.08);
+    color: #1d4ed8;
+    margin-bottom: 4px;
+}
+
+.live-anchor-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.live-status-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.live-status-badge.status-live {
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--success-color);
+}
+
+.live-status-badge.status-offline {
+    background: rgba(148, 163, 184, 0.12);
+    color: #6b7280;
+}
+
+.live-card-body {
+    font-size: 13px;
     color: var(--text-secondary);
 }
 
-table tr {
-    transition: background-color var(--transition-fast);
+.live-room {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
 }
 
-table tr:hover {
-    background-color: #f8fafc;
+.live-room-label {
+    color: var(--text-muted);
 }
 
-table tr.data-row-link {
-    cursor: pointer;
+.live-room-value {
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
-table tr.data-row-link:hover {
-    background-color: #eff6ff;
+.live-card-footer {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+.live-card-link-hint::after {
+    content: '↗';
+    font-size: 11px;
+}
+
+/* 直播卡片媒体区域（封面 + 头像，虎牙使用真实封面和头像） */
+.live-card-media {
+    position: relative;
+    height: 120px;
+    overflow: hidden;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.live-card-cover {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, #dbeafe, #eff6ff 40%, #e5e7eb 100%);
+    transition: transform var(--transition-normal), filter var(--transition-normal), opacity var(--transition-normal);
+    opacity: 0.9;
+}
+
+.live-card-cover-has-img {
+    background-size: cover;
+    background-position: center;
+    filter: saturate(1.05);
+}
+
+.live-card:hover .live-card-cover-has-img {
+    transform: scale(1.03);
+    filter: saturate(1.12);
+}
+
+.live-card-avatar-wrap {
+    position: absolute;
+    left: 14px;
+    bottom: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    background: #e5e7eb;
+}
+
+.live-card-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.live-card-content {
+    padding: 10px 16px 12px;
+}
+
+/* ---- 通用信息流卡片（B站动态 / 小红书等） ---- */
+.feed-card {
+    padding: 16px 18px 14px;
+}
+
+.feed-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.feed-card-user {
+    min-width: 0;
+}
+
+.feed-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.feed-card-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.platform-badge-bilibili {
+    background: rgba(56, 189, 248, 0.12);
+    color: #0369a1;
+}
+
+.platform-badge-douyin {
+    background: rgba(236, 72, 153, 0.12);
+    color: #be185d;
+}
+
+.platform-badge-xhs {
+    background: rgba(248, 113, 113, 0.12);
+    color: #b91c1c;
+}
+
+.feed-card-body {
+    margin-top: 4px;
+}
+
+.feed-card-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.feed-card-footer {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+.feed-card-link-hint::after {
+    content: '↗';
+    font-size: 11px;
+}
+
+.feed-card-raw {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-secondary);
 }
 
 /* ==========================================
@@ -2363,5 +2704,52 @@ table tr.data-row-link:hover {
     
     .login-update-banner .update-banner-close {
         right: 8px;
+    }
+}
+
+/* ==========================================
+   返回顶部按钮
+   ========================================== */
+.back-to-top {
+    position: fixed;
+    right: 26px;
+    bottom: 32px;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: none;
+    background: var(--gradient-primary);
+    color: #ffffff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    z-index: 1100;
+    font-size: 18px;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+.back-to-top.show {
+    display: flex;
+    opacity: 1;
+}
+
+.back-to-top:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+}
+
+.back-to-top:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 768px) {
+    .back-to-top {
+        right: 16px;
+        bottom: 24px;
+        width: 40px;
+        height: 40px;
     }
 }

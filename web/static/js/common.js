@@ -400,4 +400,33 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dismissBtn) {
         dismissBtn.addEventListener('click', dismissUpdateBanner);
     }
+
+    // 返回顶部按钮
+    const backToTopBtn = document.getElementById('backToTopBtn');
+    if (backToTopBtn) {
+        function updateBackToTopVisibility() {
+            const scrollTop =
+                window.pageYOffset ||
+                document.documentElement.scrollTop ||
+                document.body.scrollTop ||
+                0;
+            if (scrollTop > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        }
+
+        window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+
+        backToTopBtn.addEventListener('click', function () {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+            });
+        });
+
+        // 初始计算一次
+        updateBackToTopVisibility();
+    }
 });
