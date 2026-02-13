@@ -26,8 +26,8 @@
 ---
 
 **Web任务系统**：一个支持 **虎牙直播、微博(超话)、哔哩哔哩、抖音、斗鱼、小红书、ikuuu、百度贴吧、雨云、恩山、天翼云盘、阿里云盘、什么值得买（含每日抽奖）、富贵论坛、小米社区、爱奇艺、联想乐豆、丽宝乐园、品赞、达美乐、小茅预约、一点万象、星空代理、千图网、夸克网盘、科技玩家、帆软社区、999 会员中心、中国福彩活动、双色球开奖通知、Freenom 续期、天气推送** 等多平台的监控与任务/签到工具。  
-使用 **APScheduler** 做任务调度，支持 **10+ 推送通道**（企业微信、飞书、钉钉、Telegram、Bark、邮件等），  
-**配置热重载**，开箱即用。
+使用 **APScheduler** 做任务调度，支持 **15+ 推送通道**（企业微信、飞书、钉钉、Telegram、Bark、邮件等），  
+**配置热重载**，**AI 助手**（RAG + LLM）支持智能问答、配置生成、日志诊断与数据洞察，开箱即用。
 
 ---
 
@@ -36,9 +36,11 @@
 [💻 Windows 部署](#-windows-部署) •
 [🐉 青龙面板](#-青龙面板部署) •
 [🌐 Web 管理](#-web-管理界面) •
+[🤖 AI 助手](docs/guides/ai-assistant.md) •
 [⚙️ 配置说明](#️-配置说明)
 
 [📚 文档站](https://666fy666.github.io/WebMoniter/) ·
+[🤖 AI 助手](docs/guides/ai-assistant.md) ·
 [📡 API](docs/API.md) ·
 [🏗️ 项目架构](docs/ARCHITECTURE.md) ·
 [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md)
@@ -237,7 +239,7 @@ docker compose up -d
 
 ### 🌐 Web 管理界面
 
-配置管理、任务管理、数据展示、日志查看。默认账号 `admin` / `123`（生产环境请修改）。
+配置管理、任务管理、数据展示、日志查看，以及 **AI 助手**（配置生成、日志诊断、数据洞察、可执行操作，需在 `config.yml` 中启用 `ai_assistant` 并安装 `uv sync --extra ai`）。默认账号 `admin` / `123`（生产环境请修改）。
 
 <details>
 <summary><strong>📷 展开查看界面截图</strong></summary>

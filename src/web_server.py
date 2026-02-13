@@ -1277,12 +1277,29 @@ async def delete_assistant_conversation(request: Request, conv_id: str):
 
 def _parse_executable_intent_and_reply(message: str):
     """
-    解析可执行意图（开关监控、配置列表增删）。
+    解析可执行意图（开关监控、配置列表增删、执行任务）。
     若识别到可执行意图，返回 (reply, suggested_action)；否则返回 (None, None)。
     """
-    from src.ai_assistant.intent_parser import parse_toggle_monitor_intent, parse_config_patch_intent
+    from src.ai_assistant.intent_parser import (
+        parse_toggle_monitor_intent,
+        parse_config_patch_intent,
+        parse_run_task_intent,
+    )
 
-    # 1. 开关监控
+    # 1. 执行任务（执行超话签到、运行ikuuu 等）
+    run_intent = parse_run_task_intent(message)
+    if run_intent is not None:
+        reply = f"好的，将立即执行「{run_intent.display_name}」任务。请确认执行："
+        suggested_action = {
+            "type": "confirm_execute",
+            "action": "run_task",
+            "task_id": run_intent.task_id,
+            "title": f"执行 {run_intent.display_name}",
+            "description": f"确认后将在后台运行任务「{run_intent.display_name}」，与「任务管理」中手动触发的效果相同。",
+        }
+        return reply, suggested_action
+
+    # 2. 开关监控
     intent = parse_toggle_monitor_intent(message)
     if intent is not None:
         action_text = "关闭" if not intent.enable else "开启"
@@ -1298,7 +1315,7 @@ def _parse_executable_intent_and_reply(message: str):
         }
         return reply, suggested_action
 
-    # 2. 配置列表增删（删除虎牙主播100、添加虎牙房间200 等）
+    # 3. 配置列表增删（删除虎牙主播100、添加虎牙房间200 等）
     patch = parse_config_patch_intent(message)
     if patch is not None:
         op_text = "添加" if patch.operation == "add" else "移除"
@@ -1544,6 +1561,30 @@ async def assistant_apply_action(request: Request):
             return JSONResponse({"success": True, "message": f"已从{display}监控列表{op_text}「{value}」，配置已热重载"})
         except Exception as e:
             logger.error("apply-action config_patch 执行失败: %s", e)
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    if action == "run_task":
+        task_id = body.get("task_id")
+        if not isinstance(task_id, str) or not task_id.strip():
+            return JSONResponse({"error": "task_id 不能为空"}, status_code=400)
+        task_id = task_id.strip()
+        try:
+            discover_and_import()
+            all_jobs = MONITOR_JOBS + TASK_JOBS
+            target_job = None
+            for job in all_jobs:
+                if job.job_id == task_id:
+                    target_job = job
+                    break
+            if target_job is None:
+                return JSONResponse({"error": f"任务 {task_id} 不存在"}, status_code=404)
+            run_func = target_job.original_run_func or target_job.run_func
+            await run_task_with_logging(task_id, run_func)
+            logger.info("AI 助手触发任务: %s", task_id)
+            display = _get_job_description(task_id)
+            return JSONResponse({"success": True, "message": f"已执行「{display}」"})
+        except Exception as e:
+            logger.error("apply-action run_task 执行失败: %s", e)
             return JSONResponse({"error": str(e)}, status_code=500)
 
     if action != "toggle_monitor":

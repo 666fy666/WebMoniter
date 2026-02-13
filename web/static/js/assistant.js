@@ -63,6 +63,16 @@
         if (document.getElementById('assistantPanel')) return;
         const panel = document.createElement('div');
         panel.id = 'assistantPanel';
+        const styleEl = document.createElement('style');
+        styleEl.textContent = `
+            .assistant-dots{display:inline-flex;align-items:center;gap:4px;}
+            .assistant-dots span{width:6px;height:6px;border-radius:50%;background:#667eea;animation:adot 1.4s infinite ease-in-out both;}
+            .assistant-dots span:nth-child(1){animation-delay:0s}
+            .assistant-dots span:nth-child(2){animation-delay:.2s}
+            .assistant-dots span:nth-child(3){animation-delay:.4s}
+            @keyframes adot{0%,80%,100%{transform:scale(0.6);opacity:0.5}40%{transform:scale(1);opacity:1}}
+        `;
+        document.head.appendChild(styleEl);
         panel.innerHTML = `
             <div class="assistant-panel-backdrop" id="assistantBackdrop"></div>
             <div class="assistant-panel-main" style="
@@ -305,6 +315,8 @@
                 payload.list_key = sa.list_key;
                 payload.operation = sa.operation;
                 payload.value = sa.value;
+            } else if (sa.action === 'run_task') {
+                payload.task_id = sa.task_id;
             } else {
                 payload.platform_key = sa.platform_key;
                 payload.enable = sa.enable;
@@ -338,9 +350,13 @@
 
     async function sendMessage() {
         const input = document.getElementById('assistantInput');
+        const sendBtn = document.getElementById('assistantSend');
         const msg = (input?.value || '').trim();
         if (!msg || !aiEnabled) return;
         input.value = '';
+        input.disabled = true;
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '处理中...'; }
+
         if (!currentConversationId) {
             await newConversation();
         }
@@ -348,7 +364,7 @@
         const placeholder = container.querySelector('.empty-hint');
         if (placeholder) placeholder.remove();
         container.innerHTML += `<div class="msg user"><div style="font-size:12px;color:#64748b;">你</div><div style="padding:10px 14px;border-radius:8px;background:#f1f5f9;">${escapeHtml(msg)}</div></div>`;
-        container.innerHTML += `<div class="msg assistant"><div style="font-size:12px;color:#64748b;">AI</div><div class="assistant-reply" style="padding:10px 14px;border-radius:8px;background:#eff6ff;">思考中...</div></div>`;
+        container.innerHTML += `<div class="msg assistant assistant-loading"><div style="font-size:12px;color:#64748b;">AI</div><div class="assistant-reply" style="padding:10px 14px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;gap:8px;"><span class="assistant-dots"><span></span><span></span><span></span></span><span>正在处理...</span></div></div>`;
         container.scrollTop = container.scrollHeight;
 
         try {
@@ -395,8 +411,11 @@
             loadConversations();
         } catch (e) {
             const replyEl = container.querySelector('.assistant-reply:last-of-type');
-            if (replyEl) replyEl.textContent = '请求失败: ' + e.message;
+            if (replyEl) { replyEl.innerHTML = ''; replyEl.textContent = '请求失败: ' + e.message; }
         }
+        input.disabled = false;
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '发送'; }
+        container.querySelector('.assistant-loading')?.classList?.remove('assistant-loading');
         container.scrollTop = container.scrollHeight;
     }
 

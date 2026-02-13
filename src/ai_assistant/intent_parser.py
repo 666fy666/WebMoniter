@@ -173,6 +173,89 @@ def parse_config_patch_intent(message: str) -> ConfigPatchIntent | None:
     return None
 
 
+# 自然语言任务名/别名 -> task_id 映射（供 AI 助手「执行XX任务」解析）
+TASK_NAME_TO_JOB_ID = {
+    "超话": "weibo_chaohua_checkin",
+    "超话签到": "weibo_chaohua_checkin",
+    "微博超话": "weibo_chaohua_checkin",
+    "微博超话签到": "weibo_chaohua_checkin",
+    "ikuuu": "ikuuu_checkin",
+    "雨云": "rainyun_checkin",
+    "雨云签到": "rainyun_checkin",
+    "贴吧": "tieba_checkin",
+    "百度贴吧": "tieba_checkin",
+    "贴吧签到": "tieba_checkin",
+    "阿里云盘": "aliyun_checkin",
+    "阿里云盘签到": "aliyun_checkin",
+    "什么值得买": "smzdm_checkin",
+    "值得买": "smzdm_checkin",
+    "值得买签到": "smzdm_checkin",
+    "夸克": "kuake_checkin",
+    "夸克签到": "kuake_checkin",
+    "天气": "weather_push",
+    "天气推送": "weather_push",
+    "日志清理": "log_cleanup",
+}
+
+
+class RunTaskIntent(NamedTuple):
+    """执行任务意图"""
+    task_id: str
+    display_name: str
+
+
+def parse_run_task_intent(message: str) -> RunTaskIntent | None:
+    """
+    解析用户消息，识别「执行超话签到」「运行ikuuu」「立即运行贴吧签到」等意图。
+    返回 RunTaskIntent 或 None（未识别到可执行任务意图）。
+    """
+    msg = message.strip()
+    if not msg or len(msg) < 3:
+        return None
+
+    # 前缀模式：执行|运行|立即执行|立即运行|手动执行|手动运行 + 任务名
+    prefix_patterns = [
+        r"^(?:执行|运行|立即执行|立即运行|手动执行|手动运行|触发|跑一下)\s*(.+)",
+        r"^做一下\s*(.+)",
+        r"^跑\s*(.+)",
+    ]
+    task_name_candidates = []
+    for pat in prefix_patterns:
+        m = re.search(pat, msg, re.IGNORECASE)
+        if m:
+            task_name_candidates.append(m.group(1).strip().rstrip("。,.!?"))
+
+    # 直接匹配：超话签到、执行超话 等（无前缀）
+    if not task_name_candidates:
+        for name, task_id in TASK_NAME_TO_JOB_ID.items():
+            if name in msg and len(msg) <= len(name) + 6:  # 允许少量前后文，如「执行超话签到」
+                task_name_candidates.append(name)
+            elif msg == name or msg == f"执行{name}" or msg == f"运行{name}":
+                task_name_candidates.append(name)
+
+    # 解析任务名 -> task_id（优先匹配更长名称，如「超话签到」优于「超话」）
+    TASK_DISPLAY = {
+        "weibo_chaohua_checkin": "微博超话签到",
+        "ikuuu_checkin": "iKuuu 签到",
+        "rainyun_checkin": "雨云签到",
+        "tieba_checkin": "百度贴吧签到",
+        "aliyun_checkin": "阿里云盘签到",
+        "smzdm_checkin": "什么值得买签到",
+        "kuake_checkin": "夸克签到",
+        "weather_push": "天气推送",
+        "log_cleanup": "日志清理",
+    }
+    for raw in task_name_candidates:
+        raw_lower = raw.strip().lower()
+        # 按名称长度降序，优先精确匹配
+        for name, task_id in sorted(TASK_NAME_TO_JOB_ID.items(), key=lambda x: -len(x[0])):
+            if name in raw or raw == name or raw_lower == name.lower():
+                display = TASK_DISPLAY.get(task_id, name)
+                return RunTaskIntent(task_id=task_id, display_name=display)
+
+    return None
+
+
 def _resolve_platform(raw: str) -> str | None:
     """将用户输入的平台名解析为 config 的 section key"""
     raw = raw.strip().lower()

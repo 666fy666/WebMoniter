@@ -318,6 +318,137 @@ POST /api/tasks/{task_id}/run
 
 ---
 
+### 7. AI 助手（需登录，需安装 `uv sync --extra ai` 并启用 `ai_assistant.enable`）
+
+AI 助手提供智能对话、配置生成、日志诊断、数据洞察及可执行操作能力，需在 `config.yml` 中配置 `ai_assistant` 并安装 AI 依赖。
+
+#### 获取 AI 助手状态
+
+```http
+GET /api/assistant/status
+```
+
+返回 AI 助手是否可用（依赖是否安装、配置是否启用），无需 AI 依赖也可调用：
+
+```json
+{
+  "enabled": true
+}
+```
+
+或 `{"enabled": false, "reason": "未安装 ai 依赖"}` 等。
+
+#### 会话管理
+
+```http
+GET /api/assistant/conversations
+```
+
+返回当前用户的会话列表。
+
+```http
+POST /api/assistant/conversations
+Content-Type: application/json
+
+{"title": "新对话"}
+```
+
+新建会话，返回 `{"conversation_id": "xxx"}`。
+
+```http
+GET /api/assistant/conversations/{conv_id}/messages
+```
+
+获取指定会话的消息列表。
+
+```http
+DELETE /api/assistant/conversations/{conv_id}
+```
+
+删除指定会话。
+
+#### 对话
+
+```http
+POST /api/assistant/chat
+Content-Type: application/json
+
+{
+  "message": "虎牙谁在直播？",
+  "conversation_id": "xxx",
+  "context": "all"
+}
+```
+
+- `message`：用户输入（必填）
+- `conversation_id`：会话 ID，空则自动创建新会话
+- `context`：检索范围，`"all"` 表示文档+配置+日志
+
+返回：
+
+```json
+{
+  "reply": "AI 回复内容",
+  "conversation_id": "xxx",
+  "suggested_action": null
+}
+```
+
+当识别到可执行操作（如开关监控、增删配置）时，`suggested_action` 包含 `type: "confirm_execute"`、`action`、`platform_key` 等，前端可弹出确认弹窗，确认后调用 `POST /api/assistant/apply-action`。
+
+当返回配置片段（YAML）时，`suggested_action` 可为 `{"type": "config_diff", "diff": "yaml内容", "description": "..."}`，前端展示「复制配置」按钮。
+
+#### 执行可确认操作
+
+```http
+POST /api/assistant/apply-action
+Content-Type: application/json
+
+{
+  "action": "toggle_monitor",
+  "platform_key": "huya",
+  "enable": false
+}
+```
+
+开关监控。支持的 `platform_key`：`weibo`、`huya`、`bilibili`、`douyin`、`douyu`、`xhs`。
+
+```http
+POST /api/assistant/apply-action
+Content-Type: application/json
+
+{
+  "action": "config_patch",
+  "platform_key": "huya",
+  "list_key": "rooms",
+  "operation": "add",
+  "value": "123456"
+}
+```
+
+增删配置列表项。`operation` 为 `add` 或 `remove`。支持的 `platform_key` 及对应 `list_key`：
+
+| platform_key | list_key      |
+|--------------|---------------|
+| weibo        | uids          |
+| huya         | rooms         |
+| bilibili     | uids          |
+| douyin       | douyin_ids    |
+| douyu        | rooms         |
+| xhs          | profile_ids   |
+
+成功返回 `{"success": true, "message": "..."}`；失败返回 `{"error": "..."}`，HTTP 状态码 400/500。
+
+#### 重建 RAG 索引
+
+```http
+POST /api/assistant/reindex
+```
+
+手动重建向量库索引。成功返回 `{"status": "ok", "message": "索引已重建"}`。
+
+---
+
 ## 调用示例
 
 ### Python 示例
@@ -445,4 +576,5 @@ API 返回的错误格式：
 ## 相关文档
 
 - [文档首页](index.md) - 项目概览与快速开始
+- [AI 助手使用指南](guides/ai-assistant.md) - RAG + LLM 智能问答
 - [二次开发指南](SECONDARY_DEVELOPMENT.md) - 代码规范、black/ruff、测试等

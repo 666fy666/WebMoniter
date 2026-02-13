@@ -53,3 +53,12 @@
 
 ??? question "青龙面板如何部署？"
     在青龙「环境变量」中添加 `WEBMONITER_*` 前缀的变量（如 `WEBMONITER_CHECKIN_ENABLE`、`WEBMONITER_CHECKIN_EMAIL`），拉取或克隆项目后，在「定时任务」中添加 `task ql/ikuuu_checkin.py` 等脚本。推送自动走青龙内置通知（QLAPI）。详见 [青龙面板兼容指南](QINGLONG.md)。
+
+---
+
+??? question "如何启用 AI 助手？"
+    1. 执行 `uv sync --extra ai` 安装 AI 依赖（chromadb、httpx、openai）
+    2. 在 `config.yml` 中配置 `ai_assistant` 节点，设置 `enable: true` 以及 `provider`、`api_key`、`model` 等
+    3. 重启或等待热重载后，在配置管理、任务管理、数据展示页面底部即可看到「问 AI」入口
+
+    支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等 OpenAI 兼容 API。详见 [AI 助手使用指南](guides/ai-assistant.md)。
