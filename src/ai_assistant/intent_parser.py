@@ -193,6 +193,7 @@ def parse_config_patch_intent(message: str) -> ConfigPatchIntent | None:
         (r"(?:添加|加入|增加)\s*(?:虎牙|huya)\s*(?:主播|房间)?\s*(\S+)", "huya"),
         (r"(?:添加|加入|增加)\s*(?:斗鱼|douyu)\s*(?:主播|房间)?\s*(\S+)", "douyu"),
         (r"(?:添加|加入|增加)\s*(?:微博|weibo)\s*(?:用户|uid)?\s*(\S+)", "weibo"),
+        (r"关注\s*([^\s的]+)\s*的?\s*(?:微博|weibo)", "weibo"),
         (r"(?:添加|加入|增加)\s*(?:哔哩哔哩|b站|bilibili)\s*(?:用户|uid)?\s*(\S+)", "bilibili"),
         (r"(?:添加|加入|增加)\s*(?:抖音|douyin)\s*(?:主播|号)?\s*(\S+)", "douyin"),
         (r"(?:添加|加入|增加)\s*(?:小红书|xhs)\s*(?:用户|profile)?\s*(\S+)", "xhs"),

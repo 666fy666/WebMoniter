@@ -287,6 +287,65 @@
         return d.innerHTML;
     }
 
+    function showWeiboChooseModal(sa) {
+        if (!sa || sa.type !== 'weibo_choose' || !sa.candidates?.length) return;
+        const existing = document.getElementById('assistantWeiboChooseModal');
+        if (existing) existing.remove();
+        const modal = document.createElement('div');
+        modal.id = 'assistantWeiboChooseModal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);';
+        const candidateBtns = sa.candidates.map((c, i) => {
+            const label = c.followers_count_str ? `${c.nick}（${c.followers_count_str}）` : c.nick;
+            return `<button class="btn btn-primary weibo-choose-btn" data-uid="${escapeHtml(c.uid)}" data-nick="${escapeHtml(c.nick)}" style="display:block;width:100%;margin-bottom:8px;text-align:left;padding:12px 16px;">${escapeHtml(label)}</button>`;
+        }).join('');
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:12px;padding:24px;max-width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+                <h4 style="margin:0 0 8px;font-size:16px;">${escapeHtml(sa.title || '选择要添加的微博账号')}</h4>
+                <p style="margin:0 0 16px;color:#64748b;font-size:14px;">${escapeHtml(sa.description || '')}</p>
+                <div style="margin-bottom:16px;">${candidateBtns}</div>
+                <button class="btn btn-secondary weibo-choose-cancel" style="padding:8px 16px;">取消</button>
+            </div>
+        `;
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        modal.querySelector('.weibo-choose-cancel').onclick = () => modal.remove();
+        modal.querySelectorAll('.weibo-choose-btn').forEach(btn => {
+            btn.onclick = async () => {
+                btn.disabled = true;
+                const uid = btn.getAttribute('data-uid');
+                const nick = btn.getAttribute('data-nick');
+                try {
+                    const r = await fetch(API.applyAction, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'config_patch',
+                            platform_key: 'weibo',
+                            list_key: 'uids',
+                            operation: 'add',
+                            value: uid,
+                        }),
+                        credentials: 'same-origin',
+                    });
+                    const d = await r.json();
+                    modal.remove();
+                    if (d.error) {
+                        if (typeof showToast === 'function') showToast(d.error, 'error');
+                        else alert(d.error);
+                    } else {
+                        if (typeof showToast === 'function') showToast(d.message || `已添加「${nick}」`);
+                        else alert(d.message || '操作成功');
+                        document.dispatchEvent(new CustomEvent('config-saved'));
+                    }
+                } catch (e) {
+                    btn.disabled = false;
+                    if (typeof showToast === 'function') showToast('请求失败: ' + e.message, 'error');
+                    else alert('请求失败: ' + e.message);
+                }
+            };
+        });
+        document.body.appendChild(modal);
+    }
+
     function showConfirmExecuteModal(sa) {
         if (!sa || sa.type !== 'confirm_execute') return;
         const existing = document.getElementById('assistantConfirmModal');
@@ -397,6 +456,13 @@
                         html += '<div style="margin-top:12px;"><button class="btn btn-primary confirm-execute-btn" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">✓ 确认执行</button></div>';
                         showConfirmExecuteModal(sa);
                     }
+                    if (d.suggested_action && d.suggested_action.type === 'weibo_choose') {
+                        const sa = d.suggested_action;
+                        const actionId = 'act_' + Date.now();
+                        suggestedConfigs[actionId] = sa;
+                        html += '<div style="margin-top:12px;"><button class="btn btn-primary weibo-choose-btn-inline" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">选择要添加的账号</button></div>';
+                        showWeiboChooseModal(sa);
+                    }
                     replyEl.innerHTML = html;
                     replyEl.querySelectorAll('.copy-config-btn').forEach(btn => {
                         btn.onclick = () => {
@@ -409,6 +475,9 @@
                     });
                     replyEl.querySelectorAll('.confirm-execute-btn').forEach(btn => {
                         btn.onclick = () => showConfirmExecuteModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
+                    });
+                    replyEl.querySelectorAll('.weibo-choose-btn-inline').forEach(btn => {
+                        btn.onclick = () => showWeiboChooseModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
                     });
                 }
             }

@@ -1289,7 +1289,7 @@ async def delete_assistant_conversation(request: Request, conv_id: str):
     return JSONResponse({"success": True})
 
 
-def _parse_executable_intent_and_reply(message: str):
+async def _parse_executable_intent_and_reply(message: str):
     """
     解析可执行意图（开关监控、配置列表增删、执行任务）。
     若识别到可执行意图，返回 (reply, suggested_action)；否则返回 (None, None)。
@@ -1300,6 +1300,7 @@ def _parse_executable_intent_and_reply(message: str):
         parse_run_task_intent,
         parse_config_field_intent,
     )
+    from src.weibo_search import is_numeric_uid, search_weibo_users
 
     # 1. 执行任务（执行超话签到、运行ikuuu 等）
     run_intent = parse_run_task_intent(message)
@@ -1334,6 +1335,56 @@ def _parse_executable_intent_and_reply(message: str):
     patch = parse_config_patch_intent(message)
     if patch is not None:
         op_text = "添加" if patch.operation == "add" else "移除"
+
+        # 微博添加：若 value 非数字 UID，先搜索用户并让用户选择
+        if (
+            patch.platform_key == "weibo"
+            and patch.operation == "add"
+            and not is_numeric_uid(patch.value)
+        ):
+            config = get_config()
+            cookie = config.weibo_cookie or ""
+            candidates = await search_weibo_users(patch.value, cookie)
+
+            if not candidates:
+                from urllib.parse import quote
+                search_link = f"https://s.weibo.com/user?q={quote(patch.value)}"
+                reply = (
+                    f"未找到与「{patch.value}」相关的微博用户。\n\n"
+                    f"请尝试：\n"
+                    f"1. 在浏览器打开 {search_link} 搜索\n"
+                    f"2. 从结果中点击目标用户，进入主页后 URL 中的数字即为 UID\n"
+                    f"3. 对我说「添加微博用户 <UID>」或在配置页直接输入 UID"
+                )
+                return reply, None
+
+            if len(candidates) == 1:
+                c = candidates[0]
+                reply = f"找到 1 个匹配账号：**{c['nick']}**（UID: {c['uid']}）"
+                suggested_action = {
+                    "type": "confirm_execute",
+                    "action": "config_patch",
+                    "platform_key": "weibo",
+                    "list_key": "uids",
+                    "operation": "add",
+                    "value": c["uid"],
+                    "title": "添加微博监控",
+                    "description": f"将添加「{c['nick']}」到微博监控列表",
+                }
+                return reply, suggested_action
+
+            # 多个候选：让用户选择
+            lines = [f"{i + 1}. **{c['nick']}**（UID: {c['uid']}，粉丝: {c.get('followers_count_str', '')}）" for i, c in enumerate(candidates)]
+            reply = f"找到 {len(candidates)} 个相关账号，请选择要添加的：\n\n" + "\n".join(lines)
+            suggested_action = {
+                "type": "weibo_choose",
+                "title": "选择要添加的微博账号",
+                "description": "请选择要添加到监控的账号：",
+                "candidates": candidates,
+            }
+            return reply, suggested_action
+
+        # 普通增删（包括微博添加纯数字 UID）
         reply = f"好的，将从{patch.display_name}监控列表中{op_text}「{patch.value}」。请确认执行："
         suggested_action = {
             "type": "confirm_execute",
@@ -1411,7 +1462,7 @@ async def assistant_chat(request: Request):
         conversation_id = create_conversation(user_id=user_id, title="新对话")
 
     # 语义理解：优先识别可执行意图（开关监控、配置列表增删）
-    reply, suggested_action = _parse_executable_intent_and_reply(message)
+    reply, suggested_action = await _parse_executable_intent_and_reply(message)
     if reply is not None:
         append_messages(conversation_id, user_content=message, assistant_content=reply, user_id=user_id)
         return JSONResponse({
@@ -1566,6 +1617,15 @@ async def assistant_apply_action(request: Request):
             return JSONResponse({"error": "operation 须为 add 或 remove"}, status_code=400)
         if not isinstance(value, str) or not value.strip():
             return JSONResponse({"error": "value 不能为空"}, status_code=400)
+
+        # 微博添加时 value 须为数字 UID，昵称需通过「关注XX的微博」由系统搜索选择
+        if platform_key == "weibo" and operation == "add":
+            from src.weibo_search import is_numeric_uid
+            if not is_numeric_uid(value):
+                return JSONResponse(
+                    {"error": "微博添加请使用 UID（纯数字）。可通过对话说「关注XX的微博」由系统搜索并选择后写入。"},
+                    status_code=400,
+                )
 
         try:
             config_path = Path("config.yml")
