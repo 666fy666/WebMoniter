@@ -17,7 +17,7 @@ COPY pyproject.toml uv.lock ./
 # --frozen: 严格按照 uv.lock 安装
 # --no-dev: 不安装开发环境依赖
 # --no-install-project: 不将当前项目作为包安装
-RUN uv sync --frozen --no-dev --no-install-project && \
+RUN uv sync --frozen --no-dev --no-install-project --extra ai && \
     # 清理 uv 缓存和临时文件
     rm -rf /root/.cache/uv && \
     find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
