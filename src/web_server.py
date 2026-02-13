@@ -1867,6 +1867,126 @@ async def assistant_reindex(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+# =============================================================================
+# AI 助手 - 平台 Webhook（企业微信、Telegram 等支持交互的推送渠道）
+# =============================================================================
+
+
+def _get_wecom_channels_with_callback() -> list[tuple[str, dict]]:
+    """获取配置了 callback_token + encoding_aes_key 的 wecom_apps 通道"""
+    try:
+        config = get_config()
+        channels = config.push_channel_list or []
+        result = []
+        for ch in channels:
+            if ch.get("type") != "wecom_apps":
+                continue
+            token = str(ch.get("callback_token", "")).strip()
+            key = str(ch.get("encoding_aes_key", "")).strip()
+            if token and key and ch.get("corp_id"):
+                result.append((ch.get("name", ""), ch))
+        return result
+    except Exception:
+        return []
+
+
+def _get_telegram_channels() -> list[tuple[str, dict]]:
+    """获取配置了 api_token 的 telegram_bot 通道"""
+    try:
+        config = get_config()
+        channels = config.push_channel_list or []
+        result = []
+        for ch in channels:
+            if ch.get("type") != "telegram_bot":
+                continue
+            token = str(ch.get("api_token", "")).strip()
+            if token:
+                result.append((ch.get("name", ""), ch))
+        return result
+    except Exception:
+        return []
+
+
+@app.api_route("/api/webhooks/wecom", methods=["GET", "POST"])
+async def webhook_wecom(request: Request):
+    """
+    企业微信自建应用 - 接收消息回调。
+    需在 push_channel 的 wecom_apps 中配置 callback_token、encoding_aes_key，
+    并在企业微信后台设置「接收消息」URL 为本接口（如 https://xxx/api/webhooks/wecom）。
+    支持多应用：依次尝试各通道解密，第一个成功的即为目标应用。
+    """
+    channels = _get_wecom_channels_with_callback()
+    if not channels:
+        return JSONResponse({"error": "未配置企业微信 AI 回调"}, status_code=503)
+
+    from src.ai_assistant.platform_handlers.wecom import handle_wecom_callback
+
+    # POST 时请求体只能读一次，先缓存
+    post_body: bytes | None = None
+    if request.method == "POST":
+        post_body = await request.body()
+
+    last_error = None
+    for _name, ch in channels:
+        try:
+            resp = await handle_wecom_callback(
+                request, ch, post_body=post_body if request.method == "POST" else None
+            )
+            # 非 4xx 表示处理成功
+            if hasattr(resp, "status_code") and 400 <= resp.status_code < 500:
+                last_error = resp
+                continue
+            return resp
+        except ValueError as e:
+            last_error = e
+            continue
+        except Exception as e:
+            logger.debug("企业微信通道 %s 处理异常: %s", _name, e)
+            last_error = e
+            continue
+
+    if isinstance(last_error, JSONResponse):
+        return last_error
+    return JSONResponse({"error": "签名或解密失败"}, status_code=400)
+
+
+@app.post("/api/webhooks/telegram/{channel_name:path}")
+async def webhook_telegram(request: Request, channel_name: str):
+    """
+    Telegram 机器人 - 接收消息 Webhook。
+    需在 push_channel 的 telegram_bot 中配置 api_token，
+    并调用 setWebhook 设置 URL 为 https://xxx/api/webhooks/telegram/{通道名}。
+    """
+    channels = _get_telegram_channels()
+    channel_config = None
+    for name, ch in channels:
+        if name == channel_name:
+            channel_config = ch
+            break
+    if not channel_config:
+        return JSONResponse({"error": "未找到该 Telegram 通道"}, status_code=404)
+
+    from src.ai_assistant.platform_handlers.telegram import (
+        handle_telegram_webhook,
+        send_telegram_message,
+    )
+
+    result = await handle_telegram_webhook(request, channel_config)
+    if result is None:
+        return JSONResponse({"ok": True})  # 非消息类 update，直接返回
+
+    # 异步发送回复，避免 Webhook 超时
+    chat_id = result.get("chat_id")
+    text = result.get("text", "")
+    api_token = channel_config.get("api_token", "")
+
+    if chat_id and text and api_token:
+        import asyncio
+        asyncio.create_task(send_telegram_message(api_token, chat_id, text))
+
+    return JSONResponse({"ok": True})
+
+
 def create_web_app():
     """创建Web应用实例"""
     return app

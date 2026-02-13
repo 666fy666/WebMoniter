@@ -501,6 +501,9 @@ push_channel:
     agent_id:
     corp_secret:
     touser: "@all"  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
+    # 以下为 AI 助手交互可选配置，配置后可在企业微信中与 AI 对话
+    callback_token:     # 在企业微信后台「接收消息」中配置的 Token
+    encoding_aes_key:  # 在企业微信后台「接收消息」中配置的 EncodingAESKey（43 字符）
   # 企业微信机器人
   - name: 企业微信机器人
     type: wecom_bot

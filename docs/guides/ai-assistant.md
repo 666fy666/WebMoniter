@@ -4,7 +4,38 @@ AI 助手通过 RAG（检索增强生成）+ LLM 为 WebMoniter 提供智能对�
 
 ## 入口
 
-在**配置管理**、**任务管理**、**数据展示**页面底部有悬浮「问 AI」按钮，点击后弹出对话窗口。
+- **Web 界面**：在**配置管理**、**任务管理**、**数据展示**页面底部有悬浮「问 AI」按钮
+- **推送平台**：支持在企业微信、Telegram 等具备交互能力的推送渠道中与 AI 对话
+
+## 平台交互接入
+
+以下推送渠道支持接收用户消息并回复 AI 助手，可在对应应用中直接对话：
+
+| 平台 | 配置项 | Webhook URL | 说明 |
+|------|--------|-------------|------|
+| 企业微信自建应用 | `callback_token`、`encoding_aes_key` | `{base_url}/api/webhooks/wecom` | 在企业微信后台「接收消息」配置 URL；参考 [企业微信文档](https://developer.work.weixin.qq.com/document/path/90238) |
+| Telegram 机器人 | `api_token` | `{base_url}/api/webhooks/telegram/{通道名}` | 调用 `setWebhook` 设置 URL；参考 [Telegram 文档](https://core.telegram.org/bots/api) |
+
+> 仅支持推送的渠道（钉钉群机器人、飞书群机器人、Bark、WxPusher 等）无需修改，保持原有单向推送即可。
+
+### 企业微信应用接入步骤
+
+1. 在 `config.yml` 的 `push_channel` 中，为对应企业微信应用补充：
+   - `callback_token`：企业微信后台「我的企业」→「接收消息」中配置的 Token
+   - `encoding_aes_key`：同上，EncodingAESKey（43 字符）
+2. 在企业微信管理后台「应用管理」→ 选择应用 →「接收消息」中：
+   - URL 填：`https://你的域名/api/webhooks/wecom`
+   - Token、EncodingAESKey 与 config.yml 中保持一致
+3. 保存后，成员在企业微信中向该应用发送文字即可与 AI 对话
+
+### Telegram 接入步骤
+
+1. 在 `config.yml` 中配置 `telegram_bot` 通道的 `api_token`、`chat_id`
+2. 调用 Telegram API 设置 Webhook（将 `通道名` 替换为 config 中的 name，如「Telegram机器人」需 URL 编码）：
+   ```
+   https://api.telegram.org/bot<api_token>/setWebhook?url=https://你的域名/api/webhooks/telegram/通道名
+   ```
+3. 用户向该机器人发送消息即可与 AI 对话
 
 ## 会话管理
 

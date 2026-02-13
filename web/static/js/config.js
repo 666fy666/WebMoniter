@@ -5,7 +5,7 @@ let availablePushChannels = []; // 可用的推送通道列表
 let pushChannelTypes = {
     'serverChan_turbo': { name: 'Server酱 Turbo', fields: ['send_key'] },
     'serverChan_3': { name: 'Server酱 3', fields: ['send_key', 'uid', 'tags'] },
-    'wecom_apps': { name: '企业微信应用', fields: ['corp_id', 'agent_id', 'corp_secret', 'touser'] },
+    'wecom_apps': { name: '企业微信应用', fields: ['corp_id', 'agent_id', 'corp_secret', 'touser', 'callback_token', 'encoding_aes_key'] },
     'wecom_bot': { name: '企业微信机器人', fields: ['key'] },
     'dingtalk_bot': { name: '钉钉机器人', fields: ['access_token', 'secret'] },
     'feishu_apps': { name: '飞书自建应用', fields: ['app_id', 'app_secret', 'receive_id_type', 'receive_id'] },
