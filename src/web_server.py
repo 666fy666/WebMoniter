@@ -684,6 +684,14 @@ async def save_config_api(request: Request):
         except Exception as e:
             logger.warning(f"热重载失败: {e}")
 
+        # 使 AI 助手配置缓存失效，以便 /api/assistant/status 返回最新状态
+        try:
+            from src.ai_assistant.config import get_ai_config
+
+            get_ai_config(reload=True)
+        except ImportError:
+            pass
+
         return JSONResponse({"success": True, "message": "配置已保存并应用"})
     except Exception as e:
         logger.error(f"保存配置文件失败: {e}")
@@ -1176,6 +1184,439 @@ async def get_monitor_status(request: Request):
         )
     except Exception as e:
         logger.error(f"获取监控状态失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# =============================================================================
+# AI 助手 API（需登录，ai_assistant.enable 且已安装 ai 依赖时可用）
+# =============================================================================
+
+
+def _assistant_require_auth(request: Request) -> JSONResponse | None:
+    """检查登录与 AI 启用，未通过时返回 JSONResponse"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    try:
+        from src.ai_assistant import is_ai_enabled
+        if not is_ai_enabled():
+            return JSONResponse(
+                {"error": "AI 助手未启用", "hint": "请在 config.yml 中配置 ai_assistant.enable 并安装 uv sync --extra ai"},
+                status_code=503,
+            )
+    except ImportError:
+        return JSONResponse(
+            {"error": "AI 助手模块不可用", "hint": "请安装 uv sync --extra ai"},
+            status_code=503,
+        )
+    return None
+
+
+@app.get("/api/assistant/status")
+async def assistant_status(request: Request):
+    """获取 AI 助手可用状态（无需 AI 依赖也可调用）"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"enabled": False, "reason": "未登录"})
+    try:
+        from src.ai_assistant import is_ai_enabled
+        return JSONResponse({"enabled": is_ai_enabled()})
+    except ImportError:
+        return JSONResponse({"enabled": False, "reason": "未安装 ai 依赖"})
+
+
+@app.get("/api/assistant/conversations")
+async def get_assistant_conversations(request: Request):
+    """获取当前用户会话列表"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    from src.ai_assistant.conversation import list_conversations
+    user_id = request.session.get("username", "default")
+    convos = list_conversations(user_id)
+    return JSONResponse({"conversations": convos})
+
+
+@app.post("/api/assistant/conversations")
+async def create_assistant_conversation(request: Request):
+    """新建会话"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    title = str(body.get("title", "新对话")).strip() or "新对话"
+    from src.ai_assistant.conversation import create_conversation
+    user_id = request.session.get("username", "default")
+    conv_id = create_conversation(user_id=user_id, title=title)
+    return JSONResponse({"conversation_id": conv_id})
+
+
+@app.get("/api/assistant/conversations/{conv_id}/messages")
+async def get_assistant_messages(request: Request, conv_id: str):
+    """获取指定会话的消息列表"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    from src.ai_assistant.config import get_ai_config
+    from src.ai_assistant.conversation import get_messages
+    cfg = get_ai_config()
+    msgs = get_messages(conv_id, max_rounds=cfg.max_history_rounds)
+    return JSONResponse({"messages": msgs})
+
+
+@app.delete("/api/assistant/conversations/{conv_id}")
+async def delete_assistant_conversation(request: Request, conv_id: str):
+    """删除指定会话"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    from src.ai_assistant.conversation import delete_conversation
+    delete_conversation(conv_id)
+    return JSONResponse({"success": True})
+
+
+def _parse_executable_intent_and_reply(message: str):
+    """
+    解析可执行意图（开关监控、配置列表增删）。
+    若识别到可执行意图，返回 (reply, suggested_action)；否则返回 (None, None)。
+    """
+    from src.ai_assistant.intent_parser import parse_toggle_monitor_intent, parse_config_patch_intent
+
+    # 1. 开关监控
+    intent = parse_toggle_monitor_intent(message)
+    if intent is not None:
+        action_text = "关闭" if not intent.enable else "开启"
+        reply = f"好的，{action_text}{intent.display_name}监控。请确认执行："
+        suggested_action = {
+            "type": "confirm_execute",
+            "action": "toggle_monitor",
+            "platform_key": intent.platform_key,
+            "enable": intent.enable,
+            "title": f"{action_text}{intent.display_name}监控",
+            "description": f"确认{action_text}{intent.display_name}监控？"
+            + ("关闭后将停止轮询并不再推送相关通知。" if not intent.enable else "开启后将恢复轮询并推送通知。"),
+        }
+        return reply, suggested_action
+
+    # 2. 配置列表增删（删除虎牙主播100、添加虎牙房间200 等）
+    patch = parse_config_patch_intent(message)
+    if patch is not None:
+        op_text = "添加" if patch.operation == "add" else "移除"
+        reply = f"好的，将从{patch.display_name}监控列表中{op_text}「{patch.value}」。请确认执行："
+        suggested_action = {
+            "type": "confirm_execute",
+            "action": "config_patch",
+            "platform_key": patch.platform_key,
+            "list_key": patch.list_key,
+            "operation": patch.operation,
+            "value": patch.value,
+            "title": f"{op_text}配置项",
+            "description": f"将从 {patch.platform_key} 的 {patch.list_key} 中{op_text}「{patch.value}」",
+        }
+        return reply, suggested_action
+
+    return None, None
+
+
+@app.post("/api/assistant/chat")
+async def assistant_chat(request: Request):
+    """对话接口，支持多轮记忆"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    body = await request.json()
+    message = (body.get("message") or "").strip()
+    if not message:
+        return JSONResponse({"error": "message 不能为空"}, status_code=400)
+    conversation_id = body.get("conversation_id") or ""
+    context = body.get("context", "all")
+
+    from src.ai_assistant.config import get_ai_config
+    from src.ai_assistant.conversation import (
+        append_messages,
+        create_conversation,
+        get_messages,
+    )
+    from src.ai_assistant.llm_client import chat_completion
+    from src.ai_assistant.prompts import SYSTEM_PROMPT
+    from src.ai_assistant.rag import retrieve_all
+    from src.ai_assistant.tools_current_state import parse_platforms_from_message, query_current_state
+
+    cfg = get_ai_config()
+    user_id = request.session.get("username", "default")
+
+    if not conversation_id:
+        conversation_id = create_conversation(user_id=user_id, title="新对话")
+
+    # 语义理解：优先识别可执行意图（开关监控、配置列表增删）
+    reply, suggested_action = _parse_executable_intent_and_reply(message)
+    if reply is not None:
+        append_messages(conversation_id, user_content=message, assistant_content=reply, user_id=user_id)
+        return JSONResponse({
+            "reply": reply,
+            "conversation_id": conversation_id,
+            "suggested_action": suggested_action,
+        })
+
+    history = get_messages(conversation_id, max_rounds=cfg.max_history_rounds)
+
+    system_content = SYSTEM_PROMPT
+    rag_ctx = retrieve_all(message, context=context)
+    if rag_ctx:
+        system_content += "\n\n【本次检索到的参考】\n" + rag_ctx
+    need_current = (
+        "当前" in message or "现在" in message or "谁在直播" in message
+        or "最新" in message or "开播" in message or "谁开播" in message or "直播" in message
+    )
+    if need_current:
+        try:
+            platforms = parse_platforms_from_message(message)
+            current_data = await query_current_state(platforms=platforms)
+            if current_data:
+                system_content += "\n\n【当前监控数据】\n" + current_data
+        except Exception as e:
+            logger.debug("query_current_state 失败: %s", e)
+
+    messages = [{"role": "system", "content": system_content}]
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": message})
+
+    try:
+        reply = await chat_completion(messages=messages)
+    except Exception as e:
+        logger.error("AI 助手调用失败: %s", e)
+        return JSONResponse(
+            {"error": f"LLM 调用失败: {e}", "conversation_id": conversation_id},
+            status_code=500,
+        )
+
+    append_messages(conversation_id, user_content=message, assistant_content=reply, user_id=user_id)
+
+    # 解析回复：优先 config_patch（可执行操作），其次 YAML 代码块（复制配置）
+    import json
+    import re
+
+    suggested_action = None
+    json_match = re.search(r"```json\s*\n(.*?)```", reply, re.DOTALL)
+    if json_match:
+        try:
+            patch = json.loads(json_match.group(1).strip())
+            if patch.get("type") == "config_patch" and all(
+                k in patch for k in ("platform_key", "list_key", "operation", "value")
+            ):
+                suggested_action = {
+                    "type": "confirm_execute",
+                    "action": "config_patch",
+                    "platform_key": patch["platform_key"],
+                    "list_key": patch["list_key"],
+                    "operation": patch["operation"],
+                    "value": str(patch["value"]),
+                    "title": f"{'添加' if patch['operation'] == 'add' else '移除'}配置项",
+                    "description": f"将从 {patch['platform_key']} 的 {patch['list_key']} 中{'添加' if patch['operation'] == 'add' else '移除'}「{patch['value']}」",
+                }
+                # 从展示给用户的回复中移除 JSON 块，保持界面简洁
+                reply = re.sub(r"\n*```json\s*\n.*?```\s*", "\n", reply, flags=re.DOTALL).strip()
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    if suggested_action is None:
+        yaml_match = re.search(r"```yaml\s*\n(.*?)```", reply, re.DOTALL)
+        if yaml_match:
+            suggested_action = {
+                "type": "config_diff",
+                "diff": yaml_match.group(1).strip(),
+                "description": "配置片段（可复制到 config.yml 或配置页）",
+            }
+
+    return JSONResponse({
+        "reply": reply,
+        "conversation_id": conversation_id,
+        "suggested_action": suggested_action,
+    })
+
+
+# 允许通过 AI 助手 apply-action 修改的监控平台
+TOGGLE_MONITOR_PLATFORMS = frozenset({"weibo", "huya", "bilibili", "douyin", "douyu", "xhs"})
+
+# config_patch 支持的 platform -> list_key 映射
+CONFIG_PATCH_PLATFORMS = {
+    "weibo": "uids",
+    "huya": "rooms",
+    "bilibili": "uids",
+    "douyin": "douyin_ids",
+    "douyu": "rooms",
+    "xhs": "profile_ids",
+}
+
+
+def _apply_config_patch(config_path: Path, platform_key: str, list_key: str, operation: str, value: str) -> str:
+    """对 config.yml 中的列表字段执行 add/remove，返回新的 YAML 内容（保留其他配置）"""
+    with open(config_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    section = data.get(platform_key) or {}
+    raw = section.get(list_key) or ""
+    items = [x.strip() for x in raw.split(",") if x.strip()]
+    val = value.strip()
+    if operation == "remove":
+        items = [x for x in items if x != val]
+    elif operation == "add":
+        if val not in items:
+            items.append(val)
+    else:
+        raise ValueError(f"不支持的 operation: {operation}")
+    new_value = ",".join(items) if items else ""
+    config_data = {platform_key: {list_key: new_value}}
+    return _merge_and_dump_config(config_path, config_data)
+
+
+@app.post("/api/assistant/apply-action")
+async def assistant_apply_action(request: Request):
+    """执行 AI 助手识别的可确认操作（如开关监控、增删列表项）"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "请求体格式错误"}, status_code=400)
+
+    action = body.get("action")
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    if action == "config_patch":
+        platform_key = body.get("platform_key")
+        list_key = body.get("list_key")
+        operation = body.get("operation")
+        value = body.get("value")
+        if platform_key not in CONFIG_PATCH_PLATFORMS:
+            return JSONResponse({"error": f"不支持的平台: {platform_key}"}, status_code=400)
+        if CONFIG_PATCH_PLATFORMS.get(platform_key) != list_key:
+            return JSONResponse({"error": f"无效的 list_key: {list_key}"}, status_code=400)
+        if operation not in ("add", "remove"):
+            return JSONResponse({"error": "operation 须为 add 或 remove"}, status_code=400)
+        if not isinstance(value, str) or not value.strip():
+            return JSONResponse({"error": "value 不能为空"}, status_code=400)
+
+        try:
+            config_path = Path("config.yml")
+            if not config_path.exists():
+                return JSONResponse({"error": "配置文件不存在"}, status_code=404)
+            yaml_content = _apply_config_patch(config_path, platform_key, list_key, operation, value)
+
+            import tempfile
+            temp_file = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".yml", delete=False, encoding="utf-8"
+                ) as tmp:
+                    tmp.write(yaml_content)
+                    temp_file = tmp.name
+                try:
+                    test_config_dict = load_config_from_yml(temp_file)
+                    from src.config import AppConfig
+                    AppConfig(**test_config_dict)
+                except Exception as e:
+                    return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+                finally:
+                    if temp_file and Path(temp_file).exists():
+                        Path(temp_file).unlink()
+            except Exception as e:
+                if temp_file and Path(temp_file).exists():
+                    Path(temp_file).unlink()
+                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(yaml_content)
+
+            get_config(reload=True)
+            try:
+                from src.ai_assistant.config import get_ai_config
+                get_ai_config(reload=True)
+            except ImportError:
+                pass
+
+            op_text = "添加" if operation == "add" else "移除"
+            display = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书"}.get(platform_key, platform_key)
+            return JSONResponse({"success": True, "message": f"已从{display}监控列表{op_text}「{value}」，配置已热重载"})
+        except Exception as e:
+            logger.error("apply-action config_patch 执行失败: %s", e)
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    if action != "toggle_monitor":
+        return JSONResponse({"error": f"不支持的操作: {action}"}, status_code=400)
+
+    platform_key = body.get("platform_key")
+    if platform_key not in TOGGLE_MONITOR_PLATFORMS:
+        return JSONResponse({"error": f"不支持的平台: {platform_key}"}, status_code=400)
+
+    enable = body.get("enable")
+    if not isinstance(enable, bool):
+        return JSONResponse({"error": "enable 须为布尔值"}, status_code=400)
+
+    try:
+        config_path = Path("config.yml")
+        if not config_path.exists():
+            return JSONResponse({"error": "配置文件不存在"}, status_code=404)
+
+        config_data = {platform_key: {"enable": enable}}
+        yaml_content = _merge_and_dump_config(config_path, config_data)
+
+        import tempfile
+        temp_file = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".yml", delete=False, encoding="utf-8"
+            ) as tmp:
+                tmp.write(yaml_content)
+                temp_file = tmp.name
+            try:
+                test_config_dict = load_config_from_yml(temp_file)
+                from src.config import AppConfig
+                AppConfig(**test_config_dict)
+            except Exception as e:
+                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+            finally:
+                if temp_file and Path(temp_file).exists():
+                    Path(temp_file).unlink()
+        except Exception as e:
+            if temp_file and Path(temp_file).exists():
+                Path(temp_file).unlink()
+            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(yaml_content)
+
+        get_config(reload=True)
+        try:
+            from src.ai_assistant.config import get_ai_config
+            get_ai_config(reload=True)
+        except ImportError:
+            pass
+
+        action_text = "开启" if enable else "关闭"
+        display = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书"}.get(platform_key, platform_key)
+        return JSONResponse({"success": True, "message": f"已{action_text}{display}监控，配置已热重载"})
+    except Exception as e:
+        logger.error("apply-action 执行失败: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/assistant/reindex")
+async def assistant_reindex(request: Request):
+    """重建 RAG 索引"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    from src.ai_assistant.indexer import build_docs_index
+    try:
+        build_docs_index()
+        return JSONResponse({"status": "ok", "message": "索引已重建"})
+    except Exception as e:
+        logger.error("AI 助手索引重建失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 

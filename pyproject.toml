@@ -1,6 +1,6 @@
 [project]
 name = "web-monitor"
-version = "1.2.2"
+version = "2.0.0"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
@@ -24,6 +24,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ai = [
+    "chromadb>=0.4.0",
+    "httpx>=0.25.0",
+    "openai>=1.0.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",

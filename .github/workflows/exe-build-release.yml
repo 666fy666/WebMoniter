@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -84,6 +84,9 @@ jobs:
           cp pyproject.toml dist/WebMoniter/
           # 复制示例配置文件
           cp config.yml.sample dist/WebMoniter/
+          # 复制 docs/、README.md 供 AI 助手 RAG 检索
+          cp -r docs dist/WebMoniter/
+          cp README.md dist/WebMoniter/
 
       - name: Create ZIP archive
         shell: bash

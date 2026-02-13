@@ -78,6 +78,7 @@ TASK_MODULES: list[str] = [
 
 MONITOR_JOBS: list[JobDescriptor] = []
 TASK_JOBS: list[JobDescriptor] = []
+RAG_JOBS: list[JobDescriptor] = []
 
 
 def _add_task_file_handler(job_id: str, run_func: Callable[[], Awaitable[None]]):
@@ -275,6 +276,10 @@ def register_task(
     logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)
 
 
+# RAG 相关模块（向量库定时更新等），导入时自行注册到 RAG_JOBS
+RAG_MODULES: list[str] = ["src.ai_assistant.rag_index_refresh"]
+
+
 def discover_and_import() -> None:
     """
     按 MONITOR_MODULES 与 TASK_MODULES 导入模块，触发各模块内的 register_monitor/register_task 调用。
@@ -285,3 +290,10 @@ def discover_and_import() -> None:
             importlib.import_module(mod_name)
         except Exception as e:
             logger.warning("导入任务模块 %s 失败: %s", mod_name, e)
+    for mod_name in RAG_MODULES:
+        try:
+            mod = importlib.import_module(mod_name)
+            if hasattr(mod, "register"):
+                mod.register()
+        except Exception as e:
+            logger.warning("导入 RAG 模块 %s 失败: %s", mod_name, e)

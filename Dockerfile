@@ -37,11 +37,14 @@ COPY --from=builder /app/.venv /app/.venv
 
 # 复制项目源代码（只复制运行时需要的文件）
 # pyproject.toml 用于版本号读取
+# docs/、README.md 供 AI 助手 RAG 检索
 COPY pyproject.toml main.py ./
 COPY monitors/ ./monitors/
 COPY src/ ./src/
 COPY tasks/ ./tasks/
 COPY web/ ./web/
+COPY docs/ ./docs/
+COPY README.md ./
 
 # 设置环境变量
 # PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块

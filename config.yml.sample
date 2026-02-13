@@ -586,3 +586,20 @@ push_channel:
     topic_ids:  # 主题ID列表，逗号分隔（可选，与uids二选一）
     content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
 
+# =============================================================================
+# AI 助手配置（可选，需安装 uv sync --extra ai）
+# =============================================================================
+# 支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等 OpenAI 兼容 API
+# 在配置管理、任务管理、数据展示页面底部有悬浮「问 AI」入口
+ai_assistant:
+  enable: false  # 是否启用 AI 助手
+  provider: openai  # openai | deepseek | qwen | zhipu | moonshot | ollama | openai_compatible
+  api_base: ""  # 留空时使用 provider 默认地址；ollama 为 http://localhost:11434/v1
+  api_key: ""  # 可改用环境变量 AI_ASSISTANT_API_KEY
+  model: gpt-4o-mini  # 模型名，如 deepseek-chat、gpt-4o-mini
+  embedding_model: text-embedding-3-small  # RAG 嵌入模型
+  chroma_persist_dir: data/ai_assistant_chroma  # 向量库存储目录
+  rag_index_refresh_interval_seconds: 1800  # 向量库更新间隔（秒），默认 30 分钟
+  rate_limit_per_minute: 10  # 每分钟请求限制
+  max_history_rounds: 10  # 多轮对话保留最近 N 轮
+

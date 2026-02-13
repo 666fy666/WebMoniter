@@ -245,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         monitor: '在监控任务中搜索（如：微博、bilibili、虎牙...）',
         scheduled: '在定时任务中搜索（如：ikuuu、贴吧、签到...）',
         push: '在推送配置中搜索',
+        ai: '在 AI 配置中搜索',
         plugins: '在插件中搜索'
     };
 
@@ -357,6 +358,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showMessage('configMessage', data.error, 'error');
             } else {
                 showMessage('configMessage', data.message || '配置保存成功并已热重载', 'success');
+                document.dispatchEvent(new CustomEvent('config-saved'));
                 // 更新原始配置
                 try {
                     const configResponse = await fetch('/api/config?format=json');
@@ -388,6 +390,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     quietHoursEnable.addEventListener('change', function() {
         quietHoursEnableLabel.textContent = this.checked ? '开启' : '关闭';
     });
+
+    // AI 助手开关事件
+    const aiAssistantEnable = document.getElementById('ai_assistant_enable');
+    const aiAssistantEnableLabel = document.getElementById('ai_assistant_enable_label');
+    if (aiAssistantEnable && aiAssistantEnableLabel) {
+        aiAssistantEnable.addEventListener('change', function() {
+            aiAssistantEnableLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
 
     // 每日签到开关事件
     if (checkinEnable && checkinEnableLabel) {
@@ -517,6 +528,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('log_cleanup', config);
             loadSectionConfig('app', config);
             loadSectionConfig('quiet_hours', config);
+            loadSectionConfig('ai_assistant', config);
             loadSectionConfig('push_channel', config);
             loadSectionConfig('plugins', config);
 
@@ -1867,6 +1879,36 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('quiet_hours_end').value = endTime.length === 5 ? endTime : '08:00';
                 }
                 break;
+            case 'ai_assistant':
+                if (config.ai_assistant) {
+                    const a = config.ai_assistant;
+                    const aiEnable = document.getElementById('ai_assistant_enable');
+                    const aiEnableLabel = document.getElementById('ai_assistant_enable_label');
+                    if (aiEnable) aiEnable.checked = a.enable || false;
+                    if (aiEnableLabel) aiEnableLabel.textContent = (a.enable ? '开启' : '关闭');
+                    const provider = document.getElementById('ai_assistant_provider');
+                    if (provider) {
+                        const pv = (a.provider || 'openai').toLowerCase().trim();
+                        provider.value = ['openai','deepseek','qwen','zhipu','moonshot','ollama','openai_compatible'].includes(pv) ? pv : 'openai';
+                    }
+                    const apiBase = document.getElementById('ai_assistant_api_base');
+                    if (apiBase) apiBase.value = a.api_base || '';
+                    const apiKey = document.getElementById('ai_assistant_api_key');
+                    if (apiKey) apiKey.value = a.api_key || '';
+                    const model = document.getElementById('ai_assistant_model');
+                    if (model) model.value = a.model || '';
+                    const emb = document.getElementById('ai_assistant_embedding_model');
+                    if (emb) emb.value = a.embedding_model || '';
+                    const chroma = document.getElementById('ai_assistant_chroma_persist_dir');
+                    if (chroma) chroma.value = a.chroma_persist_dir || '';
+                    const ragInterval = document.getElementById('ai_assistant_rag_index_refresh_interval_seconds');
+                    if (ragInterval) ragInterval.value = a.rag_index_refresh_interval_seconds ?? 1800;
+                    const rate = document.getElementById('ai_assistant_rate_limit_per_minute');
+                    if (rate) rate.value = a.rate_limit_per_minute ?? 10;
+                    const maxRounds = document.getElementById('ai_assistant_max_history_rounds');
+                    if (maxRounds) maxRounds.value = a.max_history_rounds ?? 10;
+                }
+                break;
             case 'push_channel':
                 renderPushChannels(config.push_channel || []);
                 break;
@@ -2337,6 +2379,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     end: document.getElementById('quiet_hours_end').value || '08:00'
                 };
                 break;
+            case 'ai_assistant': {
+                const aiEnableEl = document.getElementById('ai_assistant_enable');
+                config.ai_assistant = {
+                    enable: aiEnableEl ? aiEnableEl.checked : false,
+                    provider: (document.getElementById('ai_assistant_provider')?.value || 'openai').trim(),
+                    api_base: (document.getElementById('ai_assistant_api_base')?.value || '').trim(),
+                    api_key: (document.getElementById('ai_assistant_api_key')?.value || '').trim(),
+                    model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
+                    embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
+                    chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
+                    rag_index_refresh_interval_seconds: parseInt(document.getElementById('ai_assistant_rag_index_refresh_interval_seconds')?.value || '1800', 10) || 1800,
+                    rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
+                    max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
+                };
+                break;
+            }
             case 'push_channel':
                 config.push_channel = [];
                 const channelItems = document.querySelectorAll('.push-channel-item');
@@ -2483,6 +2541,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             end: document.getElementById('quiet_hours_end').value || '08:00'
         };
 
+        // AI 助手配置
+        const aiEnableEl = document.getElementById('ai_assistant_enable');
+        config.ai_assistant = {
+            enable: aiEnableEl ? aiEnableEl.checked : false,
+            provider: (document.getElementById('ai_assistant_provider')?.value || 'openai').trim(),
+            api_base: (document.getElementById('ai_assistant_api_base')?.value || '').trim(),
+            api_key: (document.getElementById('ai_assistant_api_key')?.value || '').trim(),
+            model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
+            embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
+            chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
+            rag_index_refresh_interval_seconds: parseInt(document.getElementById('ai_assistant_rag_index_refresh_interval_seconds')?.value || '1800', 10) || 1800,
+            rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
+            max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
+        };
+
         // 日志清理配置
         config.log_cleanup = collectSectionConfig('log_cleanup').log_cleanup;
 
@@ -2594,6 +2667,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 originalConfig = JSON.parse(JSON.stringify(config));
                 showMessage('configMessage', data.message || '配置保存成功并已热重载', 'success');
+                document.dispatchEvent(new CustomEvent('config-saved'));
             }
         } catch (error) {
             showMessage('configMessage', '保存配置失败: ' + error.message, 'error');
@@ -2639,6 +2713,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     Object.assign(originalConfig, sectionConfig);
                 }
                 showMessage('configMessage', saveData.message || '配置保存成功并已热重载', 'success');
+                document.dispatchEvent(new CustomEvent('config-saved'));
             }
         } catch (error) {
             showMessage('configMessage', '保存配置失败: ' + error.message, 'error');
@@ -2794,6 +2869,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showMessage('configMessage', saveData.error, 'error');
             } else {
                 showMessage('configMessage', '通道配置已保存并应用', 'success');
+                document.dispatchEvent(new CustomEvent('config-saved'));
                 // 更新原始配置
                 if (originalConfig) {
                     originalConfig.push_channel = channels;
@@ -3270,4 +3346,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 初始加载配置
     await loadConfig();
+
+    // 监听 config-saved（如 AI 助手 apply-action 成功后），刷新配置表单以反映最新状态
+    document.addEventListener('config-saved', async function () {
+        await loadConfig();
+        if (textView && textView.style.display !== 'none') {
+            await loadYamlConfig();
+        }
+    });
 });

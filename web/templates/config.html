@@ -124,6 +124,7 @@
                     <button class="config-module-tab active" data-module="monitor">📡 监控任务</button>
                     <button class="config-module-tab" data-module="scheduled">⏰ 定时任务</button>
                     <button class="config-module-tab" data-module="push">📢 推送配置</button>
+                    <button class="config-module-tab" data-module="ai">🤖 AI 配置</button>
                     <button class="config-module-tab" data-module="plugins">🔌 插件</button>
                 </div>
                 <div class="config-module-search-wrap">
@@ -1610,6 +1611,91 @@
                 </div>
             </div>
 
+            <!-- AI 助手配置 -->
+            <div class="card config-section fade-in" data-section="ai_assistant" data-module="ai" style="animation-delay: 0.32s;">
+                <div class="card-header">
+                    <h2>🤖 AI 助手配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用 AI 助手</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="ai_assistant_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="ai_assistant_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Provider</td>
+                            <td>
+                                <select id="ai_assistant_provider" class="form-input">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                    <option value="qwen">通义千问</option>
+                                    <option value="zhipu">智谱 GLM</option>
+                                    <option value="moonshot">Moonshot (Kimi)</option>
+                                    <option value="ollama">Ollama (本地)</option>
+                                    <option value="openai_compatible">OpenAI 兼容</option>
+                                </select>
+                                <p class="help-text">LLM 厂商，需 OpenAI 兼容 API</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">API Base</td>
+                            <td>
+                                <input type="text" id="ai_assistant_api_base" class="form-input" placeholder="留空使用 provider 默认；Ollama 为 http://localhost:11434/v1">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">API Key</td>
+                            <td>
+                                <input type="password" id="ai_assistant_api_key" class="form-input" placeholder="可改用环境变量 AI_ASSISTANT_API_KEY">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Model</td>
+                            <td><input type="text" id="ai_assistant_model" class="form-input" placeholder="如 deepseek-chat、gpt-4o-mini"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Embedding Model</td>
+                            <td><input type="text" id="ai_assistant_embedding_model" class="form-input" placeholder="RAG 嵌入模型，默认 text-embedding-3-small"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Chroma 存储目录</td>
+                            <td><input type="text" id="ai_assistant_chroma_persist_dir" class="form-input" placeholder="data/ai_assistant_chroma"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">向量库更新间隔（秒）</td>
+                            <td><input type="number" id="ai_assistant_rag_index_refresh_interval_seconds" class="form-input" min="60" max="86400" placeholder="1800"> 秒，默认 1800（30 分钟）</td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">每分钟请求限制</td>
+                            <td><input type="number" id="ai_assistant_rate_limit_per_minute" class="form-input" min="1" max="120" placeholder="10"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">多轮对话保留轮数</td>
+                            <td><input type="number" id="ai_assistant_max_history_rounds" class="form-input" min="1" max="50" placeholder="10"></td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>需安装 <code>uv sync --extra ai</code>。在配置/任务/数据页底部有悬浮「问 AI」入口。</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 推送通道配置 -->
             <div class="card config-section fade-in" data-section="push_channel" data-module="push" style="animation-delay: 0.35s;">
                 <div class="card-header">
@@ -1680,5 +1766,6 @@
     <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">↑</button>
     <script src="/static/js/common.js?v=5"></script>
     <script src="/static/js/config.js?v=6"></script>
+    <script src="/static/js/assistant.js?v=1"></script>
 </body>
 </html>

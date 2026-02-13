@@ -72,6 +72,7 @@ nav:
     - 配置与设置:
       - 配置说明: guides/config.md
       - Web 管理界面: guides/web-ui.md
+    - AI 助手: guides/ai-assistant.md
     - 任务管理:
       - 任务概览: guides/tasks.md
       - 监控任务详解: guides/tasks/monitors.md
