@@ -75,12 +75,13 @@ async def handle_wecom_callback(
             logger.error("企业微信 URL 验证失败: %s", e)
             return PlainTextResponse("verify failed", status_code=400)
 
-    # POST：消息回调（strict 解码，避免 errors='replace' 将非法字节替换为 � 损坏 Base64）
-    if post_body is not None:
-        post_data = post_body.decode("utf-8", errors="strict")
-    else:
-        body = await request.body()
-        post_data = body.decode("utf-8", errors="strict")
+    # POST：消息回调
+    raw = post_body if post_body is not None else (await request.body())
+    try:
+        post_data = raw.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        post_data = raw.decode("utf-8", errors="replace")
+        logger.warning("企业微信 POST 请求体 UTF-8 含非法字节，已 replace 处理，若仍解密失败请检查代理是否篡改请求体")
 
     try:
         plain_xml = decrypt_msg(

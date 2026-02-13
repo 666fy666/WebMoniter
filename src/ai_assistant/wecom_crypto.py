@@ -1,49 +1,40 @@
-"""企业微信消息加解密 - 参考官方文档 https://developer.work.weixin.qq.com/document/path/90968
+"""企业微信消息加解密 - 使用官方 WXBizMsgCrypt 库
 
-官方实现参考：https://github.com/sbzhu/weworkapi_golang (Go)、
-https://dldir1.qq.com/wework/wwopen/callback/weworkapi_python-master.zip (Python)
+官方库：src/weworkapi_python/callback_python3/WXBizMsgCrypt.py
+文档：https://developer.work.weixin.qq.com/document/path/90968
 """
 
-import base64
-import hashlib
-import random
-import re
-import struct
-import string
+import logging
+import sys
+from pathlib import Path
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from urllib.parse import unquote
 
-# XML 解析使用正则，避免依赖 lxml
-def _extract_cdata(tag: str, xml: str) -> str | None:
-    m = re.search(rf"<{tag}><!\[CDATA\[(.*?)\]\]></{tag}>", xml, re.DOTALL)
-    if m:
-        return m.group(1)
-    m = re.search(rf"<{tag}>(.*?)</{tag}>", xml, re.DOTALL)
-    return m.group(1) if m else None
+logger = logging.getLogger(__name__)
 
+# 加载官方 WXBizMsgCrypt（callback_python3 为 XML 格式，适配接收消息）
+_callback_dir = Path(__file__).resolve().parent.parent / "weworkapi_python" / "callback_python3"
+if _callback_dir.exists() and str(_callback_dir) not in sys.path:
+    sys.path.insert(0, str(_callback_dir))
 
-def _get_aes_key(encoding_aes_key: str) -> bytes:
-    """EncodingAESKey 为 43 字符，Base64 解码后补 = 得 32 字节 AESKey"""
-    key = (encoding_aes_key or "").strip()
-    if len(key) == 43:
-        key += "="
-    elif len(key) != 44:
-        raise ValueError("EncodingAESKey 须为 43 或 44 字符")
-    return base64.b64decode(key)
+# cElementTree 已在 Python 3.3+ 弃用，兼容：将 cElementTree 映射到 ElementTree
+import xml.etree.ElementTree as _ET
+if "xml.etree.cElementTree" not in sys.modules:
+    sys.modules["xml.etree.cElementTree"] = _ET
 
-
-def _get_iv(aes_key: bytes) -> bytes:
-    """IV 取 AESKey 前 16 字节"""
-    return aes_key[:16]
-
-
-def verify_signature(token: str, timestamp: str, nonce: str, msg_encrypt: str, signature: str) -> bool:
-    """验证消息签名"""
-    arr = sorted([token, timestamp, nonce, msg_encrypt])
-    concat = "".join(arr)
-    digest = hashlib.sha1(concat.encode()).hexdigest()
-    return digest == signature
+try:
+    from WXBizMsgCrypt import WXBizMsgCrypt
+    from ierror import (
+        WXBizMsgCrypt_OK,
+        WXBizMsgCrypt_DecryptAES_Error,
+        WXBizMsgCrypt_ValidateCorpid_Error,
+        WXBizMsgCrypt_ValidateSignature_Error,
+        WXBizMsgCrypt_ParseXml_Error,
+    )
+    _OFFICIAL_AVAILABLE = True
+except ImportError as e:
+    logger.warning("企业微信官方 WXBizMsgCrypt 加载失败，使用内置实现: %s", e)
+    _OFFICIAL_AVAILABLE = False
 
 
 def decrypt_msg(
@@ -56,72 +47,108 @@ def decrypt_msg(
     post_data: str,
 ) -> str:
     """
-    解密企业微信回调消息。
-
-    Args:
-        token: 应用回调配置的 Token
-        encoding_aes_key: 应用回调配置的 EncodingAESKey（43 字符）
-        corp_id: 企业 ID，作为 ReceiveId
-        msg_signature: URL 参数 msg_signature
-        timestamp: URL 参数 timestamp
-        nonce: URL 参数 nonce
-        post_data: POST 请求体 XML 字符串
-
-    Returns:
-        解密后的明文 XML 消息
-
-    Raises:
-        ValueError: 签名校验失败或解密失败
+    解密企业微信回调消息。优先使用官方 WXBizMsgCrypt 库。
     """
-    encrypt_raw = _extract_cdata("Encrypt", post_data) or _extract_cdata("encrypt", post_data)
+    if _OFFICIAL_AVAILABLE:
+        try:
+            wxcpt = WXBizMsgCrypt(token, encoding_aes_key, corp_id)
+            ret, xml_content = wxcpt.DecryptMsg(
+                post_data, msg_signature, timestamp, nonce
+            )
+            if ret == WXBizMsgCrypt_OK:
+                return xml_content.decode("utf-8") if isinstance(xml_content, bytes) else xml_content
+            if ret == WXBizMsgCrypt_ValidateSignature_Error:
+                raise ValueError("签名校验失败")
+            if ret == WXBizMsgCrypt_ValidateCorpid_Error:
+                raise ValueError(f"ReceiveId 不匹配: 期望 {corp_id}")
+            if ret == WXBizMsgCrypt_ParseXml_Error:
+                raise ValueError("无法从 POST 数据中解析 Encrypt 节点")
+            if ret == WXBizMsgCrypt_DecryptAES_Error:
+                raise ValueError(
+                    "AES 解密失败: 请确认 config 中 encoding_aes_key、corp_id、callback_token "
+                    "与企微后台「接收消息」里该应用的配置完全一致，且 EncodingAESKey 为 43 字符无多余空格"
+                )
+            raise ValueError(f"解密失败，错误码: {ret}")
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f"解密失败: {e}") from e
+
+    # 回退到内置实现
+    return _decrypt_msg_fallback(
+        token, encoding_aes_key, corp_id,
+        msg_signature, timestamp, nonce, post_data
+    )
+
+
+def _decrypt_msg_fallback(
+    token: str,
+    encoding_aes_key: str,
+    corp_id: str,
+    msg_signature: str,
+    timestamp: str,
+    nonce: str,
+    post_data: str,
+) -> str:
+    """内置解密实现（官方库不可用时的回退）"""
+    import base64
+    import re
+    import struct
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import unpad
+
+    def _extract_encrypt(xml_text: str) -> str | None:
+        m = re.search(r"<Encrypt><!\[CDATA\[(.*?)\]\]></Encrypt>", xml_text, re.DOTALL)
+        if m:
+            return m.group(1)
+        m = re.search(r"<Encrypt>(.*?)</Encrypt>", xml_text, re.DOTALL)
+        return m.group(1).strip() if m else None
+
+    def _verify_sig(t: str, ts: str, n: str, e: str, sig: str) -> bool:
+        import hashlib
+        arr = sorted([t, ts, n, e])
+        return hashlib.sha1("".join(arr).encode()).hexdigest() == sig
+
+    encrypt_raw = _extract_encrypt(post_data)
     if not encrypt_raw:
         raise ValueError("无法从 POST 数据中解析 Encrypt 节点")
-
-    # 签名校验使用原始 Encrypt（与企微服务端计算一致）
-    if not verify_signature(token, timestamp, nonce, encrypt_raw, msg_signature):
+    if not _verify_sig(token, timestamp, nonce, encrypt_raw, msg_signature):
         raise ValueError("签名校验失败")
 
-    # 解密：按官方实现，Encrypt 为 XML CDATA 中的原始 Base64，直接解码即可
-    # 参见 https://github.com/sbzhu/weworkapi_golang 中 cbcDecrypter 直接 base64.DecodeString
-    encrypt = encrypt_raw.strip()
+    key = (encoding_aes_key or "").strip()
+    if len(key) == 43:
+        key += "="
+    elif len(key) != 44:
+        raise ValueError("EncodingAESKey 须为 43 或 44 字符")
+    aes_key = base64.b64decode(key)
+    iv = aes_key[:16]
 
-    aes_key = _get_aes_key(encoding_aes_key)
-    iv = _get_iv(aes_key)
+    for enc in [encrypt_raw.strip(), unquote(encrypt_raw.strip()).replace(" ", "+")]:
+        try:
+            pad_len = 4 - (len(enc) % 4)
+            if pad_len and pad_len != 4:
+                enc = enc + ("=" * pad_len)
+            aes_msg = base64.b64decode(enc)
+        except Exception:
+            continue
+        if len(aes_msg) % AES.block_size != 0:
+            continue
+        try:
+            cipher = AES.new(aes_key, AES.MODE_CBC, iv)
+            rand_msg = unpad(cipher.decrypt(aes_msg), AES.block_size)
+        except Exception:
+            continue
+        msg_len = struct.unpack(">I", rand_msg[16:20])[0]
+        msg = rand_msg[20 : 20 + msg_len].decode("utf-8")
+        receive_id = rand_msg[20 + msg_len :].decode("utf-8")
+        if receive_id != corp_id:
+            raise ValueError(f"ReceiveId 不匹配: 期望 {corp_id}, 得到 {receive_id}")
+        return msg
 
-    try:
-        # 补足 Base64 填充再解码（部分场景缺少末尾 =）
-        pad_len = 4 - (len(encrypt) % 4)
-        if pad_len and pad_len != 4:
-            encrypt = encrypt + ("=" * pad_len)
-        aes_msg = base64.b64decode(encrypt)
-    except Exception as e:
-        raise ValueError(f"Base64 解码失败: {e}") from e
-
-    if len(aes_msg) % AES.block_size != 0:
-        raise ValueError("密文长度须为 16 的倍数")
-
-    try:
-        cipher = AES.new(aes_key, AES.MODE_CBC, iv)
-        rand_msg = unpad(cipher.decrypt(aes_msg), AES.block_size)
-    except ValueError as e:
-        if "Padding" in str(e) or "padding" in str(e).lower():
-            raise ValueError(
-                "AES 解密失败(Padding 错误): 请确认 config 中 encoding_aes_key、corp_id、callback_token "
-                "与企微后台「接收消息」里该应用的配置完全一致，且 EncodingAESKey 为 43 字符无多余空格"
-            ) from e
-        raise ValueError(f"AES 解密失败: {e}") from e
-    except Exception as e:
-        raise ValueError(f"AES 解密失败: {e}") from e
-
-    # rand_msg: 16 字节随机 + 4 字节 msg_len(大端) + msg + receiveid
-    msg_len = struct.unpack(">I", rand_msg[16:20])[0]
-    msg = rand_msg[20 : 20 + msg_len].decode("utf-8")
-    receive_id = rand_msg[20 + msg_len :].decode("utf-8")
-
-    if receive_id != corp_id:
-        raise ValueError(f"ReceiveId 不匹配: 期望 {corp_id}, 得到 {receive_id}")
-
-    return msg
+    raise ValueError(
+        "AES 解密失败: 请确认 config 中 encoding_aes_key、corp_id、callback_token "
+        "与企微后台「接收消息」里该应用的配置完全一致"
+    )
 
 
 def encrypt_msg(
@@ -133,42 +160,58 @@ def encrypt_msg(
     corp_id: str,
 ) -> str:
     """
-    加密被动回复消息。
-
-    Args:
-        token: 应用回调配置的 Token
-        encoding_aes_key: 应用回调配置的 EncodingAESKey
-        reply_msg: 明文回复 XML
-        timestamp: 时间戳字符串
-        nonce: 随机数
-        corp_id: 企业 ID 作为 ReceiveId
-
-    Returns:
-        加密后的 XML 响应包
+    加密被动回复消息。优先使用官方 WXBizMsgCrypt 库。
     """
-    aes_key = _get_aes_key(encoding_aes_key)
-    iv = _get_iv(aes_key)
+    if _OFFICIAL_AVAILABLE:
+        try:
+            wxcpt = WXBizMsgCrypt(token, encoding_aes_key, corp_id)
+            ret, encrypted_xml = wxcpt.EncryptMsg(reply_msg, nonce, timestamp)
+            if ret == WXBizMsgCrypt_OK:
+                return encrypted_xml
+            raise ValueError(f"加密失败，错误码: {ret}")
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f"加密失败: {e}") from e
+
+    return _encrypt_msg_fallback(
+        token, encoding_aes_key, reply_msg, timestamp, nonce, corp_id
+    )
+
+
+def _encrypt_msg_fallback(
+    token: str,
+    encoding_aes_key: str,
+    reply_msg: str,
+    timestamp: str,
+    nonce: str,
+    corp_id: str,
+) -> str:
+    """内置加密实现"""
+    import base64
+    import hashlib
+    import random
+    import string
+    import struct
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import pad
+
+    key = (encoding_aes_key or "").strip()
+    if len(key) == 43:
+        key += "="
+    aes_key = base64.b64decode(key)
+    iv = aes_key[:16]
 
     msg_bytes = reply_msg.encode("utf-8")
-    msg_len = len(msg_bytes)
-    receive_id_bytes = corp_id.encode("utf-8")
-
     rand_str = "".join(random.choices(string.ascii_letters + string.digits, k=16)).encode()
-    len_bytes = struct.pack(">I", msg_len)
-    plain = rand_str + len_bytes + msg_bytes + receive_id_bytes
-
+    plain = rand_str + struct.pack(">I", len(msg_bytes)) + msg_bytes + corp_id.encode("utf-8")
     cipher = AES.new(aes_key, AES.MODE_CBC, iv)
-    padded = pad(plain, AES.block_size)
-    encrypted = cipher.encrypt(padded)
-    msg_encrypt = base64.b64encode(encrypted).decode()
+    encrypted = base64.b64encode(cipher.encrypt(pad(plain, AES.block_size))).decode()
 
-    # 签名
-    arr = sorted([token, timestamp, nonce, msg_encrypt])
-    concat = "".join(arr)
-    signature = hashlib.sha1(concat.encode()).hexdigest()
-
+    arr = sorted([token, timestamp, nonce, encrypted])
+    signature = hashlib.sha1("".join(arr).encode()).hexdigest()
     return f"""<xml>
-<Encrypt><![CDATA[{msg_encrypt}]]></Encrypt>
+<Encrypt><![CDATA[{encrypted}]]></Encrypt>
 <MsgSignature><![CDATA[{signature}]]></MsgSignature>
 <TimeStamp>{timestamp}</TimeStamp>
 <Nonce><![CDATA[{nonce}]]></Nonce>
