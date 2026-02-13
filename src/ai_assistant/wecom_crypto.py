@@ -1,4 +1,8 @@
-"""企业微信消息加解密 - 参考官方文档 https://developer.work.weixin.qq.com/document/path/90968"""
+"""企业微信消息加解密 - 参考官方文档 https://developer.work.weixin.qq.com/document/path/90968
+
+官方实现参考：https://github.com/sbzhu/weworkapi_golang (Go)、
+https://dldir1.qq.com/wework/wwopen/callback/weworkapi_python-master.zip (Python)
+"""
 
 import base64
 import hashlib
@@ -6,7 +10,6 @@ import random
 import re
 import struct
 import string
-from urllib.parse import unquote
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -78,10 +81,9 @@ def decrypt_msg(
     if not verify_signature(token, timestamp, nonce, encrypt_raw, msg_signature):
         raise ValueError("签名校验失败")
 
-    # 解密前规范化：去空白、URL 解码、Base64 中空格还原为 +
+    # 解密：按官方实现，Encrypt 为 XML CDATA 中的原始 Base64，直接解码即可
+    # 参见 https://github.com/sbzhu/weworkapi_golang 中 cbcDecrypter 直接 base64.DecodeString
     encrypt = encrypt_raw.strip()
-    encrypt = unquote(encrypt)
-    encrypt = encrypt.replace(" ", "+")
 
     aes_key = _get_aes_key(encoding_aes_key)
     iv = _get_iv(aes_key)
