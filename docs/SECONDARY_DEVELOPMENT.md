@@ -112,7 +112,7 @@ checkin_time: str = "08:00"
 ```
 
 在 `load_config_from_yml()` 中从 `yml_config["checkin"]` 读到上述字段并写入 `config_dict`（如 `config_dict["checkin_enable"] = checkin["enable"]` 等）。  
-项目内实现见 `src/config.py` 约 135–151 行。
+项目内实现见 `src/config.py` 中 `config_mappings` 的 `checkin` 段及多账号 `accounts` 的特殊处理。
 
 ### 2.3 任务实现：tasks/ikuuu_checkin.py
 
@@ -243,6 +243,7 @@ TASK_MODULES: list[str] = [
     "tasks.ikuuu_checkin",  # iKuuu 签到
     "tasks.tieba_checkin",
     "tasks.weibo_chaohua_checkin",  # 微博超话签到
+    # ... 雨云、贴吧、阿里云盘等更多任务见 job_registry.py
     "tasks.demo_task",  # 二次开发示例，不需要可移除此行
 ]
 ```

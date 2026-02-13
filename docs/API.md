@@ -35,6 +35,15 @@ POST /api/logout
 GET /api/check-auth
 ```
 
+#### 修改密码（需登录）
+
+```http
+POST /api/change-password
+Content-Type: application/x-www-form-urlencoded
+
+old_password=xxx&new_password=xxx&confirm_password=xxx
+```
+
 #### 获取版本信息（无需登录）
 
 ```http

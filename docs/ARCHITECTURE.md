@@ -346,6 +346,10 @@ CREATE TABLE huya (
 MONITOR_MODULES = [
     "monitors.huya_monitor",
     "monitors.weibo_monitor",
+    "monitors.bilibili_monitor",
+    "monitors.douyin_monitor",
+    "monitors.douyu_monitor",
+    "monitors.xhs_monitor",
     "monitors.new_monitor",  # 新增
 ]
 
@@ -509,11 +513,13 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `GET /api/data/{platform}`：获取监控数据
 - `GET /api/logs`：获取日志内容（可选 `task` 参数指定任务今日日志）
 - `GET /api/logs/tasks`：获取任务日志列表
-- `GET /api/monitor-status/{platform}`：获取监控状态（无需登录）
+- `GET /api/monitor-status`：获取全部监控状态（无需登录）
+- `GET /api/monitor-status/{platform}`：按平台获取监控状态（无需登录）
 - `GET /api/version`：获取版本信息（无需登录，用于前端检测新版本）
 - `GET /api/assistant/status`：获取 AI 助手状态（需登录）
 - `POST /api/assistant/chat`：AI 对话（需登录，需 AI 依赖）
 - `POST /api/assistant/apply-action`：执行可确认操作（需登录）
+- `POST /api/assistant/reindex`：手动重建 RAG 索引（需登录）
 
 **配置保存特性**：
 - 使用 `ruamel.yaml` 保留YAML注释
@@ -684,12 +690,15 @@ from src.version import (
    - 检测各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等
    - 检测嵌套配置（多账号、多 Cookie 等）变化
    ↓
-4. 更新调度器
+4. 配置与数据库同步（sync_config_to_db）
+   - 从配置中删除的 uid/room 对应删除数据库记录
+   ↓
+5. 更新调度器
    - 更新间隔任务的间隔时间
    - 更新Cron任务的执行时间
    - 更新免打扰时段配置
    ↓
-5. 记录日志
+6. 记录日志
 ```
 
 ---
@@ -871,6 +880,7 @@ WebMoniter/
 ├── src/                    # 核心源代码
 │   ├── __init__.py
 │   ├── config.py           # 配置管理
+│   ├── config_db_sync.py   # 配置与数据库同步（热重载时删除已移除的 uid/room）
 │   ├── config_watcher.py   # 配置监控（热重载）
 │   ├── ai_assistant/       # AI 助手（RAG + LLM）
 │   │   ├── config.py       # AI 配置
@@ -966,8 +976,8 @@ WebMoniter/
 │   │   └── js/
 │   └── templates/          # Jinja2模板
 │       ├── login.html
-│       ├── dashboard.html  # 控制台首页
-│       ├── config.html
+│       ├── config.html     # 配置管理（登录后默认首页）
+│       ├── dashboard.html  # 备用控制台模板
 │       ├── tasks.html      # 任务管理
 │       ├── data.html
 │       └── logs.html
@@ -1048,31 +1058,19 @@ WebMoniter/
 配置文件采用YAML格式，支持嵌套结构和注释：
 
 ```yaml
-# 监控配置
+# 监控配置（示例：微博、虎牙，各任务可配置 monitor_interval_seconds 与 push_channels）
 weibo:
   enable: true   # 是否启用，默认 true；设为 false 时任务暂停
   cookie: "xxx"
   uids: "123,456"
   concurrency: 2
-
-huya:
-  enable: true
-  rooms: "123,456"
-  concurrency: 5
-
-# 监控间隔配置（按任务配置）
-huya:
-  enable: true
-  rooms: "123,456"
-  concurrency: 5
-  monitor_interval_seconds: 60
-
-weibo:
-  enable: true
-  cookie: "xxx"
-  uids: "123,456"
-  concurrency: 2
   monitor_interval_seconds: 300
+
+huya:
+  enable: true
+  rooms: "123,456"
+  concurrency: 5
+  monitor_interval_seconds: 65
 
 # 推送通道配置（每个任务可通过 push_channels 字段选择使用哪些通道）
 push_channel:

@@ -39,8 +39,8 @@ WebMoniter 支持在 [青龙面板](https://github.com/whyour/qinglong) 中运�
 
 2. 安装依赖（青龙容器内通常已有，可先执行任务看是否报错）：
    ```bash
-   pip3 install -r requirements.txt
-   # 或使用 uv: uv sync --locked
+   uv sync --locked
+   # 或使用 pip: pip install -e .
    ```
 
 3. 在青龙「定时任务」中新增任务：
