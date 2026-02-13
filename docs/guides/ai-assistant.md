@@ -23,6 +23,7 @@ AI 助手通过 RAG（检索增强生成）+ LLM 为 WebMoniter 提供智能对�
 1. 在 `config.yml` 的 `push_channel` 中，为对应企业微信应用补充：
    - `callback_token`：企业微信后台「我的企业」→「接收消息」中配置的 Token
    - `encoding_aes_key`：同上，EncodingAESKey（43 字符）
+   - `corp_id`、`corp_secret`、`agent_id`：与推送配置相同，用于异步回复（被动回复 5 秒超时，AI 通过 API 主动推送）
 2. 在企业微信管理后台「应用管理」→ 选择应用 →「接收消息」中：
    - URL 填：`https://你的域名/api/webhooks/wecom`
    - Token、EncodingAESKey 与 config.yml 中保持一致
