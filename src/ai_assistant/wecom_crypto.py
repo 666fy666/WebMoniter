@@ -6,6 +6,7 @@ import random
 import re
 import struct
 import string
+from urllib.parse import unquote
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -21,9 +22,11 @@ def _extract_cdata(tag: str, xml: str) -> str | None:
 
 def _get_aes_key(encoding_aes_key: str) -> bytes:
     """EncodingAESKey 为 43 字符，Base64 解码后补 = 得 32 字节 AESKey"""
-    key = encoding_aes_key
+    key = (encoding_aes_key or "").strip()
     if len(key) == 43:
         key += "="
+    elif len(key) != 44:
+        raise ValueError("EncodingAESKey 须为 43 或 44 字符")
     return base64.b64decode(key)
 
 
@@ -67,24 +70,44 @@ def decrypt_msg(
     Raises:
         ValueError: 签名校验失败或解密失败
     """
-    encrypt = _extract_cdata("Encrypt", post_data) or _extract_cdata("encrypt", post_data)
-    if not encrypt:
+    encrypt_raw = _extract_cdata("Encrypt", post_data) or _extract_cdata("encrypt", post_data)
+    if not encrypt_raw:
         raise ValueError("无法从 POST 数据中解析 Encrypt 节点")
 
-    if not verify_signature(token, timestamp, nonce, encrypt, msg_signature):
+    # 签名校验使用原始 Encrypt（与企微服务端计算一致）
+    if not verify_signature(token, timestamp, nonce, encrypt_raw, msg_signature):
         raise ValueError("签名校验失败")
+
+    # 解密前规范化：去空白、URL 解码、Base64 中空格还原为 +
+    encrypt = encrypt_raw.strip()
+    encrypt = unquote(encrypt)
+    encrypt = encrypt.replace(" ", "+")
 
     aes_key = _get_aes_key(encoding_aes_key)
     iv = _get_iv(aes_key)
 
     try:
+        # 补足 Base64 填充再解码（部分场景缺少末尾 =）
+        pad_len = 4 - (len(encrypt) % 4)
+        if pad_len and pad_len != 4:
+            encrypt = encrypt + ("=" * pad_len)
         aes_msg = base64.b64decode(encrypt)
     except Exception as e:
         raise ValueError(f"Base64 解码失败: {e}") from e
 
+    if len(aes_msg) % AES.block_size != 0:
+        raise ValueError("密文长度须为 16 的倍数")
+
     try:
         cipher = AES.new(aes_key, AES.MODE_CBC, iv)
         rand_msg = unpad(cipher.decrypt(aes_msg), AES.block_size)
+    except ValueError as e:
+        if "Padding" in str(e) or "padding" in str(e).lower():
+            raise ValueError(
+                "AES 解密失败(Padding 错误): 请确认 config 中 encoding_aes_key、corp_id、callback_token "
+                "与企微后台「接收消息」里该应用的配置完全一致，且 EncodingAESKey 为 43 字符无多余空格"
+            ) from e
+        raise ValueError(f"AES 解密失败: {e}") from e
     except Exception as e:
         raise ValueError(f"AES 解密失败: {e}") from e
 
