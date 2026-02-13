@@ -39,6 +39,35 @@ CONFIG_KEY_TO_DISPLAY = {
     "xhs": "小红书",
 }
 
+# 支持开关的配置节（监控 + 定时任务等）：显示名/别名 -> section_key
+TOGGLE_SECTION_NAMES = {
+    # 监控（与 PLATFORM 重复的用 CONFIG_KEY_TO_DISPLAY）
+    "微博": "weibo", "weibo": "weibo",
+    "虎牙": "huya", "huya": "huya",
+    "哔哩哔哩": "bilibili", "b站": "bilibili", "bilibili": "bilibili",
+    "抖音": "douyin", "douyin": "douyin",
+    "斗鱼": "douyu", "douyu": "douyu",
+    "小红书": "xhs", "xhs": "xhs",
+    # 定时任务
+    "超话": "weibo_chaohua", "超话签到": "weibo_chaohua", "微博超话": "weibo_chaohua",
+    "ikuuu": "checkin", "checkin": "checkin", "签到": "checkin",
+    "贴吧": "tieba", "百度贴吧": "tieba", "tieba": "tieba",
+    "雨云": "rainyun", "rainyun": "rainyun", "雨云签到": "rainyun",
+    "阿里云盘": "aliyun", "aliyun": "aliyun", "阿里云盘签到": "aliyun",
+    "什么值得买": "smzdm", "值得买": "smzdm", "smzdm": "smzdm",
+    "夸克": "kuake", "kuake": "kuake", "夸克签到": "kuake",
+    "天气": "weather", "weather": "weather", "天气推送": "weather",
+    "日志清理": "log_cleanup", "log_cleanup": "log_cleanup",
+    "免打扰": "quiet_hours", "quiet_hours": "quiet_hours",
+}
+
+TOGGLE_SECTION_TO_DISPLAY = {
+    "weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
+    "weibo_chaohua": "微博超话签到", "checkin": "iKuuu 签到", "tieba": "百度贴吧签到", "rainyun": "雨云签到",
+    "aliyun": "阿里云盘签到", "smzdm": "什么值得买签到", "kuake": "夸克签到", "weather": "天气推送",
+    "log_cleanup": "日志清理", "quiet_hours": "免打扰",
+}
+
 
 class ToggleMonitorIntent(NamedTuple):
     """开关监控意图"""
@@ -77,28 +106,40 @@ def parse_toggle_monitor_intent(message: str) -> ToggleMonitorIntent | None:
         r"打开\s*([^\s]+)\s*监控",
     ]
 
+    def _resolve_section(raw: str) -> str | None:
+        r = raw.strip()
+        # 先尝试监控平台
+        key = _resolve_platform(r)
+        if key:
+            return key
+        # 再尝试任务/通用节（支持「超话签到」「免打扰」等）
+        for name, sec in TOGGLE_SECTION_NAMES.items():
+            if name in r or r in name or (isinstance(r, str) and r.lower() == str(name).lower()):
+                return sec
+        return None
+
     for pat in close_patterns:
         m = re.search(pat, msg)
         if m:
-            platform_raw = m.group(1).strip().lower()
-            key = _resolve_platform(platform_raw)
+            raw = m.group(1).strip()
+            key = _resolve_section(raw) or TOGGLE_SECTION_NAMES.get(raw) or TOGGLE_SECTION_NAMES.get(raw.lower())
             if key:
                 return ToggleMonitorIntent(
                     platform_key=key,
                     enable=False,
-                    display_name=CONFIG_KEY_TO_DISPLAY.get(key, key),
+                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(key, CONFIG_KEY_TO_DISPLAY.get(key, key)),
                 )
 
     for pat in open_patterns:
         m = re.search(pat, msg)
         if m:
-            platform_raw = m.group(1).strip().lower()
-            key = _resolve_platform(platform_raw)
+            raw = m.group(1).strip()
+            key = _resolve_section(raw) or TOGGLE_SECTION_NAMES.get(raw) or TOGGLE_SECTION_NAMES.get(raw.lower())
             if key:
                 return ToggleMonitorIntent(
                     platform_key=key,
                     enable=True,
-                    display_name=CONFIG_KEY_TO_DISPLAY.get(key, key),
+                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(key, CONFIG_KEY_TO_DISPLAY.get(key, key)),
                 )
 
     return None
@@ -169,6 +210,201 @@ def parse_config_patch_intent(message: str) -> ConfigPatchIntent | None:
                     value=value,
                     display_name=CONFIG_KEY_TO_DISPLAY.get(platform_key, platform_key),
                 )
+
+    return None
+
+
+class ConfigFieldIntent(NamedTuple):
+    """修改标量配置意图（监控间隔、并发数、执行时间等）"""
+    section_key: str
+    field_key: str
+    value: int | str  # int 或 "HH:MM" 时间字符串
+    display_name: str
+
+
+def _resolve_section_for_field(raw: str) -> str | None:
+    """解析配置节 key，支持监控平台和任务名"""
+    key = _resolve_platform(raw)
+    if key:
+        return key
+    return TOGGLE_SECTION_NAMES.get(raw) or TOGGLE_SECTION_NAMES.get(raw.strip().lower())
+
+
+def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
+    """
+    解析各类标量配置修改意图：
+    - 监控间隔：虎牙监控间隔改成70秒
+    - 并发数：虎牙并发改为5
+    - 执行时间：超话签到时间改为23:00、免打扰22点到8点
+    - 日志保留：日志保留7天
+    返回 ConfigFieldIntent 或 None。
+    """
+    msg = message.strip()
+    if not msg or len(msg) < 5:
+        return None
+
+    # 1. 监控间隔 monitor_interval_seconds
+    interval_patterns = [
+        r"(虎牙|huya|微博|weibo|哔哩哔哩|b站|bilibili|抖音|douyin|斗鱼|douyu|小红书|xhs)\s*监控\s*(?:间隔|配置)\s*(?:为|改成|改为|设为|修改为)\s*(\d+)\s*秒?",
+        r"把\s*(虎牙|huya|微博|weibo)\s*监控\s*(?:间隔|配置)\s*(?:改为|改成)\s*(\d+)\s*秒?",
+        r"(虎牙|huya|微博|weibo)\s*监控\s*间隔\s*(\d+)\s*秒",
+    ]
+    for pat in interval_patterns:
+        m = re.search(pat, msg, re.IGNORECASE)
+        if m:
+            key = _resolve_platform(m.group(1).strip())
+            if key and key in CONFIG_KEY_TO_DISPLAY:
+                try:
+                    v = int(m.group(2))
+                    if 1 <= v <= 86400:
+                        return ConfigFieldIntent(
+                            section_key=key,
+                            field_key="monitor_interval_seconds",
+                            value=v,
+                            display_name=CONFIG_KEY_TO_DISPLAY.get(key, key),
+                        )
+                except (ValueError, IndexError):
+                    pass
+
+    # 2. 并发数 concurrency
+    concurrency_patterns = [
+        r"(虎牙|huya|微博|weibo|哔哩哔哩|b站|bilibili|抖音|douyin|斗鱼|douyu|小红书|xhs)\s*(?:监控)?\s*并发\s*(?:为|改成|改为|设为)\s*(\d+)",
+        r"(虎牙|huya|微博|weibo)\s*并发\s*(\d+)",
+    ]
+    for pat in concurrency_patterns:
+        m = re.search(pat, msg, re.IGNORECASE)
+        if m:
+            key = _resolve_platform(m.group(1).strip())
+            if key and key in CONFIG_KEY_TO_DISPLAY:
+                try:
+                    v = int(m.group(2))
+                    if 1 <= v <= 20:
+                        return ConfigFieldIntent(
+                            section_key=key,
+                            field_key="concurrency",
+                            value=v,
+                            display_name=CONFIG_KEY_TO_DISPLAY.get(key, key),
+                        )
+                except (ValueError, IndexError):
+                    pass
+
+    # 3. 执行时间 time（HH:MM）
+    time_match = re.search(
+        r"(\d{1,2}):(\d{2})\s*[到至\-~]\s*(\d{1,2}):(\d{2})",
+        msg,
+    )
+    if time_match:
+        # 免打扰时段：22:00 到 08:00
+        try:
+            h1, m1, h2, m2 = int(time_match.group(1)), int(time_match.group(2)), int(time_match.group(3)), int(time_match.group(4))
+            if "免打扰" in msg or "静默" in msg:
+                start = f"{h1:02d}:{m1:02d}"
+                end = f"{h2:02d}:{m2:02d}"
+                if 0 <= h1 <= 23 and 0 <= m1 <= 59 and 0 <= h2 <= 23 and 0 <= m2 <= 59:
+                    # 返回第一个字段的修改意图，后续可扩展为同时改 start+end
+                    return ConfigFieldIntent(
+                        section_key="quiet_hours",
+                        field_key="start_end",
+                        value=f"{start},{end}",
+                        display_name="免打扰时段",
+                    )
+        except (ValueError, IndexError):
+            pass
+
+    time_single_match = re.search(
+        r"(超话|贴吧|ikuuu|签到|雨云|阿里云盘|值得买|夸克|天气|日志清理)\s*(?:签到|执行)?\s*(?:时间)?\s*(?:为|改成|改为|设为)\s*(\d{1,2}):(\d{2})",
+        msg,
+    )
+    if time_single_match:
+        task_raw = time_single_match.group(1).strip()
+        h, m = int(time_single_match.group(2)), int(time_single_match.group(3))
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            time_val = f"{h:02d}:{m:02d}"
+            section_map = {
+                "超话": "weibo_chaohua", "贴吧": "tieba", "ikuuu": "checkin", "签到": "checkin",
+                "雨云": "rainyun", "阿里云盘": "aliyun", "值得买": "smzdm", "夸克": "kuake",
+                "天气": "weather", "日志清理": "log_cleanup",
+            }
+            sec = section_map.get(task_raw)
+            if sec:
+                return ConfigFieldIntent(
+                    section_key=sec,
+                    field_key="time",
+                    value=time_val,
+                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(sec, sec),
+                )
+
+    # 匹配「超话签到时间改为23:00」等
+    time_gen = re.search(
+        r"(超话签到|贴吧签到|ikuuu|雨云签到|阿里云盘签到|日志清理)\s*(?:时间)?\s*(?:为|改成|改为|设为)\s*(\d{1,2}):(\d{2})",
+        msg,
+    )
+    if time_gen:
+        task_raw = time_gen.group(1).strip()
+        try:
+            h, m = int(time_gen.group(2)), int(time_gen.group(3))
+            if 0 <= h <= 23 and 0 <= m <= 59:
+                time_val = f"{h:02d}:{m:02d}"
+                section_map = {
+                    "超话签到": "weibo_chaohua", "贴吧签到": "tieba", "ikuuu": "checkin",
+                    "雨云签到": "rainyun", "阿里云盘签到": "aliyun", "日志清理": "log_cleanup",
+                }
+                sec = section_map.get(task_raw)
+                if sec:
+                    return ConfigFieldIntent(
+                        section_key=sec,
+                        field_key="time",
+                        value=time_val,
+                        display_name=TOGGLE_SECTION_TO_DISPLAY.get(sec, sec),
+                    )
+        except (ValueError, IndexError):
+            pass
+
+    # 4. 日志保留天数 retention_days
+    retention_match = re.search(
+        r"日志\s*(?:保留|保存)\s*(?:为|改成|改为|设为)?\s*(\d+)\s*天",
+        msg,
+    )
+    if retention_match:
+        try:
+            v = int(retention_match.group(1))
+            if 1 <= v <= 90:
+                return ConfigFieldIntent(
+                    section_key="log_cleanup",
+                    field_key="retention_days",
+                    value=v,
+                    display_name="日志保留天数",
+                )
+        except (ValueError, IndexError):
+            pass
+
+    # 5. 免打扰单字段：免打扰开始/结束时间
+    qh_start = re.search(r"免打扰\s*(?:开始|从)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg)
+    if qh_start:
+        try:
+            h, m = int(qh_start.group(1)), int(qh_start.group(2))
+            if 0 <= h <= 23 and 0 <= m <= 59:
+                return ConfigFieldIntent(
+                    section_key="quiet_hours",
+                    field_key="start",
+                    value=f"{h:02d}:{m:02d}",
+                    display_name="免打扰开始时间",
+                )
+        except (ValueError, IndexError):
+            pass
+    qh_end = re.search(r"免打扰\s*(?:结束|到)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg)
+    if qh_end:
+        try:
+            h, m = int(qh_end.group(1)), int(qh_end.group(2))
+            if 0 <= h <= 23 and 0 <= m <= 59:
+                return ConfigFieldIntent(
+                    section_key="quiet_hours",
+                    field_key="end",
+                    value=f"{h:02d}:{m:02d}",
+                    display_name="免打扰结束时间",
+                )
+        except (ValueError, IndexError):
+            pass
 
     return None
 

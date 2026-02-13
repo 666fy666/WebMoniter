@@ -70,6 +70,7 @@ class AppConfig(BaseModel):
     weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
     weibo_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    weibo_compress_with_llm: bool = False  # 推送超限时是否用 LLM 压缩（需配置 ai_assistant）
 
     # 虎牙
     huya_enable: bool = True  # 是否启用虎牙监控
@@ -424,6 +425,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 "concurrency": "weibo_concurrency",
                 "monitor_interval_seconds": "weibo_monitor_interval_seconds",
                 "push_channels": "weibo_push_channels",
+                "compress_with_llm": "weibo_compress_with_llm",
             },
             "huya": {
                 "enable": "huya_enable",

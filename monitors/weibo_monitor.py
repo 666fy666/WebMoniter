@@ -9,6 +9,8 @@ from pathlib import Path
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
+from src.ai_assistant.config import is_ai_enabled
+from src.ai_assistant.llm_client import compress_text_with_llm
 from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.monitor import BaseMonitor, CookieExpiredError
 
@@ -120,6 +122,19 @@ class WeiboMonitor(BaseMonitor):
         )
 
         return len(full_content.encode("utf-8"))
+
+    def _get_max_text_bytes_for_wecom(self, data: dict) -> int:
+        """计算企业微信推送时正文部分可用的最大字节数"""
+        pic_ids = data.get("_pic_ids", [])
+        url_struct = data.get("_url_struct", [])
+        created_at = data.get("_created_at", "")
+        verified_reason = data.get("认证信息", "人气博主")
+        user_description = data.get("简介", "peace and love")
+        fixed_parts_length = self._calculate_content_length(
+            "", pic_ids, url_struct, created_at, verified_reason, user_description
+        )
+        max_text_bytes = 500 - fixed_parts_length
+        return max(max_text_bytes, 50)
 
     def _truncate_text_for_wecom(self, text_raw: str, max_bytes: int) -> str:
         """为企业微信应用推送截断文本到指定字节数"""
@@ -456,8 +471,12 @@ class WeiboMonitor(BaseMonitor):
             if max_text_bytes < 50:  # 至少保留50字节给正文
                 max_text_bytes = 50
 
-            # 截断正文
-            truncated_text_raw = self._truncate_text_for_wecom(text_raw, max_text_bytes)
+            # 优先使用 LLM 压缩结果（若存在且不超限），否则截断
+            compressed_text_raw = data.get("_compressed_text_raw")
+            if compressed_text_raw and len(compressed_text_raw.encode("utf-8")) <= max_text_bytes:
+                truncated_text_raw = compressed_text_raw
+            else:
+                truncated_text_raw = self._truncate_text_for_wecom(text_raw, max_text_bytes)
 
             # 构建文本内容
             text = prefix + truncated_text_raw
@@ -545,6 +564,21 @@ class WeiboMonitor(BaseMonitor):
                 if extend_data is None:
                     extend_data = {}
                 extend_data["avatar_url"] = avatar_url
+
+            # 当有企业微信通道且超限时，尝试用 LLM 压缩正文
+            text_raw = data.get("_text_raw")
+            if (
+                text_raw
+                and self._has_wecom_apps_channel()
+                and getattr(self.config, "weibo_compress_with_llm", False)
+                and is_ai_enabled()
+            ):
+                max_text_bytes = self._get_max_text_bytes_for_wecom(data)
+                if len(text_raw.encode("utf-8")) > max_text_bytes:
+                    compressed = await compress_text_with_llm(text_raw, max_text_bytes)
+                    if compressed:
+                        data["_compressed_text_raw"] = compressed
+                        self.logger.debug("微博正文已通过 LLM 压缩")
 
             # 使用 description_func 来为不同通道生成不同的内容
             await self.push.send_news(

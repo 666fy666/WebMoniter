@@ -80,7 +80,11 @@ def _get_chroma_client_and_collection(cfg=None):
             pass
     persist_dir = getattr(cfg, "chroma_persist_dir", "data/ai_assistant_chroma") if cfg else "data/ai_assistant_chroma"
     Path(persist_dir).mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=persist_dir)
+    # allow_reset=True 供 rebuild 时清空所有集合，确保只保留最新向量库
+    client = chromadb.PersistentClient(
+        path=persist_dir,
+        settings=ChromaSettings(allow_reset=True),
+    )
     coll_name = "webmoniter_docs"
     collection = client.get_or_create_collection(coll_name, metadata={"hnsw:space": "cosine"})
     return client, collection
@@ -89,7 +93,8 @@ def _get_chroma_client_and_collection(cfg=None):
 def rebuild_chroma_docs() -> None:
     """
     全量重建 Chroma 文档向量库。
-    删除现有集合后重新添加 docs/ 与 README 的分块，供定时任务或手动触发。
+    清空现有所有集合，确保只保留最新向量库，再重新添加 docs/ 与 README 的分块。
+    供定时任务或手动触发。
     """
     if not HAS_CHROMADB:
         logger.debug("未安装 chromadb，跳过向量库重建")
@@ -100,13 +105,16 @@ def rebuild_chroma_docs() -> None:
         cfg = get_ai_config()
     except Exception:
         pass
-    client, collection = _get_chroma_client_and_collection(cfg)
-    coll_name = "webmoniter_docs"
+    client, _ = _get_chroma_client_and_collection(cfg)
     try:
-        client.delete_collection(coll_name)
+        client.reset()
     except Exception as e:
-        logger.debug("删除旧集合时忽略: %s", e)
-    collection = client.get_or_create_collection(coll_name, metadata={"hnsw:space": "cosine"})
+        logger.debug("reset 向量库时忽略: %s", e)
+        try:
+            client.delete_collection("webmoniter_docs")
+        except Exception:
+            pass
+    collection = client.get_or_create_collection("webmoniter_docs", metadata={"hnsw:space": "cosine"})
     chunks = _read_docs_as_chunks()
     if chunks:
         ids = [f"c{i}" for i in range(len(chunks))]

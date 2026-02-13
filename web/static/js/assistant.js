@@ -315,6 +315,10 @@
                 payload.list_key = sa.list_key;
                 payload.operation = sa.operation;
                 payload.value = sa.value;
+            } else if (sa.action === 'config_field_update') {
+                payload.section_key = sa.section_key || sa.platform_key;
+                payload.field_key = sa.field_key;
+                payload.value = sa.value;
             } else if (sa.action === 'run_task') {
                 payload.task_id = sa.task_id;
             } else {

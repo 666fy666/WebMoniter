@@ -21,6 +21,7 @@ from src.config import get_config, load_config_from_yml
 from src.database import AsyncDatabase
 from src.job_registry import (
     MONITOR_JOBS,
+    RAG_JOBS,
     TASK_JOBS,
     discover_and_import,
     run_task_with_logging,
@@ -356,6 +357,18 @@ async def get_tasks_api(request: Request):
                 }
             )
 
+        # 添加 RAG 向量库定时任务
+        for job in RAG_JOBS:
+            tasks.append(
+                {
+                    "job_id": job.job_id,
+                    "trigger": job.trigger,
+                    "type": "task",
+                    "type_label": "定时任务",
+                    "description": _get_job_description(job.job_id),
+                }
+            )
+
         return JSONResponse({"success": True, "tasks": tasks})
     except Exception as e:
         logger.error(f"获取任务列表失败: {e}")
@@ -401,6 +414,7 @@ def _get_job_description(job_id: str) -> str:
         "zgfc_draw": "中国福彩抽奖活动",
         "ssq_500w_notice": "双色球开奖通知（守号+冷号机选）",
         "demo_task": "示例任务（二次开发演示）",
+        "rag_index_refresh": "RAG 向量库重建",
     }
     return descriptions.get(job_id, f"任务 {job_id}")
 
@@ -417,7 +431,7 @@ async def run_task_api(request: Request, task_id: str):
         discover_and_import()
 
         # 查找任务
-        all_jobs = MONITOR_JOBS + TASK_JOBS
+        all_jobs = MONITOR_JOBS + TASK_JOBS + RAG_JOBS
         target_job = None
         for job in all_jobs:
             if job.job_id == task_id:
@@ -1284,6 +1298,7 @@ def _parse_executable_intent_and_reply(message: str):
         parse_toggle_monitor_intent,
         parse_config_patch_intent,
         parse_run_task_intent,
+        parse_config_field_intent,
     )
 
     # 1. 执行任务（执行超话签到、运行ikuuu 等）
@@ -1329,6 +1344,36 @@ def _parse_executable_intent_and_reply(message: str):
             "value": patch.value,
             "title": f"{op_text}配置项",
             "description": f"将从 {patch.platform_key} 的 {patch.list_key} 中{op_text}「{patch.value}」",
+        }
+        return reply, suggested_action
+
+    # 4. 修改标量配置（监控间隔、并发、执行时间、日志保留、免打扰等）
+    field_intent = parse_config_field_intent(message)
+    if field_intent is not None:
+        if field_intent.field_key == "monitor_interval_seconds":
+            desc = f"将 {field_intent.display_name} 的 {field_intent.field_key} 修改为 {field_intent.value} 秒"
+        elif field_intent.field_key == "concurrency":
+            desc = f"将 {field_intent.display_name} 并发数修改为 {field_intent.value}"
+        elif field_intent.field_key == "time":
+            desc = f"将 {field_intent.display_name} 执行时间修改为 {field_intent.value}"
+        elif field_intent.field_key == "retention_days":
+            desc = f"将日志保留天数修改为 {field_intent.value} 天"
+        elif field_intent.field_key in ("start", "end"):
+            desc = f"将免打扰{ '开始' if field_intent.field_key == 'start' else '结束'}时间修改为 {field_intent.value}"
+        elif field_intent.field_key == "start_end":
+            s, e = str(field_intent.value).split(",", 1)
+            desc = f"将免打扰时段设为 {s} 至 {e}"
+        else:
+            desc = f"将 {field_intent.display_name} 的 {field_intent.field_key} 修改为 {field_intent.value}"
+        reply = f"好的，{desc}。请确认执行："
+        suggested_action = {
+            "type": "confirm_execute",
+            "action": "config_field_update",
+            "section_key": field_intent.section_key,
+            "field_key": field_intent.field_key,
+            "value": field_intent.value,
+            "title": f"修改配置",
+            "description": desc,
         }
         return reply, suggested_action
 
@@ -1453,8 +1498,12 @@ async def assistant_chat(request: Request):
     })
 
 
-# 允许通过 AI 助手 apply-action 修改的监控平台
-TOGGLE_MONITOR_PLATFORMS = frozenset({"weibo", "huya", "bilibili", "douyin", "douyu", "xhs"})
+# 允许通过 AI 助手 apply-action 开关的配置节（监控 + 定时任务等）
+TOGGLE_SECTIONS = frozenset({
+    "weibo", "huya", "bilibili", "douyin", "douyu", "xhs",
+    "weibo_chaohua", "checkin", "tieba", "rainyun", "aliyun", "smzdm", "kuake",
+    "weather", "log_cleanup", "quiet_hours",
+})
 
 # config_patch 支持的 platform -> list_key 映射
 CONFIG_PATCH_PLATFORMS = {
@@ -1563,6 +1612,98 @@ async def assistant_apply_action(request: Request):
             logger.error("apply-action config_patch 执行失败: %s", e)
             return JSONResponse({"error": str(e)}, status_code=500)
 
+    if action == "config_field_update":
+        section_key = body.get("section_key") or body.get("platform_key")  # 兼容旧字段名
+        field_key = body.get("field_key")
+        value = body.get("value")
+        CONFIG_FIELD_ALLOWED = {
+            ("weibo", "monitor_interval_seconds"), ("huya", "monitor_interval_seconds"),
+            ("bilibili", "monitor_interval_seconds"), ("douyin", "monitor_interval_seconds"),
+            ("douyu", "monitor_interval_seconds"), ("xhs", "monitor_interval_seconds"),
+            ("weibo", "concurrency"), ("huya", "concurrency"), ("bilibili", "concurrency"),
+            ("douyin", "concurrency"), ("douyu", "concurrency"), ("xhs", "concurrency"),
+            ("weibo_chaohua", "time"), ("checkin", "time"), ("tieba", "time"), ("rainyun", "time"),
+            ("log_cleanup", "time"), ("log_cleanup", "retention_days"),
+            ("quiet_hours", "start"), ("quiet_hours", "end"), ("quiet_hours", "start_end"),
+        }
+        if (section_key, field_key) not in CONFIG_FIELD_ALLOWED:
+            return JSONResponse({"error": f"不支持的配置: {section_key}.{field_key}"}, status_code=400)
+        # start_end 特殊处理：拆分为 start 和 end
+        config_updates = {}
+        if field_key == "start_end" and section_key == "quiet_hours":
+            parts = str(value).split(",", 1)
+            if len(parts) == 2:
+                config_updates = {"quiet_hours": {"start": parts[0].strip(), "end": parts[1].strip()}}
+        else:
+            if field_key in ("monitor_interval_seconds", "concurrency", "retention_days"):
+                try:
+                    value = int(value) if value is not None else 0
+                except (TypeError, ValueError):
+                    return JSONResponse({"error": "value 须为整数"}, status_code=400)
+                if field_key == "monitor_interval_seconds" and (value < 1 or value > 86400):
+                    return JSONResponse({"error": "监控间隔须为 1–86400 秒"}, status_code=400)
+                if field_key == "concurrency" and (value < 1 or value > 20):
+                    return JSONResponse({"error": "并发数须为 1–20"}, status_code=400)
+                if field_key == "retention_days" and (value < 1 or value > 90):
+                    return JSONResponse({"error": "日志保留天数须为 1–90"}, status_code=400)
+            config_updates = {section_key: {field_key: value}}
+        try:
+            config_path = Path("config.yml")
+            if not config_path.exists():
+                return JSONResponse({"error": "配置文件不存在"}, status_code=404)
+            yaml_content = _merge_and_dump_config(config_path, config_updates)
+            import tempfile
+            temp_file = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".yml", delete=False, encoding="utf-8"
+                ) as tmp:
+                    tmp.write(yaml_content)
+                    temp_file = tmp.name
+                try:
+                    test_config_dict = load_config_from_yml(temp_file)
+                    from src.config import AppConfig
+                    AppConfig(**test_config_dict)
+                except Exception as e:
+                    return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+                finally:
+                    if temp_file and Path(temp_file).exists():
+                        Path(temp_file).unlink()
+            except Exception as e:
+                if temp_file and Path(temp_file).exists():
+                    Path(temp_file).unlink()
+                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(yaml_content)
+            get_config(reload=True)
+            try:
+                from src.ai_assistant.config import get_ai_config
+                get_ai_config(reload=True)
+            except ImportError:
+                pass
+            _display_map = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
+                           "weibo_chaohua": "超话签到", "checkin": "iKuuu", "tieba": "贴吧", "rainyun": "雨云", "log_cleanup": "日志清理", "quiet_hours": "免打扰"}
+            display = _display_map.get(section_key, section_key)
+            if field_key == "monitor_interval_seconds":
+                msg = f"已将{display}监控间隔修改为 {value} 秒"
+            elif field_key == "concurrency":
+                msg = f"已将{display}并发数修改为 {value}"
+            elif field_key == "time":
+                msg = f"已将{display}执行时间修改为 {value}"
+            elif field_key == "retention_days":
+                msg = f"已将日志保留天数修改为 {value} 天"
+            elif field_key in ("start", "end"):
+                msg = f"已将免打扰{ '开始' if field_key == 'start' else '结束'}时间修改为 {value}"
+            elif field_key == "start_end":
+                s, e = str(value).split(",", 1)
+                msg = f"已将免打扰时段设为 {s} 至 {e}"
+            else:
+                msg = f"已修改 {section_key}.{field_key}"
+            return JSONResponse({"success": True, "message": f"{msg}，配置已热重载"})
+        except Exception as e:
+            logger.error("apply-action config_field_update 执行失败: %s", e)
+            return JSONResponse({"error": str(e)}, status_code=500)
+
     if action == "run_task":
         task_id = body.get("task_id")
         if not isinstance(task_id, str) or not task_id.strip():
@@ -1591,8 +1732,8 @@ async def assistant_apply_action(request: Request):
         return JSONResponse({"error": f"不支持的操作: {action}"}, status_code=400)
 
     platform_key = body.get("platform_key")
-    if platform_key not in TOGGLE_MONITOR_PLATFORMS:
-        return JSONResponse({"error": f"不支持的平台: {platform_key}"}, status_code=400)
+    if platform_key not in TOGGLE_SECTIONS:
+        return JSONResponse({"error": f"不支持的配置节: {platform_key}"}, status_code=400)
 
     enable = body.get("enable")
     if not isinstance(enable, bool):
@@ -1639,8 +1780,13 @@ async def assistant_apply_action(request: Request):
             pass
 
         action_text = "开启" if enable else "关闭"
-        display = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书"}.get(platform_key, platform_key)
-        return JSONResponse({"success": True, "message": f"已{action_text}{display}监控，配置已热重载"})
+        _disp = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
+                 "weibo_chaohua": "微博超话签到", "checkin": "iKuuu 签到", "tieba": "贴吧签到", "rainyun": "雨云签到",
+                 "aliyun": "阿里云盘签到", "smzdm": "值得买签到", "kuake": "夸克签到", "weather": "天气推送",
+                 "log_cleanup": "日志清理", "quiet_hours": "免打扰"}
+        display = _disp.get(platform_key, platform_key)
+        suffix = "监控" if platform_key in ("weibo", "huya", "bilibili", "douyin", "douyu", "xhs") else ""
+        return JSONResponse({"success": True, "message": f"已{action_text}{display}{suffix}，配置已热重载"})
     except Exception as e:
         logger.error("apply-action 执行失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)

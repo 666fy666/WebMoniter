@@ -29,12 +29,15 @@ def _get_trigger_kwargs(_config) -> dict:
 
 
 def register() -> None:
-    """注册 RAG 索引定时更新任务"""
+    """注册 RAG 索引定时更新任务（幂等：已注册则跳过，避免 discover_and_import 重复调用造成多个任务）"""
     # 仅当启用 AI 且安装 chromadb 时才有意义
     try:
         import chromadb  # noqa: F401
     except ImportError:
         logger.debug("未安装 chromadb，跳过 RAG 索引任务注册")
+        return
+
+    if any(j.job_id == "rag_index_refresh" for j in RAG_JOBS):
         return
 
     @functools.wraps(run_rag_index_refresh)

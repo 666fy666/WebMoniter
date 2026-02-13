@@ -470,6 +470,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 监控任务开关事件
     if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+    const weiboCompressLlmEl = document.getElementById('weibo_compress_with_llm');
+    const weiboCompressLlmLabelEl = document.getElementById('weibo_compress_with_llm_label');
+    if (weiboCompressLlmEl && weiboCompressLlmLabelEl) weiboCompressLlmEl.addEventListener('change', function() { weiboCompressLlmLabelEl.textContent = this.checked ? '开启' : '关闭'; });
     if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (douyinEnable && douyinEnableLabel) douyinEnable.addEventListener('change', function() { douyinEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
@@ -1316,6 +1319,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                     // 渲染推送通道选择
                     renderTaskPushChannelSelect('weibo_push_channels', config.weibo.push_channels || []);
+                    const weiboCompressLlm = document.getElementById('weibo_compress_with_llm');
+                    const weiboCompressLlmLabel = document.getElementById('weibo_compress_with_llm_label');
+                    if (weiboCompressLlm) {
+                        const cv = config.weibo.compress_with_llm;
+                        weiboCompressLlm.checked = cv === true || cv === 'true';
+                        if (weiboCompressLlmLabel) weiboCompressLlmLabel.textContent = weiboCompressLlm.checked ? '开启' : '关闭';
+                    }
                 }
                 break;
             case 'checkin':
@@ -1946,7 +1956,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
                     monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,
-                    push_channels: getTaskPushChannels('weibo_push_channels')
+                    push_channels: getTaskPushChannels('weibo_push_channels'),
+                    compress_with_llm: document.getElementById('weibo_compress_with_llm')?.checked || false
                 };
                 break;
             case 'checkin': {

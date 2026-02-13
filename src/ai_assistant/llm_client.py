@@ -132,3 +132,45 @@ async def chat_completion(
     except Exception as e:
         logger.error("LLM 调用失败: %s", e)
         raise
+
+
+async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
+    """
+    使用 LLM 将文本压缩到指定字节数以内，保留核心语义。
+    用于微博推送等场景，当内容超限时用摘要替代简单截断。
+
+    Args:
+        text: 原始文本
+        max_bytes: 压缩后 UTF-8 编码的最大字节数
+
+    Returns:
+        压缩后的文本，若 LLM 调用失败或超时则返回 None
+    """
+    # 目标字符数（中文约 3 字节/字，预留余量）
+    max_chars = max(max_bytes // 2, 20)
+
+    prompt = f"""请将以下微博正文压缩为简短摘要，要求：
+1. 压缩后的文字不超过 {max_chars} 个字符（约 {max_bytes} 字节以内）
+2. 保留核心观点、关键信息，可省略冗余表述
+3. 使用简洁自然的汉语，直接输出压缩后的文本，不要加引号或多余说明
+
+原文：
+{text}"""
+
+    try:
+        result = await chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=256,
+        )
+        if not result or not result.strip():
+            return None
+        result = result.strip()
+        # 校验长度，若仍超限则返回 None（调用方将回退到截断）
+        if len(result.encode("utf-8")) > max_bytes:
+            logger.warning("LLM 压缩结果仍超限（%d > %d 字节），将使用截断", len(result.encode("utf-8")), max_bytes)
+            return None
+        return result
+    except Exception as e:
+        logger.warning("LLM 压缩文本失败，将使用截断: %s", e)
+        return None
