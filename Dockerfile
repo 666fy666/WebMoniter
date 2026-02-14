@@ -21,6 +21,9 @@ RUN uv sync --frozen --no-dev --no-install-project && \
     # 清理 uv 缓存和临时文件
     rm -rf /root/.cache/uv && \
     find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true && \
     find /app/.venv -type f -name "*.pyc" -delete && \
     find /app/.venv -type f -name "*.pyo" -delete
 
@@ -29,12 +32,11 @@ RUN uv sync --frozen --no-dev --no-install-project && \
 # ============================================
 FROM python:3.11-slim
 
-# 设置时区
+# 设置时区 + 安装 Chromium 及依赖（雨云签到需 Selenium + 验证码识别）
+# 合并为单层以减少镜像层数，--no-install-suggests 减少包，清理文档/man/info 减小体积
 ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# 安装 Chromium 及依赖（雨云签到需 Selenium + 验证码识别）
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone && \
+    apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
     ca-certificates \
     chromium \
     chromium-driver \
@@ -57,7 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libgbm1 \
     libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /usr/share/info
 
 # 设置工作目录
 WORKDIR /app
