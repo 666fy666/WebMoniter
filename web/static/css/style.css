@@ -882,6 +882,204 @@ input:focus + .slider {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
+/* 微博单列信息流（无封面，官方首页风格，撑满宽度） */
+.weibo-feed-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.weibo-feed-grid .data-card {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.weibo-feed-grid .data-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.weibo-feed-card {
+    position: relative;
+    display: block;
+    padding: 18px 24px;
+    transition: transform var(--transition-fast), box-shadow var(--transition-normal),
+        border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+/* 不同博主：奇数条 - 紫色系 */
+.weibo-feed-card:nth-child(odd) {
+    background: var(--bg-card);
+    border-left: 4px solid #8b5cf6;
+}
+
+.weibo-feed-card:nth-child(odd):hover {
+    background: var(--bg-card);
+}
+
+.weibo-feed-card:nth-child(odd) .weibo-feed-avatar {
+    border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* 不同博主：偶数条 - 蓝青系 */
+.weibo-feed-card:nth-child(even) {
+    background: var(--bg-card);
+    border-left: 4px solid #06b6d4;
+}
+
+.weibo-feed-card:nth-child(even):hover {
+    background: var(--bg-card);
+}
+
+.weibo-feed-card:nth-child(even) .weibo-feed-avatar {
+    border-color: rgba(6, 182, 212, 0.35);
+}
+
+/* 不同博主：3n 条 - 琥珀系 */
+.weibo-feed-card:nth-child(3n) {
+    background: var(--bg-card);
+    border-left-color: #f59e0b;
+}
+
+.weibo-feed-card:nth-child(3n):hover {
+    background: var(--bg-card);
+}
+
+.weibo-feed-card:nth-child(3n) .weibo-feed-avatar {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.weibo-feed-inner {
+    padding-left: 108px;
+}
+
+.weibo-feed-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.weibo-feed-avatar {
+    position: absolute;
+    left: 48px;
+    top: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(102, 126, 234, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.weibo-feed-avatar.avatar-fallback {
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+}
+
+.weibo-feed-user {
+    flex: 1;
+    min-width: 0;
+}
+
+.weibo-feed-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.weibo-feed-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.weibo-feed-verify {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #b45309;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 999px;
+}
+
+.weibo-feed-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.weibo-feed-time {
+    margin-right: 8px;
+}
+
+.weibo-feed-body {
+    margin-bottom: 12px;
+}
+
+.weibo-feed-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.weibo-feed-text br {
+    content: '';
+    display: block;
+    margin-bottom: 0.25em;
+}
+
+.weibo-feed-footer {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding-top: 12px;
+    margin-top: 4px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.weibo-feed-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: default;
+    transition: color var(--transition-fast);
+}
+
+.weibo-feed-action:hover {
+    color: var(--primary-color);
+}
+
+.weibo-feed-link-hint {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--primary-color);
+    transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.weibo-feed-card:hover .weibo-feed-link-hint {
+    color: var(--primary-hover);
+}
+
+.weibo-feed-action-icon {
+    opacity: 0.85;
+}
+
+.weibo-feed-card .data-card-drag-handle {
+    left: 4px;
+}
+
 .feed-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }

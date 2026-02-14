@@ -5,9 +5,10 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -726,6 +727,63 @@ PLATFORM_PRIMARY_KEY = {k: v[1] for k, v in PLATFORM_CONFIG.items()}
 VALID_PLATFORMS = frozenset(PLATFORM_CONFIG)
 
 
+def _parse_weibo_created_at(text: str | None) -> datetime | None:
+    """
+    从微博文本中解析发布时间。文本格式为 "...\n\n{created_at}"。
+    支持格式：Thu Feb 12 17:35:47 +0800 2026 等
+    """
+    if not text or not isinstance(text, str):
+        return None
+    raw = None
+    for sep in ("\n\n", "\r\n\r\n"):
+        if sep in text:
+            parts = text.rsplit(sep, 1)
+            if len(parts) >= 2:
+                raw = parts[-1].strip()
+                break
+    if not raw or len(raw) > 80:
+        return None
+    # 微博 API 常见格式
+    formats = [
+        "%a %b %d %H:%M:%S %z %Y",   # Thu Feb 12 17:35:47 +0800 2026
+        "%Y-%m-%d %H:%M:%S",          # 2026-02-12 17:35:47
+        "%Y-%m-%d %H:%M",             # 2026-02-12 17:35
+        "%b %d %H:%M:%S %z %Y",       # Feb 12 17:35:47 +0800 2026 (无星期)
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(raw, fmt)
+        except (ValueError, TypeError):
+            continue
+    # 正则兜底：Thu Feb 12 17:35:47 +0800 2026（避免 locale 导致 %a %b 解析失败）
+    m = re.match(
+        r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+"
+        r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+"
+        r"(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+([+-]\d{4})\s+(\d{4})",
+        raw,
+    )
+    if m:
+        try:
+            months = {
+                "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
+                "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
+            }
+            month = months.get(m.group(1), 1)
+            tz_str = m.group(6)
+            sign = 1 if tz_str[0] == "+" else -1
+            tz_h = sign * int(tz_str[1:3])
+            tz_m = sign * int(tz_str[3:5]) if len(tz_str) >= 5 else 0
+            tz = timezone(timedelta(hours=tz_h, minutes=tz_m))
+            return datetime(
+                int(m.group(7)), month, int(m.group(2)),
+                int(m.group(3)), int(m.group(4)), int(m.group(5)),
+                tzinfo=tz,
+            )
+        except (ValueError, KeyError, IndexError):
+            pass
+    return None
+
+
 def _weibo_row_to_item(row: tuple) -> dict:
     """将 weibo 表的一行转为 API 返回项（含 url）。"""
     return {
@@ -998,10 +1056,29 @@ async def get_table_data(
             if platform == "huya" and not include_media
             else _PLATFORM_LIST_SQL[platform]
         )
-        sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
-        rows = await db.execute_query(sql, params)
+        # 微博需先取全量、按时间排序后再分页
+        if platform == "weibo":
+            sql = f"{_PLATFORM_LIST_SQL[platform]}{where_clause}"
+            fetch_params = {k: v for k, v in params.items() if k == "filter_val"}
+            rows = await db.execute_query(sql, fetch_params if fetch_params else None)
+        else:
+            sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
+            rows = await db.execute_query(sql, params)
 
         data = [_row_to_item(platform, row) for row in rows]
+
+        # 微博：按发布时间倒序（最新在上），再分页
+        if platform == "weibo" and data:
+            def sort_key(item: dict):
+                dt = _parse_weibo_created_at(item.get("文本"))
+                if dt is None:
+                    return 0.0
+                return dt.timestamp()
+
+            data.sort(key=sort_key, reverse=True)
+            offset = (page - 1) * page_size
+            data = data[offset : offset + page_size]
+
         await db.close()
 
         return JSONResponse(

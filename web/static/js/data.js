@@ -68,7 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             let rows = data.data || [];
-            rows = applySavedOrder(rows);
+            // 微博按发布时间排序，不使用拖拽保存的顺序
+            if (currentTable !== 'weibo') {
+                rows = applySavedOrder(rows);
+            }
             renderCards(rows);
             renderPagination(data.total_pages, data.total);
 
@@ -207,12 +210,11 @@ document.addEventListener('DOMContentLoaded', function () {
         let html = '';
 
         if (currentTable === 'weibo') {
-            html += '<div class="data-card-grid weibo-card-grid data-card-sortable">';
+            html += '<div class="data-card-grid weibo-feed-grid data-card-sortable">';
             rows.forEach((row, idx) => {
                 const cardId = escapeAttr(getCardId(row, idx));
                 const safeName = sanitizeUsername(row.用户名);
                 const encodedDir = encodeURIComponent(safeName);
-                const coverUrl = `/weibo_img/${encodedDir}/cover_image_phone.jpg`;
                 const avatarUrl = `/weibo_img/${encodedDir}/profile_image.jpg`;
                 const url =
                     row.url ||
@@ -221,45 +223,42 @@ document.addEventListener('DOMContentLoaded', function () {
                         : `https://www.weibo.com/u/${row.UID}`);
 
                 const textRaw = (row.文本 || '').toString();
-                // 文本里原来带了一些缩进和换行，这里简化成信息流短文案
-                const compactText = textRaw.replace(/\s+/g, ' ').trim();
-                const brief =
-                    compactText.length > 160
-                        ? `${compactText.slice(0, 160)}...`
-                        : compactText || '暂无最新微博内容';
+                // 解析发布时间：微博文本格式为 "...\n\n{created_at}"
+                const parts = textRaw.split(/\n\s*\n/);
+                const createdAt = parts.length > 1 ? parts.pop().trim() : '';
+                const contentRaw = parts.join('\n\n').replace(/^\s+/, '').trim();
+                const contentDisplay =
+                    contentRaw.length > 300
+                        ? `${contentRaw.slice(0, 300)}...`
+                        : contentRaw || '暂无最新微博内容';
 
                 html += `
-<article class="data-card weibo-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
+<article class="data-card weibo-feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
   <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
-  <div class="weibo-card-cover">
-    <div class="weibo-card-cover-bg" style="background-image: url('${escapeAttr(
-        coverUrl,
-    )}');"></div>
-    <div class="weibo-card-avatar-wrap">
+  <div class="weibo-feed-inner">
+    <div class="weibo-feed-header">
       <img src="${escapeAttr(
           avatarUrl,
-      )}" alt="头像" class="weibo-card-avatar" loading="lazy" onerror="this.classList.add('avatar-fallback')">
-    </div>
-  </div>
-  <div class="weibo-card-body">
-    <header class="weibo-card-header">
-      <div class="weibo-card-user">
-        <div class="weibo-card-name">${escapeHtml(row.用户名)}</div>
-        <div class="weibo-card-meta">
-          <span class="weibo-card-verify">${escapeHtml(row.认证信息 || '普通用户')}</span>
+      )}" alt="头像" class="weibo-feed-avatar" loading="lazy" onerror="this.classList.add('avatar-fallback')">
+      <div class="weibo-feed-user">
+        <div class="weibo-feed-name-row">
+          <span class="weibo-feed-name">${escapeHtml(row.用户名)}</span>
+          ${row.认证信息 ? `<span class="weibo-feed-verify">${escapeHtml(row.认证信息)}</span>` : ''}
+        </div>
+        <div class="weibo-feed-meta">
+          ${createdAt ? `<span class="weibo-feed-time">${escapeHtml(createdAt)}</span>` : ''}
+          <span class="weibo-feed-source">粉丝 ${escapeHtml(row.粉丝数 ?? '')} · 微博 ${escapeHtml(row.微博数 ?? '')}</span>
         </div>
       </div>
-      <div class="weibo-card-stats">
-        <span class="stat-item">粉丝 ${escapeHtml(row.粉丝数 ?? '')}</span>
-        <span class="stat-dot">·</span>
-        <span class="stat-item">微博 ${escapeHtml(row.微博数 ?? '')}</span>
-      </div>
-    </header>
-    <div class="weibo-card-text">
-      ${escapeHtml(brief)}
     </div>
-    <footer class="weibo-card-footer">
-      <span class="weibo-card-link-hint">点击卡片打开微博详情</span>
+    <div class="weibo-feed-body">
+      <div class="weibo-feed-text">${contentDisplay.split('\n').map((l) => escapeHtml(l)).join('<br>')}</div>
+    </div>
+    <footer class="weibo-feed-footer">
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">↗</span> 转发</span>
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">💬</span> 评论</span>
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">❤</span> 点赞</span>
+      <span class="weibo-feed-link-hint">点击卡片打开微博详情 →</span>
     </footer>
   </div>
 </article>`;
