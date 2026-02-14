@@ -1,6 +1,6 @@
 [project]
 name = "web-monitor"
-version = "2.0.6"
+version = "2.0.7"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
