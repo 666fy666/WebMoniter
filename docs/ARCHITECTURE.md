@@ -520,6 +520,8 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `POST /api/assistant/chat`：AI 对话（需登录，需 AI 依赖）
 - `POST /api/assistant/apply-action`：执行可确认操作（需登录）
 - `POST /api/assistant/reindex`：手动重建 RAG 索引（需登录）
+- `GET/POST /api/webhooks/wecom`：企业微信接收消息回调（AI 对话入口）
+- `POST /api/webhooks/telegram/{channel_name}`：Telegram 机器人 Webhook（AI 对话入口）
 
 **配置保存特性**：
 - 使用 `ruamel.yaml` 保留YAML注释
@@ -574,9 +576,13 @@ logs/
 - `rag_index_refresh.py`：定时任务，按 `rag_index_refresh_interval_seconds` 自动重建向量库
 - `conversation.py`：会话与消息持久化（`data/ai_assistant_conversations.json`）
 - `intent_parser.py`：解析可执行意图（开关监控、配置列表增删）
+- `tools.py`：AI 可调用工具（配置片段、日志、当前状态等）
 - `tools_current_state.py`：查询当前监控数据（开播状态等）
 - `prompts.py`：系统提示词
 - `llm_client.py`：LLM 调用（OpenAI 兼容 API）
+- `platform_chat.py`：推送平台对话入口（Webhook 路由分发）
+- `wecom_crypto.py`：企业微信消息加解密（EncodingAESKey）
+- `platform_handlers/`：各平台消息处理（`wecom.py` 企业微信、`telegram.py` Telegram）
 
 **支持的操作**：
 - 配置生成：根据用户描述生成 YAML 片段
@@ -605,7 +611,7 @@ logs/
 **导出内容**：
 ```python
 from src.version import (
-    __version__,          # 当前版本号，如 "2.0.0"
+    __version__,          # 当前版本号，如 "2.0.7"
     GITHUB_RELEASES_URL,  # GitHub Tags 页面 URL
     GITHUB_API_LATEST_TAG # GitHub API 获取最新 tag 的 URL
 )
@@ -889,9 +895,16 @@ WebMoniter/
 │   │   ├── rag_index_refresh.py  # 向量库定时更新任务
 │   │   ├── conversation.py # 会话管理
 │   │   ├── intent_parser.py # 可执行意图解析
+│   │   ├── tools.py        # AI 可调用工具
 │   │   ├── tools_current_state.py  # 当前状态查询
 │   │   ├── prompts.py      # 系统提示词
-│   │   └── llm_client.py   # LLM 客户端
+│   │   ├── llm_client.py   # LLM 客户端
+│   │   ├── platform_chat.py # 推送平台对话入口
+│   │   ├── wecom_crypto.py # 企业微信消息加解密
+│   │   └── platform_handlers/  # 平台消息处理
+│   │       ├── __init__.py
+│   │       ├── wecom.py    # 企业微信
+│   │       └── telegram.py # Telegram
 │   ├── cookie_cache.py    # Cookie缓存管理
 │   ├── database.py         # 数据库操作
 │   ├── job_registry.py     # 任务注册表
@@ -924,6 +937,7 @@ WebMoniter/
 │       ├── wxpusher.py     # WxPusher
 │       ├── server_chan_turbo.py  # Server酱Turbo
 │       ├── server_chan_3.py     # Server酱3
+│       ├── demo.py              # 演示通道（测试用）
 │       └── qlapi.py             # 青龙 QLAPI 推送
 │
 ├── ql/                     # 青龙单任务脚本（ql/*.py）

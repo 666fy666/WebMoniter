@@ -65,7 +65,7 @@ AI 助手通过 RAG（检索增强生成）+ LLM 为 WebMoniter 提供智能对�
 ai_assistant:
   enable: true
   provider: deepseek  # openai | deepseek | qwen | zhipu | moonshot | ollama | openai_compatible
-  api_base: ""        # 留空使用 provider 默认；ollama 为 http://localhost:11434/v1
+  api_base: ""        # 留空使用 provider 默认；ollama 为 http://localhost:11434/v1；openai_compatible 时必填
   api_key: ""         # 或设置环境变量 AI_ASSISTANT_API_KEY
   model: deepseek-chat
   embedding_model: text-embedding-3-small
