@@ -81,9 +81,9 @@ class CookieCache:
             logger.error(f"保存Cookie缓存失败: {e}")
 
     async def _save_cache_async(self):
-        """异步保存缓存到文件（带锁保护）"""
+        """异步保存缓存到文件（带锁保护，在线程池执行避免阻塞事件循环）"""
         async with self._lock:
-            self._save_cache()
+            await asyncio.to_thread(self._save_cache)
 
     def is_valid(self, platform: str) -> bool:
         """
@@ -118,7 +118,7 @@ class CookieCache:
                     self._cache[platform] = {"valid": False, "notified": False}
                 else:
                     self._cache[platform]["valid"] = False
-                self._save_cache()
+                await asyncio.to_thread(self._save_cache)
                 logger.warning(f"已标记 {platform} Cookie为过期状态")
 
     async def mark_valid(self, platform: str):
@@ -136,7 +136,7 @@ class CookieCache:
                     self._cache[platform]["valid"] = True
                     # Cookie恢复有效时，重置提醒标记，以便下次过期时能再次提醒
                     self._cache[platform]["notified"] = False
-                self._save_cache()
+                await asyncio.to_thread(self._save_cache)
                 logger.debug("已标记 %s Cookie为有效状态", platform)
 
     async def reset_all(self):
@@ -156,7 +156,7 @@ class CookieCache:
                         self._cache[platform] = {"valid": True, "notified": False}
                         updated = True
             # 即使没有更新，也保存一次以确保文件存在
-            self._save_cache()
+            await asyncio.to_thread(self._save_cache)
             if updated:
                 logger.debug("已重置所有Cookie状态为有效")
             else:
@@ -205,7 +205,7 @@ class CookieCache:
                     self._cache[platform] = {"valid": self._cache[platform], "notified": True}
                 else:
                     self._cache[platform]["notified"] = True
-            self._save_cache()
+            await asyncio.to_thread(self._save_cache)
             logger.debug(f"已标记 {platform} Cookie过期提醒已发送")
 
 

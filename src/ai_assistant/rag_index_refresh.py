@@ -1,5 +1,6 @@
 """RAG 向量库定时更新任务 - 每 N 分钟重建文档索引"""
 
+import asyncio
 import functools
 import logging
 
@@ -10,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 async def run_rag_index_refresh() -> None:
-    """重建 RAG 文档向量库（Chroma）"""
+    """重建 RAG 文档向量库（Chroma），在线程池中执行避免阻塞事件循环"""
     if not is_ai_enabled():
         logger.debug("rag_index_refresh: AI 助手未启用，跳过")
         return
     try:
         from src.ai_assistant.indexer import build_docs_index
 
-        build_docs_index()
+        await asyncio.to_thread(build_docs_index)
     except Exception as e:
         logger.error("RAG 向量库更新失败: %s", e, exc_info=True)
 

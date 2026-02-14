@@ -407,6 +407,27 @@ Content-Type: application/json
 
 当返回配置片段（YAML）时，`suggested_action` 可为 `{"type": "config_diff", "diff": "yaml内容", "description": "..."}`，前端展示「复制配置」按钮。
 
+#### 流式对话
+
+```http
+POST /api/assistant/chat/stream
+Content-Type: application/json
+
+{
+  "message": "虎牙谁在直播？",
+  "conversation_id": "xxx",
+  "context": "all"
+}
+```
+
+参数与 `POST /api/assistant/chat` 一致。响应为 **Server-Sent Events (SSE)**，`Content-Type: text/event-stream`。
+
+事件格式（每行一条 `data:` JSON）：
+
+- `{"chunk": "文本块"}`：逐块返回 AI 回复
+- `{"done": true, "reply": "完整回复", "suggested_action": {...}, "conversation_id": "xxx"}`：结束事件
+- `{"error": "错误信息"}`：流式调用出错时返回
+
 #### 执行可确认操作
 
 ```http
@@ -455,6 +476,34 @@ POST /api/assistant/reindex
 ```
 
 手动重建向量库索引。成功返回 `{"status": "ok", "message": "索引已重建"}`。
+
+---
+
+### 8. Webhook 回调（AI 助手入口）
+
+在企业微信、Telegram 等推送通道中配置回调 URL 后，用户可在对应平台内直接与 AI 助手对话。**无需登录 Web 管理界面**，由各平台将用户消息转发到以下接口。
+
+#### 企业微信自建应用
+
+```http
+GET /api/webhooks/wecom
+POST /api/webhooks/wecom
+```
+
+- **GET**：企业微信后台验证 URL 时使用（校验 `msg_signature`、`timestamp`、`nonce`、`echostr`）
+- **POST**：接收成员发送的消息，解密后交给 AI 助手回复，再通过企业微信接口发回
+
+需在 `config.yml` 的 `push_channel` 中为 **wecom_apps** 类型通道配置 `callback_token`、`encoding_aes_key`，并在企业微信后台将「接收消息」URL 设为本接口（如 `https://你的域名/api/webhooks/wecom`）。支持多应用：请求会依次尝试各已配置回调的通道解密，第一个成功的即为目标应用。
+
+#### Telegram 机器人
+
+```http
+POST /api/webhooks/telegram/{channel_name}
+```
+
+- `channel_name`：推送通道名称（与 `push_channel` 中该 Telegram 通道的 `name` 一致）
+
+需在 `push_channel` 的 **telegram_bot** 中配置 `api_token`，并调用 Telegram 的 `setWebhook` 将 URL 设为 `https://你的域名/api/webhooks/telegram/{channel_name}`。用户向机器人发送文字后，由本接口接收并交给 AI 助手，回复通过 Telegram API 异步发回。
 
 ---
 

@@ -306,7 +306,7 @@ docker compose up -d
 
 </details>
 
-**支持的问题类型**：配置生成（如「每天 8 点签 iKuuu 推送到企业微信」）、日志诊断（如「微博监控最近报错了吗」）、数据洞察（如「最近谁开播了」）、当前状态查询（如「虎牙谁在直播」）、可执行操作（如「关闭抖音监控」「删除虎牙主播100」— 识别后弹出确认即可执行并热重载）。
+**支持的问题类型**：配置生成（如「每天 8 点签 iKuuu 推送到企业微信」）、日志诊断（如「微博监控最近报错了吗」）、数据洞察（如「最近谁开播了」）、当前状态查询（如「虎牙谁在直播」）、可执行操作（如「关闭抖音监控」「删除虎牙主播100」— 识别后弹出确认即可执行并热重载）。Web 界面支持**流式对话**（SSE），回复逐字返回；企业微信/Telegram 通过 Webhook 接入后可在对应应用内直接与 AI 对话。
 
 **快速启用**：
 
@@ -467,6 +467,7 @@ uv run python main.py &
 | [only_for_happly](https://github.com/wd210010/only_for_happly)（[@wd210010](https://github.com/wd210010)） | 恩山、天翼云盘、阿里云盘、什么值得买、富贵论坛、小米社区、爱奇艺、联想乐豆、一点万象、星空代理、千图网等签到逻辑参考 |
 | [RainyunCheckIn](https://github.com/FalseHappiness/RainyunCheckIn)（[@FalseHappiness](https://github.com/FalseHappiness)） | 雨云相关能力参考 |
 | [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)（[@Jielumoon](https://github.com/Jielumoon)） | 雨云签到（Selenium + 验证码）、服务器到期检查与自动续费逻辑参考；该仓库基于 [SerendipityR-2022/Rainyun-Qiandao](https://github.com/SerendipityR-2022/Rainyun-Qiandao)（原版）、[fatekey/Rainyun-Qiandao](https://github.com/fatekey/Rainyun-Qiandao)（二改 Docker 化）二次开发，一并致谢 |
+| [all-in-rag](https://github.com/datawhalechina/all-in-rag)（[@datawhalechina](https://github.com/datawhalechina)） | AI 助手 RAG 架构参考：Markdown 结构分块、父子文本块、向量+BM25 混合检索与 RRF 重排 |
 
 感谢所有开源贡献者与社区的支持。
 

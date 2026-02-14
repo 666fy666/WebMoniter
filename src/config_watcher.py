@@ -12,6 +12,12 @@ from src.config import AppConfig, get_config
 logger = logging.getLogger(__name__)
 
 
+def _read_yaml_sync(config_path: Path) -> dict:
+    """同步读取 YAML 文件（供 asyncio.to_thread 调用）"""
+    with open(config_path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
 class ConfigWatcher:
     """配置文件监控器 - 检测配置文件变化并触发回调"""
 
@@ -50,9 +56,8 @@ class ConfigWatcher:
         if self.config_path.exists():
             self._last_mtime = self.config_path.stat().st_mtime
             try:
-                self._last_config = get_config(reload=True)
-                with open(self.config_path, encoding="utf-8") as f:
-                    raw = yaml.safe_load(f)
+                self._last_config = await asyncio.to_thread(get_config, True)
+                raw = await asyncio.to_thread(_read_yaml_sync, self.config_path)
                 self._last_ai_assistant = raw.get("ai_assistant") or {}
                 logger.debug("配置监控器已启动: %s", self.config_path)
             except Exception as e:
@@ -92,13 +97,11 @@ class ConfigWatcher:
                 # 检查文件是否被修改
                 if current_mtime > self._last_mtime:
                     try:
-                        # 重新加载配置
-                        new_config = get_config(reload=True)
+                        # 重新加载配置（在线程池执行避免阻塞事件循环）
+                        new_config = await asyncio.to_thread(get_config, True)
                         # 读取 ai_assistant 节点（独立于 AppConfig）
-                        current_ai = {}
-                        with open(self.config_path, encoding="utf-8") as f:
-                            raw = yaml.safe_load(f)
-                            current_ai = raw.get("ai_assistant") or {}
+                        raw = await asyncio.to_thread(_read_yaml_sync, self.config_path)
+                        current_ai = raw.get("ai_assistant") or {}
 
                         # 检查配置是否真的发生了变化（避免因文件保存但内容未变而触发）
                         config_changed = self._config_changed(self._last_config, new_config)

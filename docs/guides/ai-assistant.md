@@ -107,9 +107,11 @@ uv sync
 需安装 `openai`、`httpx`、`chromadb`（可选，用于向量检索）。
 
 **数据来源**：AI 检索时使用
-- **文档**：`docs/*.md` 与 `README.md`，存入 Chroma 向量库，每 30 分钟自动重建（可通过 `rag_index_refresh_interval_seconds` 配置）
+- **文档**：`docs/*.md` 与 `README.md`，按 Markdown 标题结构分块，存入 Chroma 向量库，采用**向量 + BM25 混合检索**与 **RRF 重排**，检索到同一文档的多个子块时会智能去重并合并为完整父文档；每 30 分钟自动重建（可通过 `rag_index_refresh_interval_seconds` 配置）
 - **配置**：`config.yml.sample` 模板 + 实际 `config.yml`（敏感字段如 cookie、api_key 会自动脱敏）
 - **日志**：`logs/main_*.log` 最近 500 行，支持中文关键词（开播、发博等）的智能匹配
+
+**查询路由**：系统会根据用户问题自动选择检索侧重点（配置类多检索 config，日志类多检索 logs，一般问题检索文档）。
 
 ## 配置建议的应用
 

@@ -7,6 +7,7 @@ Web任务系统主入口
 
 import asyncio
 import logging
+import os
 
 from src.config import AppConfig, get_config
 from src.config_db_sync import sync_config_to_db
@@ -197,10 +198,11 @@ async def main() -> None:
     invalid_request_filter = InvalidRequestFilter()
     uvicorn_logger.addFilter(invalid_request_filter)
 
+    port = int(os.environ.get("PORT", "8866"))
     server_config = uvicorn.Config(
         app=web_app,
         host="0.0.0.0",
-        port=8866,
+        port=port,
         log_level="info",
         access_log=False,
     )
@@ -215,7 +217,7 @@ async def main() -> None:
             logger.error("Web服务器运行出错: %s", e, exc_info=True)
 
     web_task = asyncio.create_task(run_web_server())
-    logger.info("Web: http://0.0.0.0:8866")
+    logger.info("Web: http://0.0.0.0:%s", port)
 
     log_manager = LogManager()
     file_handler = log_manager.setup_file_logging("main", log_level="INFO")

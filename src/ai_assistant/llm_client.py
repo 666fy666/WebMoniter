@@ -2,7 +2,8 @@
 
 import json
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from src.ai_assistant.config import get_ai_config
 
@@ -97,9 +98,7 @@ class _AsyncHttpClient:
             resp.raise_for_status()
             return resp.json()
 
-    async def chat_completions_create_stream(
-        self, **kwargs: Any
-    ) -> AsyncIterator[str]:
+    async def chat_completions_create_stream(self, **kwargs: Any) -> AsyncIterator[str]:
         """流式调用，逐块 yield 文本内容（OpenAI SSE 格式）。"""
         url = f"{self.base_url}/chat/completions"
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
@@ -123,12 +122,7 @@ class _AsyncHttpClient:
                         return
                     try:
                         j = json.loads(data)
-                        content = (
-                            j.get("choices", [{}])[0]
-                            .get("delta", {})
-                            .get("content")
-                            or ""
-                        )
+                        content = j.get("choices", [{}])[0].get("delta", {}).get("content") or ""
                         if content:
                             yield content
                     except (json.JSONDecodeError, KeyError, IndexError):

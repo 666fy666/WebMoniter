@@ -194,7 +194,7 @@ async def login_page(request: Request):
 @app.post("/api/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     """登录接口"""
-    auth_data = load_auth()
+    auth_data = await asyncio.to_thread(load_auth)
     if username == auth_data.get("username") and verify_password(
         password, auth_data.get("password_hash", "")
     ):
@@ -244,13 +244,13 @@ async def change_password(
         )
 
     # 验证旧密码
-    auth_data = load_auth()
+    auth_data = await asyncio.to_thread(load_auth)
     if not verify_password(old_password, auth_data.get("password_hash", "")):
         return JSONResponse({"success": False, "message": "当前密码错误"}, status_code=400)
 
     # 更新密码
     auth_data["password_hash"] = hash_password(new_password)
-    if save_auth(auth_data):
+    if await asyncio.to_thread(save_auth, auth_data):
         logger.info("密码已成功修改")
         return JSONResponse({"success": True, "message": "密码修改成功"})
     else:
@@ -482,14 +482,15 @@ async def get_config_api(request: Request, format: str = "json"):
 
         # 如果请求YAML格式，直接返回文本
         if format == "yaml":
-            with open(config_path, encoding="utf-8") as f:
-                content = f.read()
+            content = await asyncio.to_thread(lambda: config_path.read_text(encoding="utf-8"))
             return JSONResponse({"content": content})
 
         # 否则返回JSON格式
-        with open(config_path, encoding="utf-8") as f:
-            yaml_data = yaml.safe_load(f)
+        def _read_config_json():
+            with open(config_path, encoding="utf-8") as f:
+                return yaml.safe_load(f)
 
+        yaml_data = await asyncio.to_thread(_read_config_json)
         return JSONResponse({"config": yaml_data})
     except Exception as e:
         logger.error(f"读取配置文件失败: {e}")
@@ -686,10 +687,9 @@ async def save_config_api(request: Request):
                 Path(temp_file).unlink()
             return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
 
-        # 保存配置文件
+        # 保存配置文件（在线程池执行避免阻塞事件循环）
         config_path = Path("config.yml")
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.write(yaml_content)
+        await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
 
         # 触发热重载（通过重新加载配置）
         try:
@@ -1502,7 +1502,7 @@ async def assistant_chat(request: Request):
     history = get_messages(conversation_id, max_rounds=cfg.max_history_rounds)
 
     system_content = SYSTEM_PROMPT
-    rag_ctx = retrieve_all(message, context=context)
+    rag_ctx = await asyncio.to_thread(retrieve_all, message, context)
     if rag_ctx:
         system_content += "\n\n【本次检索到的参考】\n" + rag_ctx
     need_current = (
@@ -1621,9 +1621,11 @@ async def assistant_chat_stream(request: Request):
 
     reply, suggested_action = await _parse_executable_intent_and_reply(message)
     if reply is not None:
+
         async def _intent_stream():
-            yield f"data: {json.dumps({'chunk': reply}, ensure_ascii=False)}\n\n".encode("utf-8")
-            yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode("utf-8")
+            yield f"data: {json.dumps({'chunk': reply}, ensure_ascii=False)}\n\n".encode()
+            yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode()
+
         append_messages(
             conversation_id, user_content=message, assistant_content=reply, user_id=user_id
         )
@@ -1635,7 +1637,7 @@ async def assistant_chat_stream(request: Request):
 
     history = get_messages(conversation_id, max_rounds=cfg.max_history_rounds)
     system_content = SYSTEM_PROMPT
-    rag_ctx = retrieve_all(message, context=context)
+    rag_ctx = await asyncio.to_thread(retrieve_all, message, context)
     if rag_ctx:
         system_content += "\n\n【本次检索到的参考】\n" + rag_ctx
     need_current = (
@@ -1666,17 +1668,17 @@ async def assistant_chat_stream(request: Request):
         try:
             async for chunk in chat_completion_stream(messages=messages):
                 full_reply_parts.append(chunk)
-                yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n".encode("utf-8")
+                yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n".encode()
         except Exception as e:
             logger.error("AI 助手流式调用失败: %s", e)
-            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n".encode("utf-8")
+            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n".encode()
             return
         reply = "".join(full_reply_parts).strip()
         append_messages(
             conversation_id, user_content=message, assistant_content=reply, user_id=user_id
         )
         reply, suggested_action = _parse_suggested_action_from_reply(reply)
-        yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode("utf-8")
+        yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode()
 
     return StreamingResponse(
         _stream_body(),
@@ -1815,8 +1817,7 @@ async def assistant_apply_action(request: Request):
                     Path(temp_file).unlink()
                 return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
 
-            with open(config_path, "w", encoding="utf-8") as f:
-                f.write(yaml_content)
+            await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
 
             get_config(reload=True)
             try:
@@ -1925,8 +1926,7 @@ async def assistant_apply_action(request: Request):
                 if temp_file and Path(temp_file).exists():
                     Path(temp_file).unlink()
                 return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-            with open(config_path, "w", encoding="utf-8") as f:
-                f.write(yaml_content)
+            await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
             get_config(reload=True)
             try:
                 from src.ai_assistant.config import get_ai_config
@@ -2036,8 +2036,7 @@ async def assistant_apply_action(request: Request):
                 Path(temp_file).unlink()
             return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
 
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.write(yaml_content)
+        await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
 
         get_config(reload=True)
         try:
@@ -2080,20 +2079,24 @@ async def assistant_apply_action(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+def _run_reindex_background():
+    """在后台线程执行 RAG 索引重建，避免阻塞 API 与前端"""
+    try:
+        from src.ai_assistant.indexer import build_docs_index
+
+        build_docs_index()
+    except Exception as e:
+        logger.error("AI 助手索引重建失败: %s", e)
+
+
 @app.post("/api/assistant/reindex")
 async def assistant_reindex(request: Request):
-    """重建 RAG 索引"""
+    """重建 RAG 索引（异步提交，后台执行，不阻塞接口与前端）"""
     err = _assistant_require_auth(request)
     if err:
         return err
-    from src.ai_assistant.indexer import build_docs_index
-
-    try:
-        build_docs_index()
-        return JSONResponse({"status": "ok", "message": "索引已重建"})
-    except Exception as e:
-        logger.error("AI 助手索引重建失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+    asyncio.create_task(asyncio.to_thread(_run_reindex_background))
+    return JSONResponse({"status": "ok", "message": "索引重建已提交，正在后台执行"})
 
 
 # =============================================================================
