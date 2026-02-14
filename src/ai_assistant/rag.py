@@ -8,6 +8,7 @@
 
 import logging
 import re
+import shutil
 import uuid
 from pathlib import Path
 
@@ -333,7 +334,8 @@ def retrieve_docs(
 def rebuild_chroma_docs() -> None:
     """
     全量重建 Chroma 文档向量库。
-    使用 Markdown 结构感知分块，清空后重新添加。
+    使用 Markdown 结构感知分块；重建前会清空整个持久化目录，避免 Chroma 内部
+    HNSW 段（UUID 子目录）堆积，确保只保留最新一份索引。
     """
     if not HAS_CHROMADB:
         logger.debug("未安装 chromadb，跳过向量库重建")
@@ -345,17 +347,20 @@ def rebuild_chroma_docs() -> None:
         cfg = get_ai_config()
     except Exception:
         pass
-    client, _ = _get_chroma_client_and_collection(cfg)
-    try:
-        client.reset()
-    except Exception:
-        try:
-            client.delete_collection("webmoniter_docs")
-        except Exception:
-            pass
-    collection = client.get_or_create_collection(
-        "webmoniter_docs", metadata={"hnsw:space": "cosine"}
+    persist_dir = (
+        getattr(cfg, "chroma_persist_dir", "data/ai_assistant_chroma")
+        if cfg
+        else "data/ai_assistant_chroma"
     )
+    persist_path = Path(persist_dir)
+    if persist_path.exists():
+        try:
+            shutil.rmtree(persist_path)
+        except OSError as e:
+            logger.warning("清空向量库目录 %s 失败: %s，尝试继续重建", persist_dir, e)
+    persist_path.mkdir(parents=True, exist_ok=True)
+
+    client, collection = _get_chroma_client_and_collection(cfg)
     chunks = _read_docs_as_chunks()
     if chunks:
         ids = [f"c{i}" for i in range(len(chunks))]
