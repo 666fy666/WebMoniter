@@ -2,27 +2,32 @@
    Web任务系统 - 现代化样式
    ========================================== */
 
-/* CSS 变量定义 */
+/* CSS 变量定义 - 小清新风格 */
 :root {
-    /* 主色调 */
-    --primary-color: #6366f1;
-    --primary-hover: #4f46e5;
-    --primary-light: #818cf8;
-    --primary-dark: #4338ca;
+    /* 主色调 - 柔和薰衣草紫 */
+    --primary-color: #7c6fd4;
+    --primary-hover: #6b5cc5;
+    --primary-light: #a78bfa;
+    --primary-dark: #5b4bb3;
     
-    /* 渐变色 */
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-sidebar: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    /* 渐变色 - 清新柔和 */
+    --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #67d4c8 50%, #7dd3fc 100%);
+    --gradient-sidebar: linear-gradient(180deg, #2d3748 0%, #1a202c 50%, #0f1419 100%);
+    --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fdfc 50%, #faf5ff 100%);
     
-    /* 中性色 */
-    --bg-color: #f1f5f9;
+    /* 中性色 - 柔和米白 */
+    --bg-color: #f5f7fa;
     --bg-card: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --border-color: #e2e8f0;
-    --border-light: #f1f5f9;
+    --text-primary: #2d3748;
+    --text-secondary: #5a6c7d;
+    --text-muted: #8b9cad;
+    --border-color: #e8eef4;
+    --border-light: #f0f4f8;
+    
+    /* 点缀色 - 薄荷/青柠 */
+    --accent-mint: rgba(103, 212, 200, 0.15);
+    --accent-lavender: rgba(167, 139, 250, 0.12);
+    --accent-sky: rgba(125, 211, 252, 0.12);
     
     /* 状态色 */
     --success-color: #10b981;
@@ -77,6 +82,40 @@ body {
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* 主内容区背景点缀 - 柔和光晕 */
+body::before {
+    content: '';
+    position: fixed;
+    top: -20%;
+    right: -10%;
+    width: 50%;
+    height: 60%;
+    background: radial-gradient(ellipse at center, var(--accent-mint) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: floatSoft 20s ease-in-out infinite;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    bottom: -15%;
+    left: -5%;
+    width: 40%;
+    height: 50%;
+    background: radial-gradient(ellipse at center, var(--accent-lavender) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: floatSoft 25s ease-in-out infinite reverse;
+}
+
+@keyframes floatSoft {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+    50% { transform: translate(3%, -3%) scale(1.05); opacity: 1; }
 }
 
 /* ==========================================
@@ -100,13 +139,32 @@ body {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
     animation: pulse 15s ease-in-out infinite;
+}
+
+/* 登录页装饰光球 */
+.login-body::after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    right: 20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(167,139,250,0.25) 0%, rgba(103,212,200,0.15) 40%, transparent 70%);
+    border-radius: 50%;
+    animation: floatOrb 12s ease-in-out infinite;
 }
 
 @keyframes pulse {
     0%, 100% { transform: translate(0, 0); }
     50% { transform: translate(5%, 5%); }
+}
+
+@keyframes floatOrb {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-20px, 15px) scale(1.05); }
+    66% { transform: translate(15px, -10px) scale(0.98); }
 }
 
 .login-container {
@@ -118,12 +176,37 @@ body {
 }
 
 .login-box {
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 0.96);
     padding: 48px 40px;
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl), 0 0 60px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(10px);
-    animation: slideUp 0.5s ease-out;
+    box-shadow: var(--shadow-xl), 0 0 60px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255,255,255,0.5) inset;
+    backdrop-filter: blur(20px);
+    animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+    opacity: 0.9;
+}
+
+.login-box::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, var(--accent-lavender) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
 }
 
 @keyframes slideUp {
@@ -182,8 +265,8 @@ body {
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.12);
 }
 
 .form-group input::placeholder,
@@ -232,8 +315,20 @@ body {
     color: white;
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
     z-index: 1000;
+    overflow: hidden;
+}
+
+.sidebar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at 100% 100%, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .sidebar-header {
@@ -267,7 +362,7 @@ body {
     align-items: center;
     padding: 14px 24px;
     margin: 4px 12px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.75);
     text-decoration: none;
     transition: all var(--transition-normal);
     border-radius: var(--radius-md);
@@ -275,13 +370,13 @@ body {
 }
 
 .nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(90deg, rgba(167, 139, 250, 0.2) 0%, rgba(255,255,255,0.06) 100%);
     color: white;
-    transform: translateX(4px);
+    transform: translateX(6px);
 }
 
 .nav-item.active {
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.3) 0%, rgba(99, 102, 241, 0.1) 100%);
+    background: linear-gradient(90deg, rgba(167, 139, 250, 0.35) 0%, rgba(167, 139, 250, 0.12) 100%);
     color: white;
 }
 
@@ -328,12 +423,26 @@ body {
     min-height: 100vh;
     padding: 32px 40px;
     background: var(--bg-color);
+    position: relative;
+    z-index: 1;
 }
 
 .content-header {
     margin-bottom: 32px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.content-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: var(--gradient-primary);
+    border-radius: 0 2px 2px 0;
 }
 
 .content-header h1 {
@@ -364,10 +473,28 @@ body {
     overflow: hidden;
     border: 1px solid var(--border-light);
     transition: all var(--transition-normal);
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
 }
 
 .card:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), 0 4px 24px rgba(124, 111, 212, 0.08);
+    transform: translateY(-2px);
+}
+
+.card:hover::before {
+    opacity: 0.6;
 }
 
 .card-header {
@@ -405,6 +532,31 @@ body {
     box-shadow: var(--shadow-md);
     text-align: center;
     border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.welcome-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 30%, var(--accent-mint) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.welcome-card:hover {
+    box-shadow: var(--shadow-lg), 0 8px 32px rgba(124, 111, 212, 0.06);
+}
+
+.welcome-card h2,
+.welcome-card p,
+.welcome-card > div {
+    position: relative;
+    z-index: 1;
 }
 
 .welcome-card h2 {
@@ -460,12 +612,12 @@ body {
 .btn-primary {
     background: var(--gradient-primary);
     color: white;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 14px rgba(124, 111, 212, 0.3);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(124, 111, 212, 0.4);
 }
 
 .btn-secondary {
@@ -522,8 +674,8 @@ body {
 .form-input:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.12);
 }
 
 .form-input::placeholder,
@@ -585,7 +737,7 @@ input:checked + .slider:before {
 }
 
 input:focus + .slider {
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2);
 }
 
 .switch-label {
@@ -693,13 +845,13 @@ input:focus + .slider {
 .config-module-tab:hover {
     color: var(--primary-color);
     border-color: var(--primary-light);
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(167, 139, 250, 0.08);
 }
 
 .config-module-tab.active {
     color: var(--primary-color);
     border-color: var(--primary-color);
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(167, 139, 250, 0.12);
 }
 
 .config-module-search-wrap {
@@ -776,8 +928,8 @@ input:focus + .slider {
 .code-editor:focus,
 .yaml-editor:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.12);
 }
 
 /* ==========================================
@@ -1527,7 +1679,7 @@ input:focus + .slider {
 }
 
 .tab-btn:hover {
-    background-color: rgba(99, 102, 241, 0.1);
+    background-color: rgba(167, 139, 250, 0.12);
     color: var(--primary-color);
 }
 
@@ -1669,8 +1821,9 @@ input:focus + .slider {
     margin: 0 auto 16px;
     border: 3px solid var(--border-color);
     border-top-color: var(--primary-color);
+    border-right-color: var(--primary-light);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 
 /* 无日志/空状态：仅显示文字，无转圈动画 */
@@ -1777,7 +1930,7 @@ input:focus + .slider {
 
 .push-channel-checkbox.selected {
     border-color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(167, 139, 250, 0.06) 100%);
     color: var(--primary-color);
 }
 
@@ -1874,12 +2027,17 @@ input:focus + .slider {
    ========================================== */
 .view-container {
     width: 100%;
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==========================================
@@ -2264,7 +2422,7 @@ input:focus + .slider {
    选择文本样式
    ========================================== */
 ::selection {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(167, 139, 250, 0.25);
     color: var(--text-primary);
 }
 
@@ -2272,15 +2430,15 @@ input:focus + .slider {
    动画辅助类
    ========================================== */
 .fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .slide-up {
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .scale-in {
-    animation: scaleIn 0.3s ease-out;
+    animation: scaleIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes scaleIn {
@@ -2696,9 +2854,10 @@ input:focus + .slider {
 
 .modal-body .form-group input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.12);
 }
+
 
 .modal-body .form-group input::placeholder {
     color: var(--text-muted);
@@ -2969,21 +3128,22 @@ input:focus + .slider {
     display: none;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), 0 0 0 0 rgba(167, 139, 250, 0.4);
     cursor: pointer;
     z-index: 1100;
     font-size: 18px;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-fast);
 }
 
 .back-to-top.show {
     display: flex;
     opacity: 1;
+    animation: fadeInUp 0.3s ease-out;
 }
 
 .back-to-top:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(124, 111, 212, 0.35), 0 0 0 8px rgba(167, 139, 250, 0.15);
 }
 
 .back-to-top:active {
