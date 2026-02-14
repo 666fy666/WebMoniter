@@ -9,6 +9,7 @@
 
 import functools
 import logging
+import sys
 from collections.abc import Awaitable, Callable
 from datetime import date
 from pathlib import Path
@@ -18,8 +19,12 @@ import aiosqlite
 
 logger = logging.getLogger(__name__)
 
-# 数据库文件路径（与主数据库在同一目录）
-_base_path = Path(__file__).resolve().parent.parent
+# 数据库文件路径（与主数据库在同一目录）；打包为 exe 时以可执行文件所在目录为基准
+_base_path = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent.parent
+)
 _data_dir = _base_path / "data"
 _data_dir.mkdir(parents=True, exist_ok=True)
 TASK_TRACKER_DB_PATH = (_data_dir / "data.db").resolve()

@@ -3,9 +3,19 @@
 import asyncio
 import json
 import logging
+import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def _data_dir_path() -> Path:
+    """data 目录路径；打包为 exe 时以可执行文件所在目录为基准。"""
+    if getattr(sys, "frozen", False):
+        base = Path(sys.executable).resolve().parent
+    else:
+        base = Path(__file__).resolve().parent.parent
+    return base / "data"
 
 
 class CookieCache:
@@ -19,12 +29,7 @@ class CookieCache:
             cache_file: 缓存文件路径，如果为 None 则使用 data/cookie_cache.json（目录不存在则自动创建）
         """
         if cache_file is None:
-            # 始终使用 data 目录
-            # Docker 环境：如果宿主机没有 ./data 目录，Docker 会自动创建空目录并挂载
-            # 本地环境：如果 data 目录不存在，程序会自动创建
-            _base_path = Path(__file__).parent.parent
-            _data_dir = _base_path / "data"
-            # 确保 data 目录存在（Docker 挂载时已存在也不会报错，exist_ok=True）
+            _data_dir = _data_dir_path()
             _data_dir.mkdir(parents=True, exist_ok=True)
             self.cache_file = _data_dir / "cookie_cache.json"
         else:

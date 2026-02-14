@@ -3,16 +3,20 @@
 import asyncio
 import logging
 import re
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import aiosqlite
 
 # 数据库文件路径（始终使用 data/ 目录，如果不存在则自动创建）
-# Docker 环境：如果宿主机没有 ./data 目录，Docker 会自动创建空目录并挂载
-# 本地环境：如果 data 目录不存在，程序会自动创建
-# 使用 resolve() 获取绝对路径，避免因工作目录不同导致路径错误
-_base_path = Path(__file__).resolve().parent.parent
+# 打包为 exe 时以可执行文件所在目录为基准，避免 data 落在包内被覆盖
+# Docker/本地：以项目根目录为基准
+_base_path = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent.parent
+)
 _data_dir = _base_path / "data"
 # 确保 data 目录存在（Docker 挂载时已存在也不会报错，exist_ok=True）
 _data_dir.mkdir(parents=True, exist_ok=True)

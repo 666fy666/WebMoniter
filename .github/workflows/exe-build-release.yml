@@ -53,17 +53,49 @@ jobs:
       - name: Build EXE with PyInstaller
         shell: bash
         run: |
+          # 企业微信加解密依赖的 callback_python3 通过运行时 sys.path 加载，需随包附带
           pyinstaller --onedir --console --name WebMoniter \
             --paths . \
+            --add-data "src/weworkapi_python;src/weworkapi_python" \
             --hidden-import monitors \
             --hidden-import monitors.huya_monitor \
             --hidden-import monitors.weibo_monitor \
+            --hidden-import monitors.bilibili_monitor \
+            --hidden-import monitors.douyin_monitor \
+            --hidden-import monitors.douyu_monitor \
+            --hidden-import monitors.xhs_monitor \
             --hidden-import tasks \
             --hidden-import tasks.log_cleanup \
             --hidden-import tasks.ikuuu_checkin \
             --hidden-import tasks.tieba_checkin \
             --hidden-import tasks.weibo_chaohua_checkin \
+            --hidden-import tasks.rainyun_checkin \
+            --hidden-import tasks.enshan_checkin \
+            --hidden-import tasks.fg_checkin \
+            --hidden-import tasks.aliyun_checkin \
+            --hidden-import tasks.smzdm_checkin \
+            --hidden-import tasks.zdm_draw \
+            --hidden-import tasks.tyyun_checkin \
+            --hidden-import tasks.miui_checkin \
+            --hidden-import tasks.iqiyi_checkin \
+            --hidden-import tasks.lenovo_checkin \
+            --hidden-import tasks.lbly_checkin \
+            --hidden-import tasks.pinzan_checkin \
+            --hidden-import tasks.dml_checkin \
+            --hidden-import tasks.xiaomao_checkin \
+            --hidden-import tasks.ydwx_checkin \
+            --hidden-import tasks.xingkong_checkin \
+            --hidden-import tasks.qtw_checkin \
+            --hidden-import tasks.freenom_checkin \
+            --hidden-import tasks.weather_push \
+            --hidden-import tasks.kuake_checkin \
+            --hidden-import tasks.kjwj_checkin \
+            --hidden-import tasks.fr_checkin \
+            --hidden-import tasks.nine_nine_nine_task \
+            --hidden-import tasks.zgfc_draw \
+            --hidden-import tasks.ssq_500w_notice \
             --hidden-import tasks.demo_task \
+            --hidden-import src.ai_assistant.rag_index_refresh \
             --hidden-import uvicorn.logging \
             --hidden-import uvicorn.loops.auto \
             --hidden-import uvicorn.protocols.http.auto \
