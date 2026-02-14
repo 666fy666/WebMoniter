@@ -61,7 +61,12 @@ class WeComApps(PushChannel):
             "duplicate_check_interval": 1800,
         }
 
-        if pic_url is None:
+        # 微博封面：优先使用 resize 后的企微专用图（1068×455），符合企微图文消息推荐尺寸
+        pic_to_use = pic_url
+        if extend_data and extend_data.get("wecom_pic_url"):
+            pic_to_use = extend_data["wecom_pic_url"]
+
+        if pic_to_use is None:
             body["msgtype"] = "textcard"
             body["textcard"] = {
                 "title": title,
@@ -77,7 +82,7 @@ class WeComApps(PushChannel):
                         "title": title,
                         "description": content,
                         "url": jump_url or "",
-                        "picurl": pic_url,
+                        "picurl": pic_to_use,
                     }
                 ]
             }

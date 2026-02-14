@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import aiohttp
+from PIL import Image
 from aiohttp import ClientSession, ClientTimeout
 
 from src.ai_assistant.config import is_ai_enabled
@@ -211,6 +212,27 @@ class WeiboMonitor(BaseMonitor):
             return False
         except Exception as e:
             self.logger.warning("下载微博头像失败: %s, URL: %s", e, url)
+            return False
+
+    def _resize_cover_for_wecom(self, cover_path: Path, wecom_path: Path) -> bool:
+        """
+        将微博封面图 resize 为企业微信图文消息推荐尺寸 1068×455，并保存为 JPG。
+        企业微信 picurl 建议：大图 1068×455，文件建议 1MB 以下。
+        失败时仅记录日志，不影响主流程。
+        """
+        try:
+            with Image.open(cover_path) as img:
+                img = img.convert("RGB")
+                # 企业微信图文消息推荐大图尺寸
+                target_w, target_h = 1068, 455
+                img_resized = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                wecom_path.parent.mkdir(parents=True, exist_ok=True)
+                # 质量 85 通常能保证 <1MB，同时兼顾清晰度
+                img_resized.save(wecom_path, "JPEG", quality=85, optimize=True)
+            self.logger.debug("已生成企业微信专用封面: %s", wecom_path)
+            return True
+        except Exception as e:
+            self.logger.debug("生成企业微信封面失败（已忽略）: %s", e)
             return False
 
     async def _save_user_images(self, user_info: dict) -> None:
@@ -531,6 +553,7 @@ class WeiboMonitor(BaseMonitor):
         cover_pic_url = None
         local_pic_path = None
         avatar_url = None
+        wecom_pic_url = None
         try:
             safe_username = self._sanitize_username(data.get("用户名", "unknown_user"))
             user_dir = self._get_weibo_data_dir() / safe_username
@@ -544,6 +567,11 @@ class WeiboMonitor(BaseMonitor):
                 base_url = (self.config.base_url or "").rstrip("/")
                 if base_url:
                     cover_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone.jpg"
+                    # 若有企业微信通道，生成 resize 后的封面（1068×455）供企微使用
+                    if self._has_wecom_apps_channel():
+                        wecom_path = user_dir / "cover_image_phone_wecom.jpg"
+                        if self._resize_cover_for_wecom(cover_path, wecom_path):
+                            wecom_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone_wecom.jpg"
 
             # 头像（用于 Bark icon）
             profile_path = user_dir / "profile_image.jpg"
@@ -564,6 +592,11 @@ class WeiboMonitor(BaseMonitor):
                 if extend_data is None:
                     extend_data = {}
                 extend_data["avatar_url"] = avatar_url
+            # 为企业微信通道传递 resize 后的封面 URL（1068×455，符合企微图文消息推荐尺寸）
+            if wecom_pic_url:
+                if extend_data is None:
+                    extend_data = {}
+                extend_data["wecom_pic_url"] = wecom_pic_url
 
             # 当有企业微信通道且超限时，尝试用 LLM 压缩正文
             text_raw = data.get("_text_raw")
