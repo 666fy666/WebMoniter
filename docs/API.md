@@ -54,7 +54,7 @@ GET /api/version
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.1.3",
   "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/tags",
   "tags_url": "https://github.com/666fy666/WebMoniter/tags"
 }

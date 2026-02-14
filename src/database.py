@@ -439,11 +439,16 @@ class AsyncDatabase:
         检查表是否为空（用于判断是否是首次创建数据库）
 
         Args:
-            table_name: 表名
+            table_name: 表名（仅允许字母、数字、下划线，防止 SQL 注入）
 
         Returns:
             True 如果表为空，False 如果表有数据
         """
+        if not table_name or not all(
+            c.isalnum() or c == "_" for c in table_name
+        ):
+            _logger.warning("is_table_empty: 非法表名 %r，视为空", table_name)
+            return True
         try:
             sql = f"SELECT COUNT(*) FROM {table_name}"
             results = await self.execute_query(sql)

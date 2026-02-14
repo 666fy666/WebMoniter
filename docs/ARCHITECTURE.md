@@ -1001,7 +1001,7 @@ WebMoniter/
 │   ├── fr_checkin.py            # 帆软社区签到 + 摇摇乐
 │   ├── nine_nine_nine_task.py   # 999 会员中心健康打卡任务
 │   ├── zgfc_draw.py             # 中国福彩抽奖活动
-│   └── ssq_500w_notice.py       # 七星彩/双色球开奖通知
+│   └── ssq_500w_notice.py       # 双色球开奖通知（守号检测 + 冷号机选）
 │
 ├── web/                    # Web前端资源
 │   ├── static/             # 静态文件
@@ -1016,9 +1016,22 @@ WebMoniter/
 │       └── logs.html
 │
 ├── docs/                   # 文档
-│   ├── API.md              # API文档
+│   ├── index.md            # 文档首页
+│   ├── API.md              # API 文档
+│   ├── ARCHITECTURE.md     # 架构文档（本文档）
 │   ├── SECONDARY_DEVELOPMENT.md  # 二次开发指南
-│   └── ARCHITECTURE.md     # 架构文档（本文档）
+│   ├── QINGLONG.md         # 青龙面板兼容指南
+│   ├── installation.md     # 安装说明
+│   ├── faq.md              # 常见问题
+│   └── guides/             # 使用指南
+│       ├── ai-assistant.md # AI 助手使用指南
+│       ├── config.md       # 配置说明
+│       ├── push-channels.md # 推送通道配置
+│       ├── tasks.md        # 任务说明
+│       ├── web-ui.md       # Web 界面说明
+│       └── tasks/          # 任务相关
+│           ├── checkin.md  # 签到任务详解
+│           └── monitors.md # 监控任务详解
 │
 ├── data/                   # 数据目录（运行时创建）
 │   ├── data.db             # SQLite数据库
@@ -1260,7 +1273,7 @@ Web任务系统采用**模块化、插件化、异步IO**的架构设计，具�
 1. **高可扩展性**：新增监控或任务只需添加模块，无需修改核心代码
 2. **配置热重载**：修改配置无需重启，5秒内自动生效
 3. **异步高性能**：全面使用异步IO，支持高并发
-4. **统一推送**：支持10+种推送通道，统一管理
+4. **统一推送**：支持 15+ 种推送通道，统一管理
 5. **Web管理**：提供友好的Web界面进行配置和数据管理
 
 该架构设计使得系统易于维护、扩展和部署，适合个人和小团队使用。

@@ -301,7 +301,7 @@ def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:
 register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
 ```
 
-在 `job_registry.TASK_MODULES` 中需包含 `"tasks.demo_task"`（当前已包含）。  
+在 `src/job_registry.py` 的 `TASK_MODULES` 中需包含 `"tasks.demo_task"`（当前已包含）。  
 完整代码见 `tasks/demo_task.py`。
 
 ---

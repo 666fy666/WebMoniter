@@ -796,36 +796,33 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 config_dict["rainyun_chromedriver_path"] = str(rainyun["chromedriver_path"]).strip()
 
         # 特殊处理：恩山多 Cookie
-        if "enshan" in yml_config:
-            en = yml_config.get("enshan") or {}
-            if "cookies" in en and isinstance(en["cookies"], list):
-                cookies = [str(c).strip() for c in en["cookies"] if c]
-                if cookies:
-                    config_dict["enshan_cookies"] = cookies
+        en = yml_config.get("enshan") or {}
+        if "cookies" in en and isinstance(en["cookies"], list):
+            cookies = [str(c).strip() for c in en["cookies"] if c]
+            if cookies:
+                config_dict["enshan_cookies"] = cookies
 
         # 特殊处理：天翼云盘多账号
-        if "tyyun" in yml_config:
-            ty = yml_config.get("tyyun") or {}
-            if "accounts" in ty and isinstance(ty["accounts"], list):
-                accounts = []
-                for a in ty["accounts"]:
-                    if isinstance(a, dict):
-                        accounts.append(
-                            {
-                                "username": str(a.get("username", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accounts:
-                    config_dict["tyyun_accounts"] = accounts
+        ty = yml_config.get("tyyun") or {}
+        if "accounts" in ty and isinstance(ty["accounts"], list):
+            accounts = []
+            for a in ty["accounts"]:
+                if isinstance(a, dict):
+                    accounts.append(
+                        {
+                            "username": str(a.get("username", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accounts:
+                config_dict["tyyun_accounts"] = accounts
 
         # 特殊处理：阿里云盘多 refresh_token
-        if "aliyun" in yml_config:
-            ali = yml_config.get("aliyun") or {}
-            if "refresh_tokens" in ali and isinstance(ali["refresh_tokens"], list):
-                tokens = [str(t).strip() for t in ali["refresh_tokens"] if t]
-                if tokens:
-                    config_dict["aliyun_refresh_tokens"] = tokens
+        ali = yml_config.get("aliyun") or {}
+        if "refresh_tokens" in ali and isinstance(ali["refresh_tokens"], list):
+            tokens = [str(t).strip() for t in ali["refresh_tokens"] if t]
+            if tokens:
+                config_dict["aliyun_refresh_tokens"] = tokens
 
         # 特殊处理：什么值得买 / 值得买抽奖 / 富贵论坛 多 Cookie
         for section, config_key in [
@@ -834,186 +831,177 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             ("fg", "fg_cookies"),
         ]:
             sec = yml_config.get(section) or {}
-            if section in yml_config and "cookies" in sec and isinstance(sec["cookies"], list):
+            if "cookies" in sec and isinstance(sec["cookies"], list):
                 cookies = [str(c).strip() for c in sec["cookies"] if c]
                 if cookies:
                     config_dict[config_key] = cookies
 
         # 小米社区多账号
-        if "miui" in yml_config:
-            mi = yml_config.get("miui") or {}
-            if "accounts" in mi and isinstance(mi["accounts"], list):
-                accounts = []
-                for a in mi["accounts"]:
-                    if isinstance(a, dict):
-                        accounts.append(
-                            {
-                                "account": str(a.get("account", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accounts:
-                    config_dict["miui_accounts"] = accounts
+        mi = yml_config.get("miui") or {}
+        if "accounts" in mi and isinstance(mi["accounts"], list):
+            accounts = []
+            for a in mi["accounts"]:
+                if isinstance(a, dict):
+                    accounts.append(
+                        {
+                            "account": str(a.get("account", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accounts:
+                config_dict["miui_accounts"] = accounts
 
         # 爱奇艺多 Cookie
-        if "iqiyi" in yml_config:
-            iq = yml_config.get("iqiyi") or {}
-            if "cookies" in iq and isinstance(iq["cookies"], list):
-                cookies = [str(c).strip() for c in iq["cookies"] if c]
-                if cookies:
-                    config_dict["iqiyi_cookies"] = cookies
+        iq = yml_config.get("iqiyi") or {}
+        if "cookies" in iq and isinstance(iq["cookies"], list):
+            cookies = [str(c).strip() for c in iq["cookies"] if c]
+            if cookies:
+                config_dict["iqiyi_cookies"] = cookies
 
         # 联想乐豆多 access_token
-        if "lenovo" in yml_config:
-            lv = yml_config.get("lenovo") or {}
-            if "access_tokens" in lv and isinstance(lv["access_tokens"], list):
-                tokens = [str(t).strip() for t in lv["access_tokens"] if t]
-                if tokens:
-                    config_dict["lenovo_access_tokens"] = tokens
+        lv = yml_config.get("lenovo") or {}
+        if "access_tokens" in lv and isinstance(lv["access_tokens"], list):
+            tokens = [str(t).strip() for t in lv["access_tokens"] if t]
+            if tokens:
+                config_dict["lenovo_access_tokens"] = tokens
 
         # 丽宝乐园多请求体
-        if "lbly" in yml_config:
-            lb = yml_config.get("lbly") or {}
-            if "request_bodies" in lb and isinstance(lb["request_bodies"], list):
-                bodies = [str(b).strip() for b in lb["request_bodies"] if b]
-                if bodies:
-                    config_dict["lbly_request_bodies"] = bodies
+        lb = yml_config.get("lbly") or {}
+        if "request_bodies" in lb and isinstance(lb["request_bodies"], list):
+            bodies = [str(b).strip() for b in lb["request_bodies"] if b]
+            if bodies:
+                config_dict["lbly_request_bodies"] = bodies
 
         # 品赞多账号
-        if "pinzan" in yml_config:
-            pz = yml_config.get("pinzan") or {}
-            if "accounts" in pz and isinstance(pz["accounts"], list):
-                accounts = []
-                for a in pz["accounts"]:
-                    if isinstance(a, dict):
-                        accounts.append(
-                            {
-                                "account": str(a.get("account", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accounts:
-                    config_dict["pinzan_accounts"] = accounts
+        pz = yml_config.get("pinzan") or {}
+        if "accounts" in pz and isinstance(pz["accounts"], list):
+            accounts = []
+            for a in pz["accounts"]:
+                if isinstance(a, dict):
+                    accounts.append(
+                        {
+                            "account": str(a.get("account", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accounts:
+                config_dict["pinzan_accounts"] = accounts
 
         # 达美乐多 openid
-        if "dml" in yml_config:
-            dm = yml_config.get("dml") or {}
-            if "openids" in dm and isinstance(dm["openids"], list):
-                openids = [str(o).strip() for o in dm["openids"] if o]
-                if openids:
-                    config_dict["dml_openids"] = openids
+        dm = yml_config.get("dml") or {}
+        if "openids" in dm and isinstance(dm["openids"], list):
+            openids = [str(o).strip() for o in dm["openids"] if o]
+            if openids:
+                config_dict["dml_openids"] = openids
 
         # 小茅预约多 token
-        if "xiaomao" in yml_config:
-            xm = yml_config.get("xiaomao") or {}
-            if "tokens" in xm and isinstance(xm["tokens"], list):
-                tokens = [str(t).strip() for t in xm["tokens"] if t]
-                if tokens:
-                    config_dict["xiaomao_tokens"] = tokens
+        xm = yml_config.get("xiaomao") or {}
+        if "tokens" in xm and isinstance(xm["tokens"], list):
+            tokens = [str(t).strip() for t in xm["tokens"] if t]
+            if tokens:
+                config_dict["xiaomao_tokens"] = tokens
 
         # 一点万象多账号 (device_params + token)
-        if "ydwx" in yml_config:
-            yd = yml_config.get("ydwx") or {}
-            if "accounts" in yd and isinstance(yd["accounts"], list):
-                accs = []
-                for a in yd["accounts"]:
-                    if isinstance(a, dict):
-                        accs.append(
-                            {
-                                "device_params": str(a.get("device_params", "")).strip(),
-                                "token": str(a.get("token", "")).strip(),
-                            }
-                        )
-                if accs:
-                    config_dict["ydwx_accounts"] = accs
+        yd = yml_config.get("ydwx") or {}
+        if "accounts" in yd and isinstance(yd["accounts"], list):
+            accs = []
+            for a in yd["accounts"]:
+                if isinstance(a, dict):
+                    accs.append(
+                        {
+                            "device_params": str(a.get("device_params", "")).strip(),
+                            "token": str(a.get("token", "")).strip(),
+                        }
+                    )
+            if accs:
+                config_dict["ydwx_accounts"] = accs
 
         # 星空代理多账号
-        if "xingkong" in yml_config:
-            xk = yml_config.get("xingkong") or {}
-            if "accounts" in xk and isinstance(xk["accounts"], list):
-                accs = []
-                for a in xk["accounts"]:
-                    if isinstance(a, dict):
-                        accs.append(
-                            {
-                                "username": str(a.get("username", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accs:
-                    config_dict["xingkong_accounts"] = accs
+        xk = yml_config.get("xingkong") or {}
+        if "accounts" in xk and isinstance(xk["accounts"], list):
+            accs = []
+            for a in xk["accounts"]:
+                if isinstance(a, dict):
+                    accs.append(
+                        {
+                            "username": str(a.get("username", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accs:
+                config_dict["xingkong_accounts"] = accs
 
         # 千图网多 Cookie
-        if "qtw" in yml_config:
-            qt = yml_config.get("qtw") or {}
-            if "cookies" in qt and isinstance(qt["cookies"], list):
-                cookies = [str(c).strip() for c in qt["cookies"] if c]
-                if cookies:
-                    config_dict["qtw_cookies"] = cookies
+        qt = yml_config.get("qtw") or {}
+        if "cookies" in qt and isinstance(qt["cookies"], list):
+            cookies = [str(c).strip() for c in qt["cookies"] if c]
+            if cookies:
+                config_dict["qtw_cookies"] = cookies
 
         # 夸克网盘多 Cookie
-        if "kuake" in yml_config:
-            kq = yml_config.get("kuake") or {}
-            if "cookies" in kq and isinstance(kq["cookies"], list):
-                cookies = [str(c).strip() for c in kq["cookies"] if c]
-                if cookies:
-                    config_dict["kuake_cookies"] = cookies
+        kq = yml_config.get("kuake") or {}
+        if "cookies" in kq and isinstance(kq["cookies"], list):
+            cookies = [str(c).strip() for c in kq["cookies"] if c]
+            if cookies:
+                config_dict["kuake_cookies"] = cookies
 
         # 科技玩家多账号
-        if "kjwj" in yml_config:
-            kj = yml_config.get("kjwj") or {}
-            if "accounts" in kj and isinstance(kj["accounts"], list):
-                accs: list[dict] = []
-                for a in kj["accounts"]:
-                    if isinstance(a, dict):
-                        accs.append(
-                            {
-                                "username": str(a.get("username", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accs:
-                    config_dict["kjwj_accounts"] = accs
+        kj = yml_config.get("kjwj") or {}
+        if "accounts" in kj and isinstance(kj["accounts"], list):
+            accs = []
+            for a in kj["accounts"]:
+                if isinstance(a, dict):
+                    accs.append(
+                        {
+                            "username": str(a.get("username", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accs:
+                config_dict["kjwj_accounts"] = accs
 
         # 999 会员中心多 token
-        if "nine_nine_nine" in yml_config:
-            nnn = yml_config.get("nine_nine_nine") or {}
-            if "tokens" in nnn and isinstance(nnn["tokens"], list):
-                toks = [str(t).strip() for t in nnn["tokens"] if t]
-                if toks:
-                    config_dict["nine_nine_nine_tokens"] = toks
+        nnn = yml_config.get("nine_nine_nine") or {}
+        if "tokens" in nnn and isinstance(nnn["tokens"], list):
+            toks = [str(t).strip() for t in nnn["tokens"] if t]
+            if toks:
+                config_dict["nine_nine_nine_tokens"] = toks
 
         # 中国福彩抽奖多 token
-        if "zgfc" in yml_config:
-            zc = yml_config.get("zgfc") or {}
-            if "tokens" in zc and isinstance(zc["tokens"], list):
-                toks = [str(t).strip() for t in zc["tokens"] if t]
-                if toks:
-                    config_dict["zgfc_tokens"] = toks
+        zc = yml_config.get("zgfc") or {}
+        if "tokens" in zc and isinstance(zc["tokens"], list):
+            toks = [str(t).strip() for t in zc["tokens"] if t]
+            if toks:
+                config_dict["zgfc_tokens"] = toks
 
         # Freenom 多账号
-        if "freenom" in yml_config:
-            fn = yml_config.get("freenom") or {}
-            if "accounts" in fn and isinstance(fn["accounts"], list):
-                accs: list[dict] = []
-                for a in fn["accounts"]:
-                    if isinstance(a, dict):
-                        accs.append(
-                            {
-                                "email": str(a.get("email", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accs:
-                    config_dict["freenom_accounts"] = accs
+        fn = yml_config.get("freenom") or {}
+        if "accounts" in fn and isinstance(fn["accounts"], list):
+            accs = []
+            for a in fn["accounts"]:
+                if isinstance(a, dict):
+                    accs.append(
+                        {
+                            "email": str(a.get("email", "")).strip(),
+                            "password": str(a.get("password", "")).strip(),
+                        }
+                    )
+            if accs:
+                config_dict["freenom_accounts"] = accs
 
-        # 推送通道配置（直接复制）
+        # 推送通道配置（直接复制，需确保为 list 类型）
         if "push_channel" in yml_config:
-            config_dict["push_channel_list"] = yml_config["push_channel"]
+            push_ch = yml_config["push_channel"]
+            config_dict["push_channel_list"] = (
+                push_ch if isinstance(push_ch, list) else []
+            )
 
-        # 插件/扩展任务配置（直接复制）
+        # 插件/扩展任务配置（直接复制，需确保为 dict 类型）
         if "plugins" in yml_config:
-            config_dict["plugins"] = yml_config["plugins"]
+            plugins_val = yml_config["plugins"]
+            config_dict["plugins"] = (
+                plugins_val if isinstance(plugins_val, dict) else {}
+            )
 
         logger.debug(f"成功从 {yml_path} 加载配置")
         return config_dict
@@ -1093,7 +1081,7 @@ def _parse_quiet_time(time_str: str) -> time | None:
     """解析 HH:MM 格式时间为 time 对象，非法格式返回 None"""
     if not time_str or not isinstance(time_str, str):
         return None
-    parts = (time_str or "").strip().split(":", 2)
+    parts = time_str.strip().split(":", 2)
     if len(parts) < 2:
         return None
     try:

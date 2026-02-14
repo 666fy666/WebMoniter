@@ -127,7 +127,7 @@
 | 999 健康任务 | `nine_nine_nine`    | 15:15        | ✅         | 999 会员中心健康打卡 + 阅读 + 体检等任务；多 Authorization `tokens`                                 |
 | 福彩抽奖     | `zgfc`              | 08:00        | ✅         | 中国福彩“新年”活动许愿 + 抽奖 + 点赞 + 奖品查询；多 Authorization `tokens`                        |
 | 双色球通知   | `ssq_500w`          | 21:30        | ✅         | 获取最新双色球开奖信息 + 守号检测 + 冷号机选（仅娱乐通知，不涉及真实购彩）                            |
-| Demo 示例    | `plugins.demo_task` | 08:30        | ✅         | 二次开发示例，不需要可在 `job_registry.TASK_MODULES` 中移除                                  |
+| Demo 示例    | `plugins.demo_task` | 08:30        | ✅         | 二次开发示例，不需要可在 `src/job_registry.py` 的 `TASK_MODULES` 中移除 `tasks.demo_task`   |
 
 > 恩山、天翼云盘、阿里云盘、什么值得买、值得买抽奖、富贵论坛、小米社区、爱奇艺、联想乐豆、丽宝乐园、品赞、达美乐、小茅预约、一点万象、星空代理、千图网 等签到/预约逻辑参考自 [only_for_happly](https://github.com/wd210010/only_for_happly)，已接入本项目统一推送与账号配置。**但主包并没有对其进行更新，所以碰到之前用不了的，现在也用不了！**
 
