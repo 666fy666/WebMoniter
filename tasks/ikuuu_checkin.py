@@ -575,6 +575,14 @@ async def _send_checkin_push(
             to_url=cfg.user_page_url,
             picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
             btntxt="查看账户",
+            event_type="checkin_ikuuu",
+            event_data={
+                "success": success,
+                "account": masked_email,
+                "message": msg,
+                "has_traffic_info": bool(traffic_info),
+                "domain": cfg.domain,
+            },
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：发送签到结果推送失败：%s", exc, exc_info=True)

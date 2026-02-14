@@ -6,7 +6,7 @@ import logging
 from aiohttp import ClientSession
 
 from src.ai_assistant.config import is_ai_enabled
-from src.ai_assistant.llm_client import compress_text_with_llm
+from src.ai_assistant.llm_client import compress_text_with_llm, generate_push_content_with_llm
 from src.config import get_config
 from src.push_channel import get_push_channel
 
@@ -140,6 +140,8 @@ class UnifiedPushManager:
         author: str = "FengYu",
         description_func=None,
         extend_data: dict | None = None,
+        event_type: str | None = None,
+        event_data: dict | None = None,
         **kwargs,
     ) -> dict:
         """
@@ -154,6 +156,8 @@ class UnifiedPushManager:
             author: 作者
             description_func: 可选的函数，接收 channel 参数，返回该通道的 description
             extend_data: 额外扩展数据，会原样传递给各通道的 push 方法
+            event_type: 可选，事件类型（如 weibo/huya/checkin），配合 push_personalize_with_llm 使用
+            event_data: 可选，事件数据字典，用于 LLM 生成个性化推送内容
 
         Returns:
             包含所有推送结果的字典
@@ -164,6 +168,25 @@ class UnifiedPushManager:
         if not self.push_channels:
             self.logger.warning("未配置任何推送渠道")
             return {"results": results, "errors": errors}
+
+        # 若开启 LLM 个性化且提供了事件信息，则生成更贴切的标题和内容
+        use_personalize = (
+            getattr(get_config(), "push_personalize_with_llm", False)
+            and is_ai_enabled()
+            and event_type
+            and event_data is not None
+        )
+        if use_personalize:
+            base_desc = (
+                description_func(self.push_channels[0]) if description_func else description
+            )
+            personalized = await generate_push_content_with_llm(
+                event_type, event_data, title, base_desc
+            )
+            if personalized:
+                title, description = personalized
+                description_func = None  # 使用统一 LLM 生成内容
+                self.logger.debug("已使用 LLM 生成个性化推送内容")
 
         # 并发发送到所有渠道
         tasks = []

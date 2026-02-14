@@ -228,6 +228,8 @@ class BilibiliMonitor(BaseMonitor):
                 to_url=f"https://www.bilibili.com/opus/{dynamic_id}",
                 picurl=pic_url
                 or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
+                event_type="bilibili_dynamic",
+                event_data={"uname": uname, "dynamic_id": dynamic_id, "content": content[:300], "title_msg": title_msg},
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")
@@ -320,6 +322,14 @@ class BilibiliMonitor(BaseMonitor):
                 description=room_title or "直播间",
                 to_url=f"https://live.bilibili.com/{room_id}",
                 picurl=pic,
+                event_type="bilibili_live",
+                event_data={
+                    "uname": uname,
+                    "room_id": room_id,
+                    "room_title": room_title,
+                    "is_live": res == 1,
+                    "status_text": "开播" if res == 1 else "下播",
+                },
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

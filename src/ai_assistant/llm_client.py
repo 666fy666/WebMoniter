@@ -204,6 +204,71 @@ async def chat_completion_stream(
         raise
 
 
+async def generate_push_content_with_llm(
+    event_type: str,
+    event_data: dict,
+    raw_title: str,
+    raw_description: str,
+) -> tuple[str, str] | None:
+    """
+    使用 LLM 结合事件数据对推送内容进行个性化润色，保持原有格式结构不变。
+    用于在配置了 push_personalize_with_llm 时，仅润色正文表述，标题与格式布局不改变。
+
+    Args:
+        event_type: 事件类型，如 weibo/huya/bilibili/checkin/weather 等
+        event_data: 事件数据字典（可 JSON 序列化），包含通知相关的原始信息
+        raw_title: 原始模板标题
+        raw_description: 原始模板内容
+
+    Returns:
+        (原标题, 个性化后的内容) 元组，标题保持原样、仅内容被润色；若 LLM 调用失败则返回 None
+    """
+    import json
+
+    # 构建精简的事件摘要（避免 token 爆炸，仅保留关键字段）
+    try:
+        summary = json.dumps(event_data, ensure_ascii=False, default=str)[:2000]
+    except (TypeError, ValueError):
+        summary = str(event_data)[:2000]
+
+    prompt = f"""你是一个推送通知助手。请在**保持原有格式结构不变**的前提下，对推送内容进行个性化润色。
+
+事件类型：{event_type}
+原始内容（格式与结构请原样保留）：{raw_description}
+
+事件数据（JSON 或摘要）：{summary}
+
+要求：
+1. **格式不变**：必须保留原文的布局、分块（如「Ta说」「认证」「简介」「房间号」等）、分隔符和层级结构
+2. **内容个性化**：只对内容进行润色，使表述更自然、贴切，可适度加入亲切语气或简要解读，但不要改变关键数据
+3. 不要编造不存在的信息，不要遗漏原始内容中的任何重要字段
+4. 直接输出 JSON，格式严格为：{{"description": "润色后的内容"}}（只输出 description 字段）
+5. 不要输出其他说明或引号外的内容"""
+
+    try:
+        result = await chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=512,
+        )
+        if not result or not result.strip():
+            return None
+        # 尝试从结果中提取 JSON（可能被 markdown 包裹）
+        text = result.strip()
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start >= 0 and end > start:
+            j = json.loads(text[start:end])
+            desc = j.get("description") or raw_description
+            if isinstance(desc, str):
+                # 标题保持不变，仅内容个性化
+                return (raw_title, desc.strip())
+        return None
+    except Exception as e:
+        logger.warning("LLM 生成个性化推送失败，将使用原始模板: %s", e)
+        return None
+
+
 async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
     """
     使用 LLM 将文本压缩到指定字节数以内，保留核心语义。

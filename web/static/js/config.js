@@ -479,18 +479,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
     const appCompressLlmLabelEl = document.getElementById('app_push_compress_with_llm_label');
+    const appPersonalizeLlmEl = document.getElementById('app_push_personalize_with_llm');
+    const appPersonalizeLlmLabelEl = document.getElementById('app_push_personalize_with_llm_label');
     function syncAppCompressLlmLabel() {
         if (appCompressLlmEl && appCompressLlmLabelEl) appCompressLlmLabelEl.textContent = appCompressLlmEl.checked ? '开启' : '关闭';
+    }
+    function syncAppPersonalizeLlmLabel() {
+        if (appPersonalizeLlmEl && appPersonalizeLlmLabelEl) appPersonalizeLlmLabelEl.textContent = appPersonalizeLlmEl.checked ? '开启' : '关闭';
     }
     if (appCompressLlmEl && appCompressLlmLabelEl) {
         appCompressLlmEl.addEventListener('change', syncAppCompressLlmLabel);
         appCompressLlmEl.addEventListener('click', function() { setTimeout(syncAppCompressLlmLabel, 0); });
         const appSectionCard = document.querySelector('.config-section[data-section="app"]');
         if (appSectionCard) appSectionCard.addEventListener('click', function(e) {
-            if (e.target.closest('label.switch') && e.target.closest('td') && document.getElementById('app_push_compress_with_llm')) {
+            if (e.target.closest('label.switch') && e.target.closest('td') && (document.getElementById('app_push_compress_with_llm') || document.getElementById('app_push_personalize_with_llm'))) {
                 setTimeout(syncAppCompressLlmLabel, 0);
+                setTimeout(syncAppPersonalizeLlmLabel, 0);
             }
         });
+    }
+    if (appPersonalizeLlmEl && appPersonalizeLlmLabelEl) {
+        appPersonalizeLlmEl.addEventListener('change', syncAppPersonalizeLlmLabel);
+        appPersonalizeLlmEl.addEventListener('click', function() { setTimeout(syncAppPersonalizeLlmLabel, 0); });
     }
     if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
@@ -1328,6 +1338,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     appCompressLlm.checked = cv === true || cv === 'true' || cv === 1;
                     if (appCompressLlmLabel) appCompressLlmLabel.textContent = appCompressLlm.checked ? '开启' : '关闭';
                 }
+                const appPersonalizeLlm = document.getElementById('app_push_personalize_with_llm');
+                const appPersonalizeLlmLabel = document.getElementById('app_push_personalize_with_llm_label');
+                if (appPersonalizeLlm) {
+                    const pv = appSection.push_personalize_with_llm;
+                    appPersonalizeLlm.checked = pv === true || pv === 'true' || pv === 1;
+                    if (appPersonalizeLlmLabel) appPersonalizeLlmLabel.textContent = appPersonalizeLlm.checked ? '开启' : '关闭';
+                }
                 break;
             }
             case 'weibo':
@@ -1980,9 +1997,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'app': {
                 const baseUrlInput = document.getElementById('app_base_url');
                 const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
+                const appPersonalizeLlmEl = document.getElementById('app_push_personalize_with_llm');
                 config.app = {
                     base_url: (baseUrlInput?.value || '').trim(),
-                    push_compress_with_llm: appCompressLlmEl?.checked || false
+                    push_compress_with_llm: appCompressLlmEl?.checked || false,
+                    push_personalize_with_llm: appPersonalizeLlmEl?.checked || false
                 };
                 break;
             }

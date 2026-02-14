@@ -477,6 +477,9 @@ app:
   # 推送全局：当某渠道内容超过该渠道官方字数限制时，是否使用 LLM 压缩（需配置 ai_assistant）
   # 开启后，企业微信/钉钉/飞书/Telegram 等有字数限制的渠道会自动用摘要替代截断
   push_compress_with_llm: false
+  # 推送全局：是否使用 LLM 结合事件生成个性化推送（需配置 ai_assistant.api_key）
+  # 开启后，推送前会基于事件类型和事件数据生成更自然、贴切的标题和内容
+  push_personalize_with_llm: false
 
 # =============================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）

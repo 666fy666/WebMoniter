@@ -440,6 +440,7 @@ class WeiboMonitor(BaseMonitor):
                 extend_data["wecom_pic_url"] = wecom_pic_url
 
             # 使用 description_func 为各通道生成描述，超限时的 LLM 压缩由 app.push_compress_with_llm 统一处理
+            # event_type/event_data 供 push_personalize_with_llm 生成个性化推送
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖
@@ -450,6 +451,16 @@ class WeiboMonitor(BaseMonitor):
                 to_url=f"https://m.weibo.cn/detail/{data['mid']}",
                 btntxt="阅读全文",
                 extend_data=extend_data,
+                event_type="weibo",
+                event_data={
+                    "username": data.get("用户名"),
+                    "text": (data.get("文本") or "")[:500],
+                    "verified": data.get("认证信息"),
+                    "intro": data.get("简介"),
+                    "mid": data.get("mid"),
+                    "action": action,
+                    "count": count,
+                },
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

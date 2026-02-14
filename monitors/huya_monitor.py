@@ -221,6 +221,14 @@ class HuyaMonitor(BaseMonitor):
                 to_url=f"https://m.huya.com/{data['room']}",
                 picurl=picurl,
                 extend_data=extend_data or None,
+                event_type="huya",
+                event_data={
+                    "name": data.get("name"),
+                    "room": data.get("room"),
+                    "is_live": res == 1,
+                    "status_text": "开播" if res == 1 else "下播",
+                    "timestamp": timestamp,
+                },
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

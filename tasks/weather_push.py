@@ -150,12 +150,23 @@ async def run_weather_push_once() -> None:
         )
         if push and not is_in_quiet_hours(app_cfg):
             try:
+                city_info = data.get("cityInfo", {})
+                today = (data.get("data", {}) or {}).get("forecast", [{}])[0]
                 await push.send_news(
                     title=title or "天气推送",
                     description=msg,
                     to_url="https://t.weather.itboy.net/",
                     picurl="",
                     btntxt="查看详情",
+                    event_type="weather",
+                    event_data={
+                        "city": city_info.get("city"),
+                        "date": today.get("ymd"),
+                        "week": today.get("week"),
+                        "weather_type": today.get("type"),
+                        "high": today.get("high"),
+                        "low": today.get("low"),
+                    },
                 )
             except Exception as exc:  # pragma: no cover
                 logger.error("天气推送：发送失败：%s", exc, exc_info=True)

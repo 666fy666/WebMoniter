@@ -160,6 +160,8 @@
 
 各渠道有官方字数/字节限制（如企业微信应用约 500 字节、钉钉/飞书/Telegram 等均有上限）。在 `config.yml` 的 **app.push_compress_with_llm** 设为 `true` 并配置好 **ai_assistant** 后，内容超限时会自动使用 LLM 压缩为摘要再推送，避免简单截断丢失关键信息。
 
+**app.push_personalize_with_llm**：设为 `true` 并配置 **ai_assistant** 后，推送前会基于事件类型和事件数据使用 LLM 生成更自然、贴切的标题和内容，实现个性化推送（如微博新动态、直播开播/下播、签到结果、天气等），而不仅限于固定模板。
+
 </details>
 
 <br/>
