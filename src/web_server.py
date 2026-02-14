@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 from fastapi import FastAPI, Form, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -1539,8 +1539,19 @@ async def assistant_chat(request: Request):
 
     append_messages(conversation_id, user_content=message, assistant_content=reply, user_id=user_id)
 
-    # 解析回复：优先 config_patch（可执行操作），其次 YAML 代码块（复制配置）
-    import json
+    reply, suggested_action = _parse_suggested_action_from_reply(reply)
+
+    return JSONResponse(
+        {
+            "reply": reply,
+            "conversation_id": conversation_id,
+            "suggested_action": suggested_action,
+        }
+    )
+
+
+def _parse_suggested_action_from_reply(reply: str) -> tuple[str, dict | None]:
+    """从完整回复文本中解析 suggested_action，返回 (清洗后的 reply, suggested_action)。"""
     import re
 
     suggested_action = None
@@ -1561,11 +1572,9 @@ async def assistant_chat(request: Request):
                     "title": f"{'添加' if patch['operation'] == 'add' else '移除'}配置项",
                     "description": f"将从 {patch['platform_key']} 的 {patch['list_key']} 中{'添加' if patch['operation'] == 'add' else '移除'}「{patch['value']}」",
                 }
-                # 从展示给用户的回复中移除 JSON 块，保持界面简洁
                 reply = re.sub(r"\n*```json\s*\n.*?```\s*", "\n", reply, flags=re.DOTALL).strip()
         except (json.JSONDecodeError, KeyError):
             pass
-
     if suggested_action is None:
         yaml_match = re.search(r"```yaml\s*\n(.*?)```", reply, re.DOTALL)
         if yaml_match:
@@ -1574,13 +1583,105 @@ async def assistant_chat(request: Request):
                 "diff": yaml_match.group(1).strip(),
                 "description": "配置片段（可复制到 config.yml 或配置页）",
             }
+    return reply, suggested_action
 
-    return JSONResponse(
-        {
-            "reply": reply,
-            "conversation_id": conversation_id,
-            "suggested_action": suggested_action,
-        }
+
+@app.post("/api/assistant/chat/stream")
+async def assistant_chat_stream(request: Request):
+    """对话接口（流式），使用 Server-Sent Events 逐块返回 AI 回复。"""
+    err = _assistant_require_auth(request)
+    if err:
+        return err
+    body = await request.json()
+    message = (body.get("message") or "").strip()
+    if not message:
+        return JSONResponse({"error": "message 不能为空"}, status_code=400)
+    conversation_id = body.get("conversation_id") or ""
+    context = body.get("context", "all")
+
+    from src.ai_assistant.config import get_ai_config
+    from src.ai_assistant.conversation import (
+        append_messages,
+        create_conversation,
+        get_messages,
+    )
+    from src.ai_assistant.llm_client import chat_completion_stream
+    from src.ai_assistant.prompts import SYSTEM_PROMPT
+    from src.ai_assistant.rag import retrieve_all
+    from src.ai_assistant.tools_current_state import (
+        parse_platforms_from_message,
+        query_current_state,
+    )
+
+    cfg = get_ai_config()
+    user_id = request.session.get("username", "default")
+
+    if not conversation_id:
+        conversation_id = create_conversation(user_id=user_id, title="新对话")
+
+    reply, suggested_action = await _parse_executable_intent_and_reply(message)
+    if reply is not None:
+        async def _intent_stream():
+            yield f"data: {json.dumps({'chunk': reply}, ensure_ascii=False)}\n\n".encode("utf-8")
+            yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode("utf-8")
+        append_messages(
+            conversation_id, user_content=message, assistant_content=reply, user_id=user_id
+        )
+        return StreamingResponse(
+            _intent_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    history = get_messages(conversation_id, max_rounds=cfg.max_history_rounds)
+    system_content = SYSTEM_PROMPT
+    rag_ctx = retrieve_all(message, context=context)
+    if rag_ctx:
+        system_content += "\n\n【本次检索到的参考】\n" + rag_ctx
+    need_current = (
+        "当前" in message
+        or "现在" in message
+        or "谁在直播" in message
+        or "最新" in message
+        or "开播" in message
+        or "谁开播" in message
+        or "直播" in message
+    )
+    if need_current:
+        try:
+            platforms = parse_platforms_from_message(message)
+            current_data = await query_current_state(platforms=platforms)
+            if current_data:
+                system_content += "\n\n【当前监控数据】\n" + current_data
+        except Exception as e:
+            logger.debug("query_current_state 失败: %s", e)
+
+    messages = [{"role": "system", "content": system_content}]
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": message})
+
+    async def _stream_body():
+        full_reply_parts = []
+        try:
+            async for chunk in chat_completion_stream(messages=messages):
+                full_reply_parts.append(chunk)
+                yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n".encode("utf-8")
+        except Exception as e:
+            logger.error("AI 助手流式调用失败: %s", e)
+            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n".encode("utf-8")
+            return
+        reply = "".join(full_reply_parts).strip()
+        append_messages(
+            conversation_id, user_content=message, assistant_content=reply, user_id=user_id
+        )
+        reply, suggested_action = _parse_suggested_action_from_reply(reply)
+        yield f"data: {json.dumps({'done': True, 'reply': reply, 'suggested_action': suggested_action, 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        _stream_body(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 

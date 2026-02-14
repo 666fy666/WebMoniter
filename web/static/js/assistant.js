@@ -7,6 +7,7 @@
         status: '/api/assistant/status',
         conversations: '/api/assistant/conversations',
         chat: '/api/assistant/chat',
+        chatStream: '/api/assistant/chat/stream',
         applyAction: '/api/assistant/apply-action',
         reindex: '/api/assistant/reindex',
     };
@@ -430,60 +431,125 @@
         container.innerHTML += `<div class="msg assistant assistant-loading"><div style="font-size:12px;color:#64748b;">AI</div><div class="assistant-reply" style="padding:10px 14px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;gap:8px;"><span class="assistant-dots"><span></span><span></span><span></span></span><span>正在处理...</span></div></div>`;
         container.scrollTop = container.scrollHeight;
 
+        const replyEl = container.querySelector('.assistant-reply:last-of-type');
+        const msgWrap = container.querySelector('.msg.assistant:last-of-type');
+
+        function applySuggestedAction(d) {
+            if (!d || !replyEl) return;
+            let html = (d.reply || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            if (d.suggested_action && d.suggested_action.type === 'config_diff') {
+                const cfgId = 'cfg_' + Date.now();
+                suggestedConfigs[cfgId] = d.suggested_action.diff || '';
+                html += '<div style="margin-top:12px;"><button class="btn btn-primary copy-config-btn" data-cfg-id="' + cfgId + '" style="padding:6px 12px;font-size:12px;">📋 复制配置</button></div>';
+            }
+            if (d.suggested_action && d.suggested_action.type === 'confirm_execute') {
+                const sa = d.suggested_action;
+                const actionId = 'act_' + Date.now();
+                suggestedConfigs[actionId] = sa;
+                html += '<div style="margin-top:12px;"><button class="btn btn-primary confirm-execute-btn" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">✓ 确认执行</button></div>';
+                showConfirmExecuteModal(sa);
+            }
+            if (d.suggested_action && d.suggested_action.type === 'weibo_choose') {
+                const sa = d.suggested_action;
+                const actionId = 'act_' + Date.now();
+                suggestedConfigs[actionId] = sa;
+                html += '<div style="margin-top:12px;"><button class="btn btn-primary weibo-choose-btn-inline" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">选择要添加的账号</button></div>';
+                showWeiboChooseModal(sa);
+            }
+            replyEl.innerHTML = html;
+            replyEl.querySelectorAll('.copy-config-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const yaml = suggestedConfigs[btn.getAttribute('data-cfg-id')] || '';
+                    navigator.clipboard.writeText(yaml).then(() => {
+                        if (typeof showToast === 'function') showToast('已复制到剪贴板');
+                        else alert('已复制到剪贴板');
+                    }).catch(() => alert('复制失败'));
+                };
+            });
+            replyEl.querySelectorAll('.confirm-execute-btn').forEach(btn => {
+                btn.onclick = () => showConfirmExecuteModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
+            });
+            replyEl.querySelectorAll('.weibo-choose-btn-inline').forEach(btn => {
+                btn.onclick = () => showWeiboChooseModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
+            });
+        }
+
         try {
-            const r = await fetch(API.chat, {
+            const r = await fetch(API.chatStream, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg, conversation_id: currentConversationId, context: 'all' }),
                 credentials: 'same-origin',
             });
-            const d = await r.json();
-            const replyEl = container.querySelector('.assistant-reply:last-of-type');
-            if (d.error) {
-                if (replyEl) replyEl.textContent = '错误: ' + d.error;
-            } else {
-                if (replyEl) {
-                    let html = (d.reply || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-                    if (d.suggested_action && d.suggested_action.type === 'config_diff') {
-                        const cfgId = 'cfg_' + Date.now();
-                        suggestedConfigs[cfgId] = d.suggested_action.diff || '';
-                        html += '<div style="margin-top:12px;"><button class="btn btn-primary copy-config-btn" data-cfg-id="' + cfgId + '" style="padding:6px 12px;font-size:12px;">📋 复制配置</button></div>';
+            if (!r.ok) {
+                const d = await r.json().catch(() => ({}));
+                if (replyEl) replyEl.innerHTML = ''; if (replyEl) replyEl.textContent = '错误: ' + (d.error || r.statusText);
+                loadConversations();
+                return;
+            }
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let started = false;
+            let streamDone = false;
+            while (!streamDone) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const raw = line.slice(6).trim();
+                    if (!raw) continue;
+                    try {
+                        const data = JSON.parse(raw);
+                        if (data.error) {
+                            if (replyEl) { replyEl.innerHTML = ''; replyEl.textContent = '错误: ' + data.error; }
+                            streamDone = true;
+                            break;
+                        }
+                        if (data.chunk !== undefined) {
+                            if (!started && msgWrap) {
+                                msgWrap.classList.remove('assistant-loading');
+                                if (replyEl) replyEl.innerHTML = '';
+                                started = true;
+                            }
+                            if (replyEl) {
+                                const text = (data.chunk || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                                replyEl.insertAdjacentHTML('beforeend', text);
+                            }
+                            container.scrollTop = container.scrollHeight;
+                        }
+                        if (data.done) {
+                            if (replyEl && data.reply !== undefined) {
+                                replyEl.innerHTML = (data.reply || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                                applySuggestedAction(data);
+                            }
+                            if (data.conversation_id) currentConversationId = data.conversation_id;
+                            streamDone = true;
+                            break;
+                        }
+                    } catch (err) {
+                        /* ignore parse error for incomplete chunk */
                     }
-                    if (d.suggested_action && d.suggested_action.type === 'confirm_execute') {
-                        const sa = d.suggested_action;
-                        const actionId = 'act_' + Date.now();
-                        suggestedConfigs[actionId] = sa;
-                        html += '<div style="margin-top:12px;"><button class="btn btn-primary confirm-execute-btn" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">✓ 确认执行</button></div>';
-                        showConfirmExecuteModal(sa);
-                    }
-                    if (d.suggested_action && d.suggested_action.type === 'weibo_choose') {
-                        const sa = d.suggested_action;
-                        const actionId = 'act_' + Date.now();
-                        suggestedConfigs[actionId] = sa;
-                        html += '<div style="margin-top:12px;"><button class="btn btn-primary weibo-choose-btn-inline" data-action-id="' + actionId + '" style="padding:6px 12px;font-size:12px;">选择要添加的账号</button></div>';
-                        showWeiboChooseModal(sa);
-                    }
-                    replyEl.innerHTML = html;
-                    replyEl.querySelectorAll('.copy-config-btn').forEach(btn => {
-                        btn.onclick = () => {
-                            const yaml = suggestedConfigs[btn.getAttribute('data-cfg-id')] || '';
-                            navigator.clipboard.writeText(yaml).then(() => {
-                                if (typeof showToast === 'function') showToast('已复制到剪贴板');
-                                else alert('已复制到剪贴板');
-                            }).catch(() => alert('复制失败'));
-                        };
-                    });
-                    replyEl.querySelectorAll('.confirm-execute-btn').forEach(btn => {
-                        btn.onclick = () => showConfirmExecuteModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
-                    });
-                    replyEl.querySelectorAll('.weibo-choose-btn-inline').forEach(btn => {
-                        btn.onclick = () => showWeiboChooseModal(suggestedConfigs[btn.getAttribute('data-action-id')]);
-                    });
                 }
+            }
+            if (!streamDone && buffer.startsWith('data: ')) {
+                try {
+                    const data = JSON.parse(buffer.slice(6).trim());
+                    if (data.done && replyEl) {
+                        replyEl.innerHTML = (data.reply || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                        applySuggestedAction(data);
+                    }
+                } catch (_) {}
+            }
+            if (!started && replyEl && replyEl.textContent === '') {
+                msgWrap.classList.remove('assistant-loading');
+                replyEl.textContent = '未收到回复，请重试。';
             }
             loadConversations();
         } catch (e) {
-            const replyEl = container.querySelector('.assistant-reply:last-of-type');
             if (replyEl) { replyEl.innerHTML = ''; replyEl.textContent = '请求失败: ' + e.message; }
         }
         input.disabled = false;

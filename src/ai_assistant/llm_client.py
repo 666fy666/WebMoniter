@@ -1,7 +1,8 @@
 """LLM 客户端 - 支持主流厂商 OpenAI 兼容 API"""
 
+import json
 import logging
-from typing import Any
+from typing import Any, AsyncIterator
 
 from src.ai_assistant.config import get_ai_config
 
@@ -96,6 +97,43 @@ class _AsyncHttpClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def chat_completions_create_stream(
+        self, **kwargs: Any
+    ) -> AsyncIterator[str]:
+        """流式调用，逐块 yield 文本内容（OpenAI SSE 格式）。"""
+        url = f"{self.base_url}/chat/completions"
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": kwargs.get("model", "gpt-4o-mini"),
+            "messages": kwargs.get("messages", []),
+            "stream": True,
+        }
+        if "temperature" in kwargs:
+            payload["temperature"] = kwargs["temperature"]
+        if "max_tokens" in kwargs:
+            payload["max_tokens"] = kwargs["max_tokens"]
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream("POST", url, json=payload, headers=headers) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        return
+                    try:
+                        j = json.loads(data)
+                        content = (
+                            j.get("choices", [{}])[0]
+                            .get("delta", {})
+                            .get("content")
+                            or ""
+                        )
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        pass
+
 
 async def chat_completion(
     messages: list[dict[str, str]],
@@ -132,6 +170,43 @@ async def chat_completion(
         return ""
     except Exception as e:
         logger.error("LLM 调用失败: %s", e)
+        raise
+
+
+async def chat_completion_stream(
+    messages: list[dict[str, str]],
+    model: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+) -> AsyncIterator[str]:
+    """
+    流式调用 LLM，逐块 yield 助手回复的文本内容。
+    """
+    cfg = get_ai_config()
+    model = model or cfg.model
+    client = _create_async_client()
+    try:
+        if HAS_OPENAI:
+            stream = await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+            return
+        async for chunk in client.chat_completions_create_stream(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ):
+            yield chunk
+    except Exception as e:
+        logger.error("LLM 流式调用失败: %s", e)
         raise
 
 
