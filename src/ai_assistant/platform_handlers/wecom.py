@@ -155,11 +155,13 @@ async def handle_wecom_callback(
         return PlainTextResponse("decrypt failed", status_code=400)
 
     msg_type = _extract_xml_tag("MsgType", plain_xml)
+    if msg_type == "event":
+        # 用户打开会话等事件（如 enter_agent），不向用户推送任何消息，避免刷屏
+        return PlainTextResponse("")
     if msg_type != "text":
-        # 非文本消息，回复提示
+        # 非文本消息（图片、语音等），回复提示
         from_user = _extract_xml_tag("FromUserName", plain_xml) or ""
         to_user = _extract_xml_tag("ToUserName", plain_xml) or ""
-        agent_id = _extract_xml_tag("AgentID", plain_xml) or ""
         reply_xml = f"""<xml>
 <ToUserName><![CDATA[{from_user}]]></ToUserName>
 <FromUserName><![CDATA[{to_user}]]></FromUserName>
