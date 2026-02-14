@@ -116,7 +116,7 @@ checkin:
 # 雨云签到配置（参考 Rainyun-Qiandao：Selenium + 账号密码 + ddddocr）
 # =============================================================================
 # 使用账号密码登录雨云网页，通过 ddddocr 完成验证码识别，需安装 Chrome/Chromium 及 chromedriver
-# Docker 部署：镜像已内置 Chromium，设置 enable: true 和 accounts 即可
+# Docker 部署：需在宿主机安装 Chromium 并挂载进容器，见 docs/guides/docker-rainyun.md
 # 按配置每天固定时间（默认 08:30）自动签到，项目启动时也会执行一次（enable: true 且配置了 accounts 时）
 # 多账号：配置 accounts 列表，每项需 username、password，api_key 可选（用于服务器续费）
 # 服务器自动续费：参考 Jielumoon/Rainyun-Qiandao，签到后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天

@@ -28,18 +28,16 @@ RUN uv sync --frozen --no-dev --no-install-project && \
     find /app/.venv -type f -name "*.pyo" -delete
 
 # ============================================
-# 运行阶段：最小化镜像（含 Chromium 支持雨云签到）
+# 运行阶段：最小化镜像（不内置 Chromium，雨云签到需挂载宿主机浏览器）
 # ============================================
 FROM python:3.11-slim
 
-# 设置时区 + 安装 Chromium 及依赖（雨云签到需 Selenium + 验证码识别）
-# 合并为单层以减少镜像层数，--no-install-suggests 减少包，清理文档/man/info 减小体积
+# 设置时区 + 安装 Chromium 运行依赖（仅库文件，不安装 chromium/chromium-driver 以减小体积）
+# 使用雨云签到时需在宿主机安装 Chromium 并挂载进容器，见文档 docs/guides/docker-rainyun.md
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone && \
     apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
     ca-certificates \
-    chromium \
-    chromium-driver \
     libglib2.0-0 \
     libnss3 \
     libfontconfig1 \
@@ -78,14 +76,10 @@ COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
 
-# 设置环境变量
-# PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块
-# 雨云签到：Chromium 路径（Debian/Ubuntu 安装后默认位置）
+# 设置环境变量（雨云签到用的 CHROME_BIN、CHROMEDRIVER_PATH 由 docker-compose 挂载宿主机时设置）
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    PATH="/app/.venv/bin:$PATH" \
-    CHROME_BIN=/usr/bin/chromium \
-    CHROMEDRIVER_PATH=/usr/bin/chromedriver
+    PATH="/app/.venv/bin:$PATH"
 
 # 运行主程序（直接使用 venv 中的 python，避免 uv run 的开销）
 CMD ["python", "main.py"]
