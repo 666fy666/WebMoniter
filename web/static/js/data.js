@@ -48,14 +48,16 @@ document.addEventListener('DOMContentLoaded', function () {
         loadTableData();
     });
 
-    // 加载数据
+    // 加载数据（虎牙：先取基础数据，再异步加载封面/头像 URL）
     async function loadTableData() {
         dataTableContainer.innerHTML = '<div class="loading">加载中...</div>';
 
         try {
-            const response = await fetch(
-                `/api/data/${currentTable}?page=${currentPage}&page_size=${pageSize}`,
-            );
+            const isHuya = currentTable === 'huya';
+            const url = isHuya
+                ? `/api/data/${currentTable}?page=${currentPage}&page_size=${pageSize}&include_media=false`
+                : `/api/data/${currentTable}?page=${currentPage}&page_size=${pageSize}`;
+            const response = await fetch(url);
             const data = await response.json();
 
             if (data.error) {
@@ -69,10 +71,49 @@ document.addEventListener('DOMContentLoaded', function () {
             rows = applySavedOrder(rows);
             renderCards(rows);
             renderPagination(data.total_pages, data.total);
+
+            // 虎牙：异步加载封面和头像 URL，再更新卡片
+            if (isHuya && rows.length > 0) {
+                loadHuyaImages(rows);
+            }
         } catch (error) {
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
                 error.message,
             )}</div>`;
+        }
+    }
+
+    // 虎牙：异步获取封面/头像 URL 并更新卡片
+    async function loadHuyaImages(rows) {
+        const rooms = rows.map((r) => r.room).filter(Boolean);
+        if (rooms.length === 0) return;
+        try {
+            const resp = await fetch(
+                `/api/data/huya/images?rooms=${encodeURIComponent(rooms.join(','))}`,
+            );
+            const json = await resp.json();
+            if (json.error || !json.data) return;
+            const images = json.data;
+            rooms.forEach((room) => {
+                const info = images[room];
+                if (!info) return;
+                const card = dataTableContainer.querySelector(
+                    `.data-card[data-room="${String(room).replace(/"/g, '\\"')}"]`,
+                );
+                if (!card) return;
+                const cover = card.querySelector('.live-card-cover');
+                const avatarImg = card.querySelector('.live-card-avatar');
+                if (info.room_pic && cover) {
+                    cover.classList.add('live-card-cover-has-img');
+                    cover.style.backgroundImage = `url('${info.room_pic.replace(/'/g, "\\'")}')`;
+                }
+                if (info.avatar_url && avatarImg) {
+                    avatarImg.src = info.avatar_url;
+                    avatarImg.style.display = '';
+                }
+            });
+        } catch (e) {
+            console.warn('虎牙图片 URL 加载失败:', e);
         }
     }
 
@@ -272,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '</div>';
         } else if (currentTable === 'huya' || currentTable === 'douyu') {
             // 虎牙/斗鱼：保留原直播卡片（带封面/头像的网格卡片）
+            // 虎牙使用异步加载：先渲染占位，再通过 loadHuyaImages 填充
             html += '<div class="data-card-grid live-card-grid data-card-sortable">';
             rows.forEach((row, idx) => {
                 const cardId = escapeAttr(getCardId(row, idx));
@@ -298,22 +340,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 const isLive = row.is_live === '1' || row.is_live === 1 || row.is_live === true;
+                const dataRoomAttr = hasHuyaMedia && roomValue ? ` data-room="${escapeAttr(roomValue)}"` : '';
 
                 html += `
 <article class="data-card live-card data-card-link ${
     isLive ? 'live-card-on' : 'live-card-off'
-}" data-id="${cardId}" data-href="${escapeAttr(url)}">
+}" data-id="${cardId}" data-href="${escapeAttr(url)}"${dataRoomAttr}>
   <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <div class="live-card-media">
     <div class="live-card-cover${
         coverUrl ? ' live-card-cover-has-img' : ''
     }"${coverUrl ? ` style="background-image: url('${escapeAttr(coverUrl)}');"` : ''}></div>
     ${
-        avatarUrl
+        hasHuyaMedia
             ? `<div class="live-card-avatar-wrap">
-      <img src="${escapeAttr(
-          avatarUrl,
-      )}" alt="头像" class="live-card-avatar" loading="lazy">
+      <img src="${avatarUrl ? escapeAttr(avatarUrl) : ''}" alt="头像" class="live-card-avatar" loading="lazy"${!avatarUrl ? ' style="display:none"' : ''}>
+    </div>`
+            : avatarUrl
+            ? `<div class="live-card-avatar-wrap">
+      <img src="${escapeAttr(avatarUrl)}" alt="头像" class="live-card-avatar" loading="lazy">
     </div>`
             : ''
     }

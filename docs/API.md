@@ -133,6 +133,15 @@ GET /api/data/douyin?id=ASOULjiaran&page=1&page_size=20
 - `uid`：当 `platform` 为 `weibo`、`bilibili_live`、`bilibili_dynamic` 时按 UID 过滤
 - `room`：当 `platform` 为 `huya`、`douyu` 时按房间号过滤
 - `id`：当 `platform` 为 `douyin`、`xhs` 时按抖音号 / profile_id 过滤
+- `include_media`：当 `platform` 为 `huya` 时有效；设为 `false` 则不返回 `room_pic`、`avatar_url`，前端可再调用 `/api/data/huya/images` 异步获取
+
+#### 虎牙封面/头像 URL（异步加载）
+
+```http
+GET /api/data/huya/images?rooms=123,456,789
+```
+
+用于数据展示页异步加载虎牙封面图和头像，减少首屏请求体积。返回 `{"data": {"123": {"room_pic": "...", "avatar_url": "..."}, ...}}`。
 
 返回示例：
 

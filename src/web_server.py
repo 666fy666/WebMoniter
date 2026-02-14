@@ -864,6 +864,40 @@ _PLATFORM_SELECT = {
 }
 
 
+@app.get("/api/data/huya/images")
+async def get_huya_images(request: Request, rooms: str = ""):
+    """获取虎牙房间封面和头像 URL（需登录）。用于数据展示页异步加载图片。"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    room_ids = [r.strip() for r in rooms.split(",") if r.strip()]
+    if not room_ids:
+        return JSONResponse({"data": {}})
+
+    try:
+        db = AsyncDatabase()
+        await db.initialize()
+
+        placeholders = ", ".join([f":r{i}" for i in range(len(room_ids))])
+        params = {f"r{i}": rid for i, rid in enumerate(room_ids)}
+        sql = f"SELECT room, room_pic, avatar_url FROM huya WHERE room IN ({placeholders})"
+        rows = await db.execute_query(sql, params)
+        await db.close()
+
+        data = {
+            row[0]: {
+                "room_pic": (row[1] or "").strip(),
+                "avatar_url": (row[2] or "").strip(),
+            }
+            for row in rows
+        }
+        return JSONResponse({"data": data})
+    except Exception as e:
+        logger.error(f"获取虎牙图片 URL 失败: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/data/{platform}/{item_id}")
 async def get_data_item(request: Request, platform: str, item_id: str):
     """按平台与主键 ID 获取单条监控数据（需登录）。"""
@@ -906,6 +940,9 @@ _PLATFORM_LIST_SQL = {
     "xhs": "SELECT profile_id, user_name, latest_note_title FROM xhs",
 }
 
+# 虎牙「仅基础字段」SQL（不含 room_pic/avatar_url，用于异步加载图片 URL）
+_PLATFORM_LIST_SQL_HUYA_BASIC = "SELECT room, name, is_live FROM huya"
+
 
 @app.get("/api/data/{platform}")
 async def get_table_data(
@@ -913,6 +950,7 @@ async def get_table_data(
     platform: str,
     page: int = 1,
     page_size: int = 100,
+    include_media: bool = True,
     uid: str | None = None,
     room: str | None = None,
     id: str | None = None,
@@ -955,7 +993,11 @@ async def get_table_data(
         count_result = await db.execute_query(count_sql, count_params if count_params else None)
         total = count_result[0][0] if count_result else 0
 
-        base_sql = _PLATFORM_LIST_SQL[platform]
+        base_sql = (
+            _PLATFORM_LIST_SQL_HUYA_BASIC
+            if platform == "huya" and not include_media
+            else _PLATFORM_LIST_SQL[platform]
+        )
         sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
         rows = await db.execute_query(sql, params)
 
