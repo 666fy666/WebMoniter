@@ -8,7 +8,7 @@
 // - 支持拖拽卡片改变显示顺序，顺序持久化到 localStorage
 //
 
-let currentTable = 'huya';
+let currentTable = 'weibo';
 let currentPage = 1;
 const pageSize = 100;
 const STORAGE_KEY_PREFIX = 'data-card-order-';
