@@ -269,10 +269,29 @@ async def generate_push_content_with_llm(
         return None
 
 
+def _split_template_and_body(text: str) -> tuple[str, str, str] | None:
+    """
+    将推送内容拆分为「模板前缀 + 正文 + 模板后缀」，仅正文需要压缩时使用。
+    识别约定格式（如微博的 Ta说:👇\\n正文\\n====...\\n认证/简介），保持模板不变。
+
+    Returns:
+        (prefix, body, suffix) 若匹配到已知模板格式，否则 None
+    """
+    # 微博推送格式：Ta说:👇\\n{正文}\\n=========================\\n认证:...\\n\\n简介:...
+    weibo_prefix = "Ta说:👇\n"
+    weibo_sep = "\n" + "=" * 25 + "\n"
+    if text.startswith(weibo_prefix):
+        rest = text[len(weibo_prefix) :]
+        idx = rest.find(weibo_sep)
+        if idx >= 0:
+            return (weibo_prefix, rest[:idx], rest[idx:])
+    return None
+
+
 async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
     """
     使用 LLM 将文本压缩到指定字节数以内，保留核心语义。
-    用于各推送渠道超限时用摘要替代简单截断（企业微信、钉钉、飞书、Telegram 等）。
+    若内容为已知模板格式（如微博 Ta说/认证/简介），则仅压缩正文部分，模板前缀与后缀保持不变。
 
     Args:
         text: 原始文本
@@ -281,6 +300,17 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
     Returns:
         压缩后的文本，若 LLM 调用失败或超时则返回 None
     """
+    prefix, body, suffix = "", text, ""
+    parts = _split_template_and_body(text)
+    if parts:
+        prefix, body, suffix = parts
+        template_bytes = len((prefix + suffix).encode("utf-8"))
+        if template_bytes >= max_bytes:
+            # 模板本身已超限，回退为整段压缩
+            prefix, body, suffix = "", text, ""
+        else:
+            max_bytes = max_bytes - template_bytes
+
     # 目标字符数（中文约 3 字节/字，预留余量）
     max_chars = max(max_bytes // 2, 20)
 
@@ -290,7 +320,7 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
 3. 使用简洁自然的汉语，直接输出压缩后的文本，不要加引号或多余说明
 
 原文：
-{text}"""
+{body}"""
 
     try:
         result = await chat_completion(
@@ -302,10 +332,20 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
             return None
         result = result.strip()
         # 校验长度，若仍超限则返回 None（调用方将回退到截断）
-        if len(result.encode("utf-8")) > max_bytes:
+        result_bytes = len(result.encode("utf-8"))
+        if prefix or suffix:
+            if result_bytes > max_bytes:
+                logger.warning(
+                    "LLM 压缩正文仍超限（%d > %d 字节），将使用截断",
+                    result_bytes,
+                    max_bytes,
+                )
+                return None
+            return prefix + result + suffix
+        if result_bytes > max_bytes:
             logger.warning(
                 "LLM 压缩结果仍超限（%d > %d 字节），将使用截断",
-                len(result.encode("utf-8")),
+                result_bytes,
                 max_bytes,
             )
             return None
