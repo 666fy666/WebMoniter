@@ -143,7 +143,7 @@ body::after {
     animation: pulse 15s ease-in-out infinite;
 }
 
-/* 登录页装饰光球 */
+/* 登录页装饰光球 - 移动端缩小避免溢出 */
 .login-body::after {
     content: '';
     position: absolute;
@@ -804,6 +804,7 @@ input:focus + .slider {
     display: flex;
     gap: 10px;
     margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
 .collapse-all-actions .btn {
@@ -857,6 +858,25 @@ input:focus + .slider {
 .config-module-search-wrap {
     flex: 1;
     min-width: 200px;
+}
+
+@media (max-width: 768px) {
+    .config-module-nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-module-tabs {
+        justify-content: flex-start;
+    }
+
+    .config-module-search-wrap {
+        min-width: 0;
+    }
+
+    .config-module-search {
+        max-width: none;
+    }
 }
 
 .config-module-search {
@@ -967,6 +987,12 @@ input:focus + .slider {
     line-height: 1.6;
 }
 
+.help-box ul,
+.help-box p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
 .help-box .warning {
     color: var(--warning-color);
     font-weight: 600;
@@ -1030,8 +1056,22 @@ input:focus + .slider {
     gap: 16px;
 }
 
+/* 移动端：避免 minmax 导致横向溢出 */
+@media (max-width: 480px) {
+    .data-card-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
 .weibo-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+@media (max-width: 480px) {
+    .weibo-card-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* 微博单列信息流（无封面，官方首页风格，撑满宽度） */
@@ -1106,6 +1146,35 @@ input:focus + .slider {
 
 .weibo-feed-inner {
     padding-left: 108px;
+}
+
+/* 微博信息流移动端：头像左对齐，减少 padding 避免溢出 */
+@media (max-width: 480px) {
+    .weibo-feed-avatar {
+        left: 16px;
+        top: 16px;
+        width: 40px;
+        height: 40px;
+    }
+
+    .weibo-feed-inner {
+        padding-left: 68px;
+    }
+
+    .weibo-feed-card {
+        padding: 14px 16px;
+    }
+
+    .weibo-feed-footer {
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .weibo-feed-link-hint {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 4px;
+    }
 }
 
 .weibo-feed-header {
@@ -1240,6 +1309,13 @@ input:focus + .slider {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+@media (max-width: 480px) {
+    .feed-card-grid,
+    .live-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .data-card {
     position: relative;
     background: var(--bg-card);
@@ -1354,6 +1430,13 @@ input:focus + .slider {
 .weibo-card-body {
     padding: 24px 20px 18px;
     padding-top: 32px; /* 让头像悬浮时不压住文本 */
+}
+
+@media (max-width: 480px) {
+    .weibo-card-body {
+        padding: 18px 14px 14px;
+        padding-top: 28px;
+    }
 }
 
 .weibo-card-header {
@@ -2015,6 +2098,32 @@ input:focus + .slider {
 .multi-account-row .account-fields input:nth-child(1) { max-width: 240px; }
 .multi-account-row .account-fields input:nth-child(2) { max-width: 200px; }
 
+@media (max-width: 768px) {
+    .multi-account-row .account-fields,
+    .multi-cookie-row .cookie-field {
+        flex-direction: column;
+    }
+
+    .multi-account-row .account-fields input:nth-child(1),
+    .multi-account-row .account-fields input:nth-child(2),
+    .multi-cookie-row input.form-input,
+    .multi-cookie-row textarea.form-input {
+        max-width: none;
+        min-width: 0;
+    }
+
+    .multi-account-row,
+    .multi-cookie-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .multi-account-row .row-remove,
+    .multi-cookie-row .row-remove {
+        align-self: flex-end;
+    }
+}
+
 .multi-account-row .row-remove,
 .multi-cookie-row .row-remove {
     flex-shrink: 0;
@@ -2216,10 +2325,17 @@ input:focus + .slider {
 
     .table-container {
         max-height: 500px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 配置表格已改为 block 布局，移除 min-width 避免横向溢出 */
+    .config-table,
+    .push-channel-table {
+        min-width: 0;
     }
 
     table {
-        min-width: 600px;
         font-size: 13px;
     }
 
@@ -2322,6 +2438,14 @@ input:focus + .slider {
         margin-bottom: 28px;
     }
 
+    /* 登录页装饰光球在移动端缩小 */
+    .login-body::after {
+        width: 180px;
+        height: 180px;
+        right: 5%;
+        top: 10%;
+    }
+
     .switch {
         width: 52px;
         height: 28px;
@@ -2349,6 +2473,17 @@ input:focus + .slider {
         padding: 10px 12px;
         font-size: 12px;
     }
+
+    /* 日志页等卡片操作区：select 和控件在小屏下自适应，避免横向溢出 */
+    .card-header .card-actions select.form-input {
+        min-width: 0 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .card-header .card-actions label {
+        min-width: 0;
+    }
 }
 
 /* ==========================================
@@ -2372,8 +2507,12 @@ input:focus + .slider {
         width: 260px;
     }
 
+    .config-table,
+    .push-channel-table {
+        min-width: 0;
+    }
+
     table {
-        min-width: 500px;
         font-size: 12px;
     }
 
@@ -2393,6 +2532,12 @@ input:focus + .slider {
 
     .welcome-card h2 {
         font-size: 20px;
+    }
+
+    /* 控制台功能卡片网格：小屏单列避免溢出 */
+    .dashboard-card-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
     }
 }
 
@@ -2999,12 +3144,12 @@ input:focus + .slider {
     text-decoration: underline;
 }
 
-/* 更新横幅响应式 */
+/* 更新横幅响应式 - 为移动端菜单按钮留出左侧空间避免重叠 */
 @media (max-width: 768px) {
     .update-banner {
         margin-left: 0;
         width: 100%;
-        padding: 10px 16px;
+        padding: 10px 16px 10px 56px;
         font-size: 13px;
     }
     
