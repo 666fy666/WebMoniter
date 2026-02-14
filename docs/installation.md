@@ -39,9 +39,6 @@ docker compose up -d
     - `config.yml` 支持热重载（约 5 秒生效），无需重启
     - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
 
-!!! note "雨云签到"
-    镜像不内置 Chromium。若要使用**雨云签到**，需在宿主机安装 Chromium 并挂载进容器，详见 [Docker 下使用雨云签到](guides/docker-rainyun.md)。
-
 ---
 
 ## Windows 部署
