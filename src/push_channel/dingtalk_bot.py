@@ -11,7 +11,9 @@ from . import PushChannel
 
 
 class DingtalkBot(PushChannel):
-    """钉钉机器人推送通道"""
+    """钉钉机器人推送通道（link 消息 text 约 4000 字符限制，见钉钉开放文档）"""
+
+    max_content_bytes = 12000  # 约 4000 字符 UTF-8
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

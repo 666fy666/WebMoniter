@@ -10,7 +10,9 @@ from . import PushChannel
 
 
 class FeishuBot(PushChannel):
-    """飞书机器人推送通道"""
+    """飞书机器人推送通道（请求体与单条内容有大小限制，见飞书开放文档）"""
+
+    max_content_bytes = 12000  # 单条 markdown 保守限制
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

@@ -4,7 +4,9 @@ from . import PushChannel
 
 
 class WxPusher(PushChannel):
-    """WxPusher 推送通道"""
+    """WxPusher 推送通道（content 有长度限制，保守值）"""
+
+    max_content_bytes = 32768  # 32KB
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

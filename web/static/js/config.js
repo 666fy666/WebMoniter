@@ -477,9 +477,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 监控任务开关事件
     if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    const weiboCompressLlmEl = document.getElementById('weibo_compress_with_llm');
-    const weiboCompressLlmLabelEl = document.getElementById('weibo_compress_with_llm_label');
-    if (weiboCompressLlmEl && weiboCompressLlmLabelEl) weiboCompressLlmEl.addEventListener('change', function() { weiboCompressLlmLabelEl.textContent = this.checked ? '开启' : '关闭'; });
+    const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
+    const appCompressLlmLabelEl = document.getElementById('app_push_compress_with_llm_label');
+    function syncAppCompressLlmLabel() {
+        if (appCompressLlmEl && appCompressLlmLabelEl) appCompressLlmLabelEl.textContent = appCompressLlmEl.checked ? '开启' : '关闭';
+    }
+    if (appCompressLlmEl && appCompressLlmLabelEl) {
+        appCompressLlmEl.addEventListener('change', syncAppCompressLlmLabel);
+        appCompressLlmEl.addEventListener('click', function() { setTimeout(syncAppCompressLlmLabel, 0); });
+        const appSectionCard = document.querySelector('.config-section[data-section="app"]');
+        if (appSectionCard) appSectionCard.addEventListener('click', function(e) {
+            if (e.target.closest('label.switch') && e.target.closest('td') && document.getElementById('app_push_compress_with_llm')) {
+                setTimeout(syncAppCompressLlmLabel, 0);
+            }
+        });
+    }
     if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (douyinEnable && douyinEnableLabel) douyinEnable.addEventListener('change', function() { douyinEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
@@ -1303,14 +1315,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 加载特定section的配置
     function loadSectionConfig(section, config) {
         switch(section) {
-            case 'app':
-                if (config.app) {
-                    const input = document.getElementById('app_base_url');
-                    if (input) {
-                        input.value = config.app.base_url || '';
-                    }
+            case 'app': {
+                const appSection = config.app || {};
+                const input = document.getElementById('app_base_url');
+                if (input) {
+                    input.value = appSection.base_url != null ? String(appSection.base_url).trim() : '';
+                }
+                const appCompressLlm = document.getElementById('app_push_compress_with_llm');
+                const appCompressLlmLabel = document.getElementById('app_push_compress_with_llm_label');
+                if (appCompressLlm) {
+                    const cv = appSection.push_compress_with_llm;
+                    appCompressLlm.checked = cv === true || cv === 'true' || cv === 1;
+                    if (appCompressLlmLabel) appCompressLlmLabel.textContent = appCompressLlm.checked ? '开启' : '关闭';
                 }
                 break;
+            }
             case 'weibo':
                 if (config.weibo) {
                     if (weiboEnable) {
@@ -1330,13 +1349,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                     // 渲染推送通道选择
                     renderTaskPushChannelSelect('weibo_push_channels', config.weibo.push_channels || []);
-                    const weiboCompressLlm = document.getElementById('weibo_compress_with_llm');
-                    const weiboCompressLlmLabel = document.getElementById('weibo_compress_with_llm_label');
-                    if (weiboCompressLlm) {
-                        const cv = config.weibo.compress_with_llm;
-                        weiboCompressLlm.checked = cv === true || cv === 'true';
-                        if (weiboCompressLlmLabel) weiboCompressLlmLabel.textContent = weiboCompressLlm.checked ? '开启' : '关闭';
-                    }
                 }
                 break;
             case 'checkin':
@@ -1967,8 +1979,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         switch(section) {
             case 'app': {
                 const baseUrlInput = document.getElementById('app_base_url');
+                const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
                 config.app = {
-                    base_url: (baseUrlInput?.value || '').trim()
+                    base_url: (baseUrlInput?.value || '').trim(),
+                    push_compress_with_llm: appCompressLlmEl?.checked || false
                 };
                 break;
             }
@@ -1979,8 +1993,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
                     monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,
-                    push_channels: getTaskPushChannels('weibo_push_channels'),
-                    compress_with_llm: document.getElementById('weibo_compress_with_llm')?.checked || false
+                    push_channels: getTaskPushChannels('weibo_push_channels')
                 };
                 break;
             case 'checkin': {
@@ -2599,6 +2612,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
             max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
         };
+
+        // 应用基础配置（Base URL、推送超限 LLM 压缩）
+        config.app = collectSectionConfig('app').app;
 
         // 日志清理配置
         config.log_cleanup = collectSectionConfig('log_cleanup').log_cleanup;

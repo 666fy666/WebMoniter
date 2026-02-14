@@ -10,8 +10,6 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 from PIL import Image
 
-from src.ai_assistant.config import is_ai_enabled
-from src.ai_assistant.llm_client import compress_text_with_llm
 from src.config import AppConfig, get_config, is_in_quiet_hours
 from src.monitor import BaseMonitor, CookieExpiredError
 
@@ -72,90 +70,6 @@ class WeiboMonitor(BaseMonitor):
             if channel.type == "wecom_apps":
                 return True
         return False
-
-    def _calculate_content_length(
-        self,
-        text_raw: str,
-        pic_ids: list,
-        url_struct: list,
-        created_at: str,
-        verified_reason: str,
-        description: str,
-    ) -> int:
-        """计算完整推送内容的字节长度"""
-        spacing = "\n          "
-
-        # 构建固定前缀部分
-        prefix = "          "
-
-        # 构建图片信息部分
-        pic_info = ""
-        if pic_ids:
-            pic_info = f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
-
-        # 构建URL信息部分
-        url_info = ""
-        if url_struct:
-            url_info = f"{spacing}#{url_struct[0]['url_title']}#"
-
-        # 构建时间戳部分
-        timestamp = f"\n\n{created_at}"
-
-        # 构建推送时的description固定部分
-        push_prefix = "Ta说:👇\n"
-        push_separator = "\n" + "=" * 25 + "\n认证:"
-        push_verified = verified_reason
-        push_description_prefix = "\n\n简介:"
-        push_description = description
-
-        # 计算完整content长度（正文部分使用text_raw）
-        full_content = (
-            push_prefix
-            + prefix
-            + text_raw
-            + pic_info
-            + url_info
-            + timestamp
-            + push_separator
-            + push_verified
-            + push_description_prefix
-            + push_description
-        )
-
-        return len(full_content.encode("utf-8"))
-
-    def _get_max_text_bytes_for_wecom(self, data: dict) -> int:
-        """计算企业微信推送时正文部分可用的最大字节数"""
-        pic_ids = data.get("_pic_ids", [])
-        url_struct = data.get("_url_struct", [])
-        created_at = data.get("_created_at", "")
-        verified_reason = data.get("认证信息", "人气博主")
-        user_description = data.get("简介", "peace and love")
-        fixed_parts_length = self._calculate_content_length(
-            "", pic_ids, url_struct, created_at, verified_reason, user_description
-        )
-        max_text_bytes = 500 - fixed_parts_length
-        return max(max_text_bytes, 50)
-
-    def _truncate_text_for_wecom(self, text_raw: str, max_bytes: int) -> str:
-        """为企业微信应用推送截断文本到指定字节数"""
-        encoded = text_raw.encode("utf-8")
-        if len(encoded) <= max_bytes:
-            return text_raw
-
-        # 预留 "......" 后缀的字节数（6个字节）
-        ellipsis_bytes = len(b"......")
-        available_bytes = max_bytes - ellipsis_bytes
-
-        # 如果可用字节数太小，至少保留一些内容
-        if available_bytes < 10:
-            available_bytes = 10
-
-        # 截断到可用字节数
-        truncated_encoded = encoded[:available_bytes]
-        # 有可能截断在非完整字符，decode时忽略不完整尾部
-        truncated_text = truncated_encoded.decode("utf-8", errors="ignore")
-        return truncated_text + "......"
 
     def _sanitize_username(self, username: str) -> str:
         """将用户名转换为适合作为文件夹名的安全字符串"""
@@ -448,88 +362,13 @@ class WeiboMonitor(BaseMonitor):
                 await self.push_notification(new_data, 1)
 
     def _build_description_for_channel(self, channel, data: dict) -> str:
-        """根据通道类型构建推送描述内容"""
-        # 如果是企业微信应用推送，需要限制长度
-        if channel.type == "wecom_apps":
-            # 获取原始数据（如果存在，说明是新数据；否则使用 data['文本'] 作为后备）
-            text_raw = data.get("_text_raw")
-            pic_ids = data.get("_pic_ids")
-            url_struct = data.get("_url_struct")
-            created_at = data.get("_created_at")
-
-            # 如果没有原始数据字段，说明可能是旧数据，直接使用完整文本
-            if text_raw is None or pic_ids is None or url_struct is None or created_at is None:
-                # 使用完整内容（旧数据或没有原始数据的情况）
-                description = (
-                    f"Ta说:👇\n{data['文本']}\n"
-                    f"{'=' * 22}\n"
-                    f"认证:{data['认证信息']}\n\n"
-                    f"简介:{data['简介']}"
-                )
-                # 检查长度，如果超过500字节，进行截断
-                encoded = description.encode("utf-8")
-                if len(encoded) > 500:
-                    # 简单截断：保留前面的内容
-                    truncated_encoded = encoded[:500]
-                    description = truncated_encoded.decode("utf-8", errors="ignore") + "......"
-                return description
-
-            verified_reason = data.get("认证信息", "人气博主")
-            user_description = data.get("简介", "peace and love")
-
-            spacing = "\n          "
-            prefix = "          "
-
-            # 计算除了正文之外的所有固定内容的字节数
-            test_text_raw = ""  # 用于计算固定部分长度
-            fixed_parts_length = self._calculate_content_length(
-                test_text_raw, pic_ids, url_struct, created_at, verified_reason, user_description
-            )
-
-            # 计算正文部分可用的最大字节数（500字节限制）
-            max_text_bytes = 500 - fixed_parts_length
-
-            # 如果固定部分已经超过500字节，至少保留一些正文内容
-            if max_text_bytes < 50:  # 至少保留50字节给正文
-                max_text_bytes = 50
-
-            # 优先使用 LLM 压缩结果（若存在且不超限），否则截断
-            compressed_text_raw = data.get("_compressed_text_raw")
-            if compressed_text_raw and len(compressed_text_raw.encode("utf-8")) <= max_text_bytes:
-                truncated_text_raw = compressed_text_raw
-            else:
-                truncated_text_raw = self._truncate_text_for_wecom(text_raw, max_text_bytes)
-
-            # 构建文本内容
-            text = prefix + truncated_text_raw
-
-            # 图片处理
-            if pic_ids:
-                text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
-
-            # URL 结构处理
-            if url_struct:
-                text += f"{spacing}#{url_struct[0]['url_title']}#"
-
-            text += f"\n\n{created_at}"
-
-            # 构建完整的推送描述
-            description = (
-                f"Ta说:👇\n{text}\n"
-                f"{'=' * 22}\n"
-                f"认证:{verified_reason}\n\n"
-                f"简介:{user_description}"
-            )
-        else:
-            # 其他通道使用完整内容
-            description = (
-                f"Ta说:👇\n{data['文本']}\n"
-                f"{'=' * 25}\n"
-                f"认证:{data['认证信息']}\n\n"
-                f"简介:{data['简介']}"
-            )
-
-        return description
+        """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一处理（app.push_compress_with_llm）。"""
+        return (
+            f"Ta说:👇\n{data['文本']}\n"
+            f"{'=' * 25}\n"
+            f"认证:{data['认证信息']}\n\n"
+            f"简介:{data['简介']}"
+        )
 
     async def push_notification(self, data: dict, diff: int):
         """发送推送通知"""
@@ -600,22 +439,7 @@ class WeiboMonitor(BaseMonitor):
                     extend_data = {}
                 extend_data["wecom_pic_url"] = wecom_pic_url
 
-            # 当有企业微信通道且超限时，尝试用 LLM 压缩正文
-            text_raw = data.get("_text_raw")
-            if (
-                text_raw
-                and self._has_wecom_apps_channel()
-                and getattr(self.config, "weibo_compress_with_llm", False)
-                and is_ai_enabled()
-            ):
-                max_text_bytes = self._get_max_text_bytes_for_wecom(data)
-                if len(text_raw.encode("utf-8")) > max_text_bytes:
-                    compressed = await compress_text_with_llm(text_raw, max_text_bytes)
-                    if compressed:
-                        data["_compressed_text_raw"] = compressed
-                        self.logger.debug("微博正文已通过 LLM 压缩")
-
-            # 使用 description_func 来为不同通道生成不同的内容
+            # 使用 description_func 为各通道生成描述，超限时的 LLM 压缩由 app.push_compress_with_llm 统一处理
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖

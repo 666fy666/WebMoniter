@@ -7,7 +7,9 @@ from . import PushChannel
 
 
 class WeComApps(PushChannel):
-    """企业微信应用推送通道"""
+    """企业微信应用推送通道（textcard/news 描述约 500 字节限制，见官方文档 发送应用消息）"""
+
+    max_content_bytes = 500
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

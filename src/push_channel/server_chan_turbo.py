@@ -4,7 +4,9 @@ from . import PushChannel
 
 
 class ServerChanTurbo(PushChannel):
-    """Server酱 Turbo 推送通道"""
+    """Server酱 Turbo 推送通道（desp 最大 64KB，见官方说明）"""
+
+    max_content_bytes = 65536  # 64KB
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

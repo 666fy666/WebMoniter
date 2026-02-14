@@ -158,6 +158,8 @@
 | QQ频道机器人       | qq_bot           | ✅           | 😢 需要自行创建机器人，并启用机器人在频道内发言的权限 👉 [官网](https://q.qq.com/#/app/create-bot)                                          |
 | Server酱_Turbo     | serverChan_turbo | ✅           | 🙅‍♀️ 不推荐，不用安装app，但免费用户5次/天 👉 [官网](https://sct.ftqq.com)                                                                   |
 
+各渠道有官方字数/字节限制（如企业微信应用约 500 字节、钉钉/飞书/Telegram 等均有上限）。在 `config.yml` 的 **app.push_compress_with_llm** 设为 `true` 并配置好 **ai_assistant** 后，内容超限时会自动使用 LLM 压缩为摘要再推送，避免简单截断丢失关键信息。
+
 </details>
 
 <br/>

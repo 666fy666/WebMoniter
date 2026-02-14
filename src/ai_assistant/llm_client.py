@@ -207,7 +207,7 @@ async def chat_completion_stream(
 async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
     """
     使用 LLM 将文本压缩到指定字节数以内，保留核心语义。
-    用于微博推送等场景，当内容超限时用摘要替代简单截断。
+    用于各推送渠道超限时用摘要替代简单截断（企业微信、钉钉、飞书、Telegram 等）。
 
     Args:
         text: 原始文本
@@ -219,7 +219,7 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
     # 目标字符数（中文约 3 字节/字，预留余量）
     max_chars = max(max_bytes // 2, 20)
 
-    prompt = f"""请将以下微博正文压缩为简短摘要，要求：
+    prompt = f"""请将以下文本压缩为简短摘要，要求：
 1. 压缩后的文字不超过 {max_chars} 个字符（约 {max_bytes} 字节以内）
 2. 保留核心观点、关键信息，可省略冗余表述
 3. 使用简洁自然的汉语，直接输出压缩后的文本，不要加引号或多余说明

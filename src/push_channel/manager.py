@@ -5,7 +5,22 @@ import logging
 
 from aiohttp import ClientSession
 
+from src.ai_assistant.config import is_ai_enabled
+from src.ai_assistant.llm_client import compress_text_with_llm
+from src.config import get_config
 from src.push_channel import get_push_channel
+
+
+def _truncate_content_to_bytes(content: str, max_bytes: int) -> str:
+    """将内容按 UTF-8 字节截断到 max_bytes 以内，末尾加省略号。"""
+    encoded = content.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return content
+    ellipsis_bytes = len("……".encode("utf-8"))
+    if max_bytes <= ellipsis_bytes:
+        return content.encode("utf-8")[:max_bytes].decode("utf-8", errors="ignore")
+    truncated = encoded[: max_bytes - ellipsis_bytes].decode("utf-8", errors="ignore")
+    return truncated + "……"
 
 
 async def build_push_manager(
@@ -79,6 +94,42 @@ class UnifiedPushManager:
         self.session = session
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    async def _ensure_content_within_limit(self, channel, content: str) -> str:
+        """
+        若渠道有字数限制且内容超限，则尝试 LLM 压缩（当配置开启且 AI 可用）或截断。
+        返回不超过该渠道 max_content_bytes 的内容。
+        """
+        max_bytes = getattr(channel, "max_content_bytes", None)
+        if max_bytes is None:
+            return content
+        content_bytes = len(content.encode("utf-8"))
+        if content_bytes <= max_bytes:
+            return content
+        use_llm = getattr(get_config(), "push_compress_with_llm", False) and is_ai_enabled()
+        if use_llm:
+            compressed = await compress_text_with_llm(content, max_bytes)
+            if compressed:
+                self.logger.debug("推送内容已通过 LLM 压缩以符合 %s 字数限制", channel.name)
+                return compressed
+        return _truncate_content_to_bytes(content, max_bytes)
+
+    async def _send_one(
+        self,
+        channel,
+        title: str,
+        channel_description: str,
+        to_url: str,
+        picurl: str,
+        btntxt: str,
+        author: str,
+        extend_data: dict | None,
+    ):
+        """单渠道发送：先按渠道限制压缩/截断内容，再推送。"""
+        final_description = await self._ensure_content_within_limit(channel, channel_description)
+        return await self._send_with_error_handling(
+            channel, title, final_description, to_url, picurl, btntxt, author, extend_data
+        )
+
     async def send_news(
         self,
         title: str,
@@ -129,7 +180,7 @@ class UnifiedPushManager:
             # 如果提供了 description_func，则使用它来生成该通道的 description
             channel_description = description_func(channel) if description_func else description
             tasks.append(
-                self._send_with_error_handling(
+                self._send_one(
                     channel,
                     title,
                     channel_description,

@@ -4,7 +4,9 @@ from . import PushChannel
 
 
 class PushPlus(PushChannel):
-    """PushPlus 推送通道"""
+    """PushPlus 推送通道（内容有长度限制，保守值）"""
+
+    max_content_bytes = 32768  # 32KB
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

@@ -6,7 +6,9 @@ from . import PushChannel
 
 
 class WeComBot(PushChannel):
-    """企业微信机器人推送通道"""
+    """企业微信机器人推送通道（图文/文本等消息内容最长 2048 字节，见官方文档 群机器人）"""
+
+    max_content_bytes = 2048
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

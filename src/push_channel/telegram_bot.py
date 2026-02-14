@@ -7,7 +7,9 @@ from . import PushChannel
 
 
 class TelegramBot(PushChannel):
-    """Telegram 机器人推送通道"""
+    """Telegram 机器人推送通道（sendMessage 单条最多 4096 字符，见 Bot API 文档）"""
+
+    max_content_bytes = 16384  # 4096 字符 × 4 字节/字符（UTF-8 上界）
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

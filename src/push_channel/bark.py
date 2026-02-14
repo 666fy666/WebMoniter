@@ -4,7 +4,9 @@ from . import PushChannel
 
 
 class Bark(PushChannel):
-    """Bark 推送通道（使用 V2 API）"""
+    """Bark 推送通道（使用 V2 API，body 无明确官方限制，保守限制）"""
+
+    max_content_bytes = 4096
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

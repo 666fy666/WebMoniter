@@ -182,17 +182,6 @@
                                 <p class="help-text">不选择则使用全部已配置的通道</p>
                             </td>
                         </tr>
-                        <tr>
-                            <td class="config-label">超限时 LLM 压缩</td>
-                            <td>
-                                <label class="switch">
-                                    <input type="checkbox" id="weibo_compress_with_llm">
-                                    <span class="slider"></span>
-                                </label>
-                                <span class="switch-label" id="weibo_compress_with_llm_label">关闭</span>
-                                <p class="help-text">推送超字数限制时用 LLM 生成摘要（需配置 AI 助手）</p>
-                            </td>
-                        </tr>
                     </table>
                 </div>
             </div>
@@ -1596,6 +1585,17 @@
                                     用于拼接微博封面图等资源的完整访问链接。
                                     建议填写你实际访问 Web 管理界面的地址；留空时，将继续使用固定示例图片。
                                 </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送超限时使用 LLM 压缩</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="app_push_compress_with_llm">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="app_push_compress_with_llm_label">关闭</span>
+                                <p class="help-text">当某渠道内容超过该渠道官方字数限制时，使用 AI 生成摘要再推送（需配置 AI 助手）</p>
                             </td>
                         </tr>
                     </table>
