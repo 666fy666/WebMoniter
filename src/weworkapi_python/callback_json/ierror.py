@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #########################################################################
 # Author: jonyqin
 # Created Time: Thu 11 Sep 2014 01:53:58 PM CST
 # File Name: ierror.py
-# Description:定义错误码含义 
+# Description:定义错误码含义
 #########################################################################
 WXBizMsgCrypt_OK = 0
 WXBizMsgCrypt_ValidateSignature_Error = -40001

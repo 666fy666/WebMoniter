@@ -7,7 +7,6 @@
 import logging
 import sys
 from pathlib import Path
-
 from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
@@ -19,18 +18,20 @@ if _callback_dir.exists() and str(_callback_dir) not in sys.path:
 
 # cElementTree 已在 Python 3.3+ 弃用，兼容：将 cElementTree 映射到 ElementTree
 import xml.etree.ElementTree as _ET
+
 if "xml.etree.cElementTree" not in sys.modules:
     sys.modules["xml.etree.cElementTree"] = _ET
 
 try:
-    from WXBizMsgCrypt import WXBizMsgCrypt
     from ierror import (
-        WXBizMsgCrypt_OK,
         WXBizMsgCrypt_DecryptAES_Error,
+        WXBizMsgCrypt_OK,
+        WXBizMsgCrypt_ParseXml_Error,
         WXBizMsgCrypt_ValidateCorpid_Error,
         WXBizMsgCrypt_ValidateSignature_Error,
-        WXBizMsgCrypt_ParseXml_Error,
     )
+    from WXBizMsgCrypt import WXBizMsgCrypt
+
     _OFFICIAL_AVAILABLE = True
 except ImportError as e:
     logger.warning("企业微信官方 WXBizMsgCrypt 加载失败，使用内置实现: %s", e)
@@ -52,11 +53,11 @@ def decrypt_msg(
     if _OFFICIAL_AVAILABLE:
         try:
             wxcpt = WXBizMsgCrypt(token, encoding_aes_key, corp_id)
-            ret, xml_content = wxcpt.DecryptMsg(
-                post_data, msg_signature, timestamp, nonce
-            )
+            ret, xml_content = wxcpt.DecryptMsg(post_data, msg_signature, timestamp, nonce)
             if ret == WXBizMsgCrypt_OK:
-                return xml_content.decode("utf-8") if isinstance(xml_content, bytes) else xml_content
+                return (
+                    xml_content.decode("utf-8") if isinstance(xml_content, bytes) else xml_content
+                )
             if ret == WXBizMsgCrypt_ValidateSignature_Error:
                 raise ValueError("签名校验失败")
             if ret == WXBizMsgCrypt_ValidateCorpid_Error:
@@ -76,8 +77,7 @@ def decrypt_msg(
 
     # 回退到内置实现
     return _decrypt_msg_fallback(
-        token, encoding_aes_key, corp_id,
-        msg_signature, timestamp, nonce, post_data
+        token, encoding_aes_key, corp_id, msg_signature, timestamp, nonce, post_data
     )
 
 
@@ -94,6 +94,7 @@ def _decrypt_msg_fallback(
     import base64
     import re
     import struct
+
     from Crypto.Cipher import AES
     from Crypto.Util.Padding import unpad
 
@@ -106,6 +107,7 @@ def _decrypt_msg_fallback(
 
     def _verify_sig(t: str, ts: str, n: str, e: str, sig: str) -> bool:
         import hashlib
+
         arr = sorted([t, ts, n, e])
         return hashlib.sha1("".join(arr).encode()).hexdigest() == sig
 
@@ -174,9 +176,7 @@ def encrypt_msg(
         except Exception as e:
             raise ValueError(f"加密失败: {e}") from e
 
-    return _encrypt_msg_fallback(
-        token, encoding_aes_key, reply_msg, timestamp, nonce, corp_id
-    )
+    return _encrypt_msg_fallback(token, encoding_aes_key, reply_msg, timestamp, nonce, corp_id)
 
 
 def _encrypt_msg_fallback(
@@ -193,6 +193,7 @@ def _encrypt_msg_fallback(
     import random
     import string
     import struct
+
     from Crypto.Cipher import AES
     from Crypto.Util.Padding import pad
 

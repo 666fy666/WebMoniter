@@ -1,7 +1,6 @@
 """当前状态查询 - 从数据库获取各平台最新监控数据"""
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

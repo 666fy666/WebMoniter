@@ -95,38 +95,50 @@ checkin:
 
 **配置节点**：`rainyun`  
 **默认时间**：08:30  
-**认证方式**：API Key。签到需腾讯验证码，系统会自动完成。支持多 API Key。
+**认证方式**：账号密码（Selenium + ddddocr，参考 [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)）。**签到使用账号密码登录**，`api_key` 仅用于服务器到期自动续费（可选）。需安装 Chrome/Chromium 及 chromedriver。  
+**服务器自动续费**：签到完成后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天。
 
 ### 配置项
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
 | `enable` | 布尔 | ✅ | 是否启用 |
-| `api_key` | 字符串 | 单 Key 必填 | 雨云 API 密钥 |
-| `api_keys` | 列表 | 多 Key 时使用 | 多个 API Key，优先于 `api_key` |
+| `accounts` | 列表 | ✅ | 每项含 `username`、`password`，`api_key` 可选（用于续费） |
 | `time` | 字符串 | 否 | 默认 `"08:30"` |
 | `push_channels` | 列表 | 否 | 推送通道 |
+| `auto_renew` | 布尔 | 否 | 是否启用服务器到期自动续费，默认 `true` |
+| `renew_threshold_days` | 整数 | 否 | 剩余多少天内触发续费，默认 `7` |
+| `renew_product_ids` | 列表 | 否 | 续费白名单（产品 ID），为空则续费所有即将到期的服务器 |
 
-### 如何获取 API Key
+### 如何获取 API Key（续费用）
 
 1. 登录 [雨云控制台](https://www.rainyun.com/)。  
 2. 进入 **总览 → 用户 → 账户设置 → API 密钥**。  
-3. 创建或复制 API 密钥，填入 `api_key` 或 `api_keys`。
+3. 创建或复制 API 密钥，填入 `accounts` 中对应账号的 `api_key`（可选，仅续费时需要）。
 
 ### 示例
 
 ```yaml
 rainyun:
   enable: true
-  api_key: "your_rainyun_api_key"
-  # api_keys: ["key1", "key2"]
+  accounts:
+    - username: 你的雨云账号
+      password: 你的雨云密码
+      api_key:  # 可选，用于服务器续费
+    - username: 第二个账号
+      password: 第二个密码
+      api_key:  # 可选
   time: "08:30"
   push_channels: []
+  auto_renew: true      # 服务器到期自动续费
+  renew_threshold_days: 7  # 剩余 7 天内触发续费
+  # renew_product_ids: [44500, 44501]  # 白名单，留空续费全部
 ```
 
 ### 参考
 
 - 雨云官网：[https://www.rainyun.com](https://www.rainyun.com)
+- Rainyun-Qiandao（三改版）：[https://github.com/Jielumoon/Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)
 
 ---
 

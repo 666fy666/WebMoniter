@@ -4,7 +4,7 @@ import functools
 import logging
 
 from src.ai_assistant.config import get_ai_config, is_ai_enabled
-from src.job_registry import JobDescriptor, RAG_JOBS
+from src.job_registry import RAG_JOBS, JobDescriptor
 
 logger = logging.getLogger(__name__)
 

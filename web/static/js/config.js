@@ -427,6 +427,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             rainyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
         });
     }
+    const rainyunAutoRenew = document.getElementById('rainyun_auto_renew');
+    const rainyunAutoRenewLabel = document.getElementById('rainyun_auto_renew_label');
+    if (rainyunAutoRenew && rainyunAutoRenewLabel) {
+        rainyunAutoRenew.addEventListener('change', function() {
+            rainyunAutoRenewLabel.textContent = this.checked ? '开启' : '关闭';
+        });
+    }
     if (enshanEnable && enshanEnableLabel) {
         enshanEnable.addEventListener('change', function() {
             enshanEnableLabel.textContent = this.checked ? '开启' : '关闭';
@@ -1268,23 +1275,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 渲染雨云多 API Key 列表
-    function renderRainyunApiKeys(apiKeys) {
-        const container = document.getElementById('rainyun_api_keys_list');
+    // 渲染雨云多账号列表（username, password, api_key）
+    function renderRainyunAccounts(accounts) {
+        const container = document.getElementById('rainyun_accounts_list');
         if (!container) return;
         container.innerHTML = '';
-        const list = apiKeys.length ? apiKeys : [''];
-        list.forEach((apiKey, index) => {
+        const list = accounts.length ? accounts : [{ username: '', password: '', api_key: '' }];
+        list.forEach((acc, index) => {
             const row = document.createElement('div');
-            row.className = 'multi-cookie-row';
+            row.className = 'multi-account-row';
             row.dataset.index = index;
             row.innerHTML = `
-                <div class="cookie-field">
-                    <input type="password" class="form-input rainyun-api-key-value" placeholder="雨云 API Key">
+                <div class="account-fields">
+                    <input type="text" class="form-input rainyun-account-username" placeholder="用户名">
+                    <input type="password" class="form-input rainyun-account-password" placeholder="密码">
+                    <input type="password" class="form-input rainyun-account-api-key" placeholder="API Key（续费用，可选）">
                 </div>
-                <button type="button" class="btn btn-secondary row-remove rainyun-api-key-remove">删除</button>
+                <button type="button" class="btn btn-secondary row-remove rainyun-account-remove">删除</button>
             `;
-            row.querySelector('.rainyun-api-key-value').value = apiKey || '';
+            row.querySelector('.rainyun-account-username').value = acc.username || '';
+            row.querySelector('.rainyun-account-password').value = acc.password || '';
+            row.querySelector('.rainyun-account-api-key').value = acc.api_key || '';
             container.appendChild(row);
         });
     }
@@ -1511,23 +1522,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                             rainyunEnableLabel.textContent = rainyunEnable.checked ? '开启' : '关闭';
                         }
                     }
-                    const apiKeyInput = document.getElementById('rainyun_api_key');
                     const timeInput = document.getElementById('rainyun_time');
-                    if (apiKeyInput) apiKeyInput.value = config.rainyun.api_key || '';
                     if (timeInput) {
                         const timeVal = config.rainyun.time || '08:30';
                         timeInput.value = timeVal.length === 5 ? timeVal : '08:30';
                     }
-                    // 多 API Key 列表
-                    const apiKeysListEl = document.getElementById('rainyun_api_keys_list');
-                    if (apiKeysListEl) {
-                        const apiKeys = Array.isArray(config.rainyun.api_keys) && config.rainyun.api_keys.length > 0
-                            ? config.rainyun.api_keys
-                            : [''];
-                        renderRainyunApiKeys(apiKeys);
+                    // 多账号列表
+                    const rainyunAccountsListEl = document.getElementById('rainyun_accounts_list');
+                    if (rainyunAccountsListEl) {
+                        const accounts = Array.isArray(config.rainyun.accounts) && config.rainyun.accounts.length > 0
+                            ? config.rainyun.accounts
+                            : [{ username: '', password: '', api_key: '' }];
+                        renderRainyunAccounts(accounts);
                     }
                     // 渲染推送通道选择
                     renderTaskPushChannelSelect('rainyun_push_channels', config.rainyun.push_channels || []);
+                    // 自动续费配置
+                    const rainyunAutoRenewEl = document.getElementById('rainyun_auto_renew');
+                    const rainyunAutoRenewLabelEl = document.getElementById('rainyun_auto_renew_label');
+                    if (rainyunAutoRenewEl) {
+                        rainyunAutoRenewEl.checked = config.rainyun.auto_renew !== false;
+                        if (rainyunAutoRenewLabelEl) rainyunAutoRenewLabelEl.textContent = rainyunAutoRenewEl.checked ? '开启' : '关闭';
+                    }
+                    const rainyunThresholdEl = document.getElementById('rainyun_renew_threshold_days');
+                    if (rainyunThresholdEl) rainyunThresholdEl.value = config.rainyun.renew_threshold_days || 7;
+                    const rainyunProductIdsEl = document.getElementById('rainyun_renew_product_ids');
+                    if (rainyunProductIdsEl) {
+                        const ids = config.rainyun.renew_product_ids;
+                        rainyunProductIdsEl.value = Array.isArray(ids) ? ids.join(',') : (ids || '');
+                    }
                 }
                 break;
             case 'enshan':
@@ -2061,19 +2084,24 @@ document.addEventListener('DOMContentLoaded', async function() {
                 };
                 break;
             case 'rainyun': {
-                const apiKeys = [];
-                document.querySelectorAll('#rainyun_api_keys_list .multi-cookie-row').forEach(row => {
-                    const val = (row.querySelector('.rainyun-api-key-value')?.value || '').trim();
-                    if (val) apiKeys.push(val);
+                const rainyunAccounts = [];
+                document.querySelectorAll('#rainyun_accounts_list .multi-account-row').forEach(row => {
+                    const username = (row.querySelector('.rainyun-account-username')?.value || '').trim();
+                    const password = (row.querySelector('.rainyun-account-password')?.value || '').trim();
+                    const api_key = (row.querySelector('.rainyun-account-api-key')?.value || '').trim();
+                    if (username || password) rainyunAccounts.push({ username, password, api_key });
                 });
-                const singleApiKey = (document.getElementById('rainyun_api_key')?.value || '').trim();
+                const renewIdsRaw = (document.getElementById('rainyun_renew_product_ids')?.value || '').trim();
+                const renewIds = renewIdsRaw ? renewIdsRaw.split(/[,\s]+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n)) : [];
                 config.rainyun = {
                     enable: rainyunEnable ? rainyunEnable.checked : false,
-                    api_key: apiKeys.length > 0 ? apiKeys[0] : singleApiKey,
+                    accounts: rainyunAccounts,
                     time: (document.getElementById('rainyun_time')?.value || '').trim() || '08:30',
-                    push_channels: getTaskPushChannels('rainyun_push_channels')
+                    push_channels: getTaskPushChannels('rainyun_push_channels'),
+                    auto_renew: (document.getElementById('rainyun_auto_renew')?.checked ?? true),
+                    renew_threshold_days: parseInt(document.getElementById('rainyun_renew_threshold_days')?.value || '7', 10) || 7,
+                    renew_product_ids: renewIds.length > 0 ? renewIds : []
                 };
-                if (apiKeys.length > 0) config.rainyun.api_keys = apiKeys;
                 break;
             }
             case 'enshan': {
@@ -2504,20 +2532,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         config.douyu = collectSectionConfig('douyu').douyu;
         config.xhs = collectSectionConfig('xhs').xhs;
 
-        // 雨云签到配置（含多 API Key）
-        const rainyunApiKeys = [];
-        document.querySelectorAll('#rainyun_api_keys_list .multi-cookie-row').forEach(row => {
-            const val = (row.querySelector('.rainyun-api-key-value')?.value || '').trim();
-            if (val) rainyunApiKeys.push(val);
+        // 雨云签到配置（含多账号、自动续费）
+        const rainyunAccounts = [];
+        document.querySelectorAll('#rainyun_accounts_list .multi-account-row').forEach(row => {
+            const username = (row.querySelector('.rainyun-account-username')?.value || '').trim();
+            const password = (row.querySelector('.rainyun-account-password')?.value || '').trim();
+            const api_key = (row.querySelector('.rainyun-account-api-key')?.value || '').trim();
+            if (username || password) rainyunAccounts.push({ username, password, api_key });
         });
-        const singleRainyunApiKey = (document.getElementById('rainyun_api_key')?.value || '').trim();
+        const rainyunRenewIdsRaw = (document.getElementById('rainyun_renew_product_ids')?.value || '').trim();
+        const rainyunRenewIds = rainyunRenewIdsRaw ? rainyunRenewIdsRaw.split(/[,\s]+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n)) : [];
         config.rainyun = {
             enable: rainyunEnable ? rainyunEnable.checked : false,
-            api_key: rainyunApiKeys.length > 0 ? rainyunApiKeys[0] : singleRainyunApiKey,
+            accounts: rainyunAccounts,
             time: (document.getElementById('rainyun_time')?.value || '').trim() || '08:30',
-            push_channels: getTaskPushChannels('rainyun_push_channels')
+            push_channels: getTaskPushChannels('rainyun_push_channels'),
+            auto_renew: (document.getElementById('rainyun_auto_renew')?.checked ?? true),
+            renew_threshold_days: parseInt(document.getElementById('rainyun_renew_threshold_days')?.value || '7', 10) || 7,
+            renew_product_ids: rainyunRenewIds.length > 0 ? rainyunRenewIds : []
         };
-        if (rainyunApiKeys.length > 0) config.rainyun.api_keys = rainyunApiKeys;
 
         // 恩山 / 天翼云盘 / 阿里云盘 / 什么值得买 / 值得买抽奖 / 富贵论坛（由 collectSectionConfig 合并到 config）
         config.enshan = collectSectionConfig('enshan').enshan;
@@ -2979,30 +3012,32 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 雨云多 API Key：添加 API Key
-    const rainyunAddApiKeyBtn = document.getElementById('rainyun_add_api_key_btn');
-    if (rainyunAddApiKeyBtn) {
-        rainyunAddApiKeyBtn.addEventListener('click', function() {
-            const container = document.getElementById('rainyun_api_keys_list');
+    // 雨云多账号：添加账号
+    const rainyunAddAccountBtn = document.getElementById('rainyun_add_account_btn');
+    if (rainyunAddAccountBtn) {
+        rainyunAddAccountBtn.addEventListener('click', function() {
+            const container = document.getElementById('rainyun_accounts_list');
             if (!container) return;
             const row = document.createElement('div');
-            row.className = 'multi-cookie-row';
+            row.className = 'multi-account-row';
             row.innerHTML = `
-                <div class="cookie-field">
-                    <input type="password" class="form-input rainyun-api-key-value" placeholder="雨云 API Key">
+                <div class="account-fields">
+                    <input type="text" class="form-input rainyun-account-username" placeholder="用户名">
+                    <input type="password" class="form-input rainyun-account-password" placeholder="密码">
+                    <input type="password" class="form-input rainyun-account-api-key" placeholder="API Key（续费用，可选）">
                 </div>
-                <button type="button" class="btn btn-secondary row-remove rainyun-api-key-remove">删除</button>
+                <button type="button" class="btn btn-secondary row-remove rainyun-account-remove">删除</button>
             `;
             container.appendChild(row);
         });
     }
-    // 雨云多 API Key：删除行（事件委托）
-    const rainyunApiKeysList = document.getElementById('rainyun_api_keys_list');
-    if (rainyunApiKeysList) {
-        rainyunApiKeysList.addEventListener('click', function(e) {
-            if (e.target.classList.contains('rainyun-api-key-remove')) {
-                const row = e.target.closest('.multi-cookie-row');
-                if (row && rainyunApiKeysList.querySelectorAll('.multi-cookie-row').length > 1) row.remove();
+    // 雨云多账号：删除行（事件委托）
+    const rainyunAccountsList = document.getElementById('rainyun_accounts_list');
+    if (rainyunAccountsList) {
+        rainyunAccountsList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('rainyun-account-remove')) {
+                const row = e.target.closest('.multi-account-row');
+                if (row && rainyunAccountsList.querySelectorAll('.multi-account-row').length > 1) row.remove();
             }
         });
     }

@@ -6,8 +6,8 @@
 
 import logging
 import re
-from urllib.parse import quote
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -41,12 +41,14 @@ def _parse_users_from_response(data: dict) -> list[dict[str, Any]]:
         nick = u.get("screen_name") or u.get("nick") or u.get("name") or ""
         followers = u.get("followers_count_str") or ""
         verified = u.get("verified_reason") or ""
-        result.append({
-            "uid": uid_str,
-            "nick": nick or uid_str,
-            "followers_count_str": followers,
-            "verified_reason": verified,
-        })
+        result.append(
+            {
+                "uid": uid_str,
+                "nick": nick or uid_str,
+                "followers_count_str": followers,
+                "verified_reason": verified,
+            }
+        )
     return result
 
 
@@ -101,11 +103,17 @@ async def search_weibo_users(keyword: str, cookie: str) -> list[dict[str, Any]]:
                                 continue
                             # ok 可能为 1 或 True，空 data 也尝试解析
                             if data.get("ok") not in (1, True) and "data" not in data:
-                                logger.debug("微博搜索返回 ok=%s, keys=%s", data.get("ok"), list(data.keys())[:5])
+                                logger.debug(
+                                    "微博搜索返回 ok=%s, keys=%s",
+                                    data.get("ok"),
+                                    list(data.keys())[:5],
+                                )
                                 continue
                             result = _parse_users_from_response(data)
                             if result:
-                                logger.info("微博用户搜索成功: %s -> %d 个结果", keyword, len(result))
+                                logger.info(
+                                    "微博用户搜索成功: %s -> %d 个结果", keyword, len(result)
+                                )
                                 return result
                     except aiohttp.ClientError as e:
                         logger.debug("微博搜索 %s 请求异常: %s", url, e)
@@ -134,7 +142,9 @@ async def search_weibo_users(keyword: str, cookie: str) -> list[dict[str, Any]]:
                                         result = _parse_users_from_response({"data": inner})
                                     elif isinstance(inner, list):
                                         for item in inner:
-                                            if isinstance(item, dict) and ("users" in item or "user" in item):
+                                            if isinstance(item, dict) and (
+                                                "users" in item or "user" in item
+                                            ):
                                                 result = _parse_users_from_response({"data": item})
                                                 break
                                 if result:
@@ -153,16 +163,18 @@ async def search_weibo_users(keyword: str, cookie: str) -> list[dict[str, Any]]:
                         text = await resp.text()
                         # 提取用户主页链接中的 UID（/u/1234567890）
                         seen: set[str] = set()
-                        for m in re.finditer(r'/u/(\d{8,})', text):
+                        for m in re.finditer(r"/u/(\d{8,})", text):
                             uid = m.group(1)
                             if uid not in seen:
                                 seen.add(uid)
-                                result.append({
-                                    "uid": uid,
-                                    "nick": f"{keyword} ({uid})",
-                                    "followers_count_str": "",
-                                    "verified_reason": "",
-                                })
+                                result.append(
+                                    {
+                                        "uid": uid,
+                                        "nick": f"{keyword} ({uid})",
+                                        "followers_count_str": "",
+                                        "verified_reason": "",
+                                    }
+                                )
                                 if len(result) >= 10:
                                     break
                         if result:

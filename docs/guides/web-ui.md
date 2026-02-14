@@ -74,7 +74,7 @@
 - **当前状态**：询问「虎牙谁在直播」「B 站和抖音最新状态」
 - **可执行操作**：如「关闭抖音监控」「添加虎牙房间 200」，识别后会弹出确认弹窗，确认即可修改配置并热重载
 
-需在 `config.yml` 中启用 `ai_assistant.enable` 并安装 `uv sync --extra ai`。详见 [AI 助手使用指南](ai-assistant.md)。
+需在 `config.yml` 中启用 `ai_assistant.enable`。详见 [AI 助手使用指南](ai-assistant.md)。
 
 ---
 

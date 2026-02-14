@@ -78,8 +78,7 @@ Thumbs.db
 *.swp
 *.swo
 
-# 文档和示例（README.md、docs/ 需保留，供 AI 助手 RAG 检索）
-config.yml.sample
+# 文档和示例（README.md、docs/、config.yml.sample 需保留，供 AI 助手 RAG 检索）
 
 # CI/CD
 .github/

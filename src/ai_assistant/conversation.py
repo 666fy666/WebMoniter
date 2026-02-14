@@ -129,6 +129,7 @@ def delete_conversation(conversation_id: str) -> bool:
 
 def _now_str() -> str:
     from datetime import datetime
+
     return datetime.now().isoformat()
 
 

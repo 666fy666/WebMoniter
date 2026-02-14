@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 try:
     import chromadb
     from chromadb.config import Settings as ChromaSettings
+
     HAS_CHROMADB = True
 except ImportError:
     HAS_CHROMADB = False
@@ -75,10 +76,15 @@ def _get_chroma_client_and_collection(cfg=None):
     if cfg is None:
         try:
             from src.ai_assistant.config import get_ai_config
+
             cfg = get_ai_config()
         except Exception:
             pass
-    persist_dir = getattr(cfg, "chroma_persist_dir", "data/ai_assistant_chroma") if cfg else "data/ai_assistant_chroma"
+    persist_dir = (
+        getattr(cfg, "chroma_persist_dir", "data/ai_assistant_chroma")
+        if cfg
+        else "data/ai_assistant_chroma"
+    )
     Path(persist_dir).mkdir(parents=True, exist_ok=True)
     # allow_reset=True 供 rebuild 时清空所有集合，确保只保留最新向量库
     client = chromadb.PersistentClient(
@@ -102,6 +108,7 @@ def rebuild_chroma_docs() -> None:
     cfg = None
     try:
         from src.ai_assistant.config import get_ai_config
+
         cfg = get_ai_config()
     except Exception:
         pass
@@ -114,7 +121,9 @@ def rebuild_chroma_docs() -> None:
             client.delete_collection("webmoniter_docs")
         except Exception:
             pass
-    collection = client.get_or_create_collection("webmoniter_docs", metadata={"hnsw:space": "cosine"})
+    collection = client.get_or_create_collection(
+        "webmoniter_docs", metadata={"hnsw:space": "cosine"}
+    )
     chunks = _read_docs_as_chunks()
     if chunks:
         ids = [f"c{i}" for i in range(len(chunks))]
@@ -130,6 +139,7 @@ def _chroma_retrieve(query: str, chunks: list[tuple[str, str]], top_k: int) -> l
     cfg = None
     try:
         from src.ai_assistant.config import get_ai_config
+
         cfg = get_ai_config()
     except Exception:
         pass
@@ -148,6 +158,7 @@ def _chroma_retrieve(query: str, chunks: list[tuple[str, str]], top_k: int) -> l
 def _redact_sensitive(text: str) -> str:
     """脱敏：将 cookie、api_key、token 等敏感值替换为占位符"""
     import re
+
     lines = []
     sensitive_pattern = re.compile(
         r"^\s*(cookie|cookies|api_key|apikey|api_secret|password|token|secret"
@@ -245,8 +256,8 @@ def retrieve_logs(query: str, top_k: int = 30, prefer_errors: bool = True) -> li
     if not lines:
         return []
     terms = _extract_search_terms(query)
-    err_lines = [l[0] for l in lines if "ERROR" in l[0] or "WARNING" in l[0]]
-    info_lines = [l[0] for l in lines if "INFO" in l[0]]
+    err_lines = [line[0] for line in lines if "ERROR" in line[0] or "WARNING" in line[0]]
+    info_lines = [line[0] for line in lines if "INFO" in line[0]]
     # 倒序使最近日志优先（lines 按时间正序，末尾为最近）
     err_lines = list(reversed(err_lines))
     info_lines = list(reversed(info_lines))
@@ -254,12 +265,16 @@ def retrieve_logs(query: str, top_k: int = 30, prefer_errors: bool = True) -> li
         any(k in query for k in ("失败", "错误", "诊断")) or "log" in query.lower()
     )
     if is_error_query:
-        scored = [(sum(1 for t in terms if t in l.lower()), l) for l in err_lines]
+        scored = [
+            (sum(1 for t in terms if t in line.lower()), line) for line in err_lines
+        ]
     else:
         all_lines = info_lines + err_lines  # 洞察类优先 INFO
-        scored = [(sum(1 for t in terms if t in l.lower()), l) for l in all_lines]
+        scored = [
+            (sum(1 for t in terms if t in line.lower()), line) for line in all_lines
+        ]
     scored.sort(key=lambda x: (-x[0], x[1]))  # 分高优先
-    return [l for _, l in scored[:top_k]]
+    return [line for _, line in scored[:top_k]]
 
 
 def retrieve_all(query: str, context: str = "all") -> str:

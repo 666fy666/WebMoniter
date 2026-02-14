@@ -114,20 +114,29 @@ checkin:
   push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
 
 # =============================================================================
-# 雨云签到配置（使用 API Key）
+# 雨云签到配置（参考 Rainyun-Qiandao：Selenium + 账号密码 + ddddocr）
 # =============================================================================
-# 获取 API Key：登录雨云 → 总览 → 用户 → 账户设置 → API 密钥
-# 按配置每天固定时间（默认 08:30）自动签到，项目启动时也会执行一次（enable: true 且配置了 API Key 时）
-# 签到需通过腾讯验证码验证，系统会自动完成
-# 多 API Key：配置 api_keys 列表后优先使用，会对每个 API Key 依次签到并分别推送
+# 使用账号密码登录雨云网页，通过 ddddocr 完成验证码识别，需安装 Chrome/Chromium 及 chromedriver
+# Docker 部署：镜像已内置 Chromium，设置 enable: true 和 accounts 即可
+# 按配置每天固定时间（默认 08:30）自动签到，项目启动时也会执行一次（enable: true 且配置了 accounts 时）
+# 多账号：配置 accounts 列表，每项需 username、password，api_key 可选（用于服务器续费）
+# 服务器自动续费：参考 Jielumoon/Rainyun-Qiandao，签到后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天
 rainyun:
   enable: false  # 是否启用雨云签到
-  api_key:  # 单 API Key（与 api_keys 二选一）
-  # api_keys:  # 多 API Key 列表，非空时优先于 api_key
-  #   - key1
-  #   - key2
+  # chrome_bin: /usr/bin/chromium  # 可选，Docker 下默认通过环境变量设置
+  # chromedriver_path: /usr/bin/chromedriver  # 可选，Docker 下默认通过环境变量设置
+  # accounts:  # 多账号列表，每项需 username、password，api_key 可选
+  #   - username: 你的雨云账号
+  #     password: 你的雨云密码
+  #     api_key:  # 可选，用于服务器续费（登录雨云 → 总览 → 用户 → 账户设置 → API 密钥）
+  #   - username: 第二个账号
+  #     password: 第二个密码
+  #     api_key:  # 可选
   time: "08:30"  # 签到时间（24 小时制 HH:MM），默认 08:30
   push_channels: []  # 推送通道名称列表（可多选），为空时使用全部已配置的通道
+  auto_renew: true  # 是否启用服务器到期自动续费（游戏云）
+  renew_threshold_days: 7  # 剩余多少天内触发续费，默认 7 天
+  # renew_product_ids: []  # 续费白名单（产品 ID 列表），为空则续费所有即将到期的服务器；可配置如 [44500, 44501]
 
 # =============================================================================
 # 百度贴吧签到配置（须包含 BDUSS，支持多 Cookie）
@@ -591,7 +600,7 @@ push_channel:
     content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
 
 # =============================================================================
-# AI 助手配置（可选，需安装 uv sync --extra ai）
+# AI 助手配置（可选）
 # =============================================================================
 # 支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等 OpenAI 兼容 API
 # 在配置管理、任务管理、数据展示页面底部有悬浮「问 AI」入口

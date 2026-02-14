@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path
 
 import aiohttp
-from PIL import Image
 from aiohttp import ClientSession, ClientTimeout
+from PIL import Image
 
 from src.ai_assistant.config import is_ai_enabled
 from src.ai_assistant.llm_client import compress_text_with_llm
@@ -571,7 +571,9 @@ class WeiboMonitor(BaseMonitor):
                     if self._has_wecom_apps_channel():
                         wecom_path = user_dir / "cover_image_phone_wecom.jpg"
                         if self._resize_cover_for_wecom(cover_path, wecom_path):
-                            wecom_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone_wecom.jpg"
+                            wecom_pic_url = (
+                                f"{base_url}/weibo_img/{safe_username}/cover_image_phone_wecom.jpg"
+                            )
 
             # 头像（用于 Bark icon）
             profile_path = user_dir / "profile_image.jpg"

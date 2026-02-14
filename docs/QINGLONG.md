@@ -98,8 +98,10 @@ WebMoniter 支持在 [青龙面板](https://github.com/whyour/qinglong) 中运�
 | 环境变量 | 必填 | 说明 |
 |----------|------|------|
 | `WEBMONITER_RAINYUN_ENABLE` | 是 | `true` 启用 |
-| `WEBMONITER_RAINYUN_API_KEY` | 是* | 雨云 API Key |
-| `WEBMONITER_RAINYUN_API_KEYS` | 多账号 | 多个 Key 用 `,` 分隔 |
+| `WEBMONITER_RAINYUN_USERNAME` | 单账号 | 雨云登录用户名 |
+| `WEBMONITER_RAINYUN_PASSWORD` | 单账号 | 雨云登录密码 |
+| `WEBMONITER_RAINYUN_API_KEY` | 否 | 可选，用于续费查询 |
+| `WEBMONITER_RAINYUN_ACCOUNTS` | 多账号 | JSON：`[{"username":"u1","password":"p1","api_key":"可选"}]` |
 | `WEBMONITER_RAINYUN_TIME` | 否 | 默认 08:30 |
 
 **定时规则建议**：`30 8 * * *`

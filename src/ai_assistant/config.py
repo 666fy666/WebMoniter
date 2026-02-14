@@ -1,7 +1,7 @@
 """AI 助手配置模块 - 从 config.yml 的 ai_assistant 节点读取"""
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml

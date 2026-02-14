@@ -132,12 +132,21 @@ class AppConfig(BaseModel):
     weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
     weibo_chaohua_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
 
-    # 雨云签到配置（使用 API Key）
+    # 雨云签到配置（参考 Rainyun-Qiandao：Selenium + 账号密码 + ddddocr）
     rainyun_enable: bool = False  # 是否启用雨云签到
-    rainyun_api_key: str = ""  # 单 API Key（与 rainyun_api_keys 二选一）
-    rainyun_api_keys: list[str] = []  # 多 API Key 列表，非空时优先于 rainyun_api_key
+    rainyun_accounts: list[dict] = []  # [{"username": str, "password": str, "api_key": str?}, ...]
     rainyun_time: str = "08:30"  # 雨云签到时间（格式：HH:MM），默认 08:30
     rainyun_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    # 雨云自动续费配置（参考 Jielumoon/Rainyun-Qiandao）
+    rainyun_auto_renew: bool = True  # 是否启用服务器到期自动续费
+    rainyun_renew_threshold_days: int = 7  # 剩余多少天内触发续费，默认 7 天
+    rainyun_renew_product_ids: list[int] = (
+        []
+    )  # 续费白名单（产品 ID 列表），为空则续费所有即将到期的服务器
+    rainyun_chrome_bin: str = ""  # Chrome/Chromium 可执行路径，Docker 下通常用环境变量 CHROME_BIN
+    rainyun_chromedriver_path: str = (
+        ""  # chromedriver 路径，Docker 下通常用环境变量 CHROMEDRIVER_PATH
+    )
 
     # 恩山论坛签到配置（Cookie）
     enshan_enable: bool = False
@@ -487,9 +496,14 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             },
             "rainyun": {
                 "enable": "rainyun_enable",
-                "api_key": "rainyun_api_key",
+                "accounts": "rainyun_accounts",
                 "time": "rainyun_time",
                 "push_channels": "rainyun_push_channels",
+                "auto_renew": "rainyun_auto_renew",
+                "renew_threshold_days": "rainyun_renew_threshold_days",
+                "renew_product_ids": "rainyun_renew_product_ids",
+                "chrome_bin": "rainyun_chrome_bin",
+                "chromedriver_path": "rainyun_chromedriver_path",
             },
             "enshan": {
                 "enable": "enshan_enable",
@@ -730,13 +744,51 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                         )
                         config_dict[config_field] = cookies
 
-        # 特殊处理：雨云多 API Key 配置
+        # 特殊处理：雨云多账号（参考 Rainyun-Qiandao）及续费配置
         if "rainyun" in yml_config:
             rainyun = yml_config["rainyun"]
-            if "api_keys" in rainyun and isinstance(rainyun["api_keys"], list):
-                api_keys = [str(k).strip() for k in rainyun["api_keys"] if k]
-                if api_keys:
-                    config_dict["rainyun_api_keys"] = api_keys
+            if "accounts" in rainyun and isinstance(rainyun["accounts"], list):
+                accounts = []
+                for a in rainyun["accounts"]:
+                    if isinstance(a, dict):
+                        accounts.append(
+                            {
+                                "username": str(a.get("username", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                                "api_key": str(a.get("api_key", "")).strip(),
+                            }
+                        )
+                if accounts:
+                    config_dict["rainyun_accounts"] = accounts
+            if "auto_renew" in rainyun:
+                config_dict["rainyun_auto_renew"] = bool(rainyun["auto_renew"])
+            if "renew_threshold_days" in rainyun:
+                try:
+                    config_dict["rainyun_renew_threshold_days"] = int(
+                        rainyun["renew_threshold_days"]
+                    )
+                except (TypeError, ValueError):
+                    pass
+            if "renew_product_ids" in rainyun:
+                ids_raw = rainyun["renew_product_ids"]
+                if isinstance(ids_raw, list):
+                    ids = []
+                    for x in ids_raw:
+                        if isinstance(x, int):
+                            ids.append(x)
+                        elif isinstance(x, str) and x.strip().isdigit():
+                            ids.append(int(x.strip()))
+                    config_dict["rainyun_renew_product_ids"] = ids
+                elif isinstance(ids_raw, str) and ids_raw.strip():
+                    ids = []
+                    for part in ids_raw.replace(",", " ").split():
+                        if part.strip().isdigit():
+                            ids.append(int(part.strip()))
+                    config_dict["rainyun_renew_product_ids"] = ids
+            if "chrome_bin" in rainyun and rainyun["chrome_bin"]:
+                config_dict["rainyun_chrome_bin"] = str(rainyun["chrome_bin"]).strip()
+            if "chromedriver_path" in rainyun and rainyun["chromedriver_path"]:
+                config_dict["rainyun_chromedriver_path"] = str(rainyun["chromedriver_path"]).strip()
 
         # 特殊处理：恩山多 Cookie
         if "enshan" in yml_config:

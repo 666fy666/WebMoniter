@@ -1,6 +1,5 @@
 """LLM 客户端 - 支持主流厂商 OpenAI 兼容 API"""
 
-import json
 import logging
 from typing import Any
 
@@ -10,13 +9,15 @@ logger = logging.getLogger(__name__)
 
 # 尝试导入 openai，若无则回退到 httpx
 try:
-    from openai import OpenAI, AsyncOpenAI
+    from openai import AsyncOpenAI, OpenAI
+
     HAS_OPENAI = True
 except ImportError:
     HAS_OPENAI = False
 
 try:
     import httpx
+
     HAS_HTTPX = True
 except ImportError:
     HAS_HTTPX = False
@@ -31,7 +32,7 @@ def _create_client():
         return OpenAI(api_key=key or "sk-placeholder", base_url=base if base else None)
     if HAS_HTTPX:
         return _HttpClient(base, key)
-    raise RuntimeError("请安装 openai 或 httpx：uv sync --extra ai")
+    raise RuntimeError("请安装 openai 或 httpx：uv sync")
 
 
 def _create_async_client():
@@ -43,7 +44,7 @@ def _create_async_client():
         return AsyncOpenAI(api_key=key or "sk-placeholder", base_url=base if base else None)
     if HAS_HTTPX:
         return _AsyncHttpClient(base, key)
-    raise RuntimeError("请安装 openai 或 httpx：uv sync --extra ai")
+    raise RuntimeError("请安装 openai 或 httpx：uv sync")
 
 
 class _HttpClient:
@@ -168,7 +169,11 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
         result = result.strip()
         # 校验长度，若仍超限则返回 None（调用方将回退到截断）
         if len(result.encode("utf-8")) > max_bytes:
-            logger.warning("LLM 压缩结果仍超限（%d > %d 字节），将使用截断", len(result.encode("utf-8")), max_bytes)
+            logger.warning(
+                "LLM 压缩结果仍超限（%d > %d 字节），将使用截断",
+                len(result.encode("utf-8")),
+                max_bytes,
+            )
             return None
         return result
     except Exception as e:

@@ -54,7 +54,7 @@ GET /api/version
 
 ```json
 {
-  "version": "2.0.7",
+  "version": "2.1.0",
   "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/tags",
   "tags_url": "https://github.com/666fy666/WebMoniter/tags"
 }
@@ -327,7 +327,7 @@ POST /api/tasks/{task_id}/run
 
 ---
 
-### 7. AI 助手（需登录，需安装 `uv sync --extra ai` 并启用 `ai_assistant.enable`）
+### 7. AI 助手（需登录，需在 config.yml 启用 `ai_assistant.enable`）
 
 AI 助手提供智能对话、配置生成、日志诊断、数据洞察及可执行操作能力，需在 `config.yml` 中配置 `ai_assistant` 并安装 AI 依赖。
 

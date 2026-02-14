@@ -1,23 +1,21 @@
 #!/usr/bin/env python
-# -*- encoding:utf-8 -*-
 
-""" 对企业微信发送给企业后台的消息加解密示例代码.
+"""对企业微信发送给企业后台的消息加解密示例代码.
 @copyright: Copyright (c) 1998-2014 Tencent Inc.
 
 """
 # ------------------------------------------------------------------------
-import logging
 import base64
-import random
 import hashlib
-import time
-import struct
-from Crypto.Cipher import AES
-import xml.etree.cElementTree as ET
+import logging
+import random
 import socket
+import struct
+import time
+import xml.etree.ElementTree as ET
 
 import ierror
-
+from Crypto.Cipher import AES
 
 """
 关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
@@ -92,22 +90,22 @@ class XMLParse:
         @return: 生成的xml字符串
         """
         resp_dict = {
-            'msg_encrypt': encrypt,
-            'msg_signaturet': signature,
-            'timestamp': timestamp,
-            'nonce': nonce,
+            "msg_encrypt": encrypt,
+            "msg_signaturet": signature,
+            "timestamp": timestamp,
+            "nonce": nonce,
         }
         resp_xml = self.AES_TEXT_RESPONSE_TEMPLATE % resp_dict
         return resp_xml
 
 
-class PKCS7Encoder():
+class PKCS7Encoder:
     """提供基于PKCS7算法的加解密接口"""
 
     block_size = 32
 
     def encode(self, text):
-        """ 对需要加密的明文进行填充补位
+        """对需要加密的明文进行填充补位
         @param text: 需要进行填充补位操作的明文
         @return: 补齐明文字符串
         """
@@ -131,7 +129,7 @@ class PKCS7Encoder():
         return decrypted[:-pad]
 
 
-class Prpcrypt(object):
+class Prpcrypt:
     """提供接收和推送给企业微信消息的加解密接口"""
 
     def __init__(self, key):
@@ -148,7 +146,12 @@ class Prpcrypt(object):
         """
         # 16位随机字符串添加到明文开头
         text = text.encode()
-        text = self.get_random_str() + struct.pack("I", socket.htonl(len(text))) + text + receiveid.encode()
+        text = (
+            self.get_random_str()
+            + struct.pack("I", socket.htonl(len(text)))
+            + text
+            + receiveid.encode()
+        )
 
         # 使用自定义的填充方式对明文进行补位填充
         pkcs7 = PKCS7Encoder()
@@ -184,26 +187,26 @@ class Prpcrypt(object):
             # plain_text = pkcs7.encode(plain_text)
             # 去除16位随机字符串
             content = plain_text[16:-pad]
-            xml_len = socket.ntohl(struct.unpack("I", content[: 4])[0])
-            xml_content = content[4: xml_len + 4]
-            from_receiveid = content[xml_len + 4:]
+            xml_len = socket.ntohl(struct.unpack("I", content[:4])[0])
+            xml_content = content[4 : xml_len + 4]
+            from_receiveid = content[xml_len + 4 :]
         except Exception as e:
             logger = logging.getLogger()
             logger.error(e)
             return ierror.WXBizMsgCrypt_IllegalBuffer, None
 
-        if from_receiveid.decode('utf8') != receiveid:
+        if from_receiveid.decode("utf8") != receiveid:
             return ierror.WXBizMsgCrypt_ValidateCorpid_Error, None
         return 0, xml_content
 
     def get_random_str(self):
-        """ 随机生成16位字符串
+        """随机生成16位字符串
         @return: 16位字符串
         """
         return str(random.randint(1000000000000000, 9999999999999999)).encode()
 
 
-class WXBizMsgCrypt(object):
+class WXBizMsgCrypt:
     # 构造函数
     def __init__(self, sToken, sEncodingAESKey, sReceiveId):
         try:
@@ -243,7 +246,7 @@ class WXBizMsgCrypt(object):
         # return：成功0，sEncryptMsg,失败返回对应的错误码None
         pc = Prpcrypt(self.key)
         ret, encrypt = pc.encrypt(sReplyMsg, self.m_sReceiveId)
-        encrypt = encrypt.decode('utf8')
+        encrypt = encrypt.decode("utf8")
         if ret != 0:
             return ret, None
         if timestamp is None:

@@ -12,7 +12,6 @@
 """
 
 import asyncio
-import json
 import logging
 import re
 import time
@@ -108,7 +107,9 @@ async def handle_wecom_callback(
     corp_id = str(channel_config.get("corp_id", "")).strip()
 
     if not token or not encoding_aes_key or not corp_id:
-        logger.warning("企业微信 AI 回调配置不完整：缺少 callback_token / encoding_aes_key / corp_id")
+        logger.warning(
+            "企业微信 AI 回调配置不完整：缺少 callback_token / encoding_aes_key / corp_id"
+        )
         return PlainTextResponse("config error", status_code=500)
 
     params = request.query_params
@@ -127,10 +128,9 @@ async def handle_wecom_callback(
             return PlainTextResponse("missing echostr", status_code=400)
         try:
             # echostr 为加密内容，解密后原样返回即可通过验证
-            fake_post = f'<xml><Encrypt><![CDATA[{echostr}]]></Encrypt></xml>'
+            fake_post = f"<xml><Encrypt><![CDATA[{echostr}]]></Encrypt></xml>"
             decrypted = decrypt_msg(
-                token, encoding_aes_key, corp_id,
-                msg_signature, timestamp, nonce, fake_post
+                token, encoding_aes_key, corp_id, msg_signature, timestamp, nonce, fake_post
             )
             return PlainTextResponse(decrypted)
         except Exception as e:
@@ -143,12 +143,13 @@ async def handle_wecom_callback(
         post_data = raw.decode("utf-8", errors="strict")
     except UnicodeDecodeError:
         post_data = raw.decode("utf-8", errors="replace")
-        logger.warning("企业微信 POST 请求体 UTF-8 含非法字节，已 replace 处理，若仍解密失败请检查代理是否篡改请求体")
+        logger.warning(
+            "企业微信 POST 请求体 UTF-8 含非法字节，已 replace 处理，若仍解密失败请检查代理是否篡改请求体"
+        )
 
     try:
         plain_xml = decrypt_msg(
-            token, encoding_aes_key, corp_id,
-            msg_signature, timestamp, nonce, post_data
+            token, encoding_aes_key, corp_id, msg_signature, timestamp, nonce, post_data
         )
     except Exception as e:
         logger.error("企业微信消息解密失败: %s", e)
@@ -182,7 +183,9 @@ async def handle_wecom_callback(
     agent_id = str(channel_config.get("agent_id", "")).strip()
     can_send_via_api = bool(corp_secret and agent_id)
     if not can_send_via_api and content:
-        logger.debug("企业微信 AI 回调缺少 corp_secret/agent_id，无法异步回复，将在 5 秒内同步返回（可能超时）")
+        logger.debug(
+            "企业微信 AI 回调缺少 corp_secret/agent_id，无法异步回复，将在 5 秒内同步返回（可能超时）"
+        )
 
     if not content:
         reply_text = "请发送文字内容与 AI 助手对话。"
@@ -192,7 +195,7 @@ async def handle_wecom_callback(
             from src.ai_assistant.platform_chat import chat_for_platform
 
             if not is_ai_enabled():
-                reply_text = "AI 助手未启用，请在 config.yml 中配置 ai_assistant.enable 并安装 uv sync --extra ai。"
+                reply_text = "AI 助手未启用，请在 config.yml 中配置 ai_assistant.enable 并执行 uv sync 安装依赖。"
             else:
                 # 企业微信被动回复 5 秒超时，AI 常超时，采用异步回复：先立即返回，后台处理完后通过 API 推送
                 if can_send_via_api:
@@ -214,8 +217,7 @@ async def handle_wecom_callback(
                         except Exception as e:
                             logger.exception("企业微信异步 AI 回复失败: %s", e)
                             await _send_wecom_text_to_user(
-                                corp_id, corp_secret, agent_id, from_user,
-                                f"处理失败：{e}"
+                                corp_id, corp_secret, agent_id, from_user, f"处理失败：{e}"
                             )
 
                     asyncio.create_task(_async_reply())
@@ -227,7 +229,7 @@ async def handle_wecom_callback(
                         skip_executable_intent=True,
                     )
         except ImportError:
-            reply_text = "AI 助手模块不可用，请安装 uv sync --extra ai。"
+            reply_text = "AI 助手模块不可用，请执行 uv sync 安装依赖。"
         except Exception as e:
             logger.exception("企业微信 AI 对话失败")
             reply_text = f"处理失败：{e}"

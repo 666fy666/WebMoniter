@@ -57,8 +57,13 @@
 ---
 
 ??? question "如何启用 AI 助手？"
-    1. 执行 `uv sync --extra ai` 安装 AI 依赖（chromadb、httpx、openai）
+    1. 执行 `uv sync` 安装依赖（已包含 AI 相关包）
     2. 在 `config.yml` 中配置 `ai_assistant` 节点，设置 `enable: true` 以及 `provider`、`api_key`、`model` 等
     3. 重启或等待热重载后，在配置管理、任务管理、数据展示页面底部即可看到「问 AI」入口
 
     支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等 OpenAI 兼容 API。详见 [AI 助手使用指南](guides/ai-assistant.md)。
+
+---
+
+??? question "Docker 部署下雨云签到如何启用？"
+    Docker 镜像已内置 Chromium。在 `config.yml` 中设置 `rainyun.enable: true` 并配置 `rainyun.accounts`（每项含 `username`、`password`，`api_key` 可选用于续费）即可。容器启动时自动使用 `/usr/bin/chromium` 和 `/usr/bin/chromedriver`。若使用自建镜像且 Chromium 路径不同，可配置 `rainyun.chrome_bin` 与 `rainyun.chromedriver_path`，或设置环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。

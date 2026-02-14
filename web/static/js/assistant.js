@@ -34,7 +34,7 @@
             btn.title = '问 AI';
         } else {
             btn.style.opacity = '0.6';
-            btn.title = 'AI 助手未启用，请在 config.yml 配置 ai_assistant.enable 并安装 uv sync --extra ai';
+            btn.title = 'AI 助手未启用，请在 config.yml 配置 ai_assistant.enable 并执行 uv sync 安装依赖';
         }
     }
 

@@ -99,7 +99,7 @@ uv run python main.py &
 # uv run python main.py > webmoniter.log 2>&1 &
 
 # 可选：启用 AI 助手（配置生成、日志诊断、数据洞察等）
-# uv sync --extra ai
+# uv sync
 ```
 
 ---

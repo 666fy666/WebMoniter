@@ -113,7 +113,15 @@ def load_config_from_env(task_id: str | None = None) -> dict:
             "WEIBO_CHAOHUA",
             {"COOKIE": "weibo_chaohua_cookie", "TIME": "weibo_chaohua_time"},
         ),
-        "rainyun_checkin": ("RAINYUN", {"API_KEY": "rainyun_api_key", "TIME": "rainyun_time"}),
+        "rainyun_checkin": (
+            "RAINYUN",
+            {
+                "USERNAME": "rainyun_username",
+                "PASSWORD": "rainyun_password",
+                "API_KEY": "rainyun_api_key",
+                "TIME": "rainyun_time",
+            },
+        ),
         "enshan_checkin": ("ENSHAN", {"COOKIE": "enshan_cookie", "TIME": "enshan_time"}),
         "tyyun_checkin": (
             "TYYUN",
@@ -311,8 +319,46 @@ def load_config_from_env(task_id: str | None = None) -> dict:
             else:
                 cfg[config_key] = [val]
 
+    # 雨云多账号：RAINYUN_ACCOUNTS 为 JSON 数组，如 [{"username":"u1","password":"p1","api_key":"k1"}]
+    try:
+        rainyun_acc_json = _env("RAINYUN_ACCOUNTS") or _env("RAINYUN_ACCOUNT")
+        if rainyun_acc_json:
+            acc_list = (
+                json.loads(rainyun_acc_json)
+                if isinstance(rainyun_acc_json, str)
+                else rainyun_acc_json
+            )
+            if isinstance(acc_list, dict):
+                acc_list = [acc_list]
+            if isinstance(acc_list, list) and len(acc_list) > 0:
+                accounts = []
+                for a in acc_list:
+                    if isinstance(a, dict) and a.get("username") and a.get("password"):
+                        accounts.append(
+                            {
+                                "username": str(a.get("username", "")).strip(),
+                                "password": str(a.get("password", "")).strip(),
+                                "api_key": str(a.get("api_key", "")).strip(),
+                            }
+                        )
+                if accounts:
+                    cfg["rainyun_accounts"] = accounts
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # 雨云单账号：RAINYUN_USERNAME + RAINYUN_PASSWORD（青龙环境变量）
+    rainyun_user = _env("RAINYUN_USERNAME")
+    rainyun_pwd = _env("RAINYUN_PASSWORD")
+    if rainyun_user and rainyun_pwd and not cfg.get("rainyun_accounts"):
+        cfg["rainyun_accounts"] = [
+            {
+                "username": rainyun_user,
+                "password": rainyun_pwd,
+                "api_key": _env("RAINYUN_API_KEY"),
+            }
+        ]
+
     for tokens_key, config_key in [
-        ("RAINYUN_API_KEYS", "rainyun_api_keys"),
         ("ALIYUN_REFRESH_TOKENS", "aliyun_refresh_tokens"),
         ("LENOVO_ACCESS_TOKENS", "lenovo_access_tokens"),
         ("LBLY_REQUEST_BODIES", "lbly_request_bodies"),

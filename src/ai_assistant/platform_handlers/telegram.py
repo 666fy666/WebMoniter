@@ -4,7 +4,6 @@
 Webhook 设置：POST https://api.telegram.org/bot<token>/setWebhook?url=<your_url>
 """
 
-import asyncio
 import logging
 
 from fastapi import Request
@@ -28,7 +27,6 @@ async def handle_telegram_webhook(request: Request, channel_config: dict) -> dic
     except Exception:
         return None
 
-    update_id = body.get("update_id")
     message = body.get("message") or body.get("edited_message")
     if not message:
         return None
@@ -46,7 +44,10 @@ async def handle_telegram_webhook(request: Request, channel_config: dict) -> dic
         from src.ai_assistant.platform_chat import chat_for_platform
 
         if not is_ai_enabled():
-            return {"chat_id": chat_id, "text": "AI 助手未启用，请在 config.yml 中配置 ai_assistant.enable 并安装 uv sync --extra ai。"}
+            return {
+                "chat_id": chat_id,
+                "text": "AI 助手未启用，请在 config.yml 中配置 ai_assistant.enable 并执行 uv sync 安装依赖。",
+            }
 
         reply_text, _ = await chat_for_platform(
             message=text,
@@ -56,7 +57,7 @@ async def handle_telegram_webhook(request: Request, channel_config: dict) -> dic
         )
         return {"chat_id": chat_id, "text": reply_text}
     except ImportError:
-        return {"chat_id": chat_id, "text": "AI 助手模块不可用，请安装 uv sync --extra ai。"}
+        return {"chat_id": chat_id, "text": "AI 助手模块不可用，请执行 uv sync 安装依赖。"}
     except Exception as e:
         logger.exception("Telegram AI 对话失败")
         return {"chat_id": chat_id, "text": f"处理失败：{e}"}
@@ -70,7 +71,9 @@ async def send_telegram_message(api_token: str, chat_id: int | str, text: str) -
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as r:
+            async with session.post(
+                url, json=payload, timeout=aiohttp.ClientTimeout(total=30)
+            ) as r:
                 data = await r.json()
                 return data.get("ok", False)
     except Exception as e:

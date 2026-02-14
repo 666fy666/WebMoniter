@@ -42,35 +42,73 @@ CONFIG_KEY_TO_DISPLAY = {
 # 支持开关的配置节（监控 + 定时任务等）：显示名/别名 -> section_key
 TOGGLE_SECTION_NAMES = {
     # 监控（与 PLATFORM 重复的用 CONFIG_KEY_TO_DISPLAY）
-    "微博": "weibo", "weibo": "weibo",
-    "虎牙": "huya", "huya": "huya",
-    "哔哩哔哩": "bilibili", "b站": "bilibili", "bilibili": "bilibili",
-    "抖音": "douyin", "douyin": "douyin",
-    "斗鱼": "douyu", "douyu": "douyu",
-    "小红书": "xhs", "xhs": "xhs",
+    "微博": "weibo",
+    "weibo": "weibo",
+    "虎牙": "huya",
+    "huya": "huya",
+    "哔哩哔哩": "bilibili",
+    "b站": "bilibili",
+    "bilibili": "bilibili",
+    "抖音": "douyin",
+    "douyin": "douyin",
+    "斗鱼": "douyu",
+    "douyu": "douyu",
+    "小红书": "xhs",
+    "xhs": "xhs",
     # 定时任务
-    "超话": "weibo_chaohua", "超话签到": "weibo_chaohua", "微博超话": "weibo_chaohua",
-    "ikuuu": "checkin", "checkin": "checkin", "签到": "checkin",
-    "贴吧": "tieba", "百度贴吧": "tieba", "tieba": "tieba",
-    "雨云": "rainyun", "rainyun": "rainyun", "雨云签到": "rainyun",
-    "阿里云盘": "aliyun", "aliyun": "aliyun", "阿里云盘签到": "aliyun",
-    "什么值得买": "smzdm", "值得买": "smzdm", "smzdm": "smzdm",
-    "夸克": "kuake", "kuake": "kuake", "夸克签到": "kuake",
-    "天气": "weather", "weather": "weather", "天气推送": "weather",
-    "日志清理": "log_cleanup", "log_cleanup": "log_cleanup",
-    "免打扰": "quiet_hours", "quiet_hours": "quiet_hours",
+    "超话": "weibo_chaohua",
+    "超话签到": "weibo_chaohua",
+    "微博超话": "weibo_chaohua",
+    "ikuuu": "checkin",
+    "checkin": "checkin",
+    "签到": "checkin",
+    "贴吧": "tieba",
+    "百度贴吧": "tieba",
+    "tieba": "tieba",
+    "雨云": "rainyun",
+    "rainyun": "rainyun",
+    "雨云签到": "rainyun",
+    "阿里云盘": "aliyun",
+    "aliyun": "aliyun",
+    "阿里云盘签到": "aliyun",
+    "什么值得买": "smzdm",
+    "值得买": "smzdm",
+    "smzdm": "smzdm",
+    "夸克": "kuake",
+    "kuake": "kuake",
+    "夸克签到": "kuake",
+    "天气": "weather",
+    "weather": "weather",
+    "天气推送": "weather",
+    "日志清理": "log_cleanup",
+    "log_cleanup": "log_cleanup",
+    "免打扰": "quiet_hours",
+    "quiet_hours": "quiet_hours",
 }
 
 TOGGLE_SECTION_TO_DISPLAY = {
-    "weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
-    "weibo_chaohua": "微博超话签到", "checkin": "iKuuu 签到", "tieba": "百度贴吧签到", "rainyun": "雨云签到",
-    "aliyun": "阿里云盘签到", "smzdm": "什么值得买签到", "kuake": "夸克签到", "weather": "天气推送",
-    "log_cleanup": "日志清理", "quiet_hours": "免打扰",
+    "weibo": "微博",
+    "huya": "虎牙",
+    "bilibili": "哔哩哔哩",
+    "douyin": "抖音",
+    "douyu": "斗鱼",
+    "xhs": "小红书",
+    "weibo_chaohua": "微博超话签到",
+    "checkin": "iKuuu 签到",
+    "tieba": "百度贴吧签到",
+    "rainyun": "雨云签到",
+    "aliyun": "阿里云盘签到",
+    "smzdm": "什么值得买签到",
+    "kuake": "夸克签到",
+    "weather": "天气推送",
+    "log_cleanup": "日志清理",
+    "quiet_hours": "免打扰",
 }
 
 
 class ToggleMonitorIntent(NamedTuple):
     """开关监控意图"""
+
     platform_key: str
     enable: bool
     display_name: str
@@ -122,24 +160,36 @@ def parse_toggle_monitor_intent(message: str) -> ToggleMonitorIntent | None:
         m = re.search(pat, msg)
         if m:
             raw = m.group(1).strip()
-            key = _resolve_section(raw) or TOGGLE_SECTION_NAMES.get(raw) or TOGGLE_SECTION_NAMES.get(raw.lower())
+            key = (
+                _resolve_section(raw)
+                or TOGGLE_SECTION_NAMES.get(raw)
+                or TOGGLE_SECTION_NAMES.get(raw.lower())
+            )
             if key:
                 return ToggleMonitorIntent(
                     platform_key=key,
                     enable=False,
-                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(key, CONFIG_KEY_TO_DISPLAY.get(key, key)),
+                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(
+                        key, CONFIG_KEY_TO_DISPLAY.get(key, key)
+                    ),
                 )
 
     for pat in open_patterns:
         m = re.search(pat, msg)
         if m:
             raw = m.group(1).strip()
-            key = _resolve_section(raw) or TOGGLE_SECTION_NAMES.get(raw) or TOGGLE_SECTION_NAMES.get(raw.lower())
+            key = (
+                _resolve_section(raw)
+                or TOGGLE_SECTION_NAMES.get(raw)
+                or TOGGLE_SECTION_NAMES.get(raw.lower())
+            )
             if key:
                 return ToggleMonitorIntent(
                     platform_key=key,
                     enable=True,
-                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(key, CONFIG_KEY_TO_DISPLAY.get(key, key)),
+                    display_name=TOGGLE_SECTION_TO_DISPLAY.get(
+                        key, CONFIG_KEY_TO_DISPLAY.get(key, key)
+                    ),
                 )
 
     return None
@@ -147,6 +197,7 @@ def parse_toggle_monitor_intent(message: str) -> ToggleMonitorIntent | None:
 
 class ConfigPatchIntent(NamedTuple):
     """配置列表增删意图"""
+
     platform_key: str
     list_key: str
     operation: str  # add | remove
@@ -217,6 +268,7 @@ def parse_config_patch_intent(message: str) -> ConfigPatchIntent | None:
 
 class ConfigFieldIntent(NamedTuple):
     """修改标量配置意图（监控间隔、并发数、执行时间等）"""
+
     section_key: str
     field_key: str
     value: int | str  # int 或 "HH:MM" 时间字符串
@@ -297,7 +349,12 @@ def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
     if time_match:
         # 免打扰时段：22:00 到 08:00
         try:
-            h1, m1, h2, m2 = int(time_match.group(1)), int(time_match.group(2)), int(time_match.group(3)), int(time_match.group(4))
+            h1, m1, h2, m2 = (
+                int(time_match.group(1)),
+                int(time_match.group(2)),
+                int(time_match.group(3)),
+                int(time_match.group(4)),
+            )
             if "免打扰" in msg or "静默" in msg:
                 start = f"{h1:02d}:{m1:02d}"
                 end = f"{h2:02d}:{m2:02d}"
@@ -322,9 +379,16 @@ def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
         if 0 <= h <= 23 and 0 <= m <= 59:
             time_val = f"{h:02d}:{m:02d}"
             section_map = {
-                "超话": "weibo_chaohua", "贴吧": "tieba", "ikuuu": "checkin", "签到": "checkin",
-                "雨云": "rainyun", "阿里云盘": "aliyun", "值得买": "smzdm", "夸克": "kuake",
-                "天气": "weather", "日志清理": "log_cleanup",
+                "超话": "weibo_chaohua",
+                "贴吧": "tieba",
+                "ikuuu": "checkin",
+                "签到": "checkin",
+                "雨云": "rainyun",
+                "阿里云盘": "aliyun",
+                "值得买": "smzdm",
+                "夸克": "kuake",
+                "天气": "weather",
+                "日志清理": "log_cleanup",
             }
             sec = section_map.get(task_raw)
             if sec:
@@ -347,8 +411,12 @@ def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
             if 0 <= h <= 23 and 0 <= m <= 59:
                 time_val = f"{h:02d}:{m:02d}"
                 section_map = {
-                    "超话签到": "weibo_chaohua", "贴吧签到": "tieba", "ikuuu": "checkin",
-                    "雨云签到": "rainyun", "阿里云盘签到": "aliyun", "日志清理": "log_cleanup",
+                    "超话签到": "weibo_chaohua",
+                    "贴吧签到": "tieba",
+                    "ikuuu": "checkin",
+                    "雨云签到": "rainyun",
+                    "阿里云盘签到": "aliyun",
+                    "日志清理": "log_cleanup",
                 }
                 sec = section_map.get(task_raw)
                 if sec:
@@ -380,7 +448,9 @@ def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
             pass
 
     # 5. 免打扰单字段：免打扰开始/结束时间
-    qh_start = re.search(r"免打扰\s*(?:开始|从)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg)
+    qh_start = re.search(
+        r"免打扰\s*(?:开始|从)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg
+    )
     if qh_start:
         try:
             h, m = int(qh_start.group(1)), int(qh_start.group(2))
@@ -393,7 +463,9 @@ def parse_config_field_intent(message: str) -> ConfigFieldIntent | None:
                 )
         except (ValueError, IndexError):
             pass
-    qh_end = re.search(r"免打扰\s*(?:结束|到)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg)
+    qh_end = re.search(
+        r"免打扰\s*(?:结束|到)\s*(?:时间)?\s*(?:为|改成|改为)?\s*(\d{1,2}):(\d{2})", msg
+    )
     if qh_end:
         try:
             h, m = int(qh_end.group(1)), int(qh_end.group(2))
@@ -437,6 +509,7 @@ TASK_NAME_TO_JOB_ID = {
 
 class RunTaskIntent(NamedTuple):
     """执行任务意图"""
+
     task_id: str
     display_name: str
 
@@ -471,7 +544,7 @@ def parse_run_task_intent(message: str) -> RunTaskIntent | None:
                 task_name_candidates.append(name)
 
     # 解析任务名 -> task_id（优先匹配更长名称，如「超话签到」优于「超话」）
-    TASK_DISPLAY = {
+    task_display = {
         "weibo_chaohua_checkin": "微博超话签到",
         "ikuuu_checkin": "iKuuu 签到",
         "rainyun_checkin": "雨云签到",
@@ -487,7 +560,7 @@ def parse_run_task_intent(message: str) -> RunTaskIntent | None:
         # 按名称长度降序，优先精确匹配
         for name, task_id in sorted(TASK_NAME_TO_JOB_ID.items(), key=lambda x: -len(x[0])):
             if name in raw or raw == name or raw_lower == name.lower():
-                display = TASK_DISPLAY.get(task_id, name)
+                display = task_display.get(task_id, name)
                 return RunTaskIntent(task_id=task_id, display_name=display)
 
     return None

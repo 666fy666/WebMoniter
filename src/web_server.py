@@ -1015,7 +1015,7 @@ def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
     for attempt in range(max_retries):
         try:
             return _do_read()
-        except (OSError, PermissionError) as e:
+        except (OSError, PermissionError):
             if attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
@@ -1213,14 +1213,18 @@ def _assistant_require_auth(request: Request) -> JSONResponse | None:
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
     try:
         from src.ai_assistant import is_ai_enabled
+
         if not is_ai_enabled():
             return JSONResponse(
-                {"error": "AI 助手未启用", "hint": "请在 config.yml 中配置 ai_assistant.enable 并安装 uv sync --extra ai"},
+                {
+                    "error": "AI 助手未启用",
+                    "hint": "请在 config.yml 中配置 ai_assistant.enable 并执行 uv sync 安装依赖",
+                },
                 status_code=503,
             )
     except ImportError:
         return JSONResponse(
-            {"error": "AI 助手模块不可用", "hint": "请安装 uv sync --extra ai"},
+            {"error": "AI 助手模块不可用", "hint": "请执行 uv sync 安装依赖"},
             status_code=503,
         )
     return None
@@ -1234,6 +1238,7 @@ async def assistant_status(request: Request):
         return JSONResponse({"enabled": False, "reason": "未登录"})
     try:
         from src.ai_assistant import is_ai_enabled
+
         return JSONResponse({"enabled": is_ai_enabled()})
     except ImportError:
         return JSONResponse({"enabled": False, "reason": "未安装 ai 依赖"})
@@ -1246,6 +1251,7 @@ async def get_assistant_conversations(request: Request):
     if err:
         return err
     from src.ai_assistant.conversation import list_conversations
+
     user_id = request.session.get("username", "default")
     convos = list_conversations(user_id)
     return JSONResponse({"conversations": convos})
@@ -1257,9 +1263,14 @@ async def create_assistant_conversation(request: Request):
     err = _assistant_require_auth(request)
     if err:
         return err
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body = (
+        await request.json()
+        if request.headers.get("content-type", "").startswith("application/json")
+        else {}
+    )
     title = str(body.get("title", "新对话")).strip() or "新对话"
     from src.ai_assistant.conversation import create_conversation
+
     user_id = request.session.get("username", "default")
     conv_id = create_conversation(user_id=user_id, title=title)
     return JSONResponse({"conversation_id": conv_id})
@@ -1273,6 +1284,7 @@ async def get_assistant_messages(request: Request, conv_id: str):
         return err
     from src.ai_assistant.config import get_ai_config
     from src.ai_assistant.conversation import get_messages
+
     cfg = get_ai_config()
     msgs = get_messages(conv_id, max_rounds=cfg.max_history_rounds)
     return JSONResponse({"messages": msgs})
@@ -1285,6 +1297,7 @@ async def delete_assistant_conversation(request: Request, conv_id: str):
     if err:
         return err
     from src.ai_assistant.conversation import delete_conversation
+
     delete_conversation(conv_id)
     return JSONResponse({"success": True})
 
@@ -1295,10 +1308,10 @@ async def _parse_executable_intent_and_reply(message: str):
     若识别到可执行意图，返回 (reply, suggested_action)；否则返回 (None, None)。
     """
     from src.ai_assistant.intent_parser import (
-        parse_toggle_monitor_intent,
+        parse_config_field_intent,
         parse_config_patch_intent,
         parse_run_task_intent,
-        parse_config_field_intent,
+        parse_toggle_monitor_intent,
     )
     from src.weibo_search import is_numeric_uid, search_weibo_users
 
@@ -1327,7 +1340,11 @@ async def _parse_executable_intent_and_reply(message: str):
             "enable": intent.enable,
             "title": f"{action_text}{intent.display_name}监控",
             "description": f"确认{action_text}{intent.display_name}监控？"
-            + ("关闭后将停止轮询并不再推送相关通知。" if not intent.enable else "开启后将恢复轮询并推送通知。"),
+            + (
+                "关闭后将停止轮询并不再推送相关通知。"
+                if not intent.enable
+                else "开启后将恢复轮询并推送通知。"
+            ),
         }
         return reply, suggested_action
 
@@ -1348,6 +1365,7 @@ async def _parse_executable_intent_and_reply(message: str):
 
             if not candidates:
                 from urllib.parse import quote
+
                 search_link = f"https://s.weibo.com/user?q={quote(patch.value)}"
                 reply = (
                     f"未找到与「{patch.value}」相关的微博用户。\n\n"
@@ -1374,7 +1392,10 @@ async def _parse_executable_intent_and_reply(message: str):
                 return reply, suggested_action
 
             # 多个候选：让用户选择
-            lines = [f"{i + 1}. **{c['nick']}**（UID: {c['uid']}，粉丝: {c.get('followers_count_str', '')}）" for i, c in enumerate(candidates)]
+            lines = [
+                f"{i + 1}. **{c['nick']}**（UID: {c['uid']}，粉丝: {c.get('followers_count_str', '')}）"
+                for i, c in enumerate(candidates)
+            ]
             reply = f"找到 {len(candidates)} 个相关账号，请选择要添加的：\n\n" + "\n".join(lines)
             suggested_action = {
                 "type": "weibo_choose",
@@ -1423,7 +1444,7 @@ async def _parse_executable_intent_and_reply(message: str):
             "section_key": field_intent.section_key,
             "field_key": field_intent.field_key,
             "value": field_intent.value,
-            "title": f"修改配置",
+            "title": "修改配置",
             "description": desc,
         }
         return reply, suggested_action
@@ -1453,7 +1474,10 @@ async def assistant_chat(request: Request):
     from src.ai_assistant.llm_client import chat_completion
     from src.ai_assistant.prompts import SYSTEM_PROMPT
     from src.ai_assistant.rag import retrieve_all
-    from src.ai_assistant.tools_current_state import parse_platforms_from_message, query_current_state
+    from src.ai_assistant.tools_current_state import (
+        parse_platforms_from_message,
+        query_current_state,
+    )
 
     cfg = get_ai_config()
     user_id = request.session.get("username", "default")
@@ -1464,12 +1488,16 @@ async def assistant_chat(request: Request):
     # 语义理解：优先识别可执行意图（开关监控、配置列表增删）
     reply, suggested_action = await _parse_executable_intent_and_reply(message)
     if reply is not None:
-        append_messages(conversation_id, user_content=message, assistant_content=reply, user_id=user_id)
-        return JSONResponse({
-            "reply": reply,
-            "conversation_id": conversation_id,
-            "suggested_action": suggested_action,
-        })
+        append_messages(
+            conversation_id, user_content=message, assistant_content=reply, user_id=user_id
+        )
+        return JSONResponse(
+            {
+                "reply": reply,
+                "conversation_id": conversation_id,
+                "suggested_action": suggested_action,
+            }
+        )
 
     history = get_messages(conversation_id, max_rounds=cfg.max_history_rounds)
 
@@ -1478,8 +1506,13 @@ async def assistant_chat(request: Request):
     if rag_ctx:
         system_content += "\n\n【本次检索到的参考】\n" + rag_ctx
     need_current = (
-        "当前" in message or "现在" in message or "谁在直播" in message
-        or "最新" in message or "开播" in message or "谁开播" in message or "直播" in message
+        "当前" in message
+        or "现在" in message
+        or "谁在直播" in message
+        or "最新" in message
+        or "开播" in message
+        or "谁开播" in message
+        or "直播" in message
     )
     if need_current:
         try:
@@ -1542,19 +1575,36 @@ async def assistant_chat(request: Request):
                 "description": "配置片段（可复制到 config.yml 或配置页）",
             }
 
-    return JSONResponse({
-        "reply": reply,
-        "conversation_id": conversation_id,
-        "suggested_action": suggested_action,
-    })
+    return JSONResponse(
+        {
+            "reply": reply,
+            "conversation_id": conversation_id,
+            "suggested_action": suggested_action,
+        }
+    )
 
 
 # 允许通过 AI 助手 apply-action 开关的配置节（监控 + 定时任务等）
-TOGGLE_SECTIONS = frozenset({
-    "weibo", "huya", "bilibili", "douyin", "douyu", "xhs",
-    "weibo_chaohua", "checkin", "tieba", "rainyun", "aliyun", "smzdm", "kuake",
-    "weather", "log_cleanup", "quiet_hours",
-})
+TOGGLE_SECTIONS = frozenset(
+    {
+        "weibo",
+        "huya",
+        "bilibili",
+        "douyin",
+        "douyu",
+        "xhs",
+        "weibo_chaohua",
+        "checkin",
+        "tieba",
+        "rainyun",
+        "aliyun",
+        "smzdm",
+        "kuake",
+        "weather",
+        "log_cleanup",
+        "quiet_hours",
+    }
+)
 
 # config_patch 支持的 platform -> list_key 映射
 CONFIG_PATCH_PLATFORMS = {
@@ -1567,7 +1617,9 @@ CONFIG_PATCH_PLATFORMS = {
 }
 
 
-def _apply_config_patch(config_path: Path, platform_key: str, list_key: str, operation: str, value: str) -> str:
+def _apply_config_patch(
+    config_path: Path, platform_key: str, list_key: str, operation: str, value: str
+) -> str:
     """对 config.yml 中的列表字段执行 add/remove，返回新的 YAML 内容（保留其他配置）"""
     with open(config_path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
@@ -1621,9 +1673,12 @@ async def assistant_apply_action(request: Request):
         # 微博添加时 value 须为数字 UID，昵称需通过「关注XX的微博」由系统搜索选择
         if platform_key == "weibo" and operation == "add":
             from src.weibo_search import is_numeric_uid
+
             if not is_numeric_uid(value):
                 return JSONResponse(
-                    {"error": "微博添加请使用 UID（纯数字）。可通过对话说「关注XX的微博」由系统搜索并选择后写入。"},
+                    {
+                        "error": "微博添加请使用 UID（纯数字）。可通过对话说「关注XX的微博」由系统搜索并选择后写入。"
+                    },
                     status_code=400,
                 )
 
@@ -1631,9 +1686,12 @@ async def assistant_apply_action(request: Request):
             config_path = Path("config.yml")
             if not config_path.exists():
                 return JSONResponse({"error": "配置文件不存在"}, status_code=404)
-            yaml_content = _apply_config_patch(config_path, platform_key, list_key, operation, value)
+            yaml_content = _apply_config_patch(
+                config_path, platform_key, list_key, operation, value
+            )
 
             import tempfile
+
             temp_file = None
             try:
                 with tempfile.NamedTemporaryFile(
@@ -1644,6 +1702,7 @@ async def assistant_apply_action(request: Request):
                 try:
                     test_config_dict = load_config_from_yml(temp_file)
                     from src.config import AppConfig
+
                     AppConfig(**test_config_dict)
                 except Exception as e:
                     return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
@@ -1661,13 +1720,26 @@ async def assistant_apply_action(request: Request):
             get_config(reload=True)
             try:
                 from src.ai_assistant.config import get_ai_config
+
                 get_ai_config(reload=True)
             except ImportError:
                 pass
 
             op_text = "添加" if operation == "add" else "移除"
-            display = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书"}.get(platform_key, platform_key)
-            return JSONResponse({"success": True, "message": f"已从{display}监控列表{op_text}「{value}」，配置已热重载"})
+            display = {
+                "weibo": "微博",
+                "huya": "虎牙",
+                "bilibili": "哔哩哔哩",
+                "douyin": "抖音",
+                "douyu": "斗鱼",
+                "xhs": "小红书",
+            }.get(platform_key, platform_key)
+            return JSONResponse(
+                {
+                    "success": True,
+                    "message": f"已从{display}监控列表{op_text}「{value}」，配置已热重载",
+                }
+            )
         except Exception as e:
             logger.error("apply-action config_patch 执行失败: %s", e)
             return JSONResponse({"error": str(e)}, status_code=500)
@@ -1676,24 +1748,41 @@ async def assistant_apply_action(request: Request):
         section_key = body.get("section_key") or body.get("platform_key")  # 兼容旧字段名
         field_key = body.get("field_key")
         value = body.get("value")
-        CONFIG_FIELD_ALLOWED = {
-            ("weibo", "monitor_interval_seconds"), ("huya", "monitor_interval_seconds"),
-            ("bilibili", "monitor_interval_seconds"), ("douyin", "monitor_interval_seconds"),
-            ("douyu", "monitor_interval_seconds"), ("xhs", "monitor_interval_seconds"),
-            ("weibo", "concurrency"), ("huya", "concurrency"), ("bilibili", "concurrency"),
-            ("douyin", "concurrency"), ("douyu", "concurrency"), ("xhs", "concurrency"),
-            ("weibo_chaohua", "time"), ("checkin", "time"), ("tieba", "time"), ("rainyun", "time"),
-            ("log_cleanup", "time"), ("log_cleanup", "retention_days"),
-            ("quiet_hours", "start"), ("quiet_hours", "end"), ("quiet_hours", "start_end"),
+        config_field_allowed = {
+            ("weibo", "monitor_interval_seconds"),
+            ("huya", "monitor_interval_seconds"),
+            ("bilibili", "monitor_interval_seconds"),
+            ("douyin", "monitor_interval_seconds"),
+            ("douyu", "monitor_interval_seconds"),
+            ("xhs", "monitor_interval_seconds"),
+            ("weibo", "concurrency"),
+            ("huya", "concurrency"),
+            ("bilibili", "concurrency"),
+            ("douyin", "concurrency"),
+            ("douyu", "concurrency"),
+            ("xhs", "concurrency"),
+            ("weibo_chaohua", "time"),
+            ("checkin", "time"),
+            ("tieba", "time"),
+            ("rainyun", "time"),
+            ("log_cleanup", "time"),
+            ("log_cleanup", "retention_days"),
+            ("quiet_hours", "start"),
+            ("quiet_hours", "end"),
+            ("quiet_hours", "start_end"),
         }
-        if (section_key, field_key) not in CONFIG_FIELD_ALLOWED:
-            return JSONResponse({"error": f"不支持的配置: {section_key}.{field_key}"}, status_code=400)
+        if (section_key, field_key) not in config_field_allowed:
+            return JSONResponse(
+                {"error": f"不支持的配置: {section_key}.{field_key}"}, status_code=400
+            )
         # start_end 特殊处理：拆分为 start 和 end
         config_updates = {}
         if field_key == "start_end" and section_key == "quiet_hours":
             parts = str(value).split(",", 1)
             if len(parts) == 2:
-                config_updates = {"quiet_hours": {"start": parts[0].strip(), "end": parts[1].strip()}}
+                config_updates = {
+                    "quiet_hours": {"start": parts[0].strip(), "end": parts[1].strip()}
+                }
         else:
             if field_key in ("monitor_interval_seconds", "concurrency", "retention_days"):
                 try:
@@ -1713,6 +1802,7 @@ async def assistant_apply_action(request: Request):
                 return JSONResponse({"error": "配置文件不存在"}, status_code=404)
             yaml_content = _merge_and_dump_config(config_path, config_updates)
             import tempfile
+
             temp_file = None
             try:
                 with tempfile.NamedTemporaryFile(
@@ -1723,6 +1813,7 @@ async def assistant_apply_action(request: Request):
                 try:
                     test_config_dict = load_config_from_yml(temp_file)
                     from src.config import AppConfig
+
                     AppConfig(**test_config_dict)
                 except Exception as e:
                     return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
@@ -1738,11 +1829,24 @@ async def assistant_apply_action(request: Request):
             get_config(reload=True)
             try:
                 from src.ai_assistant.config import get_ai_config
+
                 get_ai_config(reload=True)
             except ImportError:
                 pass
-            _display_map = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
-                           "weibo_chaohua": "超话签到", "checkin": "iKuuu", "tieba": "贴吧", "rainyun": "雨云", "log_cleanup": "日志清理", "quiet_hours": "免打扰"}
+            _display_map = {
+                "weibo": "微博",
+                "huya": "虎牙",
+                "bilibili": "哔哩哔哩",
+                "douyin": "抖音",
+                "douyu": "斗鱼",
+                "xhs": "小红书",
+                "weibo_chaohua": "超话签到",
+                "checkin": "iKuuu",
+                "tieba": "贴吧",
+                "rainyun": "雨云",
+                "log_cleanup": "日志清理",
+                "quiet_hours": "免打扰",
+            }
             display = _display_map.get(section_key, section_key)
             if field_key == "monitor_interval_seconds":
                 msg = f"已将{display}监控间隔修改为 {value} 秒"
@@ -1808,6 +1912,7 @@ async def assistant_apply_action(request: Request):
         yaml_content = _merge_and_dump_config(config_path, config_data)
 
         import tempfile
+
         temp_file = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -1818,6 +1923,7 @@ async def assistant_apply_action(request: Request):
             try:
                 test_config_dict = load_config_from_yml(temp_file)
                 from src.config import AppConfig
+
                 AppConfig(**test_config_dict)
             except Exception as e:
                 return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
@@ -1835,18 +1941,39 @@ async def assistant_apply_action(request: Request):
         get_config(reload=True)
         try:
             from src.ai_assistant.config import get_ai_config
+
             get_ai_config(reload=True)
         except ImportError:
             pass
 
         action_text = "开启" if enable else "关闭"
-        _disp = {"weibo": "微博", "huya": "虎牙", "bilibili": "哔哩哔哩", "douyin": "抖音", "douyu": "斗鱼", "xhs": "小红书",
-                 "weibo_chaohua": "微博超话签到", "checkin": "iKuuu 签到", "tieba": "贴吧签到", "rainyun": "雨云签到",
-                 "aliyun": "阿里云盘签到", "smzdm": "值得买签到", "kuake": "夸克签到", "weather": "天气推送",
-                 "log_cleanup": "日志清理", "quiet_hours": "免打扰"}
+        _disp = {
+            "weibo": "微博",
+            "huya": "虎牙",
+            "bilibili": "哔哩哔哩",
+            "douyin": "抖音",
+            "douyu": "斗鱼",
+            "xhs": "小红书",
+            "weibo_chaohua": "微博超话签到",
+            "checkin": "iKuuu 签到",
+            "tieba": "贴吧签到",
+            "rainyun": "雨云签到",
+            "aliyun": "阿里云盘签到",
+            "smzdm": "值得买签到",
+            "kuake": "夸克签到",
+            "weather": "天气推送",
+            "log_cleanup": "日志清理",
+            "quiet_hours": "免打扰",
+        }
         display = _disp.get(platform_key, platform_key)
-        suffix = "监控" if platform_key in ("weibo", "huya", "bilibili", "douyin", "douyu", "xhs") else ""
-        return JSONResponse({"success": True, "message": f"已{action_text}{display}{suffix}，配置已热重载"})
+        suffix = (
+            "监控"
+            if platform_key in ("weibo", "huya", "bilibili", "douyin", "douyu", "xhs")
+            else ""
+        )
+        return JSONResponse(
+            {"success": True, "message": f"已{action_text}{display}{suffix}，配置已热重载"}
+        )
     except Exception as e:
         logger.error("apply-action 执行失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -1859,6 +1986,7 @@ async def assistant_reindex(request: Request):
     if err:
         return err
     from src.ai_assistant.indexer import build_docs_index
+
     try:
         build_docs_index()
         return JSONResponse({"status": "ok", "message": "索引已重建"})
@@ -1982,6 +2110,7 @@ async def webhook_telegram(request: Request, channel_name: str):
 
     if chat_id and text and api_token:
         import asyncio
+
         asyncio.create_task(send_telegram_message(api_token, chat_id, text))
 
     return JSONResponse({"ok": True})

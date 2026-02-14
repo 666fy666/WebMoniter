@@ -42,7 +42,7 @@
 |:-----|:--------|:--------|:----------|:--------|
 | 微博超话签到 | `weibo_chaohua` | 23:45 | Cookie（XSRF-TOKEN） | [定时任务详解](tasks/checkin.md) |
 | iKuuu 签到 | `checkin` | 08:00 | 邮箱+密码 | [定时任务详解](tasks/checkin.md) |
-| 雨云签到 | `rainyun` | 08:30 | API Key | [定时任务详解](tasks/checkin.md) |
+| 雨云签到 | `rainyun` | 08:30 | 账号+密码（api_key 可选续费） | [定时任务详解](tasks/checkin.md) |
 | 百度贴吧签到 | `tieba` | 08:10 | Cookie（BDUSS） | [定时任务详解](tasks/checkin.md) |
 | 恩山论坛签到 | `enshan` | 02:00 | Cookie | [定时任务详解](tasks/checkin.md) |
 | 天翼云盘签到 | `tyyun` | 04:30 | 手机号+密码 | [定时任务详解](tasks/checkin.md) |

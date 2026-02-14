@@ -614,22 +614,44 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="config-label">API Key</td>
-                            <td><input type="password" id="rainyun_api_key" class="form-input" placeholder="雨云 API 密钥（多 API Key 时可不填）"></td>
-                        </tr>
-                        <tr>
-                            <td class="config-label">多 API Key</td>
+                            <td class="config-label">多账号</td>
                             <td>
-                                <div id="rainyun_api_keys_list" class="multi-cookies-list"></div>
-                                <button type="button" id="rainyun_add_api_key_btn" class="btn btn-secondary" style="margin-top: 10px;">
+                                <div id="rainyun_accounts_list" class="multi-accounts-list"></div>
+                                <button type="button" id="rainyun_add_account_btn" class="btn btn-secondary" style="margin-top: 10px;">
                                     <span>➕</span>
-                                    添加 API Key
+                                    添加账号
                                 </button>
+                                <p class="help-text">每项需填写用户名、密码；API Key 可选，用于服务器续费（登录雨云 → 总览 → 用户 → 账户设置 → API 密钥）</p>
                             </td>
                         </tr>
                         <tr>
                             <td class="config-label">签到时间</td>
                             <td><input type="time" id="rainyun_time" class="form-input" value="08:30"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">自动续费</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="rainyun_auto_renew" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="rainyun_auto_renew_label">开启</span>
+                                <p class="help-text">签到后检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天（参考 Rainyun-Qiandao）</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">续费阈值（天）</td>
+                            <td>
+                                <input type="number" id="rainyun_renew_threshold_days" class="form-input" min="1" max="30" value="7" placeholder="7">
+                                <p class="help-text">剩余天数小于等于此时触发续费检查</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">续费白名单</td>
+                            <td>
+                                <input type="text" id="rainyun_renew_product_ids" class="form-input" placeholder="留空续费全部，或填产品 ID 如 44500,44501">
+                                <p class="help-text">产品 ID 列表，逗号分隔；留空则续费所有即将到期的服务器</p>
+                            </td>
                         </tr>
                         <tr>
                             <td class="config-label">推送通道</td>
@@ -640,7 +662,7 @@
                         </tr>
                     </table>
                     <div class="help-box" style="margin-top: 16px;">
-                        <p>使用 API Key 认证，需通过腾讯验证码验证。获取 API Key：登录<a href="https://app.rainyun.com/" target="_blank">雨云</a> → 总览 → 用户 → 账户设置 → API 密钥。支持多 API Key 依次签到。系统会在指定时间自动执行签到，项目启动时若启用也会执行一次。</p>
+                        <p>使用账号密码登录雨云网页，通过 ddddocr 完成验证码识别（参考 <a href="https://github.com/Jielumoon/Rainyun-Qiandao" target="_blank">Rainyun-Qiandao</a>）。需安装 Chrome/Chromium 及 chromedriver。系统会在指定时间自动执行签到，项目启动时若启用也会执行一次。签到完成后会检查游戏云服务器到期并自动续费。</p>
                     </div>
                 </div>
             </div>
@@ -1702,7 +1724,7 @@
                         </tr>
                     </table>
                     <div class="help-box" style="margin-top: 16px;">
-                        <p>需安装 <code>uv sync --extra ai</code>。在配置/任务/数据页底部有悬浮「问 AI」入口。</p>
+                        <p>在配置/任务/数据页底部有悬浮「问 AI」入口。</p>
                     </div>
                 </div>
             </div>

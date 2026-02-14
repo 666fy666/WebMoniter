@@ -37,7 +37,7 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 - ✅ **Cookie管理**：智能Cookie缓存和过期检测机制
 - ✅ **免打扰时段**：支持配置免打扰时段，静默运行监控任务
 - ✅ **版本更新检测**：自动检测 GitHub 新版本并在 Web 界面提示更新
-- ✅ **AI 助手**：RAG 检索 + LLM 对话，支持配置生成、日志诊断、数据洞察、可执行操作（需安装 `uv sync --extra ai`）
+- ✅ **AI 助手**：RAG 检索 + LLM 对话，支持配置生成、日志诊断、数据洞察、可执行操作
 
 ---
 
@@ -590,7 +590,7 @@ logs/
 - 数据洞察：谁开播、谁发博、开播频率等
 - 可执行操作：关闭/开启某平台监控，添加/移除监控列表项（需用户确认）
 
-**依赖**：需安装 `uv sync --extra ai`（chromadb、httpx、openai）。
+**依赖**：chromadb、httpx、openai（已包含在默认 `uv sync` 中）。
 
 ---
 
@@ -958,7 +958,20 @@ WebMoniter/
 │   ├── ikuuu_checkin.py    # iKuuu签到
 │   ├── tieba_checkin.py    # 百度贴吧签到
 │   ├── weibo_chaohua_checkin.py  # 微博超话签到
-│   ├── rainyun_checkin.py       # 雨云签到
+│   ├── rainyun_checkin.py       # 雨云签到（入口，逻辑在 rainyun/ 子包）
+│   ├── rainyun/                 # 雨云签到子包（Selenium + ddddocr 验证码、API 续费、服务器到期检查）
+│   │   ├── __init__.py
+│   │   ├── config_adapter.py    # 配置适配
+│   │   ├── runner.py            # 单账号签到执行
+│   │   ├── captcha.py           # 验证码识别（ddddocr）
+│   │   ├── api_client.py        # 雨云 API 客户端（续费等）
+│   │   ├── server_manager.py    # 服务器到期检查与续费
+│   │   ├── browser/             # Selenium 浏览器操作
+│   │   │   ├── session.py
+│   │   │   ├── pages.py
+│   │   │   ├── cookies.py
+│   │   │   └── ...
+│   │   └── utils/               # 工具函数
 │   ├── enshan_checkin.py        # 恩山论坛签到
 │   ├── fg_checkin.py            # 富贵论坛签到
 │   ├── aliyun_checkin.py        # 阿里云盘签到

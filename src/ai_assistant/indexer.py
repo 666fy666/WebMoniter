@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 def build_docs_index() -> None:
     """构建/重建文档索引（Chroma 向量库全量更新）"""
     from src.ai_assistant.rag import rebuild_chroma_docs
+
     rebuild_chroma_docs()
 
 

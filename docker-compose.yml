@@ -4,7 +4,7 @@ services:
     container_name: webmoniter
     restart: unless-stopped
     init: true
-    shm_size: 64m
+    shm_size: 256m
     deploy:
       resources:
         limits:
@@ -21,9 +21,11 @@ services:
       - TZ=Asia/Shanghai
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONNOUSERSITE=1
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8866/', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s

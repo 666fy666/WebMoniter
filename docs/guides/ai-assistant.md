@@ -7,6 +7,12 @@ AI 助手通过 RAG（检索增强生成）+ LLM 为 WebMoniter 提供智能对�
 - **Web 界面**：在**配置管理**、**任务管理**、**数据展示**页面底部有悬浮「问 AI」按钮
 - **推送平台**：支持在企业微信、Telegram 等具备交互能力的推送渠道中与 AI 对话
 
+### Web 界面示意
+
+| 功能介绍 | 修改配置 | 执行任务 | 查询数据 |
+|:--------:|:--------:|:--------:|:--------:|
+| ![AI助手功能介绍](../assets/screenshots/AI助手功能介绍.png){ width="200" } | ![AI助手修改配置](../assets/screenshots/AI助手修改配置.png){ width="200" } | ![AI助手执行任务](../assets/screenshots/AI助手执行任务.png){ width="200" } | ![AI助手查询数据](../assets/screenshots/AI助手查询数据.png){ width="200" } |
+
 ## 平台交互接入
 
 以下推送渠道支持接收用户消息并回复 AI 助手，可在对应应用中直接对话：
@@ -28,6 +34,12 @@ AI 助手通过 RAG（检索增强生成）+ LLM 为 WebMoniter 提供智能对�
    - URL 填：`https://你的域名/api/webhooks/wecom`
    - Token、EncodingAESKey 与 config.yml 中保持一致
 3. 保存后，成员在企业微信中向该应用发送文字即可与 AI 对话
+
+**企业微信后台与交互示意**：
+
+| 后台配置 | 查询数据（1） | 查询数据（2） | 查询数据（3） |
+|:--------:|:-------------:|:-------------:|:-------------:|
+| ![企业微信后台介绍](../assets/screenshots/企业微信后台介绍.jpg){ width="200" } | ![企业微信查询数据1](../assets/screenshots/企业微信查询数据1.jpg){ width="200" } | ![企业微信查询数据2](../assets/screenshots/企业微信查询数据2.jpg){ width="200" } | ![企业微信查询数据3](../assets/screenshots/企业微信查询数据3.jpg){ width="200" } |
 
 ### Telegram 接入步骤
 
@@ -89,7 +101,7 @@ ai_assistant:
 ## 安装依赖
 
 ```bash
-uv sync --extra ai
+uv sync
 ```
 
 需安装 `openai`、`httpx`、`chromadb`（可选，用于向量检索）。

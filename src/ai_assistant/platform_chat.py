@@ -49,7 +49,6 @@ async def chat_for_platform(
         conversation_id = create_conversation(user_id=user_id, title="新对话")
 
     # 推送平台通常无法执行 apply-action，skip_executable_intent=True 时直接走 LLM
-    suggested_action = None
     if not skip_executable_intent:
         from src.ai_assistant.intent_parser import (
             parse_config_field_intent,
@@ -74,7 +73,9 @@ async def chat_for_platform(
         patch = parse_config_patch_intent(message)
         if patch is not None:
             op_text = "添加" if patch.operation == "add" else "移除"
-            reply = f"好的，将{patch.display_name}中{op_text}「{patch.value}」。请在 Web 管理界面操作。"
+            reply = (
+                f"好的，将{patch.display_name}中{op_text}「{patch.value}」。请在 Web 管理界面操作。"
+            )
             append_messages(conversation_id, message, reply, user_id=user_id)
             return reply, None
 

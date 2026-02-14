@@ -1,11 +1,15 @@
 [project]
 name = "web-monitor"
-version = "2.0.7"
+version = "2.1.0"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
+    "selenium>=4.27.0",
+    "ddddocr>=1.5.0,<1.6.0",
+    "opencv-python-headless>=4.8.0",
+    "numpy>=1.24.0",
     "aiosqlite>=0.19.0",
     "pydantic>=2.5.0",
     "apscheduler>=3.10.0",
@@ -21,14 +25,12 @@ dependencies = [
     "pillow>=10.0.0",
     "rsa>=4.9",
     "pycryptodome>=3.19.0",
-]
-
-[project.optional-dependencies]
-ai = [
     "chromadb>=0.4.0",
     "httpx>=0.25.0",
     "openai>=1.0.0",
 ]
+
+[project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -51,6 +53,7 @@ packages = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+exclude = [".git", ".venv", "weworkapi_python"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -59,8 +62,13 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 # 监控模块在文件末尾 import register_* 以避免循环依赖
 "monitors/*.py" = ["E402"]
+# Selenium 常用 expected_conditions as EC 的惯例
+"tasks/rainyun/**/*.py" = ["N812"]
+# wecom_crypto 需条件 import 及 ElementTree 兼容映射
+"src/ai_assistant/wecom_crypto.py" = ["E402", "N814"]
 
 [tool.black]
 line-length = 100
 target-version = ["py310"]
+extend-exclude = "weworkapi_python"
 

@@ -17,7 +17,7 @@ COPY pyproject.toml uv.lock ./
 # --frozen: 严格按照 uv.lock 安装
 # --no-dev: 不安装开发环境依赖
 # --no-install-project: 不将当前项目作为包安装
-RUN uv sync --frozen --no-dev --no-install-project --extra ai && \
+RUN uv sync --frozen --no-dev --no-install-project && \
     # 清理 uv 缓存和临时文件
     rm -rf /root/.cache/uv && \
     find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
@@ -25,9 +25,39 @@ RUN uv sync --frozen --no-dev --no-install-project --extra ai && \
     find /app/.venv -type f -name "*.pyo" -delete
 
 # ============================================
-# 运行阶段：最小化镜像
+# 运行阶段：最小化镜像（含 Chromium 支持雨云签到）
 # ============================================
 FROM python:3.11-slim
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 安装 Chromium 及依赖（雨云签到需 Selenium + 验证码识别）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    chromium \
+    chromium-driver \
+    libglib2.0-0 \
+    libnss3 \
+    libfontconfig1 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    libgl1 \
+    libgbm1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
 WORKDIR /app
@@ -37,8 +67,8 @@ COPY --from=builder /app/.venv /app/.venv
 
 # 复制项目源代码（只复制运行时需要的文件）
 # pyproject.toml 用于版本号读取
-# docs/、README.md 供 AI 助手 RAG 检索
-COPY pyproject.toml main.py ./
+# docs/、README.md、config.yml.sample 供 AI 助手 RAG 检索
+COPY pyproject.toml main.py config.yml.sample ./
 COPY monitors/ ./monitors/
 COPY src/ ./src/
 COPY tasks/ ./tasks/
@@ -48,9 +78,12 @@ COPY README.md ./
 
 # 设置环境变量
 # PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块
+# 雨云签到：Chromium 路径（Debian/Ubuntu 安装后默认位置）
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    CHROME_BIN=/usr/bin/chromium \
+    CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 # 运行主程序（直接使用 venv 中的 python，避免 uv run 的开销）
 CMD ["python", "main.py"]
