@@ -38,6 +38,7 @@ docker compose up -d
 !!! tip "提示"
     - `config.yml` 支持热重载（约 5 秒生效），无需重启
     - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
+    - 容器启动时会通过入口脚本自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
 
 ---
 

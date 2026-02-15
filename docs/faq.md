@@ -67,3 +67,12 @@
 
 ??? question "Docker 部署下雨云签到如何启用？"
     Docker 镜像已内置 Chromium。在 `config.yml` 中设置 `rainyun.enable: true` 并配置 `rainyun.accounts`（每项含 `username`、`password`，`api_key` 可选用于续费）即可。容器启动时自动使用 `/usr/bin/chromium` 和 `/usr/bin/chromedriver`。若使用自建镜像且 Chromium 路径不同，可配置 `rainyun.chrome_bin` 与 `rainyun.chromedriver_path`，或设置环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
+
+---
+
+??? question "Docker 下 RAG 向量库更新失败或报「database is locked / no such table: tenants」？"
+    镜像已通过 **docker-entrypoint.sh** 在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
+
+    1. **确认使用含入口脚本的镜像**：重新构建或拉取最新镜像后执行 `docker compose up -d`
+    2. **Chroma schema 不兼容**：若曾升级 Chroma 版本，可删除宿主机上的 `./data/ai_assistant_chroma` 目录后重启容器，由 RAG 定时任务自动重建向量库
+    3. **宿主机权限**：在 Linux 宿主机上可执行 `chmod -R 777 ./data ./logs` 后再启动容器

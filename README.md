@@ -192,6 +192,7 @@ docker compose up -d
 > 💡 **提示**：
 > - `config.yml` 支持热重载（约 5 秒生效），无需重启
 > - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
+> - 容器启动时会通过入口脚本自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
 
 <br/>
 
@@ -376,7 +377,7 @@ uv run python main.py &
 | 配置类型       | 说明                                                                                                                                                                                   |
 |:--------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **应用配置**   | 所有配置项（微博/虎牙监控、iKuuu/雨云/贴吧/微博超话签到、调度器、免打扰、推送通道等）的说明与示例均在 **[`config.yml.sample`](config.yml.sample)** 中，以注释形式写在对应字段旁。复制为 `config.yml` 后按需修改即可；修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。 |
-| **Docker 编排** | Docker 部署时的编排与运行参数（镜像、端口、卷挂载、资源限制、健康检查等）见 **[`docker-compose.yml`](docker-compose.yml)**；可按需修改端口、时区、内存限制等，修改后执行 `docker compose up -d` 使变更生效。                                |
+| **Docker 编排** | Docker 部署时的编排与运行参数（镜像、端口、卷挂载、资源限制、健康检查等）见 **[`docker-compose.yml`](docker-compose.yml)**；可按需修改端口、时区、内存限制等，修改后执行 `docker compose up -d` 使变更生效。镜像通过 **[`docker-entrypoint.sh`](docker-entrypoint.sh)** 在启动前为挂载的 `data/`、`logs/` 赋予读写权限，确保 SQLite 与 RAG 向量库可正常写入。 |
 
 **相关链接**：[支持的平台和推送通道](#-支持的平台和推送通道) · [文档站](https://666fy666.github.io/WebMoniter/)
 
@@ -437,6 +438,17 @@ uv run python main.py &
 |:------------:|:--------------:|:--------------:|
 | Docker 部署  | `./data/` 目录 | `./logs/` 目录 |
 | 本地部署     | `./data/` 目录 | `./logs/` 目录 |
+
+</details>
+
+<details>
+<summary><strong>Q: Docker 下 RAG 向量库更新失败或报「database is locked / no such table: tenants」？</strong></summary>
+
+镜像已通过 **`docker-entrypoint.sh`** 在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
+
+1. **确认使用含入口脚本的镜像**：重新构建或拉取最新镜像后执行 `docker compose up -d`
+2. **Chroma  schema 不兼容**：若曾升级 Chroma 版本，可删除宿主机上的 `./data/ai_assistant_chroma` 目录后重启容器，由 RAG 定时任务自动重建向量库
+3. **宿主机权限**：在 Linux 宿主机上可执行 `chmod -R 777 ./data ./logs` 后再启动容器
 
 </details>
 

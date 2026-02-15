@@ -35,7 +35,7 @@
 | 配置类型   | 说明 |
 |:----------:|:-----|
 | **应用配置** | 监控、签到、推送、免打扰等均在 **`config.yml.sample`** 中有注释说明。以该文件为模板复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | 镜像、端口、卷挂载等见 **`docker-compose.yml`**。修改后执行 `docker compose up -d` 使变更生效。 |
+| **Docker 编排** | 镜像、端口、卷挂载等见 **`docker-compose.yml`**；入口脚本 **`docker-entrypoint.sh`** 会在启动前为 `data/`、`logs/` 赋予读写权限。修改后执行 `docker compose up -d` 使变更生效。 |
 
 ---
 

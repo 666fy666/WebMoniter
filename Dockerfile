@@ -77,6 +77,8 @@ COPY tasks/ ./tasks/
 COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
+COPY docker-entrypoint.sh ./
+RUN chmod +x /app/docker-entrypoint.sh
 
 # 设置环境变量
 # PYTHONPATH=/app 确保 python 能直接导入当前目录下的模块
@@ -87,5 +89,5 @@ ENV PYTHONUNBUFFERED=1 \
     CHROME_BIN=/usr/bin/chromium \
     CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# 运行主程序（直接使用 venv 中的 python，避免 uv run 的开销）
-CMD ["python", "main.py"]
+# 入口脚本：启动前为 data/logs 目录赋予读写权限（解决 bind mount 只读导致 SQLite/Chroma 写入失败），再启动主程序
+CMD ["/app/docker-entrypoint.sh"]
