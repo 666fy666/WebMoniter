@@ -618,7 +618,6 @@ ai_assistant:
   embedding_model: text-embedding-3-small  # RAG 嵌入模型
   # 向量库存储目录（仅保留最新一份；重建时会清空该目录并重建，请勿在此目录下手动存放其他文件）
   chroma_persist_dir: data/ai_assistant_chroma
-  rag_index_refresh_interval_seconds: 1800  # 向量库更新间隔（秒），默认 30 分钟
   rate_limit_per_minute: 10  # 每分钟请求限制
   max_history_rounds: 10  # 多轮对话保留最近 N 轮
 

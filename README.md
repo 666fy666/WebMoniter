@@ -447,7 +447,7 @@ uv run python main.py &
 镜像已通过 **`docker-entrypoint.sh`** 在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
 
 1. **确认使用含入口脚本的镜像**：重新构建或拉取最新镜像后执行 `docker compose up -d`
-2. **Chroma  schema 不兼容**：若曾升级 Chroma 版本，可删除宿主机上的 `./data/ai_assistant_chroma` 目录后重启容器，由 RAG 定时任务自动重建向量库
+2. **Chroma  schema 不兼容**：若曾升级 Chroma 版本，可删除宿主机上的 `./data/ai_assistant_chroma` 目录后重启容器，由启动时自动重建向量库
 3. **宿主机权限**：在 Linux 宿主机上可执行 `chmod -R 777 ./data ./logs` 后再启动容器
 
 </details>

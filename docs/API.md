@@ -478,14 +478,6 @@ Content-Type: application/json
 
 成功返回 `{"success": true, "message": "..."}`；失败返回 `{"error": "..."}`，HTTP 状态码 400/500。
 
-#### 重建 RAG 索引
-
-```http
-POST /api/assistant/reindex
-```
-
-手动重建向量库索引。成功返回 `{"status": "ok", "message": "索引已重建"}`。
-
 ---
 
 ### 8. Webhook 回调（AI 助手入口）

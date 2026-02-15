@@ -82,7 +82,6 @@ ai_assistant:
   model: deepseek-chat
   embedding_model: text-embedding-3-small
   chroma_persist_dir: data/ai_assistant_chroma
-  rag_index_refresh_interval_seconds: 1800  # 向量库更新间隔（秒），默认 30 分钟
   rate_limit_per_minute: 10
   max_history_rounds: 10
 ```
@@ -107,7 +106,7 @@ uv sync
 需安装 `openai`、`httpx`、`chromadb`（可选，用于向量检索）。
 
 **数据来源**：AI 检索时使用
-- **文档**：`docs/*.md` 与 `README.md`，按 Markdown 标题结构分块，存入 Chroma 向量库，采用**向量 + BM25 混合检索**与 **RRF 重排**，检索到同一文档的多个子块时会智能去重并合并为完整父文档；每 30 分钟自动重建（可通过 `rag_index_refresh_interval_seconds` 配置）
+- **文档**：`docs/*.md` 与 `README.md`，按 Markdown 标题结构分块，存入 Chroma 向量库，采用**向量 + BM25 混合检索**与 **RRF 重排**，检索到同一文档的多个子块时会智能去重并合并为完整父文档；项目启动时若 AI 助手已启用则自动构建向量库
 - **配置**：`config.yml.sample` 模板 + 实际 `config.yml`（敏感字段如 cookie、api_key 会自动脱敏）
 - **日志**：`logs/main_*.log` 最近 500 行，支持中文关键词（开播、发博等）的智能匹配
 

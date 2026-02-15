@@ -1963,8 +1963,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (emb) emb.value = a.embedding_model || '';
                     const chroma = document.getElementById('ai_assistant_chroma_persist_dir');
                     if (chroma) chroma.value = a.chroma_persist_dir || '';
-                    const ragInterval = document.getElementById('ai_assistant_rag_index_refresh_interval_seconds');
-                    if (ragInterval) ragInterval.value = a.rag_index_refresh_interval_seconds ?? 1800;
                     const rate = document.getElementById('ai_assistant_rate_limit_per_minute');
                     if (rate) rate.value = a.rate_limit_per_minute ?? 10;
                     const maxRounds = document.getElementById('ai_assistant_max_history_rounds');
@@ -2460,7 +2458,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
                     embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
                     chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
-                    rag_index_refresh_interval_seconds: parseInt(document.getElementById('ai_assistant_rag_index_refresh_interval_seconds')?.value || '1800', 10) || 1800,
                     rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
                     max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
                 };
@@ -2627,7 +2624,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
             embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
             chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
-            rag_index_refresh_interval_seconds: parseInt(document.getElementById('ai_assistant_rag_index_refresh_interval_seconds')?.value || '1800', 10) || 1800,
             rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
             max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
         };

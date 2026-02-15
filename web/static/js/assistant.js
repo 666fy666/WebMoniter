@@ -9,7 +9,6 @@
         chat: '/api/assistant/chat',
         chatStream: '/api/assistant/chat/stream',
         applyAction: '/api/assistant/apply-action',
-        reindex: '/api/assistant/reindex',
     };
     let aiEnabled = false;
     let currentConversationId = null;

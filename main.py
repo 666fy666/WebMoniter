@@ -17,7 +17,6 @@ from src.database import close_shared_connection
 from src.job_registry import (
     MONITOR_JOB_ENABLE_FIELD_MAP,
     MONITOR_JOBS,
-    RAG_JOBS,
     TASK_JOBS,
     discover_and_import,
 )
@@ -50,34 +49,16 @@ async def register_monitors(scheduler: TaskScheduler) -> None:
                 job_id=desc.job_id,
                 **kwargs,
             )
-    # RAG 索引更新任务（间隔触发，依赖 ai_assistant 配置）
-    for desc in RAG_JOBS:
-        kwargs = desc.get_trigger_kwargs(config)
-        scheduler.add_interval_job(
-            func=desc.run_func,
-            job_id=desc.job_id,
-            **kwargs,
-        )
     # 监控任务：若配置中未启用，则暂停调度
     for desc in MONITOR_JOBS:
         enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(desc.job_id)
         if enable_field is not None and not getattr(config, enable_field, True):
             scheduler.pause_job(desc.job_id)
 
-    # RAG 任务：若 AI 助手未启用则暂停
-    try:
-        from src.ai_assistant.config import is_ai_enabled
-
-        for desc in RAG_JOBS:
-            if not is_ai_enabled():
-                scheduler.pause_job(desc.job_id)
-    except Exception as e:
-        logger.debug("RAG 任务启用检查跳过: %s", e)
-
     # 启动时立即执行一次所有任务
     # 监控任务每次都执行，定时任务会自动检查当天是否已运行过
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
-    all_jobs = MONITOR_JOBS + TASK_JOBS + RAG_JOBS
+    all_jobs = MONITOR_JOBS + TASK_JOBS
 
     for desc in all_jobs:
         try:
@@ -124,27 +105,6 @@ async def on_config_changed(
             )
             if update_info:
                 updates.append(update_info)
-
-        # RAG 索引任务：根据 ai_assistant 配置更新间隔与启用状态
-        try:
-            from src.ai_assistant.config import get_ai_config, is_ai_enabled
-
-            get_ai_config(reload=True)
-            for desc in RAG_JOBS:
-                if is_ai_enabled():
-                    scheduler.resume_job(desc.job_id)
-                    kwargs = desc.get_trigger_kwargs(new_config)
-                    update_info = scheduler.update_interval_job(
-                        job_id=desc.job_id,
-                        **kwargs,
-                    )
-                    if update_info:
-                        updates.append(update_info)
-                else:
-                    scheduler.pause_job(desc.job_id)
-                    updates.append("rag_index_refresh(已暂停)")
-        except Exception as e:
-            logger.debug("RAG 任务配置更新跳过: %s", e)
 
         if old_config is not None:
             if (
@@ -229,6 +189,19 @@ async def main() -> None:
         logger.error("配置加载失败: %s", e)
         logger.error("请确保已创建 config.yml 并配置必要项，可参考 config.yml.sample")
         sys.exit(1)
+
+    # 若启用 AI 助手，启动前构建 RAG 向量库（docs/*.md、README.md）
+    try:
+        from src.ai_assistant.config import is_ai_enabled
+
+        if is_ai_enabled():
+            from src.ai_assistant.indexer import build_docs_index
+
+            logger.info("正在构建 RAG 向量库...")
+            await asyncio.to_thread(build_docs_index)
+            logger.info("RAG 向量库构建完成")
+    except Exception as e:
+        logger.debug("RAG 向量库构建跳过: %s", e)
 
     await cookie_cache.reset_all()
 

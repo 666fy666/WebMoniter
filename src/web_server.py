@@ -22,7 +22,6 @@ from src.config import get_config, load_config_from_yml
 from src.database import AsyncDatabase
 from src.job_registry import (
     MONITOR_JOBS,
-    RAG_JOBS,
     TASK_JOBS,
     discover_and_import,
     run_task_with_logging,
@@ -358,18 +357,6 @@ async def get_tasks_api(request: Request):
                 }
             )
 
-        # 添加 RAG 向量库定时任务
-        for job in RAG_JOBS:
-            tasks.append(
-                {
-                    "job_id": job.job_id,
-                    "trigger": job.trigger,
-                    "type": "task",
-                    "type_label": "定时任务",
-                    "description": _get_job_description(job.job_id),
-                }
-            )
-
         return JSONResponse({"success": True, "tasks": tasks})
     except Exception as e:
         logger.error(f"获取任务列表失败: {e}")
@@ -415,7 +402,6 @@ def _get_job_description(job_id: str) -> str:
         "zgfc_draw": "中国福彩抽奖活动",
         "ssq_500w_notice": "双色球开奖通知（守号+冷号机选）",
         "demo_task": "示例任务（二次开发演示）",
-        "rag_index_refresh": "RAG 向量库重建",
     }
     return descriptions.get(job_id, f"任务 {job_id}")
 
@@ -432,7 +418,7 @@ async def run_task_api(request: Request, task_id: str):
         discover_and_import()
 
         # 查找任务
-        all_jobs = MONITOR_JOBS + TASK_JOBS + RAG_JOBS
+        all_jobs = MONITOR_JOBS + TASK_JOBS
         target_job = None
         for job in all_jobs:
             if job.job_id == task_id:
@@ -2196,26 +2182,6 @@ async def assistant_apply_action(request: Request):
     except Exception as e:
         logger.error("apply-action 执行失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
-def _run_reindex_background():
-    """在后台线程执行 RAG 索引重建，避免阻塞 API 与前端"""
-    try:
-        from src.ai_assistant.indexer import build_docs_index
-
-        build_docs_index()
-    except Exception as e:
-        logger.error("AI 助手索引重建失败: %s", e)
-
-
-@app.post("/api/assistant/reindex")
-async def assistant_reindex(request: Request):
-    """重建 RAG 索引（异步提交，后台执行，不阻塞接口与前端）"""
-    err = _assistant_require_auth(request)
-    if err:
-        return err
-    asyncio.create_task(asyncio.to_thread(_run_reindex_background))
-    return JSONResponse({"status": "ok", "message": "索引重建已提交，正在后台执行"})
 
 
 # =============================================================================

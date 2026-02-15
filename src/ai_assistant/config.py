@@ -29,7 +29,6 @@ class AIConfig:
     model: str = "gpt-4o-mini"
     embedding_model: str = "text-embedding-3-small"
     chroma_persist_dir: str = "data/ai_assistant_chroma"
-    rag_index_refresh_interval_seconds: int = 1800  # 向量库更新间隔（秒），默认 30 分钟
     rate_limit_per_minute: int = 10
     max_history_rounds: int = 10
 
@@ -81,7 +80,6 @@ def get_ai_config(reload: bool = False) -> AIConfig:
         model=str(raw.get("model", "gpt-4o-mini")),
         embedding_model=str(raw.get("embedding_model", "text-embedding-3-small")),
         chroma_persist_dir=str(raw.get("chroma_persist_dir", "data/ai_assistant_chroma")),
-        rag_index_refresh_interval_seconds=int(raw.get("rag_index_refresh_interval_seconds", 1800)),
         rate_limit_per_minute=int(raw.get("rate_limit_per_minute", 10)),
         max_history_rounds=int(raw.get("max_history_rounds", 10)),
     )

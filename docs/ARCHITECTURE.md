@@ -267,7 +267,7 @@ class BaseMonitor(ABC):
 
 **任务类型**：
 - **间隔任务**：使用 `IntervalTrigger`，按固定间隔执行
-  - 示例：虎牙监控每60秒执行一次；RAG 向量库定时重建（`rag_index_refresh`）也为此类，注册在 `RAG_JOBS`
+  - 示例：虎牙监控每60秒执行一次
 - **Cron任务**：使用 `CronTrigger`，按时间表达式执行
   - 示例：每天08:00执行签到任务
 
@@ -328,16 +328,13 @@ CREATE TABLE huya (
 - `JobDescriptor`：任务描述符（任务ID、执行函数、触发器配置）
 - `MONITOR_MODULES`：监控模块列表
 - `TASK_MODULES`：定时任务模块列表
-- `RAG_MODULES`：RAG 相关模块（如向量库定时更新）
 - `MONITOR_JOBS`：已注册的监控任务列表
 - `TASK_JOBS`：已注册的定时任务列表
-- `RAG_JOBS`：已注册的 RAG 后台任务列表
 
 **注册流程**：
-1. 在 `MONITOR_MODULES` 或 `TASK_MODULES` 中添加模块路径；RAG 相关在 `RAG_MODULES` 中
-2. `discover_and_import()` 先按 `MONITOR_MODULES`、`TASK_MODULES` 顺序导入模块，模块加载时调用 `register_monitor()` 或 `register_task()`，任务描述符加入 `MONITOR_JOBS` 或 `TASK_JOBS`
-3. 再导入 `RAG_MODULES` 中的模块，若模块有 `register()` 则调用，由模块自行向 `RAG_JOBS` 追加（如 `rag_index_refresh` 的向量库定时更新任务）
-4. 调度器启动时除注册 `MONITOR_JOBS`、`TASK_JOBS` 外，也会注册 `RAG_JOBS`（间隔任务，不参与“当天已运行则跳过”）
+1. 在 `MONITOR_MODULES` 或 `TASK_MODULES` 中添加模块路径
+2. `discover_and_import()` 按 `MONITOR_MODULES`、`TASK_MODULES` 顺序导入模块，模块加载时调用 `register_monitor()` 或 `register_task()`，任务描述符加入 `MONITOR_JOBS` 或 `TASK_JOBS`
+3. 调度器启动时注册 `MONITOR_JOBS`、`TASK_JOBS`
 
 **扩展新任务**：
 ```python
@@ -392,7 +389,7 @@ register_monitor(
 
 **配置变化检测**：
 - 比较关键配置字段（各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等）
-- 单独比较 `ai_assistant` 节点（YAML 原始字典），其变化也会触发热重载（如 RAG 间隔、LLM 配置等）
+- 单独比较 `ai_assistant` 节点（YAML 原始字典），其变化也会触发热重载（如 LLM 配置等）
 - 支持嵌套配置比较（多账号、多 Cookie 等）
 - 避免因文件保存但内容未变而触发重载
 
@@ -522,7 +519,6 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `POST /api/assistant/chat`：AI 对话（需登录，需 AI 依赖）
 - `POST /api/assistant/chat/stream`：AI 对话流式接口（SSE，需登录）
 - `POST /api/assistant/apply-action`：执行可确认操作（需登录）
-- `POST /api/assistant/reindex`：手动重建 RAG 索引（需登录）
 - `GET/POST /api/webhooks/wecom`：企业微信自建应用接收消息回调（AI 对话入口，支持多应用依次解密）
 - `POST /api/webhooks/telegram/{channel_name:path}`：Telegram 机器人 Webhook（AI 对话入口）
 
@@ -577,8 +573,7 @@ logs/
 **核心组件**：
 - `config.py`：AI 配置（provider、api_key、model、embedding_model、chroma 等）
 - `rag.py`：向量检索 + BM25 混合检索，从文档、配置、日志中检索相关上下文
-- `indexer.py`：构建文档索引（`docs/*.md`、`README.md`）存入 Chroma
-- `rag_index_refresh.py`：定时任务，按 `rag_index_refresh_interval_seconds` 自动重建向量库
+- `indexer.py`：构建文档索引（`docs/*.md`、`README.md`）存入 Chroma；主入口 `main.py` 在启动前调用，若 AI 助手启用则预构建向量库
 - `conversation.py`：会话与消息持久化（`data/ai_assistant_conversations.json`）
 - `intent_parser.py`：解析可执行意图（开关监控、配置列表增删）
 - `tools.py`：AI 可调用工具（配置片段、日志、当前状态等）
@@ -899,7 +894,6 @@ WebMoniter/
 │   │   ├── config.py       # AI 配置
 │   │   ├── rag.py          # 向量检索
 │   │   ├── indexer.py      # 文档索引构建
-│   │   ├── rag_index_refresh.py  # 向量库定时更新任务
 │   │   ├── conversation.py # 会话管理
 │   │   ├── intent_parser.py # 可执行意图解析
 │   │   ├── tools.py        # AI 可调用工具
