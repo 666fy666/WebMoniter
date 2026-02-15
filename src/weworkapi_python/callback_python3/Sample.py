@@ -3,12 +3,12 @@
 # Author: jonyqin
 # Created Time: Thu 11 Sep 2014 03:55:41 PM CST
 # File Name: Sample.py
-# Description: WXBizJsonMsgCrypt 使用demo文件
+# Description: WXBizMsgCrypt 使用 demo 文件（XML 格式）
 #########################################################################
 import json
 import sys
 
-from WXBizJsonMsgCrypt import WXBizJsonMsgCrypt
+from WXBizMsgCrypt import WXBizMsgCrypt
 
 if __name__ == "__main__":
     # 企业在企业微信后台上设置的密钥相关配置在这里 TODO
@@ -28,7 +28,7 @@ if __name__ == "__main__":
 	3. 解密出echostr原文，将原文当作Get请求的response，返回给企业微信
 	第2，3步可以用企业微信提供的库函数VerifyURL来实现。
    """
-    wxcpt = WXBizJsonMsgCrypt(sToken, sEncodingAESKey, sCorpID)
+    wxcpt = WXBizMsgCrypt(sToken, sEncodingAESKey, sCorpID)
     sVerifyMsgSig = "012bc692d0a58dd4b10f8dfe5c4ac00ae211ebeb"
     sVerifyTimeStamp = "1476416373"
     sVerifyNonce = "47744683"

@@ -20,6 +20,38 @@ logger = logging.getLogger(__name__)
 # 环境变量前缀，青龙用户在「环境变量」中配置时使用此前缀
 ENV_PREFIX = "WEBMONITER_"
 
+# task_id -> AppConfig 启用字段名（与下方 task_env_map 一一对应）
+TASK_ID_TO_ENABLE_KEY: dict[str, str] = {
+    "ikuuu_checkin": "checkin_enable",
+    "tieba_checkin": "tieba_enable",
+    "weibo_chaohua_checkin": "weibo_chaohua_enable",
+    "rainyun_checkin": "rainyun_enable",
+    "enshan_checkin": "enshan_enable",
+    "tyyun_checkin": "tyyun_enable",
+    "aliyun_checkin": "aliyun_enable",
+    "smzdm_checkin": "smzdm_enable",
+    "zdm_draw": "zdm_draw_enable",
+    "fg_checkin": "fg_enable",
+    "miui_checkin": "miui_enable",
+    "iqiyi_checkin": "iqiyi_enable",
+    "lenovo_checkin": "lenovo_enable",
+    "lbly_checkin": "lbly_enable",
+    "pinzan_checkin": "pinzan_enable",
+    "dml_checkin": "dml_enable",
+    "xiaomao_checkin": "xiaomao_enable",
+    "ydwx_checkin": "ydwx_enable",
+    "xingkong_checkin": "xingkong_enable",
+    "freenom_checkin": "freenom_enable",
+    "weather_push": "weather_enable",
+    "qtw_checkin": "qtw_enable",
+    "kuake_checkin": "kuake_enable",
+    "kjwj_checkin": "kjwj_enable",
+    "fr_checkin": "fr_enable",
+    "nine_nine_nine_task": "nine_nine_nine_enable",
+    "zgfc_draw": "zgfc_enable",
+    "ssq_500w_notice": "ssq_500w_enable",
+}
+
 
 def is_ql_env() -> bool:
     """
@@ -178,71 +210,13 @@ def load_config_from_env(task_id: str | None = None) -> dict:
 
     if task_id and task_id in task_env_map:
         prefix, extra = task_env_map[task_id]
-        enable_key = {
-            "ikuuu_checkin": "checkin_enable",
-            "tieba_checkin": "tieba_enable",
-            "weibo_chaohua_checkin": "weibo_chaohua_enable",
-            "rainyun_checkin": "rainyun_enable",
-            "enshan_checkin": "enshan_enable",
-            "tyyun_checkin": "tyyun_enable",
-            "aliyun_checkin": "aliyun_enable",
-            "smzdm_checkin": "smzdm_enable",
-            "zdm_draw": "zdm_draw_enable",
-            "fg_checkin": "fg_enable",
-            "miui_checkin": "miui_enable",
-            "iqiyi_checkin": "iqiyi_enable",
-            "lenovo_checkin": "lenovo_enable",
-            "lbly_checkin": "lbly_enable",
-            "pinzan_checkin": "pinzan_enable",
-            "dml_checkin": "dml_enable",
-            "xiaomao_checkin": "xiaomao_enable",
-            "ydwx_checkin": "ydwx_enable",
-            "xingkong_checkin": "xingkong_enable",
-            "freenom_checkin": "freenom_enable",
-            "weather_push": "weather_enable",
-            "qtw_checkin": "qtw_enable",
-            "kuake_checkin": "kuake_enable",
-            "kjwj_checkin": "kjwj_enable",
-            "fr_checkin": "fr_enable",
-            "nine_nine_nine_task": "nine_nine_nine_enable",
-            "zgfc_draw": "zgfc_enable",
-            "ssq_500w_notice": "ssq_500w_enable",
-        }.get(task_id, "")
+        enable_key = TASK_ID_TO_ENABLE_KEY.get(task_id, "")
         if enable_key:
             _apply_task_env(prefix, enable_key, extra)
     else:
         # 加载所有任务的环境变量
         for tid, (prefix, extra) in task_env_map.items():
-            enable_key = {
-                "ikuuu_checkin": "checkin_enable",
-                "tieba_checkin": "tieba_enable",
-                "weibo_chaohua_checkin": "weibo_chaohua_enable",
-                "rainyun_checkin": "rainyun_enable",
-                "enshan_checkin": "enshan_enable",
-                "tyyun_checkin": "tyyun_enable",
-                "aliyun_checkin": "aliyun_enable",
-                "smzdm_checkin": "smzdm_enable",
-                "zdm_draw": "zdm_draw_enable",
-                "fg_checkin": "fg_enable",
-                "miui_checkin": "miui_enable",
-                "iqiyi_checkin": "iqiyi_enable",
-                "lenovo_checkin": "lenovo_enable",
-                "lbly_checkin": "lbly_enable",
-                "pinzan_checkin": "pinzan_enable",
-                "dml_checkin": "dml_enable",
-                "xiaomao_checkin": "xiaomao_enable",
-                "ydwx_checkin": "ydwx_enable",
-                "xingkong_checkin": "xingkong_enable",
-                "freenom_checkin": "freenom_enable",
-                "weather_push": "weather_enable",
-                "qtw_checkin": "qtw_enable",
-                "kuake_checkin": "kuake_enable",
-                "kjwj_checkin": "kjwj_enable",
-                "fr_checkin": "fr_enable",
-                "nine_nine_nine_task": "nine_nine_nine_enable",
-                "zgfc_draw": "zgfc_enable",
-                "ssq_500w_notice": "ssq_500w_enable",
-            }.get(tid, "")
+            enable_key = TASK_ID_TO_ENABLE_KEY.get(tid, "")
             if enable_key:
                 _apply_task_env(prefix, enable_key, extra)
 
