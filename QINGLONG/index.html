@@ -1,0 +1,2685 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发">
+      
+      
+        <meta name="author" content="FY">
+      
+      
+        <link rel="canonical" href="https://666fy666.github.io/WebMoniter/QINGLONG/">
+      
+      
+        <link rel="prev" href="../installation/">
+      
+      
+        <link rel="next" href="../guides/config/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>青龙面板部署 - WebMoniter 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="WebMoniter 文档" class="md-header__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WebMoniter 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              青龙面板部署
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+  
+  快速开始
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/config/" class="md-tabs__link">
+          
+  
+  
+  使用指南
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../ARCHITECTURE/" class="md-tabs__link">
+          
+  
+  
+  二次开发
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+  帮助与支持
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WebMoniter 文档" class="md-nav__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    WebMoniter 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速开始
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    安装与运行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        概述
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、部署方式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、部署方式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方式一：拉取脚本（推荐）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方式二：克隆整库后运行
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、环境变量配置
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、环境变量配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 通用说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 各任务环境变量一览
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2 各任务环境变量一览">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ikuuu-qlikuuu_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iKuuu 签到 (ql/ikuuu_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qltieba_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        百度贴吧签到 (ql/tieba_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlrainyun_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        雨云签到 (ql/rainyun_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlaliyun_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阿里云盘签到 (ql/aliyun_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlweibo_chaohua_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        微博超话签到 (ql/weibo_chaohua_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlweather_pushpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天气推送 (ql/weather_push.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 其他任务环境变量速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#qlapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、推送通知（QLAPI）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、操作步骤示例
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、操作步骤示例">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 添加环境变量
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 拉取脚本
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 添加定时任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 配置青龙通知（可选）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#q1qlapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q1：提示「QLAPI 不可用」？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q2：提示找不到模块或依赖？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q3：多账号如何配置？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q4：与主项目是否冲突？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q5cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q5：Cookie 如何获取？
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、支持的脚本列表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、参考链接
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    使用指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置与设置
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    配置与设置
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 管理界面
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/ai-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 助手
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务管理
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    任务管理
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/monitors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    监控任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/checkin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送与通知
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    推送与通知
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/push-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送通道配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    二次开发
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECONDARY_DEVELOPMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    帮助与支持
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    帮助与支持
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    常见问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        概述
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一、部署方式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一、部署方式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方式一：拉取脚本（推荐）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方式二：克隆整库后运行
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        二、环境变量配置
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="二、环境变量配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 通用说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 各任务环境变量一览
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2 各任务环境变量一览">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ikuuu-qlikuuu_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iKuuu 签到 (ql/ikuuu_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qltieba_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        百度贴吧签到 (ql/tieba_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlrainyun_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        雨云签到 (ql/rainyun_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlaliyun_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阿里云盘签到 (ql/aliyun_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlweibo_chaohua_checkinpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        微博超话签到 (ql/weibo_chaohua_checkin.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#qlweather_pushpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天气推送 (ql/weather_push.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 其他任务环境变量速查
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#qlapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        三、推送通知（QLAPI）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        四、操作步骤示例
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="四、操作步骤示例">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 添加环境变量
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 拉取脚本
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 添加定时任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 配置青龙通知（可选）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        五、常见问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="五、常见问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#q1qlapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q1：提示「QLAPI 不可用」？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q2：提示找不到模块或依赖？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q3：多账号如何配置？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q4：与主项目是否冲突？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#q5cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Q5：Cookie 如何获取？
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        六、支持的脚本列表
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        七、参考链接
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">青龙面板兼容指南<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>WebMoniter 支持在 <a href="https://github.com/whyour/qinglong">青龙面板</a> 中运行定时任务。青龙用户可通过<strong>环境变量</strong>配置参数，推送结果自动走<strong>青龙内置通知</strong>（QLAPI），与主项目逻辑完全兼容且互不影响。</p>
+<h2 id="_2">概述<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>配置方式</strong></td>
+<td>青龙「环境变量」中添加 <code>WEBMONITER_</code> 前缀的变量</td>
+</tr>
+<tr>
+<td><strong>推送通知</strong></td>
+<td>自动使用 <a href="https://qinglong.online/guide/user-guide/built-in-api">QLAPI.systemNotify</a>，与青龙「通知设置」一致</td>
+</tr>
+<tr>
+<td><strong>脚本位置</strong></td>
+<td><code>ql/</code> 目录下，每个定时任务对应一个脚本</td>
+</tr>
+<tr>
+<td><strong>与主项目</strong></td>
+<td>完全独立，可同时部署主项目与青龙脚本</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">一、部署方式<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h3 id="_4">方式一：拉取脚本（推荐）<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<ol>
+<li>在青龙面板 → <strong>订阅管理</strong> → <strong>添加订阅</strong>  </li>
+<li>订阅地址：<code>https://github.com/666fy666/WebMoniter</code>  </li>
+<li>定时规则：<code>0 0 * * *</code>（每日 0 点拉取一次）  </li>
+<li>白名单：<code>ql/*.py</code>  </li>
+<li>
+<p>或直接填写需要的脚本，如：<code>ql/ikuuu_checkin.py,ql/tieba_checkin.py</code></p>
+</li>
+<li>
+<p>或使用青龙内置命令拉取单个脚本：
+   <div class="highlight"><pre><span></span><code>ql<span class="w"> </span>raw<span class="w"> </span>https://raw.githubusercontent.com/666fy666/WebMoniter/main/ql/ikuuu_checkin.py
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="_5">方式二：克隆整库后运行<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p>克隆项目到青龙的 <code>scripts</code> 目录：
+   <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/ql/scripts
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/666fy666/WebMoniter.git
+<span class="nb">cd</span><span class="w"> </span>WebMoniter
+</code></pre></div></p>
+</li>
+<li>
+<p>安装依赖（青龙容器内通常已有，可先执行任务看是否报错）：
+   <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--locked
+<span class="c1"># 或使用 pip: pip install -e .</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>在青龙「定时任务」中新增任务：</p>
+</li>
+<li>名称：iKuuu 签到</li>
+<li>命令：<code>task WebMoniter/ql/ikuuu_checkin.py</code></li>
+<li>定时规则：<code>0 8 * * *</code>（每天 8:00）</li>
+</ol>
+<hr />
+<h2 id="_6">二、环境变量配置<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p>所有配置通过青龙「环境变量」添加，变量名以 <code>WEBMONITER_</code> 为前缀（部分支持无前缀）。</p>
+<h3 id="21">2.1 通用说明<a class="headerlink" href="#21" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启用任务</td>
+<td><code>WEBMONITER_&lt;任务&gt;_ENABLE=true</code> 或 <code>1</code></td>
+</tr>
+<tr>
+<td>单值</td>
+<td>如 <code>WEBMONITER_CHECKIN_EMAIL=xxx</code></td>
+</tr>
+<tr>
+<td>多值</td>
+<td>使用 <code>,</code> 或 <code>|</code> 分隔，如 <code>WEBMONITER_TIEBA_COOKIES=cookie1,cookie2</code></td>
+</tr>
+<tr>
+<td>多账号 JSON</td>
+<td>如 <code>WEBMONITER_CHECKIN_ACCOUNTS=[{"email":"a@b.com","password":"xx"}]</code></td>
+</tr>
+<tr>
+<td>可选前缀</td>
+<td>部分变量支持省略 <code>WEBMONITER_</code>，直接使用 <code>CHECKIN_EMAIL</code> 等</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22">2.2 各任务环境变量一览<a class="headerlink" href="#22" title="Permanent link">&para;</a></h3>
+<h4 id="ikuuu-qlikuuu_checkinpy">iKuuu 签到 (<code>ql/ikuuu_checkin.py</code>)<a class="headerlink" href="#ikuuu-qlikuuu_checkinpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_CHECKIN_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 或 <code>1</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_EMAIL</code></td>
+<td>是*</td>
+<td>登录邮箱（单账号）</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_PASSWORD</code></td>
+<td>是*</td>
+<td>登录密码</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_ACCOUNTS</code></td>
+<td>多账号</td>
+<td>JSON：<code>[{"email":"a@b.com","password":"xx"}]</code> 或 <code>email1\|pass1,email2\|pass2</code></td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_TIME</code></td>
+<td>否</td>
+<td>签到时间 HH:MM，默认 08:00</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>0 8 * * *</code></p>
+<hr />
+<h4 id="qltieba_checkinpy">百度贴吧签到 (<code>ql/tieba_checkin.py</code>)<a class="headerlink" href="#qltieba_checkinpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_TIEBA_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_TIEBA_COOKIE</code></td>
+<td>是*</td>
+<td>含 BDUSS 的 Cookie</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_TIEBA_COOKIES</code></td>
+<td>多账号</td>
+<td>多个 Cookie 用 <code>\|</code> 分隔</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_TIEBA_TIME</code></td>
+<td>否</td>
+<td>默认 08:10</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>10 8 * * *</code></p>
+<hr />
+<h4 id="qlrainyun_checkinpy">雨云签到 (<code>ql/rainyun_checkin.py</code>)<a class="headerlink" href="#qlrainyun_checkinpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_RAINYUN_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_RAINYUN_USERNAME</code></td>
+<td>单账号</td>
+<td>雨云登录用户名</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_RAINYUN_PASSWORD</code></td>
+<td>单账号</td>
+<td>雨云登录密码</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_RAINYUN_API_KEY</code></td>
+<td>否</td>
+<td>可选，用于续费查询</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_RAINYUN_ACCOUNTS</code></td>
+<td>多账号</td>
+<td>JSON：<code>[{"username":"u1","password":"p1","api_key":"可选"}]</code></td>
+</tr>
+<tr>
+<td><code>WEBMONITER_RAINYUN_TIME</code></td>
+<td>否</td>
+<td>默认 08:30</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>30 8 * * *</code></p>
+<hr />
+<h4 id="qlaliyun_checkinpy">阿里云盘签到 (<code>ql/aliyun_checkin.py</code>)<a class="headerlink" href="#qlaliyun_checkinpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_ALIYUN_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_ALIYUN_REFRESH_TOKEN</code></td>
+<td>是*</td>
+<td>refresh_token</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_ALIYUN_REFRESH_TOKENS</code></td>
+<td>多账号</td>
+<td>多个用 <code>,</code> 分隔</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_ALIYUN_TIME</code></td>
+<td>否</td>
+<td>默认 05:30</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>30 5 * * *</code></p>
+<hr />
+<h4 id="qlweibo_chaohua_checkinpy">微博超话签到 (<code>ql/weibo_chaohua_checkin.py</code>)<a class="headerlink" href="#qlweibo_chaohua_checkinpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_WEIBO_CHAOHUA_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_WEIBO_CHAOHUA_COOKIE</code></td>
+<td>是*</td>
+<td>含 XSRF-TOKEN 的 Cookie</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_WEIBO_CHAOHUA_COOKIES</code></td>
+<td>多账号</td>
+<td>多个用 <code>\|</code> 分隔</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_WEIBO_CHAOHUA_TIME</code></td>
+<td>否</td>
+<td>默认 23:45</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>45 23 * * *</code></p>
+<hr />
+<h4 id="qlweather_pushpy">天气推送 (<code>ql/weather_push.py</code>)<a class="headerlink" href="#qlweather_pushpy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>环境变量</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_WEATHER_ENABLE</code></td>
+<td>是</td>
+<td><code>true</code> 启用</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_WEATHER_CITY_CODE</code></td>
+<td>是</td>
+<td>城市代码，如 <code>101020100</code>（上海）</td>
+</tr>
+<tr>
+<td><code>WEBMONITER_WEATHER_TIME</code></td>
+<td>否</td>
+<td>默认 07:30</td>
+</tr>
+</tbody>
+</table>
+<p><strong>定时规则建议</strong>：<code>30 7 * * *</code></p>
+<hr />
+<h3 id="23">2.3 其他任务环境变量速查<a class="headerlink" href="#23" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>任务脚本</th>
+<th>主要环境变量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enshan_checkin</code></td>
+<td><code>ENSHAN_ENABLE</code>, <code>ENSHAN_COOKIE</code>, <code>ENSHAN_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>tyyun_checkin</code></td>
+<td><code>TYYUN_ENABLE</code>, <code>TYYUN_USERNAME</code>, <code>TYYUN_PASSWORD</code>, <code>TYYUN_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>smzdm_checkin</code></td>
+<td><code>SMZDM_ENABLE</code>, <code>SMZDM_COOKIE</code>, <code>SMZDM_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>zdm_draw</code></td>
+<td><code>ZDM_DRAW_ENABLE</code>, <code>ZDM_DRAW_COOKIE</code>, <code>ZDM_DRAW_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>fg_checkin</code></td>
+<td><code>FG_ENABLE</code>, <code>FG_COOKIE</code>, <code>FG_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>miui_checkin</code></td>
+<td><code>MIUI_ENABLE</code>, <code>MIUI_ACCOUNT</code>, <code>MIUI_PASSWORD</code>, <code>MIUI_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>iqiyi_checkin</code></td>
+<td><code>IQIYI_ENABLE</code>, <code>IQIYI_COOKIE</code>, <code>IQIYI_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>lenovo_checkin</code></td>
+<td><code>LENOVO_ENABLE</code>, <code>LENOVO_ACCESS_TOKEN</code>, <code>LENOVO_ACCESS_TOKENS</code></td>
+</tr>
+<tr>
+<td><code>lbly_checkin</code></td>
+<td><code>LBLY_ENABLE</code>, <code>LBLY_REQUEST_BODY</code>, <code>LBLY_REQUEST_BODIES</code></td>
+</tr>
+<tr>
+<td><code>pinzan_checkin</code></td>
+<td><code>PINZAN_ENABLE</code>, <code>PINZAN_ACCOUNT</code>, <code>PINZAN_PASSWORD</code>, <code>PINZAN_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>dml_checkin</code></td>
+<td><code>DML_ENABLE</code>, <code>DML_OPENID</code>, <code>DML_OPENIDS</code></td>
+</tr>
+<tr>
+<td><code>xiaomao_checkin</code></td>
+<td><code>XIAOMAO_ENABLE</code>, <code>XIAOMAO_TOKEN</code>, <code>XIAOMAO_TOKENS</code></td>
+</tr>
+<tr>
+<td><code>ydwx_checkin</code></td>
+<td><code>YDWX_ENABLE</code>, <code>YDWX_DEVICE_PARAMS</code>, <code>YDWX_TOKEN</code>, <code>YDWX_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>xingkong_checkin</code></td>
+<td><code>XINGKONG_ENABLE</code>, <code>XINGKONG_USERNAME</code>, <code>XINGKONG_PASSWORD</code>, <code>XINGKONG_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>freenom_checkin</code></td>
+<td><code>FREENOM_ENABLE</code>, <code>FREENOM_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>qtw_checkin</code></td>
+<td><code>QTW_ENABLE</code>, <code>QTW_COOKIE</code>, <code>QTW_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>kuake_checkin</code></td>
+<td><code>KUAKE_ENABLE</code>, <code>KUAKE_COOKIE</code>, <code>KUAKE_COOKIES</code></td>
+</tr>
+<tr>
+<td><code>kjwj_checkin</code></td>
+<td><code>KJWJ_ENABLE</code>, <code>KJWJ_ACCOUNTS</code></td>
+</tr>
+<tr>
+<td><code>fr_checkin</code></td>
+<td><code>FR_ENABLE</code>, <code>FR_COOKIE</code></td>
+</tr>
+<tr>
+<td><code>nine_nine_nine_task</code></td>
+<td><code>NINE_NINE_NINE_ENABLE</code>, <code>NINE_NINE_NINE_TOKENS</code></td>
+</tr>
+<tr>
+<td><code>zgfc_draw</code></td>
+<td><code>ZGFC_ENABLE</code>, <code>ZGFC_TOKENS</code></td>
+</tr>
+<tr>
+<td><code>ssq_500w_notice</code></td>
+<td><code>SSQ_500W_ENABLE</code></td>
+</tr>
+</tbody>
+</table>
+<p>所有变量均需加 <code>WEBMONITER_</code> 前缀，如 <code>WEBMONITER_ENSHAN_ENABLE</code>、<code>WEBMONITER_SMZDM_COOKIE</code> 等。</p>
+<hr />
+<h2 id="qlapi">三、推送通知（QLAPI）<a class="headerlink" href="#qlapi" title="Permanent link">&para;</a></h2>
+<p>青龙环境下，推送自动使用 <strong>青龙内置通知</strong>，与青龙「系统设置 → 通知设置」一致，<strong>无需额外配置</strong>推送通道。</p>
+<ul>
+<li>调用的是 <a href="https://qinglong.online/guide/user-guide/built-in-api">QLAPI.systemNotify</a></li>
+<li>通知方式（Server 酱、Bark、Telegram 等）在青龙面板中统一配置</li>
+<li>若 QLAPI 不可用（如非青龙环境），推送会静默跳过并记录日志</li>
+</ul>
+<hr />
+<h2 id="_7">四、操作步骤示例<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
+<p>以 <strong>iKuuu 签到</strong> 为例：</p>
+<h3 id="1">1. 添加环境变量<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<p>在青龙 → <strong>环境变量</strong> 中新增：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBMONITER_CHECKIN_ENABLE</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_EMAIL</code></td>
+<td><code>你的邮箱@example.com</code></td>
+</tr>
+<tr>
+<td><code>WEBMONITER_CHECKIN_PASSWORD</code></td>
+<td><code>你的密码</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="2">2. 拉取脚本<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
+<p>在青龙 → <strong>脚本管理</strong> → 选择 Python，新建脚本，或使用：</p>
+<div class="highlight"><pre><span></span><code>ql<span class="w"> </span>raw<span class="w"> </span>https://raw.githubusercontent.com/666fy666/WebMoniter/main/ql/ikuuu_checkin.py
+</code></pre></div>
+<p>若已克隆整库，可跳过此步。</p>
+<h3 id="3">3. 添加定时任务<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<p>在青龙 → <strong>定时任务</strong> → <strong>添加任务</strong>：</p>
+<ul>
+<li><strong>名称</strong>：iKuuu 签到</li>
+<li><strong>命令</strong>：<code>task ql/ikuuu_checkin.py</code> 或 <code>task WebMoniter/ql/ikuuu_checkin.py</code>（取决于脚本路径）</li>
+<li><strong>定时规则</strong>：<code>0 8 * * *</code>（每天 8:00）</li>
+</ul>
+<h3 id="4">4. 配置青龙通知（可选）<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<p>在青龙 → <strong>系统设置</strong> → <strong>通知设置</strong> 中配置推送方式，签到结果会按此处设置推送。</p>
+<hr />
+<h2 id="_8">五、常见问题<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<h3 id="q1qlapi">Q1：提示「QLAPI 不可用」？<a class="headerlink" href="#q1qlapi" title="Permanent link">&para;</a></h3>
+<ul>
+<li>确认脚本是在青龙面板内通过「定时任务」执行，而非本机直接运行</li>
+<li>青龙会注入 <code>QLAPI</code>，本机测试时不会有此对象</li>
+<li>若在青龙内仍不可用，可查看青龙版本是否支持 <a href="https://qinglong.online/guide/user-guide/built-in-api">内置 API</a></li>
+</ul>
+<h3 id="q2">Q2：提示找不到模块或依赖？<a class="headerlink" href="#q2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>克隆整库时，确保工作目录为项目根目录，脚本会自动切换</li>
+<li>缺少依赖时在青龙容器内执行：<code>pip3 install aiohttp beautifulsoup4 requests pyyaml pydantic</code></li>
+<li>部分任务（如小茅预约、小米社区）需要 <code>pycryptodome</code></li>
+</ul>
+<h3 id="q3">Q3：多账号如何配置？<a class="headerlink" href="#q3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>iKuuu</strong>：<code>WEBMONITER_CHECKIN_ACCOUNTS=[{"email":"a@b.com","password":"xx"},{"email":"b@b.com","password":"yy"}]</code></li>
+<li><strong>贴吧 / 值得买等</strong>：<code>WEBMONITER_XXX_COOKIES=cookie1|cookie2|cookie3</code></li>
+<li><strong>雨云 / 阿里云盘</strong>：<code>WEBMONITER_XXX_KEYS=key1,key2</code> 或 <code>WEBMONITER_XXX_TOKENS=token1,token2</code></li>
+</ul>
+<h3 id="q4">Q4：与主项目是否冲突？<a class="headerlink" href="#q4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>不冲突</strong>。青龙模式通过环境变量和 QLAPI 独立工作</li>
+<li>主项目仍使用 <code>config.yml</code> 和原有推送通道</li>
+<li>可同时部署：主项目做常驻监控 + 青龙做部分签到任务</li>
+</ul>
+<h3 id="q5cookie">Q5：Cookie 如何获取？<a class="headerlink" href="#q5cookie" title="Permanent link">&para;</a></h3>
+<ul>
+<li>浏览器登录对应网站 → 按 F12 打开开发者工具 → Network 面板 → 任意请求 → 复制 Cookie 请求头</li>
+<li>贴吧需包含 BDUSS，微博超话需包含 XSRF-TOKEN，具体见主项目 <code>config.yml.sample</code> 注释</li>
+</ul>
+<hr />
+<h2 id="_9">六、支持的脚本列表<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ql/ikuuu_checkin.py</code></td>
+<td>iKuuu 签到</td>
+</tr>
+<tr>
+<td><code>ql/tieba_checkin.py</code></td>
+<td>百度贴吧签到</td>
+</tr>
+<tr>
+<td><code>ql/rainyun_checkin.py</code></td>
+<td>雨云签到</td>
+</tr>
+<tr>
+<td><code>ql/aliyun_checkin.py</code></td>
+<td>阿里云盘签到</td>
+</tr>
+<tr>
+<td><code>ql/weibo_chaohua_checkin.py</code></td>
+<td>微博超话签到</td>
+</tr>
+<tr>
+<td><code>ql/weather_push.py</code></td>
+<td>天气推送</td>
+</tr>
+<tr>
+<td><code>ql/enshan_checkin.py</code></td>
+<td>恩山论坛签到</td>
+</tr>
+<tr>
+<td><code>ql/tyyun_checkin.py</code></td>
+<td>天翼云盘签到</td>
+</tr>
+<tr>
+<td><code>ql/smzdm_checkin.py</code></td>
+<td>什么值得买签到</td>
+</tr>
+<tr>
+<td><code>ql/zdm_draw.py</code></td>
+<td>值得买每日抽奖</td>
+</tr>
+<tr>
+<td><code>ql/fg_checkin.py</code></td>
+<td>富贵论坛签到</td>
+</tr>
+<tr>
+<td><code>ql/miui_checkin.py</code></td>
+<td>小米社区签到</td>
+</tr>
+<tr>
+<td><code>ql/iqiyi_checkin.py</code></td>
+<td>爱奇艺签到</td>
+</tr>
+<tr>
+<td><code>ql/lenovo_checkin.py</code></td>
+<td>联想乐豆签到</td>
+</tr>
+<tr>
+<td><code>ql/lbly_checkin.py</code></td>
+<td>丽宝乐园签到</td>
+</tr>
+<tr>
+<td><code>ql/pinzan_checkin.py</code></td>
+<td>品赞签到</td>
+</tr>
+<tr>
+<td><code>ql/dml_checkin.py</code></td>
+<td>达美乐任务</td>
+</tr>
+<tr>
+<td><code>ql/xiaomao_checkin.py</code></td>
+<td>小茅预约（i茅台）</td>
+</tr>
+<tr>
+<td><code>ql/ydwx_checkin.py</code></td>
+<td>一点万象签到</td>
+</tr>
+<tr>
+<td><code>ql/xingkong_checkin.py</code></td>
+<td>星空代理签到</td>
+</tr>
+<tr>
+<td><code>ql/freenom_checkin.py</code></td>
+<td>Freenom 续期</td>
+</tr>
+<tr>
+<td><code>ql/qtw_checkin.py</code></td>
+<td>千图网签到</td>
+</tr>
+<tr>
+<td><code>ql/kuake_checkin.py</code></td>
+<td>夸克网盘签到</td>
+</tr>
+<tr>
+<td><code>ql/kjwj_checkin.py</code></td>
+<td>科技玩家签到</td>
+</tr>
+<tr>
+<td><code>ql/fr_checkin.py</code></td>
+<td>帆软签到</td>
+</tr>
+<tr>
+<td><code>ql/nine_nine_nine_task.py</code></td>
+<td>999 会员中心</td>
+</tr>
+<tr>
+<td><code>ql/zgfc_draw.py</code></td>
+<td>中国福彩抽奖</td>
+</tr>
+<tr>
+<td><code>ql/ssq_500w_notice.py</code></td>
+<td>双色球开奖通知</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_10">七、参考链接<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://github.com/whyour/qinglong">青龙面板 GitHub</a></li>
+<li><a href="https://qinglong.online/guide/user-guide/built-in-api">青龙内置 API 文档</a></li>
+<li><a href="../">WebMoniter 文档站</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; FY · MIT License
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/666fy666/WebMoniter" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

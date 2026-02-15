@@ -1,0 +1,5908 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发">
+      
+      
+        <meta name="author" content="FY">
+      
+      
+        <link rel="canonical" href="https://666fy666.github.io/WebMoniter/guides/tasks/checkin/">
+      
+      
+        <link rel="prev" href="../monitors/">
+      
+      
+        <link rel="next" href="../../push-channels/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>定时任务详解 - WebMoniter 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../.." title="WebMoniter 文档" class="md-header__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../../../assets/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WebMoniter 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              定时任务详解
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../installation/" class="md-tabs__link">
+          
+  
+  
+  快速开始
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../config/" class="md-tabs__link">
+          
+  
+  
+  使用指南
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../ARCHITECTURE/" class="md-tabs__link">
+          
+  
+  
+  二次开发
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../faq/" class="md-tabs__link">
+          
+  
+  
+  帮助与支持
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="WebMoniter 文档" class="md-nav__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../../../assets/favicon.svg" alt="logo">
+
+    </a>
+    WebMoniter 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速开始
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    安装与运行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../QINGLONG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    使用指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置与设置
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    配置与设置
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 管理界面
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 助手
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务管理
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    任务管理
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monitors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    监控任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        通用配置项
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        微博超话签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="微博超话签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ikuuu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iKuuu 签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="iKuuu 签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        雨云签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="雨云签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 API Key（续费用）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        百度贴吧签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="百度贴吧签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        恩山论坛签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="恩山论坛签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天翼云盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="天翼云盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阿里云盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="阿里云盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refresh_token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 refresh_token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        什么值得买签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="什么值得买签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        值得买每日抽奖
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="值得买每日抽奖">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        富贵论坛签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="富贵论坛签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        小米社区签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="小米社区签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        爱奇艺签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="爱奇艺签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        联想乐豆签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="联想乐豆签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access_token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 access_token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        丽宝乐园签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="丽宝乐园签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_46" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        品赞代理签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="品赞代理签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_47" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_48" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_49" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        达美乐任务
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="达美乐任务">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_50" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#openid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 openid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        小茅预约（i茅台）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="小茅预约（i茅台）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一点万象签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一点万象签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_57" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        星空代理签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="星空代理签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_59" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#freenom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Freenom 免费域名续期
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Freenom 免费域名续期">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_60" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天气推送
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="天气推送">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_65" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取城市代码
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_66" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_67" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        千图网签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="千图网签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_68" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_69" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_70" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        夸克网盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="夸克网盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        科技玩家签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="科技玩家签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        帆软社区签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="帆软社区签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_77" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_78" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#999" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        999 会员中心健康任务
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="999 会员中心健康任务">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_79" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        中国福彩抽奖
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="中国福彩抽奖">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        双色球开奖通知
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="双色球开奖通知">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_87" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        日志清理
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="日志清理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_88" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_89" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        免打扰时段
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="免打扰时段">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        插件示例任务（Demo）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="插件示例任务（Demo）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送与通知
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    推送与通知
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../push-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送通道配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    二次开发
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../SECONDARY_DEVELOPMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../API/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    帮助与支持
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    帮助与支持
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    常见问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        通用配置项
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        微博超话签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="微博超话签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ikuuu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iKuuu 签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="iKuuu 签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        雨云签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="雨云签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 API Key（续费用）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        百度贴吧签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="百度贴吧签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        恩山论坛签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="恩山论坛签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天翼云盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="天翼云盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阿里云盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="阿里云盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refresh_token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 refresh_token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        什么值得买签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="什么值得买签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        值得买每日抽奖
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="值得买每日抽奖">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        富贵论坛签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="富贵论坛签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        小米社区签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="小米社区签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        爱奇艺签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="爱奇艺签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        联想乐豆签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="联想乐豆签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access_token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 access_token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        丽宝乐园签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="丽宝乐园签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_46" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        品赞代理签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="品赞代理签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_47" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_48" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_49" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        达美乐任务
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="达美乐任务">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_50" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#openid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 openid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        小茅预约（i茅台）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="小茅预约（i茅台）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一点万象签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="一点万象签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_56" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_57" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        星空代理签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="星空代理签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_59" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#freenom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Freenom 免费域名续期
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Freenom 免费域名续期">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_60" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        天气推送
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="天气推送">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_65" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取城市代码
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_66" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_67" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        千图网签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="千图网签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_68" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_69" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_70" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        夸克网盘签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="夸克网盘签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookie_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        如何获取 Cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        科技玩家签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="科技玩家签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_75" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_76" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        帆软社区签到
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="帆软社区签到">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_77" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_78" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#999" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        999 会员中心健康任务
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="999 会员中心健康任务">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_79" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        中国福彩抽奖
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="中国福彩抽奖">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_83" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        双色球开奖通知
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="双色球开奖通知">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_87" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        日志清理
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="日志清理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_88" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_89" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        免打扰时段
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="免打扰时段">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_91" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_92" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        插件示例任务（Demo）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="插件示例任务（Demo）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_93" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置项
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_94" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">定时任务（签到）详解<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>以下为所有内置定时任务的配置说明。每个任务在 <code>config.yml</code> 中有独立配置节点，<strong>必填项</strong>未配置或 <code>enable: false</code> 时不会执行。<br />
+<strong>默认行为</strong>：项目启动时会执行一次；之后按 <code>time</code> 每日定点执行；若当天已运行过则跳过（Web「任务管理」中手动触发可强制执行）。</p>
+<hr />
+<h2 id="_2">通用配置项<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>多数签到任务支持以下字段（具体以各任务为准）：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">是否启用，<code>true</code> 时且其他必填项齐全才会执行</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">每日执行时间，24 小时制 <code>HH:MM</code>，如 <code>"08:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">推送通道名称列表，为空时使用全部已配置通道</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">微博超话签到<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>weibo_chaohua</code><br />
+<strong>默认时间</strong>：23:45<br />
+<strong>认证方式</strong>：Cookie（须包含 <strong>XSRF-TOKEN</strong>），支持多 Cookie。</p>
+<h3 id="_4">配置项<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">单账号时填写完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多账号时每项为完整 Cookie 字符串，优先于 <code>cookie</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">签到时间，默认 <code>"23:45"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie">如何获取 Cookie<a class="headerlink" href="#cookie" title="Permanent link">&para;</a></h3>
+<ol>
+<li>浏览器打开 <a href="https://weibo.com">微博</a> 并登录。  </li>
+<li>按 <code>F12</code> → <strong>Console（控制台）</strong>，输入 <code>document.cookie</code> 回车，复制输出的整段字符串。  </li>
+<li>确保其中包含 <strong>XSRF-TOKEN</strong>，填入 <code>cookie</code> 或 <code>cookies</code> 列表中的一项。</li>
+</ol>
+<h3 id="_5">示例<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">weibo_chaohua</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SCF=xxx;</span><span class="nv"> </span><span class="s">XSRF-TOKEN=xxx;</span><span class="nv"> </span><span class="s">SUB=xxx;</span><span class="nv"> </span><span class="s">...&quot;</span>
+<span class="w">  </span><span class="c1"># 多账号时使用 cookies:</span>
+<span class="w">  </span><span class="c1"># cookies:</span>
+<span class="w">  </span><span class="c1">#   - &quot;SCF=xxx; XSRF-TOKEN=xxx; ...&quot;</span>
+<span class="w">  </span><span class="c1">#   - &quot;SCF=yyy; XSRF-TOKEN=yyy; ...&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;23:45&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="ikuuu">iKuuu 签到<a class="headerlink" href="#ikuuu" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>checkin</code><br />
+<strong>默认时间</strong>：08:00<br />
+<strong>认证方式</strong>：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。</p>
+<h3 id="_6">配置项<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>email</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录邮箱</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>password</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录密码</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>email</code>、<code>password</code>，优先于单账号</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">示例<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">checkin</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user@example.com</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">your_password</span>
+<span class="w">  </span><span class="c1"># 多账号：</span>
+<span class="w">  </span><span class="c1"># accounts:</span>
+<span class="w">  </span><span class="c1">#   - email: user1@example.com</span>
+<span class="w">  </span><span class="c1">#     password: pass1</span>
+<span class="w">  </span><span class="c1">#   - email: user2@example.com</span>
+<span class="w">  </span><span class="c1">#     password: pass2</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_8">雨云签到<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>rainyun</code><br />
+<strong>默认时间</strong>：08:30<br />
+<strong>认证方式</strong>：账号密码（Selenium + ddddocr，参考 <a href="https://github.com/Jielumoon/Rainyun-Qiandao">Rainyun-Qiandao</a>）。<strong>签到使用账号密码登录</strong>，<code>api_key</code> 仅用于服务器到期自动续费（可选）。需安装 Chrome/Chromium 及 chromedriver。<br />
+<strong>服务器自动续费</strong>：签到完成后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天。</p>
+<h3 id="_9">配置项<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">每项含 <code>username</code>、<code>password</code>，<code>api_key</code> 可选（用于续费）</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>auto_renew</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">是否启用服务器到期自动续费，默认 <code>true</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>renew_threshold_days</code></td>
+<td style="text-align: left;">整数</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">剩余多少天内触发续费，默认 <code>7</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>renew_product_ids</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">续费白名单（产品 ID），为空则续费所有即将到期的服务器</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-key">如何获取 API Key（续费用）<a class="headerlink" href="#api-key" title="Permanent link">&para;</a></h3>
+<ol>
+<li>登录 <a href="https://www.rainyun.com/">雨云控制台</a>。  </li>
+<li>进入 <strong>总览 → 用户 → 账户设置 → API 密钥</strong>。  </li>
+<li>创建或复制 API 密钥，填入 <code>accounts</code> 中对应账号的 <code>api_key</code>（可选，仅续费时需要）。</li>
+</ol>
+<h3 id="_10">示例<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">rainyun</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">accounts</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">你的雨云账号</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">你的雨云密码</span>
+<span class="w">      </span><span class="nt">api_key</span><span class="p">:</span><span class="w">  </span><span class="c1"># 可选，用于服务器续费</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">第二个账号</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">第二个密码</span>
+<span class="w">      </span><span class="nt">api_key</span><span class="p">:</span><span class="w">  </span><span class="c1"># 可选</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+<span class="w">  </span><span class="nt">auto_renew</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">      </span><span class="c1"># 服务器到期自动续费</span>
+<span class="w">  </span><span class="nt">renew_threshold_days</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7</span><span class="w">  </span><span class="c1"># 剩余 7 天内触发续费</span>
+<span class="w">  </span><span class="c1"># renew_product_ids: [44500, 44501]  # 白名单，留空续费全部</span>
+</code></pre></div>
+<h3 id="_11">参考<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<ul>
+<li>雨云官网：<a href="https://www.rainyun.com">https://www.rainyun.com</a></li>
+<li>Rainyun-Qiandao（三改版）：<a href="https://github.com/Jielumoon/Rainyun-Qiandao">https://github.com/Jielumoon/Rainyun-Qiandao</a></li>
+</ul>
+<hr />
+<h2 id="_12">百度贴吧签到<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>tieba</code><br />
+<strong>默认时间</strong>：08:10<br />
+<strong>认证方式</strong>：Cookie（<strong>须包含 BDUSS</strong>），支持多 Cookie。</p>
+<h3 id="_13">配置项<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">须含 BDUSS</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:10"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_1">如何获取 Cookie<a class="headerlink" href="#cookie_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li>浏览器登录 <a href="https://tieba.baidu.com">百度贴吧</a>。  </li>
+<li><code>F12</code> → <strong>Console</strong>，输入 <code>document.cookie</code> 回车，复制整段。  </li>
+<li>确认其中包含 <strong>BDUSS</strong>，填入 <code>cookie</code> 或 <code>cookies</code> 中一项。</li>
+</ol>
+<h3 id="_14">示例<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">tieba</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BIDUPSID=xxx;</span><span class="nv"> </span><span class="s">BDUSS=xxx;</span><span class="nv"> </span><span class="s">...&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:10&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_15">恩山论坛签到<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>enshan</code><br />
+<strong>默认时间</strong>：02:00<br />
+<strong>认证方式</strong>：Cookie，支持多 Cookie。</p>
+<h3 id="_16">配置项<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录后 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"02:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_2">如何获取 Cookie<a class="headerlink" href="#cookie_2" title="Permanent link">&para;</a></h3>
+<p>登录 <a href="https://www.right.com.cn/forum/">恩山论坛</a> 后，F12 → Console → <code>document.cookie</code>，复制后填入。</p>
+<h3 id="_17">示例<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">enshan</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;02:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_18">天翼云盘签到<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>tyyun</code><br />
+<strong>默认时间</strong>：04:30<br />
+<strong>认证方式</strong>：手机号 + 密码，支持多账号（需 <code>rsa</code> 库）。</p>
+<h3 id="_19">配置项<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>username</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">手机号</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>password</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">密码</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>username</code>、<code>password</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"04:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_20">示例<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">tyyun</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;13800138000&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;04:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_21">阿里云盘签到<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>aliyun</code><br />
+<strong>默认时间</strong>：05:30<br />
+<strong>认证方式</strong>：refresh_token，支持多 token。</p>
+<h3 id="_22">配置项<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>refresh_token</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">阿里云盘 refresh_token</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>refresh_tokens</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多个 token</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"05:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refresh_token">如何获取 refresh_token<a class="headerlink" href="#refresh_token" title="Permanent link">&para;</a></h3>
+<p>可参考社区脚本/wiki 获取，例如：<a href="https://github.com/bighammer-link/Common-scripts/wiki">Common-scripts wiki - 阿里云盘 refresh_token</a>。</p>
+<h3 id="_23">示例<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">aliyun</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">refresh_token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;your_refresh_token&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;05:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_24">什么值得买签到<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>smzdm</code><br />
+<strong>默认时间</strong>：00:30<br />
+<strong>认证方式</strong>：Cookie，支持多 Cookie。</p>
+<h3 id="_25">配置项<a class="headerlink" href="#_25" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"00:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_3">如何获取 Cookie<a class="headerlink" href="#cookie_3" title="Permanent link">&para;</a></h3>
+<p>登录 <a href="https://www.smzdm.com/">什么值得买</a> 后，F12 → Console → <code>document.cookie</code>，复制填入。</p>
+<h3 id="_26">示例<a class="headerlink" href="#_26" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">smzdm</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;00:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_27">值得买每日抽奖<a class="headerlink" href="#_27" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>zdm_draw</code><br />
+<strong>默认时间</strong>：07:30<br />
+<strong>认证方式</strong>：与 smzdm 共用 Cookie，支持多 Cookie。</p>
+<h3 id="_28">配置项<a class="headerlink" href="#_28" title="Permanent link">&para;</a></h3>
+<p>与 <code>smzdm</code> 类似：<code>enable</code>、<code>cookie</code>/<code>cookies</code>、<code>time</code>、<code>push_channels</code>。Cookie 获取方式同「什么值得买签到」。</p>
+<h3 id="_29">示例<a class="headerlink" href="#_29" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">zdm_draw</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;07:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_30">富贵论坛签到<a class="headerlink" href="#_30" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>fg</code><br />
+<strong>默认时间</strong>：00:01<br />
+<strong>认证方式</strong>：Cookie，支持多 Cookie。</p>
+<h3 id="_31">配置项<a class="headerlink" href="#_31" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"00:01"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_4">如何获取 Cookie<a class="headerlink" href="#cookie_4" title="Permanent link">&para;</a></h3>
+<p>登录富贵论坛后，F12 → Console → <code>document.cookie</code>，复制填入。</p>
+<h3 id="_32">示例<a class="headerlink" href="#_32" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">fg</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;00:01&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_33">小米社区签到<a class="headerlink" href="#_33" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>miui</code><br />
+<strong>默认时间</strong>：08:30<br />
+<strong>认证方式</strong>：手机号/账号 + 密码，支持多账号。需 <code>pycryptodome</code>，存在封号风险。</p>
+<h3 id="_34">配置项<a class="headerlink" href="#_34" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>account</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">手机号/账号</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>password</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">密码</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>account</code>、<code>password</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_35">示例<a class="headerlink" href="#_35" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">miui</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;手机号&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;密码&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_36">爱奇艺签到<a class="headerlink" href="#_36" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>iqiyi</code><br />
+<strong>默认时间</strong>：06:00<br />
+<strong>认证方式</strong>：Cookie（须含 <strong>P00001、P00003、QC005、__dfp</strong> 等），支持多 Cookie。</p>
+<h3 id="_37">配置项<a class="headerlink" href="#_37" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">须含 P00001、P00003、QC005、__dfp</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"06:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_5">如何获取 Cookie<a class="headerlink" href="#cookie_5" title="Permanent link">&para;</a></h3>
+<p>登录 <a href="https://www.iqiyi.com/">爱奇艺</a> 网页版，F12 → Network → 选任意请求 → 请求头中复制 Cookie，确保包含上述字段。</p>
+<h3 id="_38">示例<a class="headerlink" href="#_38" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">iqiyi</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;P00001=xxx;</span><span class="nv"> </span><span class="s">P00003=xxx;</span><span class="nv"> </span><span class="s">QC005=xxx;</span><span class="nv"> </span><span class="s">__dfp=xxx;</span><span class="nv"> </span><span class="s">...&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;06:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_39">联想乐豆签到<a class="headerlink" href="#_39" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>lenovo</code><br />
+<strong>默认时间</strong>：05:30<br />
+<strong>认证方式</strong>：access_token（联想 App 请求头中 accesstoken），支持多 token。</p>
+<h3 id="_40">配置项<a class="headerlink" href="#_40" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>access_token</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">联想 App Headers 中 accesstoken</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>access_tokens</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多个 token</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"05:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="access_token">如何获取 access_token<a class="headerlink" href="#access_token" title="Permanent link">&para;</a></h3>
+<p>在联想相关 App 内抓包，找到请求头中的 <strong>accesstoken</strong> 字段，复制其值填入。</p>
+<h3 id="_41">示例<a class="headerlink" href="#_41" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">lenovo</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">access_token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;05:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_42">丽宝乐园签到<a class="headerlink" href="#_42" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>lbly</code><br />
+<strong>默认时间</strong>：05:30<br />
+<strong>认证方式</strong>：抓包获取请求体 JSON（含 MallID、Header.Token 等），支持多组 request_bodies。</p>
+<h3 id="_43">配置项<a class="headerlink" href="#_43" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>request_body</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">抓包得到的完整请求体 JSON</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>request_bodies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多个请求体 JSON 字符串</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"05:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_44">如何获取<a class="headerlink" href="#_44" title="Permanent link">&para;</a></h3>
+<p>抓包接口：<code>https://m.mallcoo.cn/api/user/User/GetRewardList</code>，复制请求体（JSON），填入 <code>request_body</code> 或 <code>request_bodies</code>。</p>
+<h3 id="_45">示例<a class="headerlink" href="#_45" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">lbly</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">request_body</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{&quot;MallID&quot;:11192,&quot;Header&quot;:{&quot;Token&quot;:&quot;xxx&quot;}}&#39;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;05:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_46">品赞代理签到<a class="headerlink" href="#_46" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>pinzan</code><br />
+<strong>默认时间</strong>：08:00<br />
+<strong>认证方式</strong>：账号 + 密码，支持多账号。</p>
+<h3 id="_47">配置项<a class="headerlink" href="#_47" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>account</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">账号（如手机号）</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>password</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">密码</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>account</code>、<code>password</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_48">示例<a class="headerlink" href="#_48" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">pinzan</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;手机号&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;密码&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_49">达美乐任务<a class="headerlink" href="#_49" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>dml</code><br />
+<strong>默认时间</strong>：06:00<br />
+<strong>认证方式</strong>：小程序抓包获取 openid，支持多 openid。</p>
+<h3 id="_50">配置项<a class="headerlink" href="#_50" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>openid</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">抓包得到的 openid</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>openids</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多个 openid</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"06:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="openid">如何获取 openid<a class="headerlink" href="#openid" title="Permanent link">&para;</a></h3>
+<p>达美乐小程序内抓包，从相关请求中获取 openid 参数，填入配置。</p>
+<h3 id="_51">示例<a class="headerlink" href="#_51" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">dml</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">openid</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;06:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="i">小茅预约（i茅台）<a class="headerlink" href="#i" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>xiaomao</code><br />
+<strong>默认时间</strong>：09:00<br />
+<strong>认证方式</strong>：每条为「省份,城市,经度,纬度,设备id,token,MT-Token-Wap」（小茅运领奖励可不填 MT-Token-Wap）。需 <code>pycryptodome</code>。支持多账号 <code>tokens</code>。</p>
+<h3 id="_52">配置项<a class="headerlink" href="#_52" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>token</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">格式：省份,城市,经度,纬度,设备id,token,MT-Token-Wap</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tokens</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">多条上述格式字符串</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>mt_version</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">如 1.3.6，不填则尝试从 App Store 页获取</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"09:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_53">示例<a class="headerlink" href="#_53" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">xiaomao</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;浙江省,宁波市,121.16,30.05,设备id,token,MT-Token-Wap&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;09:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_54">一点万象签到<a class="headerlink" href="#_54" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>ydwx</code><br />
+<strong>默认时间</strong>：06:00<br />
+<strong>认证方式</strong>：deviceParams + token，支持多账号（accounts 中每项 device_params、token）。</p>
+<h3 id="_55">配置项<a class="headerlink" href="#_55" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>device_params</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">设备参数</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>token</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">令牌</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>device_params</code>、<code>token</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"06:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_56">示例<a class="headerlink" href="#_56" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">ydwx</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">device_params</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;06:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_57">星空代理签到<a class="headerlink" href="#_57" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>xingkong</code><br />
+<strong>默认时间</strong>：07:30<br />
+<strong>认证方式</strong>：用户名 + 密码，支持多账号。</p>
+<h3 id="_58">配置项<a class="headerlink" href="#_58" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>username</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">用户名</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>password</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">密码</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项 <code>username</code>、<code>password</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"07:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_59">示例<a class="headerlink" href="#_59" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">xingkong</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pass&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;07:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="freenom">Freenom 免费域名续期<a class="headerlink" href="#freenom" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>freenom</code><br />
+<strong>默认时间</strong>：07:33<br />
+<strong>认证方式</strong>：邮箱 + 密码，支持多账号。对 14 天内到期的域名自动续期 12 个月。</p>
+<h3 id="_60">配置项<a class="headerlink" href="#_60" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">每项 <code>email</code>、<code>password</code>（Freenom 登录邮箱与密码）</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"07:33"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_61">参考<a class="headerlink" href="#_61" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Freenom 续期页：<a href="https://my.freenom.com/domains.php?a=renewals">https://my.freenom.com/domains.php?a=renewals</a></li>
+</ul>
+<h3 id="_62">示例<a class="headerlink" href="#_62" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">freenom</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">accounts</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user1@example.com&quot;</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pass1&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user2@example.com&quot;</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pass2&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;07:33&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_63">天气推送<a class="headerlink" href="#_63" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>weather</code><br />
+<strong>默认时间</strong>：07:30<br />
+<strong>说明</strong>：按城市代码推送今日天气与未来 7 日预报，仅通知不写入数据库。</p>
+<h3 id="_64">配置项<a class="headerlink" href="#_64" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>city_code</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">城市代码，如 101020100（上海）</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"07:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_65">如何获取城市代码<a class="headerlink" href="#_65" title="Permanent link">&para;</a></h3>
+<p>可参考：<a href="https://fastly.jsdelivr.net/gh/Oreomeow/checkinpanel@master/city.json">city.json（城市代码示例）</a><br />
+接口说明：<code>http://t.weather.itboy.net/api/weather/city/{city_code}</code>。</p>
+<h3 id="_66">示例<a class="headerlink" href="#_66" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">weather</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">city_code</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;101020100&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;07:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_67">千图网签到<a class="headerlink" href="#_67" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>qtw</code><br />
+<strong>默认时间</strong>：01:30<br />
+<strong>认证方式</strong>：Cookie，支持多 Cookie。</p>
+<h3 id="_68">配置项<a class="headerlink" href="#_68" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">登录 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"01:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_69">示例<a class="headerlink" href="#_69" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">qtw</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;01:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_70">夸克网盘签到<a class="headerlink" href="#_70" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>kuake</code><br />
+<strong>默认时间</strong>：02:00<br />
+<strong>认证方式</strong>：Cookie（登录 <a href="https://pan.quark.cn/">pan.quark.cn</a> 后的请求头 Cookie），支持多 Cookie。</p>
+<h3 id="_71">配置项<a class="headerlink" href="#_71" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">单账号必填</td>
+<td style="text-align: left;">完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookies</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">多账号时使用</td>
+<td style="text-align: left;">每项完整 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"02:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cookie_6">如何获取 Cookie<a class="headerlink" href="#cookie_6" title="Permanent link">&para;</a></h3>
+<p>浏览器登录 <a href="https://pan.quark.cn/">夸克网盘</a>，F12 → Network → 选任意请求 → 请求头复制 Cookie。</p>
+<h3 id="_72">示例<a class="headerlink" href="#_72" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">kuake</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;quark_xxx=...&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;02:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_73">科技玩家签到<a class="headerlink" href="#_73" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>kjwj</code><br />
+<strong>默认时间</strong>：07:30<br />
+<strong>认证方式</strong>：账号 + 密码，支持多账号。</p>
+<h3 id="_74">配置项<a class="headerlink" href="#_74" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>accounts</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">每项 <code>username</code>、<code>password</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"07:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_75">示例<a class="headerlink" href="#_75" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">kjwj</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">accounts</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user1@example.com&quot;</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pass1&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;07:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_76">帆软社区签到<a class="headerlink" href="#_76" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>fr</code><br />
+<strong>默认时间</strong>：06:30<br />
+<strong>认证方式</strong>：Cookie（社区签到 + 摇摇乐）。</p>
+<h3 id="_77">配置项<a class="headerlink" href="#_77" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cookie</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">登录 Cookie</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"06:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_78">示例<a class="headerlink" href="#_78" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">fr</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;06:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="999">999 会员中心健康任务<a class="headerlink" href="#999" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>nine_nine_nine</code><br />
+<strong>默认时间</strong>：15:15<br />
+<strong>认证方式</strong>：抓包 mc.999.com.cn 请求头中的 <strong>Authorization</strong>，支持多 token。</p>
+<h3 id="_79">配置项<a class="headerlink" href="#_79" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tokens</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">每个账号的 Authorization 值</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"15:15"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_80">示例<a class="headerlink" href="#_80" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">nine_nine_nine</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">tokens</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;Bearer</span><span class="nv"> </span><span class="s">xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15:15&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_81">中国福彩抽奖<a class="headerlink" href="#_81" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>zgfc</code><br />
+<strong>默认时间</strong>：08:00<br />
+<strong>认证方式</strong>：请求头 Authorization，支持多 token。</p>
+<h3 id="_82">配置项<a class="headerlink" href="#_82" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tokens</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">Authorization 值列表</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_83">示例<a class="headerlink" href="#_83" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">zgfc</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">tokens</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:00&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_84">双色球开奖通知<a class="headerlink" href="#_84" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>ssq_500w</code><br />
+<strong>默认时间</strong>：21:30<br />
+<strong>说明</strong>：获取最新双色球开奖信息、守号检测、冷号机选等（仅娱乐通知，不涉及真实购彩）。无需账号，只需配置 <code>enable</code>、<code>time</code>、<code>push_channels</code>。</p>
+<h3 id="_85">配置项<a class="headerlink" href="#_85" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"21:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>push_channels</code></td>
+<td style="text-align: left;">列表</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">推送通道</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_86">示例<a class="headerlink" href="#_86" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">ssq_500w</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;21:30&quot;</span>
+<span class="w">  </span><span class="nt">push_channels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="_87">日志清理<a class="headerlink" href="#_87" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>log_cleanup</code><br />
+<strong>默认时间</strong>：02:10<br />
+<strong>说明</strong>：按保留天数清理历史日志文件，非签到类任务。</p>
+<h3 id="_88">配置项<a class="headerlink" href="#_88" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">是否启用，默认 true</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">执行时间，默认 <code>"02:10"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>retention_days</code></td>
+<td style="text-align: left;">整数</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">日志保留天数，默认 3</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_89">示例<a class="headerlink" href="#_89" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">log_cleanup</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;02:10&quot;</span>
+<span class="w">  </span><span class="nt">retention_days</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+</code></pre></div>
+<hr />
+<h2 id="_90">免打扰时段<a class="headerlink" href="#_90" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>quiet_hours</code><br />
+<strong>说明</strong>：在指定时间段内，监控与签到任务<strong>照常执行并更新数据</strong>，但<strong>不推送通知</strong>。支持跨天（如 22:00～08:00）。</p>
+<h3 id="_91">配置项<a class="headerlink" href="#_91" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用免打扰</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">开始时间 HH:MM，如 <code>"22:00"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>end</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">结束时间 HH:MM，如 <code>"08:00"</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_92">示例<a class="headerlink" href="#_92" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">quiet_hours</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">start</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;22:00&quot;</span>
+<span class="w">  </span><span class="nt">end</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:00&quot;</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">注意</p>
+<p>免打扰时段内可能遗漏重要消息，请按需使用。</p>
+</div>
+<hr />
+<h2 id="demo">插件示例任务（Demo）<a class="headerlink" href="#demo" title="Permanent link">&para;</a></h2>
+<p><strong>配置节点</strong>：<code>plugins.demo_task</code><br />
+<strong>默认时间</strong>：08:30<br />
+<strong>说明</strong>：二次开发示例任务，不需要可在 <code>src/job_registry.py</code> 的 <code>TASK_MODULES</code> 中移除 <code>tasks.demo_task</code>。</p>
+<h3 id="_93">配置项<a class="headerlink" href="#_93" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">配置项</th>
+<th style="text-align: left;">类型</th>
+<th style="text-align: center;">必填</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>enable</code></td>
+<td style="text-align: left;">布尔</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: left;">是否启用</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">默认 <code>"08:30"</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>message</code></td>
+<td style="text-align: left;">字符串</td>
+<td style="text-align: center;">否</td>
+<td style="text-align: left;">自定义消息内容</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_94">示例<a class="headerlink" href="#_94" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">plugins</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">demo_task</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:30&quot;</span>
+<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Demo</span><span class="nv"> </span><span class="s">定时任务执行完成&quot;</span>
+</code></pre></div>
+<hr />
+<p>部分签到逻辑参考自 <a href="https://github.com/wd210010/only_for_happly">only_for_happly</a>，已接入本项目统一推送与配置；主包未对其单独维护，若某平台接口变更可能导致任务失效，请以实际运行与日志为准。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; FY · MIT License
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/666fy666/WebMoniter" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
