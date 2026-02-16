@@ -1,0 +1,2989 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发">
+      
+      
+        <meta name="author" content="FY">
+      
+      
+        <link rel="canonical" href="https://666fy666.github.io/WebMoniter/API/">
+      
+      
+        <link rel="prev" href="../SECONDARY_DEVELOPMENT/">
+      
+      
+        <link rel="next" href="../faq/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>API 参考 - WebMoniter 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="WebMoniter 文档" class="md-header__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WebMoniter 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API 参考
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+  
+  快速开始
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/config/" class="md-tabs__link">
+          
+  
+  
+  使用指南
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ARCHITECTURE/" class="md-tabs__link">
+          
+  
+  
+  二次开发
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+  帮助与支持
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WebMoniter 文档" class="md-nav__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    WebMoniter 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速开始
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    安装与运行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QINGLONG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    使用指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置与设置
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    配置与设置
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 管理界面
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/ai-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 助手
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务管理
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    任务管理
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/monitors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    监控任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/checkin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送与通知
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    推送与通知
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/push-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送通道配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    二次开发
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECONDARY_DEVELOPMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        基础信息
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API 端点列表
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API 端点列表">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 认证相关
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 认证相关">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        登录
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        登出
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        检查认证状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改密码（需登录）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取版本信息（无需登录）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 配置管理（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 配置管理（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        保存配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 数据查询（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 数据查询（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        平台与主键说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        列表：分页 + 可选过滤
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        虎牙封面/头像 URL（异步加载）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        单条：按平台 + 主键 ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 监控状态（无需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 监控状态（无需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        全部监控状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        按平台
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#id_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        按平台 + 主键 ID（单条）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 日志查询
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 日志查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取日志
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取任务日志列表
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 任务管理（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 任务管理（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取任务列表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        手动触发任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-ai-configyml-ai_assistantenable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. AI 助手（需登录，需在 config.yml 启用 ai_assistant.enable）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. AI 助手（需登录，需在 config.yml 启用 ai_assistant.enable）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取 AI 助手状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        会话管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        对话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        流式对话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        执行可确认操作
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-webhook-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Webhook 回调（AI 助手入口）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Webhook 回调（AI 助手入口）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        企业微信自建应用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram 机器人
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        调用示例
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="调用示例">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python 示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cURL 示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        错误处理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        相关文档
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    帮助与支持
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    帮助与支持
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    常见问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        基础信息
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API 端点列表
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API 端点列表">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 认证相关
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 认证相关">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        登录
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        登出
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        检查认证状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改密码（需登录）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取版本信息（无需登录）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 配置管理（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 配置管理（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        保存配置
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 数据查询（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 数据查询（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        平台与主键说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        列表：分页 + 可选过滤
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        虎牙封面/头像 URL（异步加载）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        单条：按平台 + 主键 ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 监控状态（无需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 监控状态（无需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        全部监控状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        按平台
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#id_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        按平台 + 主键 ID（单条）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 日志查询
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 日志查询">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取日志
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取任务日志列表
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 任务管理（需登录）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 任务管理（需登录）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取任务列表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        手动触发任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-ai-configyml-ai_assistantenable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. AI 助手（需登录，需在 config.yml 启用 ai_assistant.enable）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. AI 助手（需登录，需在 config.yml 启用 ai_assistant.enable）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        获取 AI 助手状态
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        会话管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        对话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        流式对话
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        执行可确认操作
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-webhook-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Webhook 回调（AI 助手入口）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Webhook 回调（AI 助手入口）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        企业微信自建应用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#telegram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Telegram 机器人
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        调用示例
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="调用示例">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python 示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cURL 示例
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        错误处理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        相关文档
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api">API 调用指南<a class="headerlink" href="#api" title="Permanent link">&para;</a></h1>
+<p>系统提供了 RESTful API 接口，方便与其他系统集成或进行自动化操作。所有 API 接口均基于 FastAPI 框架实现。</p>
+<h2 id="_1">基础信息<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Base URL</strong>: <code>http://localhost:8866</code>（本地部署）或 <code>http://your-server-ip:8866</code>（服务器部署）</li>
+<li><strong>Content-Type</strong>: <code>application/json</code></li>
+<li><strong>认证方式</strong>: 基于 Session 的认证（部分接口需要登录）</li>
+</ul>
+<hr />
+<h2 id="api_1">API 端点列表<a class="headerlink" href="#api_1" title="Permanent link">&para;</a></h2>
+<h3 id="1">1. 认证相关<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<h4 id="_2">登录<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/login</span>
+<span class="err">Content-Type: application/x-www-form-urlencoded</span>
+
+<span class="err">username=admin&amp;password=123</span>
+</code></pre></div>
+<h4 id="_3">登出<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/logout</span>
+</code></pre></div>
+<h4 id="_4">检查认证状态<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/check-auth</span>
+</code></pre></div>
+<h4 id="_5">修改密码（需登录）<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/change-password</span>
+<span class="err">Content-Type: application/x-www-form-urlencoded</span>
+
+<span class="err">old_password=xxx&amp;new_password=xxx&amp;confirm_password=xxx</span>
+</code></pre></div>
+<h4 id="_6">获取版本信息（无需登录）<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/version</span>
+</code></pre></div>
+<p>返回示例：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.1.3&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;github_api_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.github.com/repos/666fy666/WebMoniter/tags&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;tags_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://github.com/666fy666/WebMoniter/tags&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<blockquote>
+<p>用于 Web 界面自动检测新版本。前端会调用 <code>github_api_url</code> 获取最新 tag 信息并与当前版本比较。</p>
+</blockquote>
+<hr />
+<h3 id="2">2. 配置管理（需登录）<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
+<h4 id="_7">获取配置<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/config?format=json</span>
+<span class="err">GET /api/config?format=yaml</span>
+</code></pre></div>
+<h4 id="_8">保存配置<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/config</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;content&quot;: &quot;yaml配置内容...&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+<p>或使用 JSON 格式：</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/config</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;config&quot;: {</span>
+<span class="err">    &quot;weibo&quot;: {...},</span>
+<span class="err">    &quot;huya&quot;: {...},</span>
+<span class="err">    ...</span>
+<span class="err">  }</span>
+<span class="err">}</span>
+</code></pre></div>
+<hr />
+<h3 id="3">3. 数据查询（需登录）<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<p>数据查询采用 REST 风格，支持按平台、按主键 ID 查询，以及分页与过滤。</p>
+<h4 id="_9">平台与主键说明<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th><code>platform</code></th>
+<th>主键 ID 含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微博</td>
+<td><code>weibo</code></td>
+<td>用户 UID</td>
+<td><code>1234567890</code></td>
+</tr>
+<tr>
+<td>虎牙</td>
+<td><code>huya</code></td>
+<td>房间号 room</td>
+<td><code>123456</code></td>
+</tr>
+<tr>
+<td>哔哩哔哩直播</td>
+<td><code>bilibili_live</code></td>
+<td>UP 主 UID</td>
+<td><code>1795147802</code></td>
+</tr>
+<tr>
+<td>哔哩哔哩动态</td>
+<td><code>bilibili_dynamic</code></td>
+<td>UP 主 UID</td>
+<td><code>1795147802</code></td>
+</tr>
+<tr>
+<td>抖音直播</td>
+<td><code>douyin</code></td>
+<td>抖音号（字符串）</td>
+<td><code>ASOULjiaran</code></td>
+</tr>
+<tr>
+<td>斗鱼直播</td>
+<td><code>douyu</code></td>
+<td>房间号 room</td>
+<td><code>307876</code></td>
+</tr>
+<tr>
+<td>小红书动态</td>
+<td><code>xhs</code></td>
+<td>用户 profile_id</td>
+<td><code>52d8c541b4c4d60e6c867480</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="_10">列表：分页 + 可选过滤<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/data/{platform}?page=1&amp;page_size=100</span>
+<span class="err">GET /api/data/weibo?uid=1234567890&amp;page=1&amp;page_size=20</span>
+<span class="err">GET /api/data/huya?room=123456&amp;page=1&amp;page_size=20</span>
+<span class="err">GET /api/data/bilibili_live?uid=1795147802&amp;page=1&amp;page_size=20</span>
+<span class="err">GET /api/data/douyin?id=ASOULjiaran&amp;page=1&amp;page_size=20</span>
+</code></pre></div>
+<ul>
+<li><code>platform</code>：见上表中 <code>platform</code> 列</li>
+<li><code>page</code>：页码，从 1 开始（默认 1）</li>
+<li><code>page_size</code>：每页条数（默认 100）</li>
+<li><code>uid</code>：当 <code>platform</code> 为 <code>weibo</code>、<code>bilibili_live</code>、<code>bilibili_dynamic</code> 时按 UID 过滤</li>
+<li><code>room</code>：当 <code>platform</code> 为 <code>huya</code>、<code>douyu</code> 时按房间号过滤</li>
+<li><code>id</code>：当 <code>platform</code> 为 <code>douyin</code>、<code>xhs</code> 时按抖音号 / profile_id 过滤</li>
+<li><code>include_media</code>：当 <code>platform</code> 为 <code>huya</code> 时有效；设为 <code>false</code> 则不返回 <code>room_pic</code>、<code>avatar_url</code>，前端可再调用 <code>/api/data/huya/images</code> 异步获取</li>
+</ul>
+<h4 id="url">虎牙封面/头像 URL（异步加载）<a class="headerlink" href="#url" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/data/huya/images?rooms=123,456,789</span>
+</code></pre></div>
+<p>用于数据展示页异步加载虎牙封面图和头像，减少首屏请求体积。返回 <code>{"data": {"123": {"room_pic": "...", "avatar_url": "..."}, ...}}</code>。</p>
+<p>返回示例：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;page&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;page_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;total_pages&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="id">单条：按平台 + 主键 ID<a class="headerlink" href="#id" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/data/weibo/{uid}</span>
+<span class="err">GET /api/data/huya/{room}</span>
+</code></pre></div>
+<p>示例：<code>GET /api/data/weibo/1234567890</code>、<code>GET /api/data/huya/123456</code><br />
+未找到时返回 <code>404</code>，成功时返回 <code>{"data": {...}}</code>。</p>
+<hr />
+<h3 id="4">4. 监控状态（无需登录）<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<p>监控状态接口与数据查询对应，同样支持「全部 / 按平台 / 按 ID」三种粒度，<strong>无需登录</strong>。<br />
+支持的监控平台与上文数据查询一致：</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th><code>platform</code></th>
+<th>主键 ID 含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微博</td>
+<td><code>weibo</code></td>
+<td>用户 UID</td>
+</tr>
+<tr>
+<td>虎牙</td>
+<td><code>huya</code></td>
+<td>房间号 room</td>
+</tr>
+<tr>
+<td>哔哩哔哩直播</td>
+<td><code>bilibili_live</code></td>
+<td>UP 主 UID</td>
+</tr>
+<tr>
+<td>哔哩哔哩动态</td>
+<td><code>bilibili_dynamic</code></td>
+<td>UP 主 UID</td>
+</tr>
+<tr>
+<td>抖音直播</td>
+<td><code>douyin</code></td>
+<td>抖音号（字符串）</td>
+</tr>
+<tr>
+<td>斗鱼直播</td>
+<td><code>douyu</code></td>
+<td>房间号 room</td>
+</tr>
+<tr>
+<td>小红书动态</td>
+<td><code>xhs</code></td>
+<td>用户 profile_id</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_11">全部监控状态<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/monitor-status</span>
+</code></pre></div>
+<p>返回结构：</p>
+<ul>
+<li><code>success</code>: 是否成功  </li>
+<li><code>data</code>: 一个对象，key 为平台名（如 <code>weibo</code>、<code>huya</code>、<code>bilibili_live</code> 等），value 为该平台下所有监控对象的数组（字段与 <code>/api/data/{platform}</code> 中 <code>data</code> 元素一致）  </li>
+<li><code>timestamp</code>: ISO 格式时间戳</li>
+</ul>
+<h4 id="_12">按平台<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/monitor-status/weibo</span>
+<span class="err">GET /api/monitor-status/huya</span>
+<span class="err">GET /api/monitor-status/bilibili_live</span>
+<span class="err">GET /api/monitor-status/bilibili_dynamic</span>
+<span class="err">GET /api/monitor-status/douyin</span>
+<span class="err">GET /api/monitor-status/douyu</span>
+<span class="err">GET /api/monitor-status/xhs</span>
+</code></pre></div>
+<p>返回该平台下所有监控项的数组，字段与对应 <code>/api/data/{platform}</code> 的单条 <code>data</code> 一致，例如：</p>
+<ul>
+<li><code>weibo</code>：<code>UID</code>、<code>用户名</code>、<code>认证信息</code>、<code>简介</code>、<code>粉丝数</code>、<code>微博数</code>、<code>文本</code>、<code>mid</code>、<code>url</code>  </li>
+<li><code>huya</code>：<code>room</code>、<code>name</code>、<code>is_live</code>、<code>url</code>  </li>
+<li><code>bilibili_live</code>：<code>uid</code>、<code>uname</code>、<code>room_id</code>、<code>is_live</code>、<code>url</code>  </li>
+<li><code>bilibili_dynamic</code>：<code>uid</code>、<code>uname</code>、<code>dynamic_id</code>、<code>dynamic_text</code>、<code>url</code>  </li>
+<li><code>douyin</code>：<code>douyin_id</code>、<code>name</code>、<code>is_live</code>、<code>url</code>  </li>
+<li><code>douyu</code>：<code>room</code>、<code>name</code>、<code>is_live</code>、<code>url</code>  </li>
+<li><code>xhs</code>：<code>profile_id</code>、<code>user_name</code>、<code>latest_note_title</code>、<code>url</code></li>
+</ul>
+<h4 id="id_1">按平台 + 主键 ID（单条）<a class="headerlink" href="#id_1" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/monitor-status/weibo/{uid}</span>
+<span class="err">GET /api/monitor-status/huya/{room}</span>
+<span class="err">GET /api/monitor-status/bilibili_live/{uid}</span>
+<span class="err">GET /api/monitor-status/bilibili_dynamic/{uid}</span>
+<span class="err">GET /api/monitor-status/douyin/{id}</span>
+<span class="err">GET /api/monitor-status/douyu/{room}</span>
+<span class="err">GET /api/monitor-status/xhs/{id}</span>
+</code></pre></div>
+<p>示例：</p>
+<ul>
+<li><code>GET /api/monitor-status/weibo/1234567890</code></li>
+<li><code>GET /api/monitor-status/huya/123456</code></li>
+<li><code>GET /api/monitor-status/bilibili_live/1795147802</code></li>
+<li><code>GET /api/monitor-status/douyin/ASOULjiaran</code></li>
+</ul>
+<p>成功时 <code>data</code> 为单条对象；未找到时返回 <code>404</code>。</p>
+<hr />
+<h3 id="5">5. 日志查询<a class="headerlink" href="#5" title="Permanent link">&para;</a></h3>
+<h4 id="_13">获取日志<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/logs?lines=100</span>
+<span class="err">GET /api/logs?lines=100&amp;task=ikuuu_checkin</span>
+</code></pre></div>
+<p>参数：
+- <code>lines</code>：返回最近 N 行日志，默认 100
+- <code>task</code>：（可选）指定任务 ID 时，返回该任务的今日专属日志；不传则返回今日总日志</p>
+<p>不传 <code>task</code> 时读取 <code>main_YYYYMMDD.log</code>；传 <code>task</code> 时读取 <code>task_{job_id}_YYYYMMDD.log</code>。</p>
+<h4 id="_14">获取任务日志列表<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/logs/tasks</span>
+</code></pre></div>
+<p>返回今日有日志文件的任务 ID 列表，以及全部任务列表（用于前端下拉选择）：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;all_tasks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ikuuu_checkin&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;has_log_today&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;huya_monitor&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;has_log_today&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;tasks_with_logs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ikuuu_checkin&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;log_cleanup&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="6">6. 任务管理（需登录）<a class="headerlink" href="#6" title="Permanent link">&para;</a></h3>
+<h4 id="_15">获取任务列表<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/tasks</span>
+</code></pre></div>
+<p>返回所有注册的监控任务和定时任务列表：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;tasks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;huya_monitor&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;trigger&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;interval&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;monitor&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;监控任务&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;虎牙直播状态监控&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ikuuu_checkin&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;trigger&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cron&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;task&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;定时任务&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ikuuu 每日签到&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="_16">手动触发任务<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/tasks/{task_id}/run</span>
+</code></pre></div>
+<ul>
+<li><code>task_id</code>：任务 ID，如 <code>huya_monitor</code>、<code>ikuuu_checkin</code> 等</li>
+</ul>
+<p>成功返回：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;任务 huya_monitor 执行成功&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>失败返回：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;任务执行失败: 具体错误信息&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>注意</strong>：手动触发执行时会绕过"当天已运行则跳过"检查，确保任务被强制执行。</p>
+<hr />
+<h3 id="7-ai-configyml-ai_assistantenable">7. AI 助手（需登录，需在 config.yml 启用 <code>ai_assistant.enable</code>）<a class="headerlink" href="#7-ai-configyml-ai_assistantenable" title="Permanent link">&para;</a></h3>
+<p>AI 助手提供智能对话、配置生成、日志诊断、数据洞察及可执行操作能力，需在 <code>config.yml</code> 中配置 <code>ai_assistant</code> 并安装 AI 依赖。</p>
+<h4 id="ai">获取 AI 助手状态<a class="headerlink" href="#ai" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/assistant/status</span>
+</code></pre></div>
+<p>返回 AI 助手是否可用（依赖是否安装、配置是否启用），无需 AI 依赖也可调用：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>或 <code>{"enabled": false, "reason": "未安装 ai 依赖"}</code> 等。</p>
+<h4 id="_17">会话管理<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/assistant/conversations</span>
+</code></pre></div>
+<p>返回当前用户的会话列表。</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/assistant/conversations</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{&quot;title&quot;: &quot;新对话&quot;}</span>
+</code></pre></div>
+<p>新建会话，返回 <code>{"conversation_id": "xxx"}</code>。</p>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/assistant/conversations/{conv_id}/messages</span>
+</code></pre></div>
+<p>获取指定会话的消息列表。</p>
+<div class="highlight"><pre><span></span><code><span class="err">DELETE /api/assistant/conversations/{conv_id}</span>
+</code></pre></div>
+<p>删除指定会话。</p>
+<h4 id="_18">对话<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/assistant/chat</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;message&quot;: &quot;虎牙谁在直播？&quot;,</span>
+<span class="err">  &quot;conversation_id&quot;: &quot;xxx&quot;,</span>
+<span class="err">  &quot;context&quot;: &quot;all&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+<ul>
+<li><code>message</code>：用户输入（必填）</li>
+<li><code>conversation_id</code>：会话 ID，空则自动创建新会话</li>
+<li><code>context</code>：检索范围，<code>"all"</code> 表示文档+配置+日志</li>
+</ul>
+<p>返回：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;reply&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AI 回复内容&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;conversation_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xxx&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;suggested_action&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>当识别到可执行操作（如开关监控、增删配置）时，<code>suggested_action</code> 包含 <code>type: "confirm_execute"</code>、<code>action</code>、<code>platform_key</code> 等，前端可弹出确认弹窗，确认后调用 <code>POST /api/assistant/apply-action</code>。</p>
+<p>当返回配置片段（YAML）时，<code>suggested_action</code> 可为 <code>{"type": "config_diff", "diff": "yaml内容", "description": "..."}</code>，前端展示「复制配置」按钮。</p>
+<h4 id="_19">流式对话<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/assistant/chat/stream</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;message&quot;: &quot;虎牙谁在直播？&quot;,</span>
+<span class="err">  &quot;conversation_id&quot;: &quot;xxx&quot;,</span>
+<span class="err">  &quot;context&quot;: &quot;all&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+<p>参数与 <code>POST /api/assistant/chat</code> 一致。响应为 <strong>Server-Sent Events (SSE)</strong>，<code>Content-Type: text/event-stream</code>。</p>
+<p>事件格式（每行一条 <code>data:</code> JSON）：</p>
+<ul>
+<li><code>{"chunk": "文本块"}</code>：逐块返回 AI 回复</li>
+<li><code>{"done": true, "reply": "完整回复", "suggested_action": {...}, "conversation_id": "xxx"}</code>：结束事件</li>
+<li><code>{"error": "错误信息"}</code>：流式调用出错时返回</li>
+</ul>
+<h4 id="_20">执行可确认操作<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/assistant/apply-action</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;action&quot;: &quot;toggle_monitor&quot;,</span>
+<span class="err">  &quot;platform_key&quot;: &quot;huya&quot;,</span>
+<span class="err">  &quot;enable&quot;: false</span>
+<span class="err">}</span>
+</code></pre></div>
+<p>开关监控。支持的 <code>platform_key</code>：<code>weibo</code>、<code>huya</code>、<code>bilibili</code>、<code>douyin</code>、<code>douyu</code>、<code>xhs</code>。</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/assistant/apply-action</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;action&quot;: &quot;config_patch&quot;,</span>
+<span class="err">  &quot;platform_key&quot;: &quot;huya&quot;,</span>
+<span class="err">  &quot;list_key&quot;: &quot;rooms&quot;,</span>
+<span class="err">  &quot;operation&quot;: &quot;add&quot;,</span>
+<span class="err">  &quot;value&quot;: &quot;123456&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+<p>增删配置列表项。<code>operation</code> 为 <code>add</code> 或 <code>remove</code>。支持的 <code>platform_key</code> 及对应 <code>list_key</code>：</p>
+<table>
+<thead>
+<tr>
+<th>platform_key</th>
+<th>list_key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>weibo</td>
+<td>uids</td>
+</tr>
+<tr>
+<td>huya</td>
+<td>rooms</td>
+</tr>
+<tr>
+<td>bilibili</td>
+<td>uids</td>
+</tr>
+<tr>
+<td>douyin</td>
+<td>douyin_ids</td>
+</tr>
+<tr>
+<td>douyu</td>
+<td>rooms</td>
+</tr>
+<tr>
+<td>xhs</td>
+<td>profile_ids</td>
+</tr>
+</tbody>
+</table>
+<p>成功返回 <code>{"success": true, "message": "..."}</code>；失败返回 <code>{"error": "..."}</code>，HTTP 状态码 400/500。</p>
+<hr />
+<h3 id="8-webhook-ai">8. Webhook 回调（AI 助手入口）<a class="headerlink" href="#8-webhook-ai" title="Permanent link">&para;</a></h3>
+<p>在企业微信、Telegram 等推送通道中配置回调 URL 后，用户可在对应平台内直接与 AI 助手对话。<strong>无需登录 Web 管理界面</strong>，由各平台将用户消息转发到以下接口。</p>
+<h4 id="_21">企业微信自建应用<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">GET /api/webhooks/wecom</span>
+<span class="err">POST /api/webhooks/wecom</span>
+</code></pre></div>
+<ul>
+<li><strong>GET</strong>：企业微信后台验证 URL 时使用（校验 <code>msg_signature</code>、<code>timestamp</code>、<code>nonce</code>、<code>echostr</code>）</li>
+<li><strong>POST</strong>：接收成员发送的消息，解密后交给 AI 助手回复，再通过企业微信接口发回</li>
+</ul>
+<p>需在 <code>config.yml</code> 的 <code>push_channel</code> 中为 <strong>wecom_apps</strong> 类型通道配置 <code>callback_token</code>、<code>encoding_aes_key</code>，并在企业微信后台将「接收消息」URL 设为本接口（如 <code>https://你的域名/api/webhooks/wecom</code>）。支持多应用：请求会依次尝试各已配置回调的通道解密，第一个成功的即为目标应用。</p>
+<h4 id="telegram">Telegram 机器人<a class="headerlink" href="#telegram" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="err">POST /api/webhooks/telegram/{channel_name}</span>
+</code></pre></div>
+<ul>
+<li><code>channel_name</code>：推送通道名称（与 <code>push_channel</code> 中该 Telegram 通道的 <code>name</code> 一致）</li>
+</ul>
+<p>需在 <code>push_channel</code> 的 <strong>telegram_bot</strong> 中配置 <code>api_token</code>，并调用 Telegram 的 <code>setWebhook</code> 将 URL 设为 <code>https://你的域名/api/webhooks/telegram/{channel_name}</code>。用户向机器人发送文字后，由本接口接收并交给 AI 助手，回复通过 Telegram API 异步发回。</p>
+<hr />
+<h2 id="_22">调用示例<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h2>
+<h3 id="python">Python 示例<a class="headerlink" href="#python" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+<span class="c1"># 基础URL</span>
+<span class="n">BASE_URL</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8866&quot;</span>
+
+<span class="c1"># 创建会话以保持登录状态</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+
+<span class="c1"># 登录</span>
+<span class="n">login_response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/login&quot;</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;123&quot;</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">login_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 获取配置（需登录）</span>
+<span class="n">config_response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/config&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">config_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 获取版本信息（无需登录）</span>
+<span class="n">version_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/version&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">version_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 获取监控状态（无需登录）</span>
+<span class="n">status_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/monitor-status&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">status_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 获取微博数据列表（分页）</span>
+<span class="n">weibo_response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/data/weibo&quot;</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;page&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;page_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">weibo_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 按 UID 查询单个微博用户（需登录）</span>
+<span class="n">weibo_one</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/data/weibo/1234567890&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">weibo_one</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 按房间号查询单个虎牙直播间（需登录）</span>
+<span class="n">huya_one</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/data/huya/123456&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">huya_one</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 监控状态：按平台、按 ID（无需登录）</span>
+<span class="n">status_weibo</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/monitor-status/weibo&quot;</span><span class="p">)</span>
+<span class="n">status_one_user</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/monitor-status/weibo/1234567890&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">status_weibo</span><span class="o">.</span><span class="n">json</span><span class="p">(),</span> <span class="n">status_one_user</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 获取任务列表</span>
+<span class="n">tasks_response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/tasks&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tasks_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+
+<span class="c1"># 手动触发任务执行（绕过&quot;当天已运行则跳过&quot;检查）</span>
+<span class="n">run_response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/api/tasks/huya_monitor/run&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">run_response</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="curl">cURL 示例<a class="headerlink" href="#curl" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># 登录</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8866/api/login<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;username=admin&amp;password=123&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span>cookies.txt
+
+<span class="c1"># 获取配置（需登录，使用保存的 Cookie）</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/config<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-b<span class="w"> </span>cookies.txt
+
+<span class="c1"># 获取版本信息（无需登录）</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/version
+
+<span class="c1"># 获取监控状态（无需登录）</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/monitor-status
+
+<span class="c1"># 按平台 / 按 ID 获取监控状态</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/monitor-status/weibo
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/monitor-status/weibo/1234567890
+
+<span class="c1"># 获取单条数据（需 Cookie）</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span><span class="s2">&quot;http://localhost:8866/api/data/weibo/1234567890&quot;</span><span class="w"> </span>-b<span class="w"> </span>cookies.txt
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span><span class="s2">&quot;http://localhost:8866/api/data/huya/123456&quot;</span><span class="w"> </span>-b<span class="w"> </span>cookies.txt
+
+<span class="c1"># 获取日志</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span><span class="s2">&quot;http://localhost:8866/api/logs?lines=50&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-b<span class="w"> </span>cookies.txt
+
+<span class="c1"># 获取任务列表</span>
+curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8866/api/tasks<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-b<span class="w"> </span>cookies.txt
+
+<span class="c1"># 手动触发任务执行（绕过&quot;当天已运行则跳过&quot;检查）</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8866/api/tasks/huya_monitor/run<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-b<span class="w"> </span>cookies.txt
+</code></pre></div>
+<hr />
+<h2 id="_23">错误处理<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h2>
+<p>API 返回的错误格式：</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;错误描述信息&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>常见 HTTP 状态码：</p>
+<table>
+<thead>
+<tr>
+<th>状态码</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>请求成功</td>
+</tr>
+<tr>
+<td>400</td>
+<td>请求参数错误</td>
+</tr>
+<tr>
+<td>401</td>
+<td>未授权（需要登录）</td>
+</tr>
+<tr>
+<td>404</td>
+<td>资源不存在</td>
+</tr>
+<tr>
+<td>500</td>
+<td>服务器内部错误</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_24">相关文档<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../">文档首页</a> - 项目概览与快速开始</li>
+<li><a href="../guides/ai-assistant/">AI 助手使用指南</a> - RAG + LLM 智能问答</li>
+<li><a href="../SECONDARY_DEVELOPMENT/">二次开发指南</a> - 代码规范、black/ruff、测试等</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; FY · MIT License
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/666fy666/WebMoniter" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
