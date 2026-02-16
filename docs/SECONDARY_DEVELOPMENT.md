@@ -398,19 +398,28 @@ register_monitor("huya_monitor", run_huya_monitor, _get_huya_trigger_kwargs)
 
 ### 4.4 注册表：src/job_registry.py
 
-在 `MONITOR_MODULES` 中已包含虎牙模块：
+在 `MONITOR_MODULES` 中已包含虎牙模块（当前全部监控模块如下）：
 
 ```python
 MONITOR_MODULES: list[str] = [
     "monitors.huya_monitor",
     "monitors.weibo_monitor",
+    "monitors.bilibili_monitor",
+    "monitors.douyin_monitor",
+    "monitors.douyu_monitor",
+    "monitors.xhs_monitor",
 ]
 ```
 
-### 4.5 配置热重载（可选）
+### 4.5 配置热重载与数据库同步
 
-项目已对现有监控与定时任务的 **enable**、**间隔/执行时间**（`monitor_interval_seconds`、`time`）、**免打扰**、**推送通道**等字段做完整覆盖，修改后约 5 秒内热重载生效。  
-**新增监控或定时任务时**，需在 `src/config_watcher.py` 的 `_config_changed()` 里增加对新字段的比较（如 `my_monitor_rooms`、`my_monitor_enable`、`my_task_time` 等），否则相关配置变更不会触发调度器更新。
+项目已对现有监控与定时任务的 **enable**、**间隔/执行时间**、**免打扰**、**推送通道**等字段做完整覆盖，修改后约 5 秒内热重载生效。  
+**新增监控任务时**，需完成以下两项以支持热重载与配置同步：
+
+1. **config_watcher**：在 `src/config_watcher.py` 的 `_config_changed()` 的 `config_groups` 中增加对应平台及字段（如 `"my_monitor": ["my_monitor_enable", "my_monitor_rooms", "my_monitor_interval_seconds"]`），并在 `scheduler` 组中增加 `my_monitor_interval_seconds`（若有间隔配置）。
+2. **config_db_sync**：若新监控使用 uid/room 类列表且需要从配置中删除时同步清理数据库，需在 `src/config_db_sync.py` 的 `sync_rules` 中增加对应规则（配置字段 → 表名 + 主键列名）。
+
+**新增定时任务时**：在 `config_groups` 中增加对应任务及字段（如 `"my_task": ["my_task_enable", "my_task_time"]`）。
 
 小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + get_xxx_config + load_config_from_yml → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。`enable: false` 时任务会被暂停，热重载生效。
 
@@ -558,11 +567,13 @@ await self.db.execute_insert(sql, data)
 
 - [ ] 在 `config.yml` 中增加业务节点（如 `my_monitor`），并在该节点下增加 `monitor_interval_seconds` 字段（例如 `my_monitor.monitor_interval_seconds`）。
 - [ ] 在 `AppConfig` 中增加扁平字段，在 `load_config_from_yml()` 中解析；可选：提供 `get_my_monitor_config()` 返回结构化配置。
-- [ ] 在 `config_watcher._config_changed` 中增加对新字段的比较（以便热重载）。
+- [ ] 在 `config_watcher._config_changed` 的 `config_groups` 中增加新平台及字段；若使用间隔，在 `scheduler` 组中增加 `my_monitor_interval_seconds`。
+- [ ] 若监控使用 uid/room 类列表且需配置删除时同步清理 DB：在 `config_db_sync.sync_rules` 中增加对应规则。
 - [ ] 新建 `monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。
 - [ ] **若监控需要数据库**：在 `src/database.py` 的 `_init_tables()` 中增加 `CREATE TABLE IF NOT EXISTS your_table (...)`；在监控类 `initialize()` 里加载旧数据，在 `run()` 里用 `self.db.execute_query` / `execute_update` / `execute_insert` 读写（参见 **五、监控任务需要数据库时该怎么办**）。
 - [ ] 在模块末尾调用 `register_monitor("job_id", run_xxx_monitor, _get_xxx_trigger_kwargs)`。
 - [ ] 在 `src/job_registry.MONITOR_MODULES` 中追加 `"monitors.xxx"`。
+- [ ] 若该监控支持 `enable` 开关：在 `src/job_registry.MONITOR_JOB_ENABLE_FIELD_MAP` 中增加映射，如 `"xxx_monitor": "xxx_enable"`。
 
 完成以上步骤后，新任务会被主程序自动加载、按配置调度，并在配置变更时通过 ConfigWatcher 热重载。
 

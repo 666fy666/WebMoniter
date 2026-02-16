@@ -35,7 +35,7 @@
 | 配置类型   | 说明 |
 |:----------:|:-----|
 | **应用配置** | 监控、签到、推送、免打扰等均在 **`config.yml.sample`** 中有注释说明。以该文件为模板复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | 镜像、端口、卷挂载等见 **`docker-compose.yml`**；入口脚本 **`docker-entrypoint.sh`** 会在启动前为 `data/`、`logs/` 赋予读写权限。修改后执行 `docker compose up -d` 使变更生效。 |
+| **Docker 编排** | 镜像、端口、卷挂载等见 **`docker-compose.yml`**；入口脚本 **`docker-entrypoint.sh`** 会在启动前为 `data/`、`logs/` 及其子目录赋予读写权限。修改后执行 `docker compose up -d` 使变更生效。 |
 
 ---
 
@@ -61,7 +61,7 @@
 
 ## 应用基础配置 `app`
 
-目前 `app` 节点主要用于配置对外访问的基础地址：
+`app` 节点包含全局基础配置：
 
 ```yaml
 app:
@@ -71,6 +71,13 @@ app:
   # - 局域网/公网: "http://your-domain.com:8866"
   # 留空时，微博监控仍会推送，但无法为大部分通道拼接出可访问的封面图 URL，将退回使用内置示例图片。
   base_url: "http://localhost:8866"
+
+  # 推送内容超过各渠道官方字数限制时，是否使用 LLM 压缩为摘要再推送（需配置 ai_assistant）
+  push_compress_with_llm: false
+
+  # 推送前是否使用 LLM 基于事件类型和数据生成个性化标题与内容（需配置 ai_assistant.api_key）
+  # 开启后，推送更自然贴切（如微博新动态、开播/下播、签到结果等），而非仅用固定模板
+  push_personalize_with_llm: false
 ```
 
 设置 `base_url` 后，微博监控会：

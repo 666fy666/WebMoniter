@@ -70,6 +70,11 @@
 
 ---
 
+??? question "定时任务为什么显示「当天已经运行过了，跳过该任务」？"
+    定时任务默认会检查当天是否已运行过（通过 `task_run_history` 表记录），若已运行则跳过，避免重复执行。程序重启或定时触发时都会进行此检查。若需立即再执行一次，可通过 Web 管理界面「任务管理」页面的「立即运行」手动触发，会绕过该检查并强制执行。
+
+---
+
 ??? question "Docker 下 RAG 向量库更新失败或报「database is locked / no such table: tenants」？"
     镜像已通过 **docker-entrypoint.sh** 在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
 

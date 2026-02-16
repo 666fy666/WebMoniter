@@ -83,10 +83,11 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 ### 系统启动流程
 
 1. **初始化阶段**
-   - 加载配置文件 (`config.yml`)
-   - 初始化日志系统 (`LogManager`)
-   - 创建数据库连接 (`AsyncDatabase`)
-   - 初始化Cookie缓存 (`CookieCache`)
+   - 设置日志系统：先 `setup_logging()`（仅控制台；非 TTY 环境不输出到控制台），创建 Web 应用与 Uvicorn 服务器（FastAPI）后，再挂载 `main` 文件日志 Handler（`LogManager.setup_file_logging("main")`）到 root logger
+   - Web 服务默认端口 8866，可通过环境变量 `PORT` 覆盖
+   - 加载配置文件 (`config.yml`)；失败则 `sys.exit(1)`
+   - 若启用 AI 助手：构建 RAG 向量库（`docs/*.md`、`README.md` → Chroma）
+   - 重置 Cookie 缓存 (`cookie_cache.reset_all()`)
 
 2. **任务注册阶段**
    - 通过 `job_registry.discover_and_import()` 按 `MONITOR_MODULES`、`TASK_MODULES` 导入任务模块
@@ -98,14 +99,13 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
    - 遍历 `MONITOR_JOBS` 和 `TASK_JOBS`，注册到调度器
    - 启动时立即执行一次所有任务（首次运行）
 
-4. **Web服务启动阶段**
-   - 创建 FastAPI 应用实例
-   - 启动 Uvicorn 服务器（端口8866）
-   - 提供Web界面和API接口
+4. **Web 服务与配置监控启动**
+   - Web 服务以 `asyncio.create_task` 与调度器并行运行
+   - 启动 `ConfigWatcher`（默认每 5 秒检查 `config.yml` 修改时间）
 
-5. **配置监控启动阶段**
-   - 启动 `ConfigWatcher`，每5秒检查配置文件变化
-   - 检测到变化时触发回调，更新调度器中的任务参数
+5. **配置变化回调**（由 ConfigWatcher 在检测到变化时触发）
+   - 先执行 `sync_config_to_db`（删除配置中已移除的 uid/room 对应数据库记录）
+   - 再更新调度器任务参数（间隔、Cron、暂停/恢复、免打扰）
 
 6. **运行阶段**
    - 调度器按配置的间隔/时间执行任务
@@ -122,8 +122,8 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 **职责**：系统启动和生命周期管理
 
 **关键功能**：
-- 初始化日志系统（控制台 + 文件）
-- 创建并启动Web服务器（FastAPI + Uvicorn）
+- 初始化日志系统（控制台；main 文件日志在创建 Web 应用后挂载）
+- 创建并启动 Web 服务器（FastAPI + Uvicorn）
 - 加载配置并创建调度器
 - 注册所有监控和定时任务
 - 启动配置监控器（热重载）
@@ -132,27 +132,30 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 **关键代码流程**：
 ```python
 async def main():
-    # 1. 设置日志
-    setup_logging()
-    
-    # 2. 创建Web应用
-    web_app = create_web_app()
-    server = uvicorn.Server(...)
-    
-    # 3. 加载配置
+    # 1. 设置日志（控制台；非 TTY 不输出）+ 挂载 main 文件日志
+    setup_logging(log_level="INFO", console_output=not is_background)
+    # ... 创建 Web 应用、Uvicorn，并 asyncio.create_task(run_web_server())
+    log_manager.setup_file_logging("main"); logging.root.addHandler(...)
+
+    # 2. 加载配置（失败则 sys.exit(1)）
     config = get_config()
-    
-    # 4. 创建调度器
+
+    # 3. 若启用 AI 助手则构建 RAG 向量库
+    if is_ai_enabled():
+        await asyncio.to_thread(build_docs_index)
+
+    # 4. 重置 Cookie 缓存
+    await cookie_cache.reset_all()
+
+    # 5. 创建调度器并注册任务
     scheduler = TaskScheduler(config)
-    
-    # 5. 注册任务
     await register_monitors(scheduler)
-    
-    # 6. 启动配置监控
-    config_watcher = ConfigWatcher(...)
+
+    # 6. 启动配置监控（热重载）
+    config_watcher = ConfigWatcher(..., on_config_changed=...)
     await config_watcher.start()
-    
-    # 7. 运行调度器
+
+    # 7. 运行调度器（阻塞直至收到停止信号）
     await scheduler.run_forever()
 ```
 
@@ -231,18 +234,23 @@ class BaseMonitor(ABC):
     async def run(self):
         """运行监控任务"""
         pass
-    
+
     @property
     @abstractmethod
     def monitor_name(self) -> str:
         """监控器名称"""
         pass
-    
+
     @property
     @abstractmethod
     def platform_name(self) -> str:
-        """平台名称（用于Cookie缓存）"""
+        """平台名称（用于 Cookie 缓存）"""
         pass
+
+    @property
+    def push_channel_names(self) -> list[str] | None:
+        """推送通道名称列表，用于过滤；返回 None 或空列表时使用全部通道。子类可重写以返回任务配置中的 push_channels。"""
+        return None
 ```
 
 **子类实现示例**：
@@ -325,7 +333,7 @@ CREATE TABLE huya (
 **职责**：统一管理监控和定时任务的注册
 
 **核心概念**：
-- `JobDescriptor`：任务描述符（任务ID、执行函数、触发器配置）
+- `JobDescriptor`：任务描述符（job_id、run_func、trigger、get_trigger_kwargs、original_run_func；其中 original_run_func 用于 Web 手动触发时绕过「当天已运行则跳过」）
 - `MONITOR_MODULES`：监控模块列表
 - `TASK_MODULES`：定时任务模块列表
 - `MONITOR_JOBS`：已注册的监控任务列表
@@ -338,9 +346,9 @@ CREATE TABLE huya (
 
 **扩展新任务**：
 ```python
-# 1. 在 monitors/ 或 tasks/ 下创建模块
-# 2. 在 job_registry.py 中添加模块路径
-MONITOR_MODULES = [
+# 1. 在 monitors/ 或 tasks/ 下创建模块（见 docs/SECONDARY_DEVELOPMENT.md）
+# 2. 在 job_registry.py 的 MONITOR_MODULES 或 TASK_MODULES 中追加模块路径
+MONITOR_MODULES: list[str] = [
     "monitors.huya_monitor",
     "monitors.weibo_monitor",
     "monitors.bilibili_monitor",
@@ -366,7 +374,18 @@ register_monitor(
 
 ---
 
-### 7. src/config_watcher.py - 配置监控器
+### 7. src/config_db_sync.py - 配置与数据库同步
+
+**职责**：在配置热重载时，删除配置中已移除的 uid/room 对应的数据库记录，保持配置与数据库一致。
+
+**核心函数**：
+- `sync_config_to_db(old_config, new_config)`：对比新旧配置中的监控列表（weibo_uids、huya_rooms、bilibili_uids、douyin_douyin_ids、douyu_rooms、xhs_profile_ids），计算 `removed_ids = old_ids - new_ids`，对每个监控平台对应的表执行 `DELETE`，删除已从配置中移除的记录。首次启动（`old_config is None`）时不执行删除。
+
+**支持的平台与表映射**：微博 → weibo.UID；虎牙 → huya.room；哔哩哔哩 → bilibili_dynamic.uid、bilibili_live.uid；抖音 → douyin.douyin_id；斗鱼 → douyu.room；小红书 → xhs.profile_id。
+
+---
+
+### 8. src/config_watcher.py - 配置监控器
 
 **职责**：监控配置文件变化并触发热重载
 
@@ -380,12 +399,11 @@ register_monitor(
 - 触发回调函数更新调度器任务参数
 
 **热重载流程**：
-1. `ConfigWatcher` 每5秒检查 `config.yml` 的修改时间
-2. 检测到文件修改时，调用 `get_config(reload=True)` 重新加载
-3. 同步读取 YAML 原始内容，提取 `ai_assistant` 节点（独立于 AppConfig）
-4. 比较新旧配置及 `ai_assistant` 原始内容，判断是否发生实际变化
-5. 若有变化则调用 `on_config_changed()` 回调
-6. 回调函数执行配置与数据库同步（`sync_config_to_db`）、更新调度器中的任务参数
+1. `ConfigWatcher` 每 5 秒检查 `config.yml` 的修改时间（`check_interval` 默认 5）
+2. 检测到 `st_mtime` 变化时：调用 `get_config(reload=True)` 重新加载，同步读取 YAML 提取 `ai_assistant` 节点（独立于 AppConfig）
+3. 通过 `_config_changed()` 比较新旧配置（监控 enable/间隔、任务 enable/time、免打扰、推送通道、plugins 等）及 `ai_assistant` 原始内容，判断是否发生实际变化；避免文件保存但内容未变时误触发
+4. 若有变化则调用 `on_config_changed()` 回调
+5. 回调内先执行 `sync_config_to_db`（删除配置中已移除的 uid/room），再更新调度器任务参数（间隔、Cron、暂停/恢复、免打扰）
 
 **配置变化检测**：
 - 比较关键配置字段（各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等）
@@ -395,7 +413,7 @@ register_monitor(
 
 ---
 
-### 8. src/cookie_cache.py - Cookie缓存管理
+### 9. src/cookie_cache.py - Cookie缓存管理
 
 **职责**：管理各平台Cookie的过期状态
 
@@ -435,7 +453,7 @@ register_monitor(
 
 ---
 
-### 9. src/push_channel/ - 推送通道模块
+### 10. src/push_channel/ - 推送通道模块
 
 **职责**：统一管理多种推送通道
 
@@ -483,7 +501,7 @@ def get_push_channel(config: dict, session) -> PushChannel:
 
 ---
 
-### 10. src/web_server.py - Web服务器
+### 11. src/web_server.py - Web服务器
 
 **职责**：提供Web管理界面和API接口
 
@@ -529,7 +547,7 @@ def get_push_channel(config: dict, session) -> PushChannel:
 
 ---
 
-### 11. src/log_manager.py - 日志管理
+### 12. src/log_manager.py - 日志管理
 
 **职责**：统一管理日志文件
 
@@ -564,7 +582,7 @@ logs/
 
 ---
 
-### 12. src/ai_assistant/ - AI 助手模块
+### 13. src/ai_assistant/ - AI 助手模块
 
 **职责**：基于 RAG（检索增强生成）+ LLM 提供智能对话能力，支持配置生成、日志诊断、数据洞察及可执行操作。
 
@@ -594,7 +612,7 @@ logs/
 
 ---
 
-### 13. src/version.py - 版本信息模块
+### 14. src/version.py - 版本信息模块
 
 **职责**：管理应用版本信息，支持版本更新检测
 
@@ -889,7 +907,7 @@ WebMoniter/
 │   ├── __init__.py
 │   ├── config.py           # 配置管理
 │   ├── config_db_sync.py   # 配置与数据库同步（热重载时删除已移除的 uid/room）
-│   ├── config_watcher.py   # 配置监控（热重载）
+│   ├── config_watcher.py   # 配置监控（热重载，默认 5 秒轮询）
 │   ├── ai_assistant/       # AI 助手（RAG + LLM）
 │   │   ├── config.py       # AI 配置
 │   │   ├── rag.py          # 向量检索

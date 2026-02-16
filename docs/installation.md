@@ -38,7 +38,8 @@ docker compose up -d
 !!! tip "提示"
     - `config.yml` 支持热重载（约 5 秒生效），无需重启
     - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
-    - 容器启动时会通过入口脚本自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
+    - 容器启动时会通过 **docker-entrypoint.sh** 自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
+    - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
 
 ---
 
@@ -90,7 +91,7 @@ uv sync --locked
 # 3. 复制配置文件
 cp config.yml.sample config.yml
 
-# 4. 启动程序
+# 4. 启动程序（默认端口 8866，可通过环境变量 PORT 覆盖，如 PORT=8080 uv run python main.py）
 uv run python main.py
 
 # 后台启动（推荐用于长期运行）
@@ -100,7 +101,7 @@ uv run python main.py &
 # uv run python main.py > webmoniter.log 2>&1 &
 
 # 可选：启用 AI 助手（配置生成、日志诊断、数据洞察等）
-# uv sync
+# 在 config.yml 中配置 ai_assistant 节点（enable: true，provider、api_key、model 等），uv sync 已包含 AI 依赖
 ```
 
 ---
