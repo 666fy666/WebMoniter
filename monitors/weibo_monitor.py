@@ -365,7 +365,7 @@ class WeiboMonitor(BaseMonitor):
         """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一处理（app.push_compress_with_llm）。"""
         return (
             f"Ta说:👇\n{data['文本']}\n"
-            f"{'=' * 25}\n"
+            f"{'=' * 22}\n"
             f"认证:{data['认证信息']}\n\n"
             f"简介:{data['简介']}"
         )

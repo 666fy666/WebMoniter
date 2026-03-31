@@ -16,7 +16,6 @@ import logging
 import random
 import re
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 
 import requests
@@ -124,14 +123,12 @@ def _get_user_info(cookie: str) -> str:
 
 def _run_weibo_chaohua_sign_sync(
     cookie: str,
-    on_first_failure: Callable[[str, str], None] | None = None,
 ) -> tuple[bool, str, int, int, int, int]:
     """
     在同步上下文中执行微博超话签到（供 asyncio.to_thread 调用）。
 
     Args:
         cookie: 微博 Cookie 字符串。
-        on_first_failure: 当第一个超话签到失败时调用的回调 (chaohua_name, msg)，用于立即推送异常提醒。
 
     Returns:
         (success, user_info_or_error, success_count, already_signed_count, fail_count, total)
@@ -276,8 +273,6 @@ def _run_weibo_chaohua_sign_sync(
     already_signed_count = 0
     fail_count = 0
     total = len(chaohua_list)
-    first_failure_pushed = False
-
     for i, chaohua in enumerate(chaohua_list, 1):
         chaohua_id = chaohua["id"]
         chaohua_name = chaohua["name"]
@@ -296,13 +291,6 @@ def _run_weibo_chaohua_sign_sync(
         else:
             logger.warning(f"微博超话签到：[{chaohua_name}] {result['msg']}")
             fail_count += 1
-            # 第一个超话签到失败时立即推送异常提醒
-            if on_first_failure and not first_failure_pushed:
-                first_failure_pushed = True
-                try:
-                    on_first_failure(chaohua_name, result.get("msg", "未知错误"))
-                except Exception:  # 回调在子线程，不阻塞签到流程
-                    pass
 
         # 添加随机延迟，避免请求过快
         if i < total:
@@ -348,30 +336,6 @@ async def run_weibo_chaohua_checkin_once() -> None:
             )
             logger.debug("微博超话签到：正在处理第 %d/%d 个账号", idx + 1, len(effective_cookies))
 
-            loop = asyncio.get_running_loop()
-
-            def make_on_first_failure(pm, cfg):
-                def schedule_push(chaohua_name: str, msg: str) -> None:
-                    def _schedule() -> None:
-                        asyncio.create_task(
-                            _send_weibo_chaohua_push(
-                                pm,
-                                title="微博超话签到异常",
-                                description=f"[{chaohua_name}] {msg}",
-                                success=False,
-                                cfg=cfg,
-                                detail=f"第一个超话签到失败时推送：{chaohua_name} - {msg}",
-                            )
-                        )
-
-                    loop.call_soon_threadsafe(_schedule)
-
-                return schedule_push
-
-            on_first_failure = (
-                make_on_first_failure(push_manager, cfg_one) if push_manager else None
-            )
-
             try:
                 (
                     success,
@@ -380,9 +344,7 @@ async def run_weibo_chaohua_checkin_once() -> None:
                     already_signed_count,
                     fail_count,
                     total,
-                ) = await asyncio.to_thread(
-                    _run_weibo_chaohua_sign_sync, cookie_str, on_first_failure
-                )
+                ) = await asyncio.to_thread(_run_weibo_chaohua_sign_sync, cookie_str)
             except Exception as e:
                 logger.error("微博超话签到：第 %d 个账号执行异常: %s", idx + 1, e, exc_info=True)
                 await _send_weibo_chaohua_push(
@@ -414,11 +376,12 @@ async def run_weibo_chaohua_checkin_once() -> None:
                     total,
                 )
                 summary = f"成功: {success_count}，已签: {already_signed_count}，失败: {fail_count}，总计: {total}"
+                has_failure = fail_count > 0
                 await _send_weibo_chaohua_push(
                     push_manager,
-                    title="微博超话签到完成",
+                    title="微博超话签到失败提醒" if has_failure else "微博超话签到完成",
                     description=summary,
-                    success=True,
+                    success=not has_failure,
                     cfg=cfg_one,
                     detail=f"账号: {user_info_or_err}\n{summary}",
                 )

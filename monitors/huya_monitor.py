@@ -144,7 +144,7 @@ class HuyaMonitor(BaseMonitor):
             await self.handle_cookie_expired(e)
             return  # 不再抛出异常，直接返回
         except Exception as e:
-            self.logger.error(f"获取房间 {room_id} 信息失败: {e}")
+            self.logger.debug(f"获取房间 {room_id} 信息失败: {e}")
             return
 
         if room_id in self.old_data_dict:
