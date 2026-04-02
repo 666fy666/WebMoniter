@@ -4,7 +4,6 @@
 """
 
 import logging
-from collections.abc import Callable
 
 from src.config import AppConfig
 from src.database import AsyncDatabase
@@ -30,68 +29,20 @@ async def sync_config_to_db(old_config: AppConfig | None, new_config: AppConfig)
     if old_config is None:
         return
 
-    # 定义各监控平台：((旧配置获取函数, 新配置获取函数), (表名, 主键列名))
-    # 对于多表的情况（如 bilibili），使用列表
-    sync_rules: list[
-        tuple[
-            tuple[Callable[[AppConfig], set[str]], Callable[[AppConfig], set[str]]],
-            list[tuple[str, str]],
-        ]
-    ] = [
-        # 微博: weibo_uids -> weibo.UID
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "weibo_uids", "") or ""),
-                lambda c: _parse_ids(getattr(c, "weibo_uids", "") or ""),
-            ),
-            [("weibo", "UID")],
-        ),
-        # 虎牙: huya_rooms -> huya.room
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "huya_rooms", "") or ""),
-                lambda c: _parse_ids(getattr(c, "huya_rooms", "") or ""),
-            ),
-            [("huya", "room")],
-        ),
-        # 哔哩哔哩: bilibili_uids -> bilibili_dynamic.uid, bilibili_live.uid
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "bilibili_uids", "") or ""),
-                lambda c: _parse_ids(getattr(c, "bilibili_uids", "") or ""),
-            ),
-            [("bilibili_dynamic", "uid"), ("bilibili_live", "uid")],
-        ),
-        # 抖音: douyin_douyin_ids -> douyin.douyin_id
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "douyin_douyin_ids", "") or ""),
-                lambda c: _parse_ids(getattr(c, "douyin_douyin_ids", "") or ""),
-            ),
-            [("douyin", "douyin_id")],
-        ),
-        # 斗鱼: douyu_rooms -> douyu.room
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "douyu_rooms", "") or ""),
-                lambda c: _parse_ids(getattr(c, "douyu_rooms", "") or ""),
-            ),
-            [("douyu", "room")],
-        ),
-        # 小红书: xhs_profile_ids -> xhs.profile_id
-        (
-            (
-                lambda c: _parse_ids(getattr(c, "xhs_profile_ids", "") or ""),
-                lambda c: _parse_ids(getattr(c, "xhs_profile_ids", "") or ""),
-            ),
-            [("xhs", "profile_id")],
-        ),
+    # (配置属性名, [(表名, 主键列名), ...])
+    sync_rules: list[tuple[str, list[tuple[str, str]]]] = [
+        ("weibo_uids", [("weibo", "UID")]),
+        ("huya_rooms", [("huya", "room")]),
+        ("bilibili_uids", [("bilibili_dynamic", "uid"), ("bilibili_live", "uid")]),
+        ("douyin_douyin_ids", [("douyin", "douyin_id")]),
+        ("douyu_rooms", [("douyu", "room")]),
+        ("xhs_profile_ids", [("xhs", "profile_id")]),
     ]
 
     async with AsyncDatabase() as db:
-        for (get_old_ids, get_new_ids), tables in sync_rules:
-            old_ids = get_old_ids(old_config)
-            new_ids = get_new_ids(new_config)
+        for attr_name, tables in sync_rules:
+            old_ids = _parse_ids(getattr(old_config, attr_name, "") or "")
+            new_ids = _parse_ids(getattr(new_config, attr_name, "") or "")
             removed_ids = old_ids - new_ids
 
             if not removed_ids:

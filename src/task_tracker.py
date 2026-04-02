@@ -7,6 +7,7 @@
 - 提供装饰器简化使用
 """
 
+import asyncio
 import functools
 import logging
 import sys
@@ -33,19 +34,39 @@ TASK_TRACKER_DB_PATH = (_data_dir / "data.db").resolve()
 P = ParamSpec("P")
 T = TypeVar("T")
 
+# 共享连接（避免每次查询都 open/close）
+_shared_conn: aiosqlite.Connection | None = None
+_conn_lock = asyncio.Lock()
+_table_ensured = False
 
-async def _ensure_table() -> None:
-    """确保任务运行记录表存在"""
-    async with aiosqlite.connect(str(TASK_TRACKER_DB_PATH), timeout=30.0) as conn:
-        await conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS task_run_history (
-                job_id TEXT PRIMARY KEY,
-                last_run_date TEXT NOT NULL
+
+async def _get_connection() -> aiosqlite.Connection:
+    """获取或创建共享数据库连接，首次调用时建表"""
+    global _shared_conn, _table_ensured
+
+    if _shared_conn is not None and _table_ensured:
+        return _shared_conn
+
+    async with _conn_lock:
+        if _shared_conn is None:
+            TASK_TRACKER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _shared_conn = await aiosqlite.connect(str(TASK_TRACKER_DB_PATH), timeout=30.0)
+            await _shared_conn.execute("PRAGMA journal_mode=WAL")
+            await _shared_conn.execute("PRAGMA busy_timeout=30000")
+            await _shared_conn.commit()
+        if not _table_ensured:
+            await _shared_conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS task_run_history (
+                    job_id TEXT PRIMARY KEY,
+                    last_run_date TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
-        await conn.commit()
+            await _shared_conn.commit()
+            _table_ensured = True
+
+    return _shared_conn
 
 
 async def has_run_today(job_id: str) -> bool:
@@ -58,19 +79,17 @@ async def has_run_today(job_id: str) -> bool:
     Returns:
         True 如果今天已经运行过，False 否则
     """
-    await _ensure_table()
+    conn = await _get_connection()
     today_str = date.today().isoformat()
 
-    async with aiosqlite.connect(str(TASK_TRACKER_DB_PATH), timeout=30.0) as conn:
-        async with conn.execute(
-            "SELECT last_run_date FROM task_run_history WHERE job_id = ?",
-            (job_id,),
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row is None:
-                return False
-            last_run_date = row[0]
-            return last_run_date == today_str
+    async with conn.execute(
+        "SELECT last_run_date FROM task_run_history WHERE job_id = ?",
+        (job_id,),
+    ) as cursor:
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+        return row[0] == today_str
 
 
 async def mark_as_run_today(job_id: str) -> None:
@@ -80,19 +99,17 @@ async def mark_as_run_today(job_id: str) -> None:
     Args:
         job_id: 任务ID
     """
-    await _ensure_table()
+    conn = await _get_connection()
     today_str = date.today().isoformat()
 
-    async with aiosqlite.connect(str(TASK_TRACKER_DB_PATH), timeout=30.0) as conn:
-        # 使用 INSERT OR REPLACE 来更新或插入记录
-        await conn.execute(
-            """
-            INSERT OR REPLACE INTO task_run_history (job_id, last_run_date)
-            VALUES (?, ?)
-            """,
-            (job_id, today_str),
-        )
-        await conn.commit()
+    await conn.execute(
+        """
+        INSERT OR REPLACE INTO task_run_history (job_id, last_run_date)
+        VALUES (?, ?)
+        """,
+        (job_id, today_str),
+    )
+    await conn.commit()
 
 
 def skip_if_run_today(
@@ -173,14 +190,13 @@ async def clear_run_history(job_id: str | None = None) -> None:
     Args:
         job_id: 指定任务ID则只清除该任务的记录，None 则清除所有记录
     """
-    await _ensure_table()
+    conn = await _get_connection()
 
-    async with aiosqlite.connect(str(TASK_TRACKER_DB_PATH), timeout=30.0) as conn:
-        if job_id is None:
-            await conn.execute("DELETE FROM task_run_history")
-        else:
-            await conn.execute(
-                "DELETE FROM task_run_history WHERE job_id = ?",
-                (job_id,),
-            )
-        await conn.commit()
+    if job_id is None:
+        await conn.execute("DELETE FROM task_run_history")
+    else:
+        await conn.execute(
+            "DELETE FROM task_run_history WHERE job_id = ?",
+            (job_id,),
+        )
+    await conn.commit()

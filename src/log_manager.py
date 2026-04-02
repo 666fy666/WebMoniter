@@ -173,7 +173,7 @@ class LogManager:
                     if middle:
                         job_ids.append(middle)
         except Exception as e:
-            self.logger.warning(f"列出任务日志文件时出错: {e}")
+            self.logger.warning("列出任务日志文件时出错: %s", e)
         return sorted(set(job_ids))
 
     def setup_file_logging(
@@ -286,13 +286,13 @@ class LogManager:
                                 f"已删除: {log_file.name} (文件名无日期格式，使用修改时间)"
                             )
                 except Exception as e:
-                    self.logger.warning(f"删除日志文件失败 {log_file.name}: {e}")
+                    self.logger.warning("删除日志文件失败 %s: %s", log_file.name, e)
 
             if deleted_count > 0:
                 self.logger.info("日志清理: 删除 %d 个文件", deleted_count)
 
         except Exception as e:
-            self.logger.error(f"清理日志文件时出错: {e}")
+            self.logger.error("清理日志文件时出错: %s", e)
 
     def get_log_size(self) -> int:
         """
@@ -306,7 +306,7 @@ class LogManager:
             for log_file in self.log_dir.glob("*.log"):
                 total_size += log_file.stat().st_size
         except Exception as e:
-            self.logger.warning(f"计算日志目录大小时出错: {e}")
+            self.logger.warning("计算日志目录大小时出错: %s", e)
         return total_size
 
     def format_size(self, size_bytes: int) -> str:

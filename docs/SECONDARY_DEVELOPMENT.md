@@ -413,13 +413,11 @@ MONITOR_MODULES: list[str] = [
 
 ### 4.5 配置热重载与数据库同步
 
-项目已对现有监控与定时任务的 **enable**、**间隔/执行时间**、**免打扰**、**推送通道**等字段做完整覆盖，修改后约 5 秒内热重载生效。  
-**新增监控任务时**，需完成以下两项以支持热重载与配置同步：
+项目已对所有 `AppConfig` 字段做完整覆盖，修改后约 5 秒内热重载生效。`config_watcher` 通过 Pydantic `model_dump()` 自动对比所有字段，**新增字段无需手动维护比较列表**。
 
-1. **config_watcher**：在 `src/config_watcher.py` 的 `_config_changed()` 的 `config_groups` 中增加对应平台及字段（如 `"my_monitor": ["my_monitor_enable", "my_monitor_rooms", "my_monitor_interval_seconds"]`），并在 `scheduler` 组中增加 `my_monitor_interval_seconds`（若有间隔配置）。
-2. **config_db_sync**：若新监控使用 uid/room 类列表且需要从配置中删除时同步清理数据库，需在 `src/config_db_sync.py` 的 `sync_rules` 中增加对应规则（配置字段 → 表名 + 主键列名）。
+**新增监控任务时**，若新监控使用 uid/room 类列表且需要从配置中删除时同步清理数据库，需在 `src/config_db_sync.py` 的 `sync_rules` 中增加对应规则（配置属性名 → 表名 + 主键列名）。
 
-**新增定时任务时**：在 `config_groups` 中增加对应任务及字段（如 `"my_task": ["my_task_enable", "my_task_time"]`）。
+**新增定时任务时**：只要在 `AppConfig` 中添加了对应字段，热重载即自动覆盖，无需额外操作。
 
 小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + get_xxx_config + load_config_from_yml → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。`enable: false` 时任务会被暂停，热重载生效。
 
@@ -559,16 +557,14 @@ await self.db.execute_insert(sql, data)
   - 默认启用 `skip_if_run_today=True`，当天已运行则跳过
   - 若需每次触发都执行，设置 `skip_if_run_today=False`
 - [ ] 在 `src/job_registry.TASK_MODULES` 中追加 `"tasks.xxx"`。
-- [ ] 若使用新的顶层配置项，需在 `config_watcher._config_changed` 中增加对应比较（plugins 已支持）。
 
 ---
 
 ## 九、检查清单：新增监控任务
 
 - [ ] 在 `config.yml` 中增加业务节点（如 `my_monitor`），并在该节点下增加 `monitor_interval_seconds` 字段（例如 `my_monitor.monitor_interval_seconds`）。
-- [ ] 在 `AppConfig` 中增加扁平字段，在 `load_config_from_yml()` 中解析；可选：提供 `get_my_monitor_config()` 返回结构化配置。
-- [ ] 在 `config_watcher._config_changed` 的 `config_groups` 中增加新平台及字段；若使用间隔，在 `scheduler` 组中增加 `my_monitor_interval_seconds`。
-- [ ] 若监控使用 uid/room 类列表且需配置删除时同步清理 DB：在 `config_db_sync.sync_rules` 中增加对应规则。
+- [ ] 在 `AppConfig` 中增加扁平字段，在 `load_config_from_yml()` 中解析；可选：提供 `get_my_monitor_config()` 返回结构化配置。热重载通过 `model_dump()` 自动覆盖所有字段，无需手动维护比较列表。
+- [ ] 若监控使用 uid/room 类列表且需配置删除时同步清理 DB：在 `config_db_sync.sync_rules` 中增加对应规则（配置属性名 → 表名 + 主键列名）。
 - [ ] 新建 `monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。
 - [ ] **若监控需要数据库**：在 `src/database.py` 的 `_init_tables()` 中增加 `CREATE TABLE IF NOT EXISTS your_table (...)`；在监控类 `initialize()` 里加载旧数据，在 `run()` 里用 `self.db.execute_query` / `execute_update` / `execute_insert` 读写（参见 **五、监控任务需要数据库时该怎么办**）。
 - [ ] 在模块末尾调用 `register_monitor("job_id", run_xxx_monitor, _get_xxx_trigger_kwargs)`。

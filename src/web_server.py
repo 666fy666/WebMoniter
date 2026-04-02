@@ -83,7 +83,7 @@ def load_auth() -> dict:
             with open(AUTH_FILE, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"加载认证文件失败: {e}")
+            logger.error("加载认证文件失败: %s", e)
     # 返回默认凭据（哈希后的密码）
     return {
         "username": DEFAULT_USERNAME,
@@ -100,7 +100,7 @@ def save_auth(auth_data: dict) -> bool:
             json.dump(auth_data, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
-        logger.error(f"保存认证文件失败: {e}")
+        logger.error("保存认证文件失败: %s", e)
         return False
 
 
@@ -158,7 +158,7 @@ def _merge_and_dump_config(config_path: Path, config_data: dict) -> str:
             if original is None:
                 original = {}
         except Exception as e:
-            logger.warning(f"读取现有配置失败，将使用前端数据: {e}")
+            logger.warning("读取现有配置失败，将使用前端数据: %s", e)
     _simple_merge_dict(original, config_data)
     return yaml.dump(
         original,
@@ -359,7 +359,7 @@ async def get_tasks_api(request: Request):
 
         return JSONResponse({"success": True, "tasks": tasks})
     except Exception as e:
-        logger.error(f"获取任务列表失败: {e}")
+        logger.error("获取任务列表失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -429,12 +429,12 @@ async def run_task_api(request: Request, task_id: str):
             return JSONResponse({"error": f"任务 {task_id} 不存在"}, status_code=404)
 
         # 异步执行任务（使用原始函数，绕过"当天已运行则跳过"检查）
-        logger.info(f"手动触发任务: {task_id}")
+        logger.info("手动触发任务: %s", task_id)
         try:
             # 优先使用原始函数（不检查当天是否已运行），如果没有则使用包装后的函数
             run_func = target_job.original_run_func or target_job.run_func
             await run_task_with_logging(task_id, run_func)
-            logger.info(f"任务 {task_id} 手动执行完成")
+            logger.info("任务 %s 手动执行完成", task_id)
             return JSONResponse(
                 {
                     "success": True,
@@ -442,7 +442,7 @@ async def run_task_api(request: Request, task_id: str):
                 }
             )
         except Exception as e:
-            logger.error(f"任务 {task_id} 执行失败: {e}", exc_info=True)
+            logger.error("任务 %s 执行失败: %s", task_id, e, exc_info=True)
             return JSONResponse(
                 {
                     "success": False,
@@ -451,7 +451,7 @@ async def run_task_api(request: Request, task_id: str):
                 status_code=500,
             )
     except Exception as e:
-        logger.error(f"触发任务失败: {e}")
+        logger.error("触发任务失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -480,7 +480,7 @@ async def get_config_api(request: Request, format: str = "json"):
         yaml_data = await asyncio.to_thread(_read_config_json)
         return JSONResponse({"config": yaml_data})
     except Exception as e:
-        logger.error(f"读取配置文件失败: {e}")
+        logger.error("读取配置文件失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -617,7 +617,7 @@ async def save_config_api(request: Request):
                         ruamel_yaml.dump(original_yaml, output)
                         yaml_content = output.getvalue()
                     except Exception as e:
-                        logger.warning(f"使用 ruamel.yaml 保留注释失败，回退到标准方式: {e}")
+                        logger.warning("使用 ruamel.yaml 保留注释失败，回退到标准方式: %s", e)
                         try:
                             yaml_content = _merge_and_dump_config(config_path, config_data)
                         except Exception as ex:
@@ -646,56 +646,14 @@ async def save_config_api(request: Request):
             else:
                 return JSONResponse({"error": "未提供配置数据"}, status_code=400)
 
-        # 验证配置内容（使用临时文件）
-        import tempfile
-
-        temp_file = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".yml", delete=False, encoding="utf-8"
-            ) as tmp:
-                tmp.write(yaml_content)
-                temp_file = tmp.name
-
-            # 尝试加载配置验证
-            try:
-                test_config_dict = load_config_from_yml(temp_file)
-                # 尝试创建AppConfig验证
-                from src.config import AppConfig
-
-                AppConfig(**test_config_dict)
-            except Exception as e:
-                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-            finally:
-                if temp_file and Path(temp_file).exists():
-                    Path(temp_file).unlink()
-        except Exception as e:
-            if temp_file and Path(temp_file).exists():
-                Path(temp_file).unlink()
-            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-
-        # 保存配置文件（在线程池执行避免阻塞事件循环）
         config_path = Path("config.yml")
-        await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
-
-        # 触发热重载（通过重新加载配置）
-        try:
-            get_config(reload=True)
-            # 日志由配置监控器统一输出，这里不输出
-        except Exception as e:
-            logger.warning(f"热重载失败: {e}")
-
-        # 使 AI 助手配置缓存失效，以便 /api/assistant/status 返回最新状态
-        try:
-            from src.ai_assistant.config import get_ai_config
-
-            get_ai_config(reload=True)
-        except ImportError:
-            pass
+        err = await _validate_and_save_config(yaml_content, config_path)
+        if err:
+            return err
 
         return JSONResponse({"success": True, "message": "配置已保存并应用"})
     except Exception as e:
-        logger.error(f"保存配置文件失败: {e}")
+        logger.error("保存配置文件失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -920,14 +878,11 @@ async def get_huya_images(request: Request, rooms: str = ""):
         return JSONResponse({"data": {}})
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
-
-        placeholders = ", ".join([f":r{i}" for i in range(len(room_ids))])
-        params = {f"r{i}": rid for i, rid in enumerate(room_ids)}
-        sql = f"SELECT room, room_pic, avatar_url FROM huya WHERE room IN ({placeholders})"
-        rows = await db.execute_query(sql, params)
-        await db.close()
+        async with AsyncDatabase() as db:
+            placeholders = ", ".join([f":r{i}" for i in range(len(room_ids))])
+            params = {f"r{i}": rid for i, rid in enumerate(room_ids)}
+            sql = f"SELECT room, room_pic, avatar_url FROM huya WHERE room IN ({placeholders})"
+            rows = await db.execute_query(sql, params)
 
         data = {
             row[0]: {
@@ -938,7 +893,7 @@ async def get_huya_images(request: Request, rooms: str = ""):
         }
         return JSONResponse({"data": data})
     except Exception as e:
-        logger.error(f"获取虎牙图片 URL 失败: {e}")
+        logger.error("获取虎牙图片 URL 失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -956,11 +911,9 @@ async def get_data_item(request: Request, platform: str, item_id: str):
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
-        _, sql = _PLATFORM_SELECT[platform]
-        rows = await db.execute_query(sql, {"pk": item_id})
-        await db.close()
+        async with AsyncDatabase() as db:
+            _, sql = _PLATFORM_SELECT[platform]
+            rows = await db.execute_query(sql, {"pk": item_id})
 
         if not rows:
             return JSONResponse({"error": "未找到该资源"}, status_code=404)
@@ -968,7 +921,7 @@ async def get_data_item(request: Request, platform: str, item_id: str):
         data = _row_to_item(platform, rows[0])
         return JSONResponse({"data": data})
     except Exception as e:
-        logger.error(f"获取单条数据失败: {e}")
+        logger.error("获取单条数据失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1021,39 +974,35 @@ async def get_table_data(
     )
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
+        async with AsyncDatabase() as db:
+            where_clause = ""
+            params: dict = {"limit": page_size, "offset": (page - 1) * page_size}
+            if filter_param:
+                pk_col = PLATFORM_PRIMARY_KEY[platform]
+                where_clause = f" WHERE {pk_col} = :filter_val"
+                params["filter_val"] = filter_param
 
-        where_clause = ""
-        params: dict = {"limit": page_size, "offset": (page - 1) * page_size}
-        if filter_param:
-            pk_col = PLATFORM_PRIMARY_KEY[platform]
-            where_clause = f" WHERE {pk_col} = :filter_val"
-            params["filter_val"] = filter_param
+            table_name = PLATFORM_CONFIG[platform][0]
+            count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
+            count_params = {k: v for k, v in params.items() if k in ("filter_val",)}
+            count_result = await db.execute_query(count_sql, count_params if count_params else None)
+            total = count_result[0][0] if count_result else 0
 
-        table_name = PLATFORM_CONFIG[platform][0]
-        count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
-        count_params = {k: v for k, v in params.items() if k in ("filter_val",)}
-        count_result = await db.execute_query(count_sql, count_params if count_params else None)
-        total = count_result[0][0] if count_result else 0
-
-        base_sql = (
-            _PLATFORM_LIST_SQL_HUYA_BASIC
-            if platform == "huya" and not include_media
-            else _PLATFORM_LIST_SQL[platform]
-        )
-        # 微博需先取全量、按时间排序后再分页
-        if platform == "weibo":
-            sql = f"{_PLATFORM_LIST_SQL[platform]}{where_clause}"
-            fetch_params = {k: v for k, v in params.items() if k == "filter_val"}
-            rows = await db.execute_query(sql, fetch_params if fetch_params else None)
-        else:
-            sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
-            rows = await db.execute_query(sql, params)
+            base_sql = (
+                _PLATFORM_LIST_SQL_HUYA_BASIC
+                if platform == "huya" and not include_media
+                else _PLATFORM_LIST_SQL[platform]
+            )
+            if platform == "weibo":
+                sql = f"{_PLATFORM_LIST_SQL[platform]}{where_clause}"
+                fetch_params = {k: v for k, v in params.items() if k == "filter_val"}
+                rows = await db.execute_query(sql, fetch_params if fetch_params else None)
+            else:
+                sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
+                rows = await db.execute_query(sql, params)
 
         data = [_row_to_item(platform, row) for row in rows]
 
-        # 微博：按发布时间倒序（最新在上），再分页
         if platform == "weibo" and data:
             def sort_key(item: dict):
                 dt = _parse_weibo_created_at(item.get("文本"))
@@ -1065,8 +1014,6 @@ async def get_table_data(
             offset = (page - 1) * page_size
             data = data[offset : offset + page_size]
 
-        await db.close()
-
         return JSONResponse(
             {
                 "data": data,
@@ -1077,7 +1024,7 @@ async def get_table_data(
             }
         )
     except Exception as e:
-        logger.error(f"获取表数据失败: {e}")
+        logger.error("获取表数据失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1127,10 +1074,10 @@ def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
             try:
                 return _do_read_binary()
             except Exception as final_e:
-                logger.error(f"读取日志文件失败（所有方法都失败）: {final_e}")
+                logger.error("读取日志文件失败（所有方法都失败）: %s", final_e)
                 raise
         except Exception as e:
-            logger.error(f"读取日志文件时发生未知错误: {e}")
+            logger.error("读取日志文件时发生未知错误: %s", e)
             if attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
@@ -1166,12 +1113,12 @@ async def get_logs(request: Request, lines: int = 100, task: str | None = None):
                 timeout=10.0,
             )
         except asyncio.TimeoutError:
-            logger.error(f"读取日志文件超时: {log_file}")
+            logger.error("读取日志文件超时: %s", log_file)
             return JSONResponse({"error": "读取日志超时，请稍后重试"}, status_code=504)
 
         return JSONResponse({"logs": recent_lines, "total_lines": total_lines})
     except Exception as e:
-        logger.error(f"读取日志失败: {e}", exc_info=True)
+        logger.error("读取日志失败: %s", e, exc_info=True)
         return JSONResponse({"error": f"读取日志失败: {str(e)}"}, status_code=500)
 
 
@@ -1201,7 +1148,7 @@ async def get_log_tasks_list(request: Request):
             }
         )
     except Exception as e:
-        logger.error(f"获取任务日志列表失败: {e}")
+        logger.error("获取任务日志列表失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1212,23 +1159,17 @@ async def get_monitor_status_item(request: Request, platform: str, item_id: str)
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
-
         if platform not in _PLATFORM_SELECT:
             return JSONResponse({"error": "无效的平台"}, status_code=400)
 
-        _, sql = _PLATFORM_SELECT[platform]
-        rows = await db.execute_query(sql, {"pk": item_id})
-
-        await db.close()
+        async with AsyncDatabase() as db:
+            _, sql = _PLATFORM_SELECT[platform]
+            rows = await db.execute_query(sql, {"pk": item_id})
 
         if not rows:
             return JSONResponse({"error": "未找到该资源"}, status_code=404)
 
-        # 复用 data 接口的字段定义，monitor-status 只是不需要登录
         data = _row_to_item(platform, rows[0])
-        # 对于状态接口，通常不强制返回 url 字段，若有则一并返回，便于前端直接跳转
 
         return JSONResponse(
             {
@@ -1238,7 +1179,7 @@ async def get_monitor_status_item(request: Request, platform: str, item_id: str)
             }
         )
     except Exception as e:
-        logger.error(f"获取监控状态失败: {e}")
+        logger.error("获取监控状态失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1249,16 +1190,11 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
         return JSONResponse({"error": "无效的平台"}, status_code=400)
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
-
         if platform not in _PLATFORM_LIST_SQL:
             return JSONResponse({"error": "无效的平台"}, status_code=400)
 
-        base_sql = _PLATFORM_LIST_SQL[platform]
-        rows = await db.execute_query(base_sql)
-
-        await db.close()
+        async with AsyncDatabase() as db:
+            rows = await db.execute_query(_PLATFORM_LIST_SQL[platform])
 
         data = [_row_to_item(platform, row) for row in rows]
 
@@ -1270,7 +1206,7 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
             }
         )
     except Exception as e:
-        logger.error(f"获取监控状态失败: {e}")
+        logger.error("获取监控状态失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1279,20 +1215,16 @@ async def get_monitor_status(request: Request):
     """获取全部监控任务状态（无需登录）。返回所有已持久化平台的聚合结果。"""
 
     try:
-        db = AsyncDatabase()
-        await db.initialize()
+        async with AsyncDatabase() as db:
+            all_data: dict[str, list[dict]] = {}
 
-        all_data: dict[str, list[dict]] = {}
-
-        for platform, base_sql in _PLATFORM_LIST_SQL.items():
-            try:
-                rows = await db.execute_query(base_sql)
-                all_data[platform] = [_row_to_item(platform, row) for row in rows]
-            except Exception as e:  # 单个平台出错不影响整体
-                logger.error(f"获取平台 {platform} 监控状态失败: {e}", exc_info=True)
-                all_data[platform] = []
-
-        await db.close()
+            for platform, base_sql in _PLATFORM_LIST_SQL.items():
+                try:
+                    rows = await db.execute_query(base_sql)
+                    all_data[platform] = [_row_to_item(platform, row) for row in rows]
+                except Exception as e:
+                    logger.error("获取平台 %s 监控状态失败: %s", platform, e, exc_info=True)
+                    all_data[platform] = []
 
         return JSONResponse(
             {
@@ -1302,7 +1234,7 @@ async def get_monitor_status(request: Request):
             }
         )
     except Exception as e:
-        logger.error(f"获取监控状态失败: {e}")
+        logger.error("获取监控状态失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1898,39 +1830,9 @@ async def assistant_apply_action(request: Request):
                 config_path, platform_key, list_key, operation, value
             )
 
-            import tempfile
-
-            temp_file = None
-            try:
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yml", delete=False, encoding="utf-8"
-                ) as tmp:
-                    tmp.write(yaml_content)
-                    temp_file = tmp.name
-                try:
-                    test_config_dict = load_config_from_yml(temp_file)
-                    from src.config import AppConfig
-
-                    AppConfig(**test_config_dict)
-                except Exception as e:
-                    return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-                finally:
-                    if temp_file and Path(temp_file).exists():
-                        Path(temp_file).unlink()
-            except Exception as e:
-                if temp_file and Path(temp_file).exists():
-                    Path(temp_file).unlink()
-                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-
-            await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
-
-            get_config(reload=True)
-            try:
-                from src.ai_assistant.config import get_ai_config
-
-                get_ai_config(reload=True)
-            except ImportError:
-                pass
+            err = await _validate_and_save_config(yaml_content, config_path)
+            if err:
+                return err
 
             op_text = "添加" if operation == "add" else "移除"
             display = {
@@ -2008,37 +1910,9 @@ async def assistant_apply_action(request: Request):
             if not config_path.exists():
                 return JSONResponse({"error": "配置文件不存在"}, status_code=404)
             yaml_content = _merge_and_dump_config(config_path, config_updates)
-            import tempfile
-
-            temp_file = None
-            try:
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yml", delete=False, encoding="utf-8"
-                ) as tmp:
-                    tmp.write(yaml_content)
-                    temp_file = tmp.name
-                try:
-                    test_config_dict = load_config_from_yml(temp_file)
-                    from src.config import AppConfig
-
-                    AppConfig(**test_config_dict)
-                except Exception as e:
-                    return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-                finally:
-                    if temp_file and Path(temp_file).exists():
-                        Path(temp_file).unlink()
-            except Exception as e:
-                if temp_file and Path(temp_file).exists():
-                    Path(temp_file).unlink()
-                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-            await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
-            get_config(reload=True)
-            try:
-                from src.ai_assistant.config import get_ai_config
-
-                get_ai_config(reload=True)
-            except ImportError:
-                pass
+            err = await _validate_and_save_config(yaml_content, config_path)
+            if err:
+                return err
             _display_map = {
                 "weibo": "微博",
                 "huya": "虎牙",
@@ -2117,39 +1991,9 @@ async def assistant_apply_action(request: Request):
         config_data = {platform_key: {"enable": enable}}
         yaml_content = _merge_and_dump_config(config_path, config_data)
 
-        import tempfile
-
-        temp_file = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".yml", delete=False, encoding="utf-8"
-            ) as tmp:
-                tmp.write(yaml_content)
-                temp_file = tmp.name
-            try:
-                test_config_dict = load_config_from_yml(temp_file)
-                from src.config import AppConfig
-
-                AppConfig(**test_config_dict)
-            except Exception as e:
-                return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-            finally:
-                if temp_file and Path(temp_file).exists():
-                    Path(temp_file).unlink()
-        except Exception as e:
-            if temp_file and Path(temp_file).exists():
-                Path(temp_file).unlink()
-            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-
-        await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
-
-        get_config(reload=True)
-        try:
-            from src.ai_assistant.config import get_ai_config
-
-            get_ai_config(reload=True)
-        except ImportError:
-            pass
+        err = await _validate_and_save_config(yaml_content, config_path)
+        if err:
+            return err
 
         action_text = "开启" if enable else "关闭"
         _disp = {
@@ -2303,6 +2147,53 @@ async def webhook_telegram(request: Request, channel_name: str):
         asyncio.create_task(send_telegram_message(api_token, chat_id, text))
 
     return JSONResponse({"ok": True})
+
+
+async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:
+    """
+    验证 YAML 内容并保存到 config.yml，成功返回 None，失败返回错误 JSONResponse。
+    验证流程：写入临时文件 → load_config_from_yml → AppConfig 校验 → 写入正式文件 → 热重载。
+    """
+    import tempfile
+
+    temp_file = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yml", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(yaml_content)
+            temp_file = tmp.name
+
+        try:
+            test_config_dict = load_config_from_yml(temp_file)
+            from src.config import AppConfig
+
+            AppConfig(**test_config_dict)
+        except Exception as e:
+            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+        finally:
+            if temp_file and Path(temp_file).exists():
+                Path(temp_file).unlink()
+    except Exception as e:
+        if temp_file and Path(temp_file).exists():
+            Path(temp_file).unlink()
+        return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+
+    await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
+
+    try:
+        get_config(reload=True)
+    except Exception as e:
+        logger.warning("热重载失败: %s", e)
+
+    try:
+        from src.ai_assistant.config import get_ai_config
+
+        get_ai_config(reload=True)
+    except ImportError:
+        pass
+
+    return None
 
 
 def create_web_app():

@@ -6,6 +6,15 @@
     <title>登录 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css?v=11">
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 <body class="login-body">
     <!-- 版本更新提示横幅 -->
@@ -49,6 +58,10 @@
             </div>
         </div>
     </div>
+    <button id="themeToggleBtn" class="btn btn-secondary" style="position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 10px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" aria-label="切换主题">
+        <span id="themeIcon" style="font-size: 18px;">☀️</span>
+    </button>
+    <script src="/static/js/common.js?v=6"></script>
     <script src="/static/js/login.js?v=1"></script>
 </body>
 </html>

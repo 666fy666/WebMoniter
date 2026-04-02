@@ -6,6 +6,15 @@
     <title>控制台 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css?v=11">
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 <body>
     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
@@ -33,6 +42,10 @@
             </a>
         </nav>
         <div class="sidebar-footer">
+            <button id="themeToggleBtn" class="btn btn-secondary" style="margin-bottom: 10px;">
+                <span id="themeIcon">☀️</span>
+                切换主题
+            </button>
             <button id="changePasswordBtn" class="btn btn-secondary" style="margin-bottom: 10px;">
                 <span>🔐</span>
                 修改密码

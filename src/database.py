@@ -29,6 +29,9 @@ _connection_lock = asyncio.Lock()
 _connection_ref_count = 0
 _logger = logging.getLogger(__name__)
 
+# MySQL 风格 %(name)s 占位符 -> SQLite :name（预编译避免每条 SQL 重复编译正则）
+_MYSQL_STYLE_PARAM = re.compile(r"%\((\w+)\)s")
+
 
 class AsyncDatabase:
     """异步数据库操作类 - 使用 SQLite（支持共享连接）"""
@@ -71,7 +74,7 @@ class AsyncDatabase:
 
                 self._conn = _shared_connection
                 _connection_ref_count += 1
-                _logger.debug(f"数据库连接引用计数: {_connection_ref_count}")
+                _logger.debug("数据库连接引用计数: %d", _connection_ref_count)
         else:
             # 使用独立连接（不推荐，仅用于特殊场景）
             if self._conn is None:
@@ -123,7 +126,7 @@ class AsyncDatabase:
                 await conn.execute("ALTER TABLE huya ADD COLUMN avatar_url TEXT")
         except Exception as e:
             # 表结构升级失败不会影响主流程，只记录告警方便排查
-            _logger.warning(f"为 huya 表添加图片字段失败（不影响主流程）: {e}")
+            _logger.warning("为 huya 表添加图片字段失败（不影响主流程）: %s", e)
 
         # 创建 bilibili 表（动态：uid+dynamic_id；直播：uid+room_id+is_live）
         await conn.execute(
@@ -203,10 +206,10 @@ class AsyncDatabase:
             AttributeError,
             RuntimeError,
         ) as e:
-            _logger.debug(f"数据库连接健康检查失败: {e}")
+            _logger.debug("数据库连接健康检查失败: %s", e)
             return False
         except Exception as e:
-            _logger.warning(f"数据库连接健康检查异常: {e}")
+            _logger.warning("数据库连接健康检查异常: %s", e)
             return False
 
     async def _reconnect(self):
@@ -235,7 +238,7 @@ class AsyncDatabase:
                 try:
                     await _shared_connection.close()
                 except Exception as e:
-                    _logger.debug(f"关闭旧连接时出错（可忽略）: {e}")
+                    _logger.debug("关闭旧连接时出错（可忽略）: %s", e)
                 finally:
                     _shared_connection = None
                     _connection_ref_count = 0
@@ -281,7 +284,7 @@ class AsyncDatabase:
             async with _connection_lock:
                 if _connection_ref_count > 0:
                     _connection_ref_count -= 1
-                    _logger.debug(f"数据库连接引用计数: {_connection_ref_count}")
+                    _logger.debug("数据库连接引用计数: %d", _connection_ref_count)
                 else:
                     _logger.warning("数据库连接引用计数已为0，可能存在重复关闭")
                 # 共享连接不在这里关闭，由全局清理函数处理
@@ -291,18 +294,9 @@ class AsyncDatabase:
                 await self._conn.close()
                 self._conn = None
 
-    def _convert_params(self, params: dict | None) -> dict | None:
-        """将 MySQL 风格的参数占位符转换为 SQLite 风格"""
-        if params is None:
-            return None
-        # SQLite 使用 :key 格式，MySQL 使用 %(key)s
-        # 这里保持兼容，直接返回原参数，SQL 语句中需要适配
-        return params
-
     def _convert_sql(self, sql: str) -> str:
         """将 MySQL 风格的 SQL 转换为 SQLite 风格"""
-        # 将 %(key)s 替换为 :key
-        return re.sub(r"%\((\w+)\)s", r":\1", sql)
+        return _MYSQL_STYLE_PARAM.sub(r":\1", sql)
 
     @asynccontextmanager
     async def get_connection(self):
@@ -336,16 +330,16 @@ class AsyncDatabase:
                     last_exception = e
                     if attempt < max_retries - 1:
                         _logger.warning(
-                            f"数据库锁定，重试 {attempt + 1}/{max_retries} " f"(延迟 {delay:.2f}秒)"
+                            "数据库锁定，重试 %d/%d (延迟 %.2f秒)",
+                            attempt + 1, max_retries, delay,
                         )
                         await asyncio.sleep(delay)
-                        delay *= 2  # 指数退避
+                        delay *= 2
                     else:
-                        _logger.error(f"数据库操作失败，已达到最大重试次数: {e}")
+                        _logger.error("数据库操作失败，已达到最大重试次数: %s", e)
                         raise
                 elif "no such table" in error_str or "unable to open" in error_str:
-                    # 数据库文件或表结构问题，尝试重连
-                    _logger.warning(f"检测到数据库结构问题，尝试重新连接: {e}")
+                    _logger.warning("检测到数据库结构问题，尝试重新连接: %s", e)
                     try:
                         await self._reconnect()
                         # 重连后立即重试
@@ -353,34 +347,32 @@ class AsyncDatabase:
                             await asyncio.sleep(0.1)
                             continue
                     except Exception as reconnect_error:
-                        _logger.error(f"重新连接失败: {reconnect_error}")
+                        _logger.error("重新连接失败: %s", reconnect_error)
                         raise
                     raise
                 else:
-                    # 其他类型的 OperationalError，尝试重连一次
                     if attempt == 0:
-                        _logger.warning(f"数据库操作错误，尝试重新连接: {e}")
+                        _logger.warning("数据库操作错误，尝试重新连接: %s", e)
                         try:
                             await self._reconnect()
                             await asyncio.sleep(0.1)
                             continue
                         except Exception as reconnect_error:
-                            _logger.debug(f"重新连接失败: {reconnect_error}")
+                            _logger.debug("重新连接失败: %s", reconnect_error)
                     raise
             except (AttributeError, RuntimeError) as e:
-                # 连接对象可能已失效
                 if attempt == 0:
-                    _logger.warning(f"检测到连接对象异常，尝试重新连接: {e}")
+                    _logger.warning("检测到连接对象异常，尝试重新连接: %s", e)
                     try:
                         await self._reconnect()
                         await asyncio.sleep(0.1)
                         continue
                     except Exception as reconnect_error:
-                        _logger.error(f"重新连接失败: {reconnect_error}")
+                        _logger.error("重新连接失败: %s", reconnect_error)
                         raise
                 raise
             except Exception as e:
-                _logger.error(f"数据库操作异常: {e}")
+                _logger.error("数据库操作异常: %s", e)
                 raise
 
         if last_exception:
@@ -390,10 +382,9 @@ class AsyncDatabase:
         """执行查询操作（带重试机制和连接检查）"""
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
-        sqlite_params = self._convert_params(params)
 
         async def _query():
-            async with self._conn.execute(sqlite_sql, sqlite_params) as cursor:
+            async with self._conn.execute(sqlite_sql, params) as cursor:
                 rows = await cursor.fetchall()
                 # 将 Row 对象转换为元组
                 return [tuple(row) for row in rows]
@@ -401,17 +392,16 @@ class AsyncDatabase:
         try:
             return await self._execute_with_retry(_query)
         except Exception as e:
-            _logger.error(f"数据库查询失败: {e}\nSQL: {sqlite_sql}\nParams: {sqlite_params}")
+            _logger.error("数据库查询失败: %s\nSQL: %s\nParams: %s", e, sqlite_sql, params)
             raise
 
     async def execute_update(self, sql: str, params: dict | None = None) -> bool:
         """执行更新操作（INSERT/UPDATE/DELETE，带重试机制和连接检查）"""
         # 转换 SQL 和参数
         sqlite_sql = self._convert_sql(sql)
-        sqlite_params = self._convert_params(params)
 
         async def _update():
-            await self._conn.execute(sqlite_sql, sqlite_params)
+            await self._conn.execute(sqlite_sql, params)
             await self._conn.commit()
             return True
 
@@ -423,7 +413,7 @@ class AsyncDatabase:
                     await self._conn.rollback()
             except Exception:
                 pass
-            _logger.error(f"数据库操作失败: {e}\nSQL: {sqlite_sql}\nParams: {sqlite_params}")
+            _logger.error("数据库操作失败: %s\nSQL: %s\nParams: %s", e, sqlite_sql, params)
             return False
 
     async def execute_insert(self, sql: str, params: dict | None = None) -> bool:
@@ -455,7 +445,7 @@ class AsyncDatabase:
             count = results[0][0] if results else 0
             return count == 0
         except Exception as e:
-            _logger.error(f"检查表 {table_name} 是否为空失败: {e}")
+            _logger.error("检查表 %s 是否为空失败: %s", table_name, e)
             # 如果表不存在，也认为是首次创建
             return True
 
@@ -479,7 +469,7 @@ async def close_shared_connection():
                 await _shared_connection.close()
                 _logger.info("共享数据库连接已关闭")
             except Exception as e:
-                _logger.error(f"关闭数据库连接时出错: {e}")
+                _logger.error("关闭数据库连接时出错: %s", e)
             finally:
                 _shared_connection = None
                 _connection_ref_count = 0

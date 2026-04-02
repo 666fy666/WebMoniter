@@ -401,14 +401,13 @@ register_monitor(
 **热重载流程**：
 1. `ConfigWatcher` 每 5 秒检查 `config.yml` 的修改时间（`check_interval` 默认 5）
 2. 检测到 `st_mtime` 变化时：调用 `get_config(reload=True)` 重新加载，同步读取 YAML 提取 `ai_assistant` 节点（独立于 AppConfig）
-3. 通过 `_config_changed()` 比较新旧配置（监控 enable/间隔、任务 enable/time、免打扰、推送通道、plugins 等）及 `ai_assistant` 原始内容，判断是否发生实际变化；避免文件保存但内容未变时误触发
+3. 通过 `_config_changed()` 利用 Pydantic `model_dump()` 对比新旧配置的完整序列化结果，判断是否发生实际变化；同时比较 `ai_assistant` 原始内容。避免文件保存但内容未变时误触发
 4. 若有变化则调用 `on_config_changed()` 回调
 5. 回调内先执行 `sync_config_to_db`（删除配置中已移除的 uid/room），再更新调度器任务参数（间隔、Cron、暂停/恢复、免打扰）
 
 **配置变化检测**：
-- 比较关键配置字段（各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等）
+- 利用 `model_dump()` 自动覆盖 AppConfig 的所有字段（新增字段无需手动维护比较列表）
 - 单独比较 `ai_assistant` 节点（YAML 原始字典），其变化也会触发热重载（如 LLM 配置等）
-- 支持嵌套配置比较（多账号、多 Cookie 等）
 - 避免因文件保存但内容未变而触发重载
 
 ---
@@ -573,7 +572,7 @@ logs/
 - 总日志 `main_*.log`：所有输出汇总
 - 任务日志 `task_{job_id}_*.log`：每个任务执行时单独写入
 
-**任务日志实现**：`job_registry` 在任务执行前将任务专属文件 Handler 挂到 `logging.root`，执行结束后移除。这样可统一捕获监控类（`BaseMonitor` 的 `__class__.__name__` logger）、推送通道、定时任务模块等所有相关输出，避免仅挂模块 logger 时漏掉监控/推送日志。
+**任务日志实现**：`job_registry` 通过 `_task_logging_context` 异步上下文管理器，在任务执行期间将专属文件 Handler 挂到 `logging.root`，执行结束后自动移除。这样可统一捕获监控类（`BaseMonitor` 的 `__class__.__name__` logger）、推送通道、定时任务模块等所有相关输出，避免仅挂模块 logger 时漏掉监控/推送日志。
 
 **日志清理**：
 - 定时任务每天执行一次（默认 02:10）
@@ -711,9 +710,8 @@ from src.version import (
    - 解析YAML并验证
    ↓
 3. 比较配置变化
-  - 检测各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等
+  - 利用 Pydantic model_dump() 完整对比所有 AppConfig 字段
   - 检测 `ai_assistant` 节点（YAML 原始内容）变化
-  - 检测嵌套配置（多账号、多 Cookie 等）变化
   ↓
 4. 配置与数据库同步（sync_config_to_db）
   - 从配置中删除的 uid/room 对应删除数据库记录
@@ -1148,7 +1146,7 @@ push_channel:
 ### 配置热重载
 
 - **检测机制**：`ConfigWatcher` 每5秒检查文件修改时间
-- **变化检测**：比较关键配置字段（各监控 enable/间隔、各任务 enable/执行时间、免打扰、推送通道等）
+- **变化检测**：利用 Pydantic `model_dump()` 完整对比所有字段，新增字段自动覆盖，无需手动维护比较列表
 - **更新机制**：更新调度器任务参数（间隔任务间隔、Cron 执行时间、暂停/恢复）
 - **生效时间**：约5秒内生效
 

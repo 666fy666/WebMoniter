@@ -17,6 +17,29 @@ from src.config import AppConfig, get_config
 _LOG_SEPARATOR = "─" * 60
 
 
+def _interval_trigger_kwargs(
+    seconds: int | None,
+    minutes: int | None,
+    hours: int | None,
+    *,
+    default_minutes_if_all_none: int | None = None,
+) -> dict[str, int] | None:
+    """
+    构建 IntervalTrigger 参数字典，与 APScheduler 约定一致：seconds > minutes > hours。
+    default_minutes_if_all_none 非 None 时，在三者均未指定时返回 {"minutes": 该值}；
+    为 None 时三者均未指定则返回 None（用于热更新失败分支）。
+    """
+    if seconds is not None:
+        return {"seconds": seconds}
+    if minutes is not None:
+        return {"minutes": minutes}
+    if hours is not None:
+        return {"hours": hours}
+    if default_minutes_if_all_none is not None:
+        return {"minutes": default_minutes_if_all_none}
+    return None
+
+
 # 视为「任务源」的 logger 名称：监控类、定时任务模块、主入口
 def _is_task_source(name: str) -> bool:
     return "Monitor" in name or name.startswith("tasks.") or name == "__main__"
@@ -112,16 +135,9 @@ class TaskScheduler:
 
         注意：seconds、minutes、hours 至少需要提供一个，如果提供多个，优先级为 seconds > minutes > hours
         """
-        trigger_kwargs = {}
-        if seconds is not None:
-            trigger_kwargs["seconds"] = seconds
-        elif minutes is not None:
-            trigger_kwargs["minutes"] = minutes
-        elif hours is not None:
-            trigger_kwargs["hours"] = hours
-        else:
-            # 默认使用1分钟
-            trigger_kwargs["minutes"] = 1
+        trigger_kwargs = _interval_trigger_kwargs(
+            seconds, minutes, hours, default_minutes_if_all_none=1
+        ) or {"minutes": 1}
 
         self.add_job(
             func,
@@ -186,19 +202,12 @@ class TaskScheduler:
         """
         job = self.scheduler.get_job(job_id)
         if job is None:
-            self.logger.warning(f"任务 {job_id} 不存在，无法更新间隔时间")
+            self.logger.warning("任务 %s 不存在，无法更新间隔时间", job_id)
             return None
 
-        # 构建新的触发器参数
-        trigger_kwargs = {}
-        if seconds is not None:
-            trigger_kwargs["seconds"] = seconds
-        elif minutes is not None:
-            trigger_kwargs["minutes"] = minutes
-        elif hours is not None:
-            trigger_kwargs["hours"] = hours
-        else:
-            self.logger.warning(f"未提供有效的间隔时间参数，无法更新任务 {job_id}")
+        trigger_kwargs = _interval_trigger_kwargs(seconds, minutes, hours)
+        if trigger_kwargs is None:
+            self.logger.warning("未提供有效的间隔时间参数，无法更新任务 %s", job_id)
             return None
 
         # 创建新的触发器
@@ -260,13 +269,13 @@ class TaskScheduler:
         """
         job = self.scheduler.get_job(job_id)
         if job is None:
-            self.logger.warning(f"任务 {job_id} 不存在，无法更新执行时间")
+            self.logger.warning("任务 %s 不存在，无法更新执行时间", job_id)
             return None
 
         # 获取当前触发器的参数
         current_trigger = job.trigger
         if not isinstance(current_trigger, CronTrigger):
-            self.logger.warning(f"任务 {job_id} 不是Cron任务，无法更新")
+            self.logger.warning("任务 %s 不是Cron任务，无法更新", job_id)
             return None
 
         # 使用新参数或保留旧参数（通过字符串表示获取）
@@ -337,8 +346,6 @@ def setup_logging(log_level: str = "INFO", console_output: bool = None):
         log_level: 日志级别
         console_output: 是否输出到控制台，None时自动检测（非TTY环境不输出到控制台）
     """
-    import sys
-
     # 自动检测是否为交互式终端
     if console_output is None:
         # 如果标准输出不是TTY（如nohup后台运行），则不输出到控制台

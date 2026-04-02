@@ -126,11 +126,11 @@ class BaseMonitor(ABC):
 
         # 如果Cookie已经被标记为过期，跳过重复处理（避免并发任务产生大量重复日志）
         if not cookie_cache.is_valid(platform):
-            self.logger.debug(f"Cookie已标记为过期，跳过重复处理: {error}")
+            self.logger.debug("Cookie已标记为过期，跳过重复处理: %s", error)
             return
 
         # 首次检测到Cookie失效，记录日志并标记
-        self.logger.error(f"检测到Cookie失效: {error}")
+        self.logger.error("检测到Cookie失效: %s", error)
         await cookie_cache.mark_expired(platform)
 
         # 只有在未发送过提醒时才发送
@@ -143,7 +143,7 @@ class BaseMonitor(ABC):
         platform = self.platform_name
         if not cookie_cache.is_valid(platform):
             await cookie_cache.mark_valid(platform)
-            self.logger.info(f"{self.monitor_name} Cookie已恢复有效")
+            self.logger.info("%s Cookie已恢复有效", self.monitor_name)
 
     async def push_cookie_expired_notification(self) -> None:
         """
@@ -156,7 +156,7 @@ class BaseMonitor(ABC):
             return
 
         # 默认实现，子类应重写
-        self.logger.warning(f"{self.monitor_name} Cookie失效提醒未实现")
+        self.logger.warning("%s Cookie失效提醒未实现", self.monitor_name)
 
     async def __aenter__(self):
         """异步上下文管理器入口"""

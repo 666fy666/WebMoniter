@@ -1,6 +1,7 @@
 """配置管理模块 - 从YAML配置文件读取配置"""
 
 import logging
+import os
 from datetime import datetime, time
 from pathlib import Path
 
@@ -401,6 +402,41 @@ class AppConfig(BaseModel):
         )
 
 
+def _parse_multi_strings(
+    yml_config: dict,
+    section_key: str,
+    yaml_key: str,
+    config_key: str,
+    config_dict: dict,
+) -> None:
+    """从 YAML 节点解析字符串列表（cookies / tokens / openids / request_bodies 等）"""
+    section = yml_config.get(section_key) or {}
+    raw = section.get(yaml_key)
+    if isinstance(raw, list):
+        values = [str(v).strip() for v in raw if v]
+        if values:
+            config_dict[config_key] = values
+
+
+def _parse_multi_accounts(
+    yml_config: dict,
+    section_key: str,
+    fields: list[str],
+    config_key: str,
+    config_dict: dict,
+) -> None:
+    """从 YAML 节点解析账号字典列表，每个账号按 fields 指定的键名提取并 strip"""
+    section = yml_config.get(section_key) or {}
+    raw = section.get("accounts")
+    if isinstance(raw, list):
+        accounts = []
+        for item in raw:
+            if isinstance(item, dict):
+                accounts.append({f: str(item.get(f, "")).strip() for f in fields})
+        if accounts:
+            config_dict[config_key] = accounts
+
+
 def load_config_from_yml(yml_path: str = "config.yml") -> dict:
     """
     从YAML文件加载配置并转换为AppConfig所需的格式
@@ -428,7 +464,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 定义配置映射：{yaml_key: {field_mapping: {yaml_field: config_field}}}
         config_mappings = {
             "app": {
-                # 例如 app.base_url: "http://localhost:8866"
                 "base_url": "base_url",
                 "push_compress_with_llm": "push_compress_with_llm",
                 "push_personalize_with_llm": "push_personalize_with_llm",
@@ -501,14 +536,8 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             },
             "rainyun": {
                 "enable": "rainyun_enable",
-                "accounts": "rainyun_accounts",
                 "time": "rainyun_time",
                 "push_channels": "rainyun_push_channels",
-                "auto_renew": "rainyun_auto_renew",
-                "renew_threshold_days": "rainyun_renew_threshold_days",
-                "renew_product_ids": "rainyun_renew_product_ids",
-                "chrome_bin": "rainyun_chrome_bin",
-                "chromedriver_path": "rainyun_chromedriver_path",
             },
             "enshan": {
                 "enable": "enshan_enable",
@@ -689,7 +718,6 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
             "token",
             "mt_version",
             "device_params",
-            # 下面这些字段在若干签到配置中经常为空配置，需要一并处理
             "account",
             "access_token",
             "request_body",
@@ -702,16 +730,13 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 for yaml_field, config_field in field_mapping.items():
                     if yaml_field in section:
                         value = section[yaml_field]
-                        # 特殊处理：字符串字段可能在 YAML 中为空（解析为 None）
                         if yaml_field in string_fields and value is None:
                             value = ""
-                        # 特殊处理：push_channels 字段确保为列表
                         if yaml_field == "push_channels":
                             if value is None:
                                 value = []
                             elif isinstance(value, str):
                                 value = [v.strip() for v in value.split(",") if v.strip()]
-                        # 特殊处理：uids/rooms/douyin_ids/profile_ids 支持 YAML 列表格式或数字，转为逗号分隔字符串
                         if yaml_field in ("uids", "rooms", "douyin_ids", "profile_ids"):
                             if isinstance(value, list):
                                 value = ",".join(str(v).strip() for v in value if v)
@@ -719,275 +744,64 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                                 value = str(value) if value is not None else ""
                         config_dict[config_field] = value
 
-        # 特殊处理：多账号配置
-        if "checkin" in yml_config:
-            checkin = yml_config["checkin"]
-            if "accounts" in checkin and isinstance(checkin["accounts"], list):
-                accounts = []
-                for a in checkin["accounts"]:
-                    if isinstance(a, dict):
-                        accounts.append(
-                            {
-                                "email": str(a.get("email", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                            }
-                        )
-                if accounts:
-                    config_dict["checkin_accounts"] = accounts
+        # ── 多账号（dict 列表）配置：统一使用 _parse_multi_accounts ──
+        _parse_multi_accounts(yml_config, "checkin", ["email", "password"], "checkin_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "rainyun", ["username", "password", "api_key"], "rainyun_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "tyyun", ["username", "password"], "tyyun_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "miui", ["account", "password"], "miui_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "pinzan", ["account", "password"], "pinzan_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "ydwx", ["device_params", "token"], "ydwx_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "xingkong", ["username", "password"], "xingkong_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "kjwj", ["username", "password"], "kjwj_accounts", config_dict)
+        _parse_multi_accounts(yml_config, "freenom", ["email", "password"], "freenom_accounts", config_dict)
 
-        # 特殊处理：多Cookie配置
-        for cookie_section in ["tieba", "weibo_chaohua"]:
-            if cookie_section in yml_config:
-                section = yml_config[cookie_section]
-                if "cookies" in section and isinstance(section["cookies"], list):
-                    cookies = [str(c).strip() for c in section["cookies"] if c]
-                    if cookies:
-                        config_field = (
-                            f"{cookie_section}_cookies"
-                            if cookie_section == "tieba"
-                            else "weibo_chaohua_cookies"
-                        )
-                        config_dict[config_field] = cookies
+        # ── 多 Cookie / Token / 字符串列表配置：统一使用 _parse_multi_strings ──
+        _parse_multi_strings(yml_config, "tieba", "cookies", "tieba_cookies", config_dict)
+        _parse_multi_strings(yml_config, "weibo_chaohua", "cookies", "weibo_chaohua_cookies", config_dict)
+        _parse_multi_strings(yml_config, "enshan", "cookies", "enshan_cookies", config_dict)
+        _parse_multi_strings(yml_config, "smzdm", "cookies", "smzdm_cookies", config_dict)
+        _parse_multi_strings(yml_config, "zdm_draw", "cookies", "zdm_draw_cookies", config_dict)
+        _parse_multi_strings(yml_config, "fg", "cookies", "fg_cookies", config_dict)
+        _parse_multi_strings(yml_config, "iqiyi", "cookies", "iqiyi_cookies", config_dict)
+        _parse_multi_strings(yml_config, "qtw", "cookies", "qtw_cookies", config_dict)
+        _parse_multi_strings(yml_config, "kuake", "cookies", "kuake_cookies", config_dict)
+        _parse_multi_strings(yml_config, "aliyun", "refresh_tokens", "aliyun_refresh_tokens", config_dict)
+        _parse_multi_strings(yml_config, "lenovo", "access_tokens", "lenovo_access_tokens", config_dict)
+        _parse_multi_strings(yml_config, "lbly", "request_bodies", "lbly_request_bodies", config_dict)
+        _parse_multi_strings(yml_config, "dml", "openids", "dml_openids", config_dict)
+        _parse_multi_strings(yml_config, "xiaomao", "tokens", "xiaomao_tokens", config_dict)
+        _parse_multi_strings(yml_config, "nine_nine_nine", "tokens", "nine_nine_nine_tokens", config_dict)
+        _parse_multi_strings(yml_config, "zgfc", "tokens", "zgfc_tokens", config_dict)
 
-        # 特殊处理：雨云多账号（参考 Rainyun-Qiandao）及续费配置
-        if "rainyun" in yml_config:
-            rainyun = yml_config["rainyun"]
-            if "accounts" in rainyun and isinstance(rainyun["accounts"], list):
-                accounts = []
-                for a in rainyun["accounts"]:
-                    if isinstance(a, dict):
-                        accounts.append(
-                            {
-                                "username": str(a.get("username", "")).strip(),
-                                "password": str(a.get("password", "")).strip(),
-                                "api_key": str(a.get("api_key", "")).strip(),
-                            }
-                        )
-                if accounts:
-                    config_dict["rainyun_accounts"] = accounts
-            if "auto_renew" in rainyun:
-                config_dict["rainyun_auto_renew"] = bool(rainyun["auto_renew"])
-            if "renew_threshold_days" in rainyun:
-                try:
-                    config_dict["rainyun_renew_threshold_days"] = int(
-                        rainyun["renew_threshold_days"]
-                    )
-                except (TypeError, ValueError):
-                    pass
-            if "renew_product_ids" in rainyun:
-                ids_raw = rainyun["renew_product_ids"]
-                if isinstance(ids_raw, list):
-                    ids = []
-                    for x in ids_raw:
-                        if isinstance(x, int):
-                            ids.append(x)
-                        elif isinstance(x, str) and x.strip().isdigit():
-                            ids.append(int(x.strip()))
-                    config_dict["rainyun_renew_product_ids"] = ids
-                elif isinstance(ids_raw, str) and ids_raw.strip():
-                    ids = []
-                    for part in ids_raw.replace(",", " ").split():
-                        if part.strip().isdigit():
-                            ids.append(int(part.strip()))
-                    config_dict["rainyun_renew_product_ids"] = ids
-            if "chrome_bin" in rainyun and rainyun["chrome_bin"]:
-                config_dict["rainyun_chrome_bin"] = str(rainyun["chrome_bin"]).strip()
-            if "chromedriver_path" in rainyun and rainyun["chromedriver_path"]:
-                config_dict["rainyun_chromedriver_path"] = str(rainyun["chromedriver_path"]).strip()
-
-        # 特殊处理：恩山多 Cookie
-        en = yml_config.get("enshan") or {}
-        if "cookies" in en and isinstance(en["cookies"], list):
-            cookies = [str(c).strip() for c in en["cookies"] if c]
-            if cookies:
-                config_dict["enshan_cookies"] = cookies
-
-        # 特殊处理：天翼云盘多账号
-        ty = yml_config.get("tyyun") or {}
-        if "accounts" in ty and isinstance(ty["accounts"], list):
-            accounts = []
-            for a in ty["accounts"]:
-                if isinstance(a, dict):
-                    accounts.append(
-                        {
-                            "username": str(a.get("username", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accounts:
-                config_dict["tyyun_accounts"] = accounts
-
-        # 特殊处理：阿里云盘多 refresh_token
-        ali = yml_config.get("aliyun") or {}
-        if "refresh_tokens" in ali and isinstance(ali["refresh_tokens"], list):
-            tokens = [str(t).strip() for t in ali["refresh_tokens"] if t]
-            if tokens:
-                config_dict["aliyun_refresh_tokens"] = tokens
-
-        # 特殊处理：什么值得买 / 值得买抽奖 / 富贵论坛 多 Cookie
-        for section, config_key in [
-            ("smzdm", "smzdm_cookies"),
-            ("zdm_draw", "zdm_draw_cookies"),
-            ("fg", "fg_cookies"),
-        ]:
-            sec = yml_config.get(section) or {}
-            if "cookies" in sec and isinstance(sec["cookies"], list):
-                cookies = [str(c).strip() for c in sec["cookies"] if c]
-                if cookies:
-                    config_dict[config_key] = cookies
-
-        # 小米社区多账号
-        mi = yml_config.get("miui") or {}
-        if "accounts" in mi and isinstance(mi["accounts"], list):
-            accounts = []
-            for a in mi["accounts"]:
-                if isinstance(a, dict):
-                    accounts.append(
-                        {
-                            "account": str(a.get("account", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accounts:
-                config_dict["miui_accounts"] = accounts
-
-        # 爱奇艺多 Cookie
-        iq = yml_config.get("iqiyi") or {}
-        if "cookies" in iq and isinstance(iq["cookies"], list):
-            cookies = [str(c).strip() for c in iq["cookies"] if c]
-            if cookies:
-                config_dict["iqiyi_cookies"] = cookies
-
-        # 联想乐豆多 access_token
-        lv = yml_config.get("lenovo") or {}
-        if "access_tokens" in lv and isinstance(lv["access_tokens"], list):
-            tokens = [str(t).strip() for t in lv["access_tokens"] if t]
-            if tokens:
-                config_dict["lenovo_access_tokens"] = tokens
-
-        # 丽宝乐园多请求体
-        lb = yml_config.get("lbly") or {}
-        if "request_bodies" in lb and isinstance(lb["request_bodies"], list):
-            bodies = [str(b).strip() for b in lb["request_bodies"] if b]
-            if bodies:
-                config_dict["lbly_request_bodies"] = bodies
-
-        # 品赞多账号
-        pz = yml_config.get("pinzan") or {}
-        if "accounts" in pz and isinstance(pz["accounts"], list):
-            accounts = []
-            for a in pz["accounts"]:
-                if isinstance(a, dict):
-                    accounts.append(
-                        {
-                            "account": str(a.get("account", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accounts:
-                config_dict["pinzan_accounts"] = accounts
-
-        # 达美乐多 openid
-        dm = yml_config.get("dml") or {}
-        if "openids" in dm and isinstance(dm["openids"], list):
-            openids = [str(o).strip() for o in dm["openids"] if o]
-            if openids:
-                config_dict["dml_openids"] = openids
-
-        # 小茅预约多 token
-        xm = yml_config.get("xiaomao") or {}
-        if "tokens" in xm and isinstance(xm["tokens"], list):
-            tokens = [str(t).strip() for t in xm["tokens"] if t]
-            if tokens:
-                config_dict["xiaomao_tokens"] = tokens
-
-        # 一点万象多账号 (device_params + token)
-        yd = yml_config.get("ydwx") or {}
-        if "accounts" in yd and isinstance(yd["accounts"], list):
-            accs = []
-            for a in yd["accounts"]:
-                if isinstance(a, dict):
-                    accs.append(
-                        {
-                            "device_params": str(a.get("device_params", "")).strip(),
-                            "token": str(a.get("token", "")).strip(),
-                        }
-                    )
-            if accs:
-                config_dict["ydwx_accounts"] = accs
-
-        # 星空代理多账号
-        xk = yml_config.get("xingkong") or {}
-        if "accounts" in xk and isinstance(xk["accounts"], list):
-            accs = []
-            for a in xk["accounts"]:
-                if isinstance(a, dict):
-                    accs.append(
-                        {
-                            "username": str(a.get("username", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accs:
-                config_dict["xingkong_accounts"] = accs
-
-        # 千图网多 Cookie
-        qt = yml_config.get("qtw") or {}
-        if "cookies" in qt and isinstance(qt["cookies"], list):
-            cookies = [str(c).strip() for c in qt["cookies"] if c]
-            if cookies:
-                config_dict["qtw_cookies"] = cookies
-
-        # 夸克网盘多 Cookie
-        kq = yml_config.get("kuake") or {}
-        if "cookies" in kq and isinstance(kq["cookies"], list):
-            cookies = [str(c).strip() for c in kq["cookies"] if c]
-            if cookies:
-                config_dict["kuake_cookies"] = cookies
-
-        # 科技玩家多账号
-        kj = yml_config.get("kjwj") or {}
-        if "accounts" in kj and isinstance(kj["accounts"], list):
-            accs = []
-            for a in kj["accounts"]:
-                if isinstance(a, dict):
-                    accs.append(
-                        {
-                            "username": str(a.get("username", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accs:
-                config_dict["kjwj_accounts"] = accs
-
-        # 999 会员中心多 token
-        nnn = yml_config.get("nine_nine_nine") or {}
-        if "tokens" in nnn and isinstance(nnn["tokens"], list):
-            toks = [str(t).strip() for t in nnn["tokens"] if t]
-            if toks:
-                config_dict["nine_nine_nine_tokens"] = toks
-
-        # 中国福彩抽奖多 token
-        zc = yml_config.get("zgfc") or {}
-        if "tokens" in zc and isinstance(zc["tokens"], list):
-            toks = [str(t).strip() for t in zc["tokens"] if t]
-            if toks:
-                config_dict["zgfc_tokens"] = toks
-
-        # Freenom 多账号
-        fn = yml_config.get("freenom") or {}
-        if "accounts" in fn and isinstance(fn["accounts"], list):
-            accs = []
-            for a in fn["accounts"]:
-                if isinstance(a, dict):
-                    accs.append(
-                        {
-                            "email": str(a.get("email", "")).strip(),
-                            "password": str(a.get("password", "")).strip(),
-                        }
-                    )
-            if accs:
-                config_dict["freenom_accounts"] = accs
+        # ── 雨云特殊续费配置（账号部分已由上方 _parse_multi_accounts 处理） ──
+        rainyun = yml_config.get("rainyun") or {}
+        if "auto_renew" in rainyun:
+            config_dict["rainyun_auto_renew"] = bool(rainyun["auto_renew"])
+        if "renew_threshold_days" in rainyun:
+            try:
+                config_dict["rainyun_renew_threshold_days"] = int(rainyun["renew_threshold_days"])
+            except (TypeError, ValueError):
+                pass
+        if "renew_product_ids" in rainyun:
+            ids_raw = rainyun["renew_product_ids"]
+            if isinstance(ids_raw, list):
+                ids = []
+                for x in ids_raw:
+                    if isinstance(x, int):
+                        ids.append(x)
+                    elif isinstance(x, str) and x.strip().isdigit():
+                        ids.append(int(x.strip()))
+                config_dict["rainyun_renew_product_ids"] = ids
+            elif isinstance(ids_raw, str) and ids_raw.strip():
+                ids = []
+                for part in ids_raw.replace(",", " ").split():
+                    if part.strip().isdigit():
+                        ids.append(int(part.strip()))
+                config_dict["rainyun_renew_product_ids"] = ids
+        if rainyun.get("chrome_bin"):
+            config_dict["rainyun_chrome_bin"] = str(rainyun["chrome_bin"]).strip()
+        if rainyun.get("chromedriver_path"):
+            config_dict["rainyun_chromedriver_path"] = str(rainyun["chromedriver_path"]).strip()
 
         # 推送通道配置（直接复制，需确保为 list 类型）
         if "push_channel" in yml_config:
@@ -1003,7 +817,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                 plugins_val if isinstance(plugins_val, dict) else {}
             )
 
-        logger.debug(f"成功从 {yml_path} 加载配置")
+        logger.debug("成功从 %s 加载配置", yml_path)
         return config_dict
 
     except FileNotFoundError:
@@ -1031,8 +845,6 @@ def get_config(reload: bool = False) -> AppConfig:
     global _config_cache, _config_file_mtime
 
     # 青龙面板兼容：当通过 ql/*.py 脚本运行时，从环境变量加载配置
-    import os
-
     if os.environ.get("WEBMONITER_QL_CRON"):
         try:
             from src import ql_compat

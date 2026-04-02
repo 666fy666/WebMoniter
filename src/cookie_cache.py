@@ -61,7 +61,7 @@ class CookieCache:
                 self._save_cache()  # 创建空缓存文件
                 logger.info("Cookie缓存文件不存在，已创建新文件")
         except Exception as e:
-            logger.error(f"加载Cookie缓存失败: {e}")
+            logger.error("加载Cookie缓存失败: %s", e)
             self._cache = {}
             # 即使加载失败，也尝试创建文件
             try:
@@ -76,9 +76,9 @@ class CookieCache:
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(self._cache, f, ensure_ascii=False, indent=2)
-            logger.debug(f"已保存Cookie缓存: {self._cache}")
+            logger.debug("已保存Cookie缓存: %s", self._cache)
         except Exception as e:
-            logger.error(f"保存Cookie缓存失败: {e}")
+            logger.error("保存Cookie缓存失败: %s", e)
 
     async def _save_cache_async(self):
         """异步保存缓存到文件（带锁保护，在线程池执行避免阻塞事件循环）"""
@@ -119,7 +119,7 @@ class CookieCache:
                 else:
                     self._cache[platform]["valid"] = False
                 await asyncio.to_thread(self._save_cache)
-                logger.warning(f"已标记 {platform} Cookie为过期状态")
+                logger.warning("已标记 %s Cookie为过期状态", platform)
 
     async def mark_valid(self, platform: str):
         """
@@ -206,7 +206,7 @@ class CookieCache:
                 else:
                     self._cache[platform]["notified"] = True
             await asyncio.to_thread(self._save_cache)
-            logger.debug(f"已标记 {platform} Cookie过期提醒已发送")
+            logger.debug("已标记 %s Cookie过期提醒已发送", platform)
 
 
 # 全局Cookie缓存实例（延迟初始化）

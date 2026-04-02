@@ -7,7 +7,7 @@ from aiohttp import ClientSession
 
 from src.ai_assistant.config import is_ai_enabled
 from src.ai_assistant.llm_client import compress_text_with_llm, generate_push_content_with_llm
-from src.config import get_config
+from src.config import AppConfig, get_config
 from src.push_channel import get_push_channel
 
 
@@ -71,7 +71,7 @@ async def build_push_manager(
                 await channel.initialize()
         except Exception as e:  # noqa: BLE001
             # 保持日志信息风格可由调用方通过前缀控制
-            logger.warning(f"{init_fail_prefix}推送通道 {name or '未知'} 初始化失败: {e}")
+            logger.warning("%s推送通道 %s 初始化失败: %s", init_fail_prefix, name or "未知", e)
 
     if not push_channels:
         return None
@@ -94,7 +94,9 @@ class UnifiedPushManager:
         self.session = session
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    async def _ensure_content_within_limit(self, channel, content: str) -> str:
+    async def _ensure_content_within_limit(
+        self, channel, content: str, app_config: AppConfig | None = None
+    ) -> str:
         """
         若渠道有字数限制且内容超限，则尝试 LLM 压缩（当配置开启且 AI 可用）或截断。
         返回不超过该渠道 max_content_bytes 的内容。
@@ -105,7 +107,8 @@ class UnifiedPushManager:
         content_bytes = len(content.encode("utf-8"))
         if content_bytes <= max_bytes:
             return content
-        use_llm = getattr(get_config(), "push_compress_with_llm", False) and is_ai_enabled()
+        cfg = app_config if app_config is not None else get_config()
+        use_llm = getattr(cfg, "push_compress_with_llm", False) and is_ai_enabled()
         if use_llm:
             compressed = await compress_text_with_llm(content, max_bytes)
             if compressed:
@@ -123,9 +126,12 @@ class UnifiedPushManager:
         btntxt: str,
         author: str,
         extend_data: dict | None,
+        app_config: AppConfig | None = None,
     ):
         """单渠道发送：先按渠道限制压缩/截断内容，再推送。"""
-        final_description = await self._ensure_content_within_limit(channel, channel_description)
+        final_description = await self._ensure_content_within_limit(
+            channel, channel_description, app_config
+        )
         return await self._send_with_error_handling(
             channel, title, final_description, to_url, picurl, btntxt, author, extend_data
         )
@@ -169,9 +175,11 @@ class UnifiedPushManager:
             self.logger.warning("未配置任何推送渠道")
             return {"results": results, "errors": errors}
 
+        app_config = get_config()
+
         # 若开启 LLM 个性化且提供了事件信息，则生成更贴切的标题和内容
         use_personalize = (
-            getattr(get_config(), "push_personalize_with_llm", False)
+            getattr(app_config, "push_personalize_with_llm", False)
             and is_ai_enabled()
             and event_type
             and event_data is not None
@@ -212,6 +220,7 @@ class UnifiedPushManager:
                     btntxt,
                     author,
                     base_extend_data,
+                    app_config,
                 )
             )
 
@@ -221,12 +230,12 @@ class UnifiedPushManager:
                 channel_name = channel_names[i]
                 if isinstance(result, Exception):
                     errors.append(f"{channel_name}: {str(result)}")
-                    self.logger.error(f"推送通道 {channel_name} 失败: {result}")
+                    self.logger.error("推送通道 %s 失败: %s", channel_name, result)
                 else:
                     results[channel_name] = result
 
         if errors:
-            self.logger.warning(f"部分推送失败: {errors}")
+            self.logger.warning("部分推送失败: %s", errors)
 
         return {"results": results, "errors": errors}
 
@@ -262,7 +271,7 @@ class UnifiedPushManager:
             try:
                 await channel.close()
             except Exception as e:
-                self.logger.error(f"关闭推送通道 {channel.name} 失败: {e}")
+                self.logger.error("关闭推送通道 %s 失败: %s", channel.name, e)
 
     async def __aenter__(self):
         """异步上下文管理器入口"""
