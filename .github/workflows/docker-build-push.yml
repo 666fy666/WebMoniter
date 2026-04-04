@@ -14,6 +14,8 @@ jobs:
   # 精简与完整分两个 job，避免同一 runner 上连续 build-push 时 Buildx/GHA 缓存层被错误复用，导致 latest 与 full digest 相同
   docker-slim:
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
     steps:
@@ -66,6 +68,8 @@ jobs:
 
   docker-full:
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
     steps:
@@ -132,11 +136,20 @@ jobs:
       - name: Pull and assert slim ≠ full (Chromium)
         env:
           IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
+          FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
         run: |
           set -eux
-          docker pull "$IMG:latest"
-          docker pull "$IMG:full"
+          test -n "$SLIM_DIGEST"
+          test -n "$FULL_DIGEST"
+          if [ "$SLIM_DIGEST" = "$FULL_DIGEST" ]; then
+            echo "::error::slim and full push digests are identical (this run); check Dockerfile paths, cache scopes, and Hub tags"
+            exit 1
+          fi
+          # 按本次构建 digest 校验，避免 Hub 上 latest/full 标签误指同一 manifest
+          docker pull "$IMG@$SLIM_DIGEST"
+          docker pull "$IMG@$FULL_DIGEST"
           # 精简镜像不应带系统 Chromium
-          docker run --rm --entrypoint sh "$IMG:latest" -c 'if test -x /usr/bin/chromium; then echo "::error::slim image incorrectly contains /usr/bin/chromium"; exit 1; fi'
+          docker run --rm --entrypoint sh "$IMG@$SLIM_DIGEST" -c 'if test -x /usr/bin/chromium; then echo "::error::slim image incorrectly contains /usr/bin/chromium"; exit 1; fi'
           # 完整镜像必须带 Chromium
-          docker run --rm --entrypoint sh "$IMG:full" -c 'test -x /usr/bin/chromium'
+          docker run --rm --entrypoint sh "$IMG@$FULL_DIGEST" -c 'test -x /usr/bin/chromium'
