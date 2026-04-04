@@ -279,7 +279,7 @@ def _split_template_and_body(text: str) -> tuple[str, str, str] | None:
     """
     # 微博推送格式：Ta说:👇\\n{正文}\\n======================\\n认证:...\\n\\n简介:...
     weibo_prefix = "Ta说:👇\n"
-    weibo_sep = "\n" + "=" * 22 + "\n    "
+    weibo_sep = "\n" + "=" * 22 + "\n"
     if text.startswith(weibo_prefix):
         rest = text[len(weibo_prefix) :]
         idx = rest.find(weibo_sep)

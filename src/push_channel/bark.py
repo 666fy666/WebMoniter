@@ -12,8 +12,10 @@ def _bark_group_from_extend_data(extend_data: dict | None) -> str | None:
         if g is not None and str(g).strip():
             return str(g).strip()
         q = extend_data.get("query_task_config")
-        if isinstance(q, dict) and q.get("name"):
-            return str(q["name"]).strip() or None
+        if isinstance(q, dict):
+            n = q.get("name")
+            if n is not None and str(n).strip():
+                return str(n).strip()
     jid = _current_job_id.get()
     if jid:
         return str(jid).strip() or None
