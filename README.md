@@ -105,36 +105,81 @@
 
 ### 🐳 Docker 部署（推荐）
 
-> **要求**：Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。
+> **要求**：Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。镜像仓库：[fengyu666/webmoniter](https://hub.docker.com/r/fengyu666/webmoniter)。
 
-**命名约定**：根目录 **`Dockerfile`** + **`docker-compose.yml`** = 精简镜像（默认）；**`Dockerfile.full`** + **`docker-compose.full.yml`** = 完整镜像（雨云签到）。
+仓库提供两种镜像：**精简**（`latest` 及 `2.x.x` 等版本号标签，体积小，无 Chromium）与 **完整**（`full` 及 `2.x.x-full` 等，含 Chromium + 雨云签到依赖）。除 **雨云浏览器签到** 外，一般用精简即可；`rainyun.enable: true` 时必须用完整镜像。
 
-Docker Hub 默认拉取的 **`latest` 与版本号标签** 对应根目录 **`Dockerfile`** 构建结果：不含 Chromium/Chromedriver，也不安装雨云签到所需的 Selenium、ddddocr、OpenCV 等 Python 包。其余监控与签到（除雨云浏览器签到流程外）均可正常使用。
+---
 
-若需 **雨云签到**（`rainyun.enable: true`），请使用 **`full` 镜像**（或本地 `docker build -f Dockerfile.full .`），例如：
+#### 1）精简镜像：拉取并启动
 
-- `docker pull fengyu666/webmoniter:full`
-- 或克隆仓库后：`docker compose -f docker-compose.full.yml up -d`
+**说明**：无系统浏览器与雨云相关 Python 包；若误开雨云签到，日志会出现「导入任务模块 tasks.rainyun_checkin 失败」，请改用下面的完整镜像。
 
-| 标签示例 | 说明 |
-|:--------|:-----|
-| `latest`、`2.2.2`、`2.2`、`2` | 精简镜像（默认） |
-| `full`、`2.2.2-full`、`2.2-full`、`2-full` | 完整镜像（Chromium + 雨云依赖） |
+**方式 A：Compose（推荐，使用仓库里的 `docker-compose.yml`）**
 
 ```bash
-# 1. 克隆项目
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-
-# 2. 复制并编辑配置文件
 cp config.yml.sample config.yml
-# 编辑 config.yml，配置监控任务和推送通道
-
-# 3. 启动服务（默认精简镜像）
+# 编辑 config.yml 后执行：
+docker compose pull
 docker compose up -d
 ```
 
-访问 `http://localhost:8866`，默认账号 `admin` / `123`。配置热重载约 5 秒生效；`data/`、`logs/` 已挂载可持久化；入口脚本会为目录赋权；改端口可在 `environment` 加 `PORT=8080` 并改 `ports`。精简镜像下若启用雨云签到，任务模块会因缺少依赖无法注册，日志中会出现「导入任务模块 tasks.rainyun_checkin 失败」类提示，请改用 `full` 镜像。
+**方式 B：只拉镜像 + `docker run`（不克隆仓库时）**
+
+在放有 `config.yml` 的目录下执行（需先创建 `data`、`logs` 目录）：
+
+```bash
+docker pull fengyu666/webmoniter:latest
+mkdir -p data logs
+docker run -d --name webmoniter --restart unless-stopped \
+  -p 8866:8866 --shm-size=128m \
+  -e TZ=Asia/Shanghai \
+  -v "$(pwd)/config.yml:/app/config.yml" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  fengyu666/webmoniter:latest
+```
+
+Windows PowerShell 可将 `$(pwd)` 改为 `$PWD` 或使用绝对路径。
+
+---
+
+#### 2）完整镜像：拉取并启动（雨云签到）
+
+**说明**：镜像内已含 Chromium / Chromedriver 与 `rainyun` 依赖；`config.yml` 中配置 `rainyun.enable: true` 与 `accounts` 即可。
+
+**方式 A：Compose（使用 `docker-compose.full.yml`）**
+
+```bash
+git clone https://github.com/666fy666/WebMoniter.git
+cd WebMoniter
+cp config.yml.sample config.yml
+# 编辑 config.yml 后执行：
+docker compose -f docker-compose.full.yml pull
+docker compose -f docker-compose.full.yml up -d
+```
+
+**方式 B：只拉镜像 + `docker run`**
+
+```bash
+docker pull fengyu666/webmoniter:full
+mkdir -p data logs
+docker run -d --name webmoniter --restart unless-stopped \
+  -p 8866:8866 --shm-size=256m \
+  -e TZ=Asia/Shanghai \
+  -e CHROME_BIN=/usr/bin/chromium \
+  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+  -v "$(pwd)/config.yml:/app/config.yml" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  fengyu666/webmoniter:full
+```
+
+---
+
+启动后访问 **`http://localhost:8866`**，默认账号 **`admin` / `123`**。配置热重载约 5 秒；`data/`、`logs/` 建议挂载以持久化。改端口：Compose 里改 `ports`，`docker run` 里改 `-p`。本地构建见根目录 **`Dockerfile`**（精简）与 **`Dockerfile.full`**（完整）。
 
 ---
 
