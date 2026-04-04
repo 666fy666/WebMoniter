@@ -35,7 +35,7 @@
 | 配置类型   | 说明 |
 |:----------:|:-----|
 | **应用配置** | 监控、签到、推送、免打扰等均在 **`config.yml.sample`** 中有注释说明。以该文件为模板复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | 镜像、端口、卷挂载等见 **`docker-compose.yml`**；入口脚本 **`docker-entrypoint.sh`** 会在启动前为 `data/`、`logs/` 及其子目录赋予读写权限。修改后执行 `docker compose up -d` 使变更生效。 |
+| **Docker 编排** | **`docker-compose.yml`**（精简，对根目录 **`Dockerfile`**）；雨云用 **`docker-compose.full.yml`**（对 **`Dockerfile.full`** / 标签 `full`）。**`docker-entrypoint.sh`** 为 `data/`、`logs/` 赋权。`docker compose up -d` 或 `-f docker-compose.full.yml`。 |
 
 ---
 

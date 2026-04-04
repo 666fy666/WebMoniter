@@ -41,6 +41,21 @@ docker compose up -d
     - 容器启动时会通过 **docker-entrypoint.sh** 自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
     - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
 
+### Docker 镜像：精简版与完整版
+
+**文件对应关系**：**`Dockerfile`** → 精简镜像；**`Dockerfile.full`** → 完整镜像。Compose 同理：**`docker-compose.yml`** / **`docker-compose.full.yml`**。
+
+Docker Hub 上 **`latest` 与 semver 主标签（如 `2.2.2`）** 由 **`Dockerfile`** 构建：不包含 Chromium/Chromedriver，也不安装雨云签到所需的 Python 依赖（Selenium、ddddocr、OpenCV 等）。监控与其它 HTTP 类签到不受影响。
+
+若要在容器内使用 **雨云浏览器签到**（`rainyun.enable: true`），请改用 **`full` 标签**（或本地 **`docker build -f Dockerfile.full .`**）：
+
+```bash
+docker pull fengyu666/webmoniter:full
+docker compose -f docker-compose.full.yml up -d
+```
+
+也可在自有 `compose` 中将 `image` 写为 `fengyu666/webmoniter:full`，并保留 `CHROME_BIN`、`CHROMEDRIVER_PATH` 与较大 `shm_size`（见 `docker-compose.full.yml`）。
+
 ---
 
 ## Windows 部署
@@ -85,8 +100,9 @@ docker compose up -d
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-# 2. 安装依赖
+# 2. 安装依赖（需要雨云签到时追加 --extra rainyun）
 uv sync --locked
+# uv sync --locked --extra rainyun
 
 # 3. 复制配置文件
 cp config.yml.sample config.yml

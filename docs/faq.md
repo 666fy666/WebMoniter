@@ -66,7 +66,7 @@
 ---
 
 ??? question "Docker 部署下雨云签到如何启用？"
-    Docker 镜像已内置 Chromium。在 `config.yml` 中设置 `rainyun.enable: true` 并配置 `rainyun.accounts`（每项含 `username`、`password`，`api_key` 可选用于续费）即可。容器启动时自动使用 `/usr/bin/chromium` 和 `/usr/bin/chromedriver`。若使用自建镜像且 Chromium 路径不同，可配置 `rainyun.chrome_bin` 与 `rainyun.chromedriver_path`，或设置环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
+    **精简镜像**（由根目录 **`Dockerfile`** 构建，`latest` 等标签）**不包含** Chromium 与雨云相关 Python 依赖；若启用 `rainyun.enable: true`，请改用 **`full` 镜像**（由 **`Dockerfile.full`** 构建，如 `fengyu666/webmoniter:full`）或 `docker compose -f docker-compose.full.yml up -d`。完整镜像已内置 Chromium；在 `config.yml` 中配置 `rainyun.accounts` 即可；默认 `/usr/bin/chromium` 与 `/usr/bin/chromedriver`。路径不同时可配置 `rainyun.chrome_bin` / `rainyun.chromedriver_path`，或环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
 
 ---
 

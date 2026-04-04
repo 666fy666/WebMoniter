@@ -1,11 +1,11 @@
-# 精简栈：镜像 :latest（由根目录 Dockerfile 构建）。雨云签到见 docker-compose.full.yml（对应 Dockerfile.full）
+# 完整栈：镜像 :full（由 Dockerfile.full 构建）。用于 config.yml 中 rainyun.enable: true
 services:
   web-monitor:
-    image: fengyu666/webmoniter:latest
+    image: fengyu666/webmoniter:full
     container_name: webmoniter
     restart: unless-stopped
     init: true
-    shm_size: 128m
+    shm_size: 256m
     deploy:
       resources:
         limits:
@@ -22,6 +22,8 @@ services:
       - TZ=Asia/Shanghai
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONNOUSERSITE=1
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8866/', timeout=5)"]
       interval: 30s

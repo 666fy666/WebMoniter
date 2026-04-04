@@ -17,6 +17,8 @@
 uv sync --extra dev
 ```
 
+本地开发与调试 **雨云签到**（`tasks/rainyun`）时，还需安装 optional 依赖：`uv sync --locked --extra rainyun`（可与 `dev` 同时指定：`uv sync --locked --extra dev --extra rainyun`）。
+
 #### 代码格式化
 
 使用 `black` 格式化代码：

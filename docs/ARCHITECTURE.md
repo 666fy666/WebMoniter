@@ -897,8 +897,10 @@ WebMoniter/
 ├── config.yml.sample        # 配置示例文件
 ├── pyproject.toml          # 项目配置和依赖
 ├── uv.lock                 # 依赖锁定文件
-├── Dockerfile              # Docker 镜像构建文件
-├── docker-compose.yml      # Docker Compose 配置
+├── Dockerfile              # 精简镜像（默认 :latest），无浏览器栈
+├── Dockerfile.full         # 完整镜像（:full），Chromium + 雨云依赖
+├── docker-compose.yml      # 精简栈（对应当前 Dockerfile 构建的镜像）
+├── docker-compose.full.yml # 完整栈（雨云签到，对应 Dockerfile.full）
 ├── docker-entrypoint.sh   # 容器入口：启动前为 data/logs 赋予读写权限，再启动 main.py
 │
 ├── src/                    # 核心源代码

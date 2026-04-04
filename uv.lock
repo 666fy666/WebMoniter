@@ -3843,7 +3843,7 @@ wheels = [
 
 [[package]]
 name = "web-monitor"
-version = "2.2.2"
+version = "2.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -3852,15 +3852,11 @@ dependencies = [
     { name = "apscheduler" },
     { name = "beautifulsoup4" },
     { name = "chromadb" },
-    { name = "ddddocr" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "itsdangerous" },
     { name = "jinja2" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "openai" },
-    { name = "opencv-python-headless" },
     { name = "pillow" },
     { name = "pycryptodome" },
     { name = "pydantic" },
@@ -3870,7 +3866,6 @@ dependencies = [
     { name = "requests" },
     { name = "rsa" },
     { name = "ruamel-yaml" },
-    { name = "selenium" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -3886,6 +3881,11 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocs-minify-plugin" },
 ]
+rainyun = [
+    { name = "ddddocr" },
+    { name = "opencv-python-headless" },
+    { name = "selenium" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -3896,7 +3896,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },
     { name = "chromadb", specifier = ">=0.4.0" },
-    { name = "ddddocr", specifier = ">=1.5.0,<1.6.0" },
+    { name = "ddddocr", marker = "extra == 'rainyun'", specifier = ">=1.5.0,<1.6.0" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "httpx", specifier = ">=0.25.0" },
     { name = "itsdangerous", specifier = ">=2.1.0" },
@@ -3904,9 +3904,8 @@ requires-dist = [
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.5.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5.0" },
     { name = "mkdocs-minify-plugin", marker = "extra == 'docs'", specifier = ">=0.8.0" },
-    { name = "numpy", specifier = ">=1.24.0" },
     { name = "openai", specifier = ">=1.0.0" },
-    { name = "opencv-python-headless", specifier = ">=4.8.0" },
+    { name = "opencv-python-headless", marker = "extra == 'rainyun'", specifier = ">=4.8.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pycryptodome", specifier = ">=3.19.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
@@ -3919,10 +3918,10 @@ requires-dist = [
     { name = "rsa", specifier = ">=4.9" },
     { name = "ruamel-yaml", specifier = ">=0.18.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.6" },
-    { name = "selenium", specifier = ">=4.27.0" },
+    { name = "selenium", marker = "extra == 'rainyun'", specifier = ">=4.27.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
-provides-extras = ["dev", "docs"]
+provides-extras = ["rainyun", "dev", "docs"]
 
 [[package]]
 name = "websocket-client"
