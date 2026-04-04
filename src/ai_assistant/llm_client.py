@@ -279,7 +279,7 @@ def _split_template_and_body(text: str) -> tuple[str, str, str] | None:
     """
     # 微博推送格式：Ta说:👇\\n{正文}\\n======================\\n认证:...\\n\\n简介:...
     weibo_prefix = "Ta说:👇\n"
-    weibo_sep = "\n" + "=" * 22 + "\n"
+    weibo_sep = "\n" + "=" * 22 + "\n    "
     if text.startswith(weibo_prefix):
         rest = text[len(weibo_prefix) :]
         idx = rest.find(weibo_sep)
@@ -316,8 +316,8 @@ async def compress_text_with_llm(text: str, max_bytes: int) -> str | None:
 
     prompt = f"""请将以下文本压缩为简短摘要，要求：
 1. 压缩后的文字不超过 {max_chars} 个字符（约 {max_bytes} 字节以内）
-2. 保留核心观点、关键信息，可省略冗余表述
-3. 使用简洁自然的汉语，直接输出压缩后的文本，不要加引号或多余说明
+2. 尽可能的保留原文的语气和表达方式，不要改变原文的语气，保留核心观点、关键信息，可省略冗余表述
+3. 直接输出压缩后的文本，不要加引号或多余说明
 
 原文：
 {body}"""
