@@ -38,4 +38,14 @@ def run_task(task_id: str, run_func) -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     inject_ql_config(task_id)
-    asyncio.run(run_func())
+
+    from src.log_manager import _current_job_id
+
+    async def _run_with_job_context() -> None:
+        token = _current_job_id.set(task_id)
+        try:
+            await run_func()
+        finally:
+            _current_job_id.reset(token)
+
+    asyncio.run(_run_with_job_context())

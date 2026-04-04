@@ -1,6 +1,23 @@
 from aiohttp import ClientResponseError
 
+from src.log_manager import _current_job_id
+
 from . import PushChannel
+
+
+def _bark_group_from_extend_data(extend_data: dict | None) -> str | None:
+    """按 Bark 文档的 group 参数：优先显式 bark_group，其次青龙式 query_task_config.name，最后当前调度任务 job_id。"""
+    if extend_data:
+        g = extend_data.get("bark_group")
+        if g is not None and str(g).strip():
+            return str(g).strip()
+        q = extend_data.get("query_task_config")
+        if isinstance(q, dict) and q.get("name"):
+            return str(q["name"]).strip() or None
+    jid = _current_job_id.get()
+    if jid:
+        return str(jid).strip() or None
+    return None
 
 
 class Bark(PushChannel):
@@ -27,10 +44,11 @@ class Bark(PushChannel):
         if jump_url:
             payload["url"] = jump_url
 
+        group = _bark_group_from_extend_data(extend_data)
+        if group:
+            payload["group"] = group
+
         if extend_data:
-            query_task_config = extend_data.get("query_task_config")
-            if query_task_config and "name" in query_task_config:
-                payload["group"] = query_task_config["name"]
             avatar_url = extend_data.get("avatar_url")
             if avatar_url:
                 payload["icon"] = avatar_url
