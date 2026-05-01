@@ -79,7 +79,7 @@ def load_config_from_env(task_id: str | None = None) -> dict:
     Returns:
         扁平化的配置字典，可直接用于 AppConfig(**config_dict)
     """
-    # 默认值：与 config.yml.sample 保持一致
+    # 默认值：与 config/config.yml.sample 保持一致
     cfg: dict = {
         "weibo_enable": False,
         "huya_enable": False,

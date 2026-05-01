@@ -121,6 +121,12 @@ MONITOR_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
     "xhs_monitor": "xhs_enable",
 }
 
+
+def monitor_job_enabled(job_id: str, config: AppConfig) -> bool:
+    """监控类任务是否在配置中启用（未映射的 job_id 视为始终启用）。"""
+    enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(job_id)
+    return enable_field is None or getattr(config, enable_field, True)
+
 # 定时任务启用开关：在模块导入时构建一次，避免每个 register_task() 重复创建 dict
 TASK_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
     "ikuuu_checkin": "checkin_enable",
@@ -168,12 +174,10 @@ def register_monitor(
 
     @functools.wraps(run_func)
     async def wrapped_run_func() -> None:
-        enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(job_id)
-        if enable_field is not None:
-            config = get_config()
-            if not getattr(config, enable_field, True):
-                logger.debug("%s: 当前配置未启用，跳过执行", job_id)
-                return
+        config = get_config()
+        if not monitor_job_enabled(job_id, config):
+            logger.debug("%s: 当前配置未启用，跳过执行", job_id)
+            return
         async with _task_logging_context(job_id):
             await run_func()
 

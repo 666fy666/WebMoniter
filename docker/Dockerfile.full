@@ -1,5 +1,5 @@
 # 完整镜像（Docker Hub 标签 :full、*-full）：Chromium + 雨云签到依赖（Selenium、ddddocr、OpenCV）
-# 默认精简构建见同目录 Dockerfile；构建：docker build -f Dockerfile.full .
+# 精简构建见 docker/Dockerfile；从仓库根目录构建：docker build -f docker/Dockerfile.full .
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
@@ -51,14 +51,15 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 
-COPY pyproject.toml main.py config.yml.sample ./
+COPY pyproject.toml main.py ./
+COPY config/config.yml.sample ./config.yml.sample
 COPY monitors/ ./monitors/
 COPY src/ ./src/
 COPY tasks/ ./tasks/
 COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
-COPY docker-entrypoint.sh ./
+COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 ENV PYTHONUNBUFFERED=1 \

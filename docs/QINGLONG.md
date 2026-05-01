@@ -254,7 +254,7 @@ ql raw https://raw.githubusercontent.com/666fy666/WebMoniter/main/ql/ikuuu_check
 ### Q5：Cookie 如何获取？
 
 - 浏览器登录对应网站 → 按 F12 打开开发者工具 → Network 面板 → 任意请求 → 复制 Cookie 请求头
-- 贴吧需包含 BDUSS，微博超话需包含 XSRF-TOKEN，具体见主项目 `config.yml.sample` 注释
+- 贴吧需包含 BDUSS，微博超话需包含 XSRF-TOKEN，具体见主项目 **`config/config.yml.sample`** 注释
 
 ---
 

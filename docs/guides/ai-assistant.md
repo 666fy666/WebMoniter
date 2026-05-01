@@ -107,7 +107,7 @@ uv sync
 
 **数据来源**：AI 检索时使用
 - **文档**：`docs/*.md` 与 `README.md`，按 Markdown 标题结构分块，存入 Chroma 向量库，采用**向量 + BM25 混合检索**与 **RRF 重排**，检索到同一文档的多个子块时会智能去重并合并为完整父文档；项目启动时若 AI 助手已启用则自动构建向量库
-- **配置**：`config.yml.sample` 模板 + 实际 `config.yml`（敏感字段如 cookie、api_key 会自动脱敏）
+- **配置**：`config/config.yml.sample` 模板 + 实际 `config.yml`（敏感字段如 cookie、api_key 会自动脱敏）
 - **日志**：`logs/main_*.log` 最近 500 行，支持中文关键词（开播、发博等）的智能匹配
 
 **查询路由**：系统会根据用户问题自动选择检索侧重点（配置类多检索 config，日志类多检索 logs，一般问题检索文档）。

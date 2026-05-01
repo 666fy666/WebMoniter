@@ -1,4 +1,5 @@
-# 完整栈：镜像 :full（由 Dockerfile.full 构建）。用于 config.yml 中 rainyun.enable: true
+# 完整栈：镜像 :full（由 docker/Dockerfile.full 构建）。用于 config.yml 中 rainyun.enable: true。请在仓库根目录执行 compose。
+# 示例：docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d
 services:
   web-monitor:
     image: fengyu666/webmoniter:full
@@ -15,9 +16,9 @@ services:
     ports:
       - "8866:8866"
     volumes:
-      - ./config.yml:/app/config.yml
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ../config.yml:/app/config.yml
+      - ../data:/app/data
+      - ../logs:/app/logs
     environment:
       - TZ=Asia/Shanghai
       - PYTHONDONTWRITEBYTECODE=1

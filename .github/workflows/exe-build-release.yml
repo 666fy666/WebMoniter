@@ -114,7 +114,7 @@ jobs:
           # 复制 pyproject.toml（用于版本号回退检测）
           cp pyproject.toml dist/WebMoniter/
           # 复制示例配置文件
-          cp config.yml.sample dist/WebMoniter/
+          cp config/config.yml.sample dist/WebMoniter/config.yml.sample
           # 复制 docs/、README.md 供 AI 助手 RAG 检索
           cp -r docs dist/WebMoniter/
           cp README.md dist/WebMoniter/

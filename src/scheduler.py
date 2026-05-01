@@ -272,15 +272,11 @@ class TaskScheduler:
             self.logger.warning("任务 %s 不存在，无法更新执行时间", job_id)
             return None
 
-        # 获取当前触发器的参数
-        current_trigger = job.trigger
-        if not isinstance(current_trigger, CronTrigger):
+        if not isinstance(job.trigger, CronTrigger):
             self.logger.warning("任务 %s 不是Cron任务，无法更新", job_id)
             return None
 
-        # 使用新参数或保留旧参数（通过字符串表示获取）
-        # CronTrigger 的字符串表示格式为: "cron[year='*', month='*', day='*', week='*', day_of_week='*', hour='*', minute='*']"
-        # 简化处理：直接使用提供的参数，未提供的使用默认值 "*"
+        # 未传入的 cron 字段按 "*" 处理（调用方需传入完整 hour/minute 等）
         new_minute = minute if minute is not None else "*"
         new_hour = hour if hour is not None else "*"
         new_day = day if day is not None else "*"

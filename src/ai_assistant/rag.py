@@ -12,6 +12,8 @@ import shutil
 import uuid
 from pathlib import Path
 
+from src.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+
 logger = logging.getLogger(__name__)
 
 # Chroma 可选，未安装时使用简单文本检索
@@ -32,8 +34,6 @@ except ImportError:
 
 # 文档：使用项目内所有 .md 文件（排除 .git）
 DOCS_GLOB_ROOT = Path(".")
-CONFIG_SAMPLE_PATH = Path("config.yml.sample")
-CONFIG_PATH = Path("config.yml")
 LOGS_DIR = Path("logs")
 
 # 中文洞察类问题的关键词扩展：query 包含左词时，用右列表做检索匹配（不含 emoji 以兼容终端）
@@ -312,7 +312,6 @@ def retrieve_docs(
         return [c for c, _ in merged[:top_k]]
 
     if HAS_CHROMADB:
-        contents = [c for c, _ in chunks_flat]
         results = _chroma_retrieve(query, [(c, m["source"]) for c, m in chunks_flat], top_k)
         if use_parent_dedup and results:
             meta_map = {c[:200]: m for c, m in chunks_flat}
@@ -392,9 +391,9 @@ def _redact_sensitive(text: str) -> str:
 
 
 def _read_config_chunks() -> list[tuple[str, str]]:
-    """将 config.yml.sample 与 config.yml（脱敏）按顶级 key 分块"""
+    """将示例配置与实际 config.yml（脱敏）按顶级 key 分块"""
     chunks: list[tuple[str, str]] = []
-    for path, label in [(CONFIG_SAMPLE_PATH, "sample"), (CONFIG_PATH, "actual")]:
+    for path, label in [(resolve_config_sample_path(), "sample"), (CONFIG_YAML_FILE, "actual")]:
         if not path.exists():
             continue
         try:

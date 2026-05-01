@@ -1,7 +1,7 @@
 # Web任务系统配置文件
 #
 # 使用方法：
-# 1. 复制此文件为 config.yml: cp config.yml.sample config.yml
+# 1. 复制此文件到仓库根目录并命名为 config.yml: cp config/config.yml.sample config.yml
 # 2. 根据实际情况修改 config.yml 中的配置项
 # 3. 修改后无需重启，系统支持配置热重载（约 5 秒内生效）
 #    （各监控的 enable/间隔、各定时任务的 enable/执行时间 time、免打扰、推送通道等变更均会触发调度器热更新）

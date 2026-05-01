@@ -1,4 +1,5 @@
-# 精简栈：镜像 :latest（由根目录 Dockerfile 构建）。雨云签到见 docker-compose.full.yml（对应 Dockerfile.full）
+# 精简栈：镜像 :latest（由 docker/Dockerfile 构建）。请在仓库根目录执行 compose（挂载路径相对于本文件解析）。
+# 示例：docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d
 services:
   web-monitor:
     image: fengyu666/webmoniter:latest
@@ -15,9 +16,9 @@ services:
     ports:
       - "8866:8866"
     volumes:
-      - ./config.yml:/app/config.yml
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ../config.yml:/app/config.yml
+      - ../data:/app/data
+      - ../logs:/app/logs
     environment:
       - TZ=Asia/Shanghai
       - PYTHONDONTWRITEBYTECODE=1

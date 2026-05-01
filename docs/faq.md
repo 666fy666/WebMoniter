@@ -66,7 +66,7 @@
 ---
 
 ??? question "Docker 部署下雨云签到如何启用？"
-    **精简镜像**（由根目录 **`Dockerfile`** 构建，`latest` 等标签）**不包含** Chromium 与雨云相关 Python 依赖；若启用 `rainyun.enable: true`，请改用 **`full` 镜像**（由 **`Dockerfile.full`** 构建，如 `fengyu666/webmoniter:full`）或 `docker compose -f docker-compose.full.yml up -d`。完整镜像已内置 Chromium；在 `config.yml` 中配置 `rainyun.accounts` 即可；默认 `/usr/bin/chromium` 与 `/usr/bin/chromedriver`。路径不同时可配置 `rainyun.chrome_bin` / `rainyun.chromedriver_path`，或环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
+    **精简镜像**（由 **`docker/Dockerfile`** 构建，`latest` 等标签）**不包含** Chromium 与雨云相关 Python 依赖；若启用 `rainyun.enable: true`，请改用 **`full` 镜像**（由 **`docker/Dockerfile.full`** 构建，如 `fengyu666/webmoniter:full`）或 `docker compose -f docker/docker-compose.full.yml up -d`。完整镜像已内置 Chromium；在 `config.yml` 中配置 `rainyun.accounts` 即可；默认 `/usr/bin/chromium` 与 `/usr/bin/chromedriver`。路径不同时可配置 `rainyun.chrome_bin` / `rainyun.chromedriver_path`，或环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
 
 ---
 
@@ -76,7 +76,7 @@
 ---
 
 ??? question "Docker 下 RAG 向量库更新失败或报「database is locked / no such table: tenants」？"
-    镜像已通过 **docker-entrypoint.sh** 在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
+    镜像已通过 **`docker/docker-entrypoint.sh`**（镜像内 `/app/docker-entrypoint.sh`）在启动前为挂载的 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite / Chroma 只读。若仍报错：
 
     1. **确认使用含入口脚本的镜像**：重新构建或拉取最新镜像后执行 `docker compose up -d`
     2. **Chroma schema 不兼容**：若曾升级 Chroma 版本，可删除宿主机上的 `./data/ai_assistant_chroma` 目录后重启容器，由启动时自动重建向量库

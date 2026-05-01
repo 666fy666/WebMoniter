@@ -8,7 +8,7 @@ on:
     paths:
       - 'docs/**'
       - 'web/static/**'
-      - 'mkdocs.yml'
+      - 'docs/mkdocs.yml'
       - 'pyproject.toml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
@@ -43,4 +43,4 @@ jobs:
           cp -f web/static/*.jpg docs/assets/screenshots/ 2>/dev/null || true
 
       - name: Deploy to GitHub Pages
-        run: uv run mkdocs gh-deploy --force
+        run: uv run mkdocs gh-deploy --force -f docs/mkdocs.yml

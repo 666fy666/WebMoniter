@@ -27,34 +27,35 @@
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-# 2. 复制并编辑配置文件
-cp config.yml.sample config.yml
+# 2. 复制并编辑配置文件（模板在 config/ 目录）
+cp config/config.yml.sample config.yml
 # 编辑 config.yml，配置监控任务和推送通道
 
-# 3. 启动服务
-docker compose up -d
+# 3. 启动服务（Compose 文件在 docker/，请在仓库根目录执行）
+docker compose -f docker/docker-compose.yml pull
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 !!! tip "提示"
     - `config.yml` 支持热重载（约 5 秒生效），无需重启
-    - 数据持久化：`config.yml`、`data/`、`logs/` 已挂载，`docker compose down` 不会丢失
-    - 容器启动时会通过 **docker-entrypoint.sh** 自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
+    - 数据持久化：`config.yml`、`data/`、`logs/` 挂载到仓库根目录对应路径，`docker compose ... down` 不会丢失容器外数据
+    - 容器启动时会通过 **docker/docker-entrypoint.sh**（镜像内 `/app/docker-entrypoint.sh`）自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
     - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
 
 ### Docker 镜像：精简版与完整版
 
-**文件对应关系**：**`Dockerfile`** → 精简镜像；**`Dockerfile.full`** → 完整镜像。Compose 同理：**`docker-compose.yml`** / **`docker-compose.full.yml`**。
+**文件对应关系**：**`docker/Dockerfile`** → 精简镜像；**`docker/Dockerfile.full`** → 完整镜像。Compose：**`docker/docker-compose.yml`** / **`docker/docker-compose.full.yml`**（构建上下文均为仓库根目录；说明见仓库 **docker/README.md**）。
 
-Docker Hub 上 **`latest` 与 semver 主标签（如 `2.2.2`）** 由 **`Dockerfile`** 构建：不包含 Chromium/Chromedriver，也不安装雨云签到所需的 Python 依赖（Selenium、ddddocr、OpenCV 等）。监控与其它 HTTP 类签到不受影响。
+Docker Hub 上 **`latest` 与 semver 主标签（如 `2.2.2`）** 由 **`docker/Dockerfile`** 构建：不包含 Chromium/Chromedriver，也不安装雨云签到所需的 Python 依赖（Selenium、ddddocr、OpenCV 等）。监控与其它 HTTP 类签到不受影响。
 
-若要在容器内使用 **雨云浏览器签到**（`rainyun.enable: true`），请改用 **`full` 标签**（或本地 **`docker build -f Dockerfile.full .`**）：
+若要在容器内使用 **雨云浏览器签到**（`rainyun.enable: true`），请改用 **`full` 标签**（或本地 **`docker build -f docker/Dockerfile.full .`**）：
 
 ```bash
 docker pull fengyu666/webmoniter:full
-docker compose -f docker-compose.full.yml up -d
+docker compose -f docker/docker-compose.full.yml up -d
 ```
 
-也可在自有 `compose` 中将 `image` 写为 `fengyu666/webmoniter:full`，并保留 `CHROME_BIN`、`CHROMEDRIVER_PATH` 与较大 `shm_size`（见 `docker-compose.full.yml`）。
+也可在自有 `compose` 中将 `image` 写为 `fengyu666/webmoniter:full`，并保留 `CHROME_BIN`、`CHROMEDRIVER_PATH` 与较大 `shm_size`（见 `docker/docker-compose.full.yml`）。
 
 ---
 
@@ -64,7 +65,7 @@ docker compose -f docker-compose.full.yml up -d
 
 1. 前往 [GitHub Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载最新的 `WebMoniter-vX.X.X-windows-x64.zip`
 2. 解压到任意目录
-3. 将 `config.yml.sample` 复制为 `config.yml`，并按需编辑配置
+3. 将解压目录下的 `config.yml.sample` 复制为 `config.yml`，并按需编辑配置（与源码中 `config/config.yml.sample` 一致）
 4. 双击 `WebMoniter.exe` 启动（会弹出控制台窗口显示日志）
 
 !!! tip "提示"
@@ -105,7 +106,7 @@ uv sync --locked
 # uv sync --locked --extra rainyun
 
 # 3. 复制配置文件
-cp config.yml.sample config.yml
+cp config/config.yml.sample config.yml
 
 # 4. 启动程序（默认端口 8866，可通过环境变量 PORT 覆盖，如 PORT=8080 uv run python main.py）
 uv run python main.py
@@ -126,7 +127,7 @@ uv run python main.py &
 
 | 部署方式 | 更新方式 |
 |:--------:|:--------|
-| Docker   | `docker compose pull && docker compose up -d` |
+| Docker   | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d` |
 | Windows  | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`） |
 | 本地     | `git pull` → `uv sync --locked` → 重启应用 |
 

@@ -119,24 +119,24 @@
 
 **说明**：无系统浏览器与雨云相关 Python 包；若误开雨云签到，日志会出现「导入任务模块 tasks.rainyun_checkin 失败」，请改用下面的完整镜像。
 
-**方式 A：Compose（推荐，使用仓库里的 `docker-compose.yml`）**
+**方式 A：Compose（推荐，使用 [`docker/docker-compose.yml`](docker/docker-compose.yml)，须在克隆后的仓库根目录执行）**
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config.yml.sample config.yml
+cp config/config.yml.sample config.yml
 # 编辑 config.yml 后执行：
-docker compose pull
-docker compose up -d
+docker compose -f docker/docker-compose.yml pull
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 - 关闭并移除容器（保留数据）：
   ```bash
-  docker compose down
+  docker compose -f docker/docker-compose.yml down
   ```
 - 仅关闭服务（不删除容器）：
   ```bash
-  docker compose stop
+  docker compose -f docker/docker-compose.yml stop
   ```
 
 **方式 B：只拉镜像 + `docker run`（不克隆仓库时）**
@@ -168,24 +168,24 @@ Windows PowerShell 可将 `$(pwd)` 改为 `$PWD` 或使用绝对路径。
 
 **说明**：镜像内已含 Chromium / Chromedriver 与 `rainyun` 依赖；`config.yml` 中配置 `rainyun.enable: true` 与 `accounts` 即可。
 
-**方式 A：Compose（使用 `docker-compose.full.yml`）**
+**方式 A：Compose（使用 [`docker/docker-compose.full.yml`](docker/docker-compose.full.yml)，须在仓库根目录执行）**
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config.yml.sample config.yml
+cp config/config.yml.sample config.yml
 # 编辑 config.yml 后执行：
-docker compose -f docker-compose.full.yml pull
-docker compose -f docker-compose.full.yml up -d
+docker compose -f docker/docker-compose.full.yml pull
+docker compose -f docker/docker-compose.full.yml up -d
 ```
 
 - 关闭并移除容器（保留数据）：
   ```bash
-  docker compose -f docker-compose.full.yml down
+  docker compose -f docker/docker-compose.full.yml down
   ```
 - 仅关闭服务（不删除容器）：
   ```bash
-  docker compose -f docker-compose.full.yml stop
+  docker compose -f docker/docker-compose.full.yml stop
   ```
 
 **方式 B：只拉镜像 + `docker run`**
@@ -206,7 +206,7 @@ docker run -d --name webmoniter --restart unless-stopped \
 
 ---
 
-启动后访问 **`http://localhost:8866`**，默认账号 **`admin` / `123`**。配置热重载约 5 秒；`data/`、`logs/` 建议挂载以持久化。改端口：Compose 里改 `ports`，`docker run` 里改 `-p`。本地构建见根目录 **`Dockerfile`**（精简）与 **`Dockerfile.full`**（完整）。
+启动后访问 **`http://localhost:8866`**，默认账号 **`admin` / `123`**。配置热重载约 5 秒；`data/`、`logs/` 建议挂载以持久化。改端口：Compose 里改 `ports`，`docker run` 里改 `-p`。本地构建：`docker build -f docker/Dockerfile .`（精简）与 `docker build -f docker/Dockerfile.full .`（完整）。编排说明见 [`docker/README.md`](docker/README.md)。
 
 ---
 
@@ -215,7 +215,7 @@ docker run -d --name webmoniter --restart unless-stopped \
 <summary><strong>💻 Windows 部署</strong></summary>
 
 1. [Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载 `WebMoniter-vX.X.X-windows-x64.zip`，解压
-2. 复制 `config.yml.sample` 为 `config.yml` 并编辑
+2. 将解压目录下的 `config.yml.sample` 复制为 `config.yml` 并编辑（与源码仓库中的 `config/config.yml.sample` 内容一致）
 3. 双击 `WebMoniter.exe` 启动。访问 `http://localhost:8866`，默认 `admin` / `123`
 
 无需 Python；防火墙提示请放行；关控制台即停；配置热重载生效。
@@ -303,8 +303,8 @@ cd WebMoniter
 uv sync --locked
 # uv sync --locked --extra rainyun
 
-# 3. 复制配置文件
-cp config.yml.sample config.yml
+# 3. 复制配置文件（源码仓库模板在 config/ 目录）
+cp config/config.yml.sample config.yml
 
 # 4. 启动（默认 8866，PORT=8080 uv run python main.py 可改端口）
 uv run python main.py
@@ -315,7 +315,7 @@ uv run python main.py
 
 | 部署方式 | 命令                                                        |
 |:--------:|:------------------------------------------------------------|
-| Docker   | `docker compose pull && docker compose up -d`（雨云：`docker-compose.full.yml` 或镜像 `:full`，对应 `Dockerfile.full`） |
+| Docker   | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d`（雨云：`docker/docker-compose.full.yml` 或镜像 `:full`，对应 `docker/Dockerfile.full`） |
 | Windows  | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`）       |
 | 本地     | `git pull` → `uv sync --locked` → 重启应用                  |
 
@@ -325,8 +325,8 @@ uv run python main.py
 
 ## ⚙️ 配置说明
 
-- **应用**：[`config.yml.sample`](config.yml.sample) 含全部配置注释，复制为 `config.yml` 修改即可，热重载约 5 秒生效。
-- **Docker**：[`Dockerfile`](Dockerfile) + [`docker-compose.yml`](docker-compose.yml) 为精简默认；雨云见 [`Dockerfile.full`](Dockerfile.full) + [`docker-compose.full.yml`](docker-compose.full.yml)。[`docker-entrypoint.sh`](docker-entrypoint.sh) 负责 data/logs 赋权。详见 [文档站](https://666fy666.github.io/WebMoniter/) 与 [安装说明](docs/installation.md)。
+- **应用**：[`config/config.yml.sample`](config/config.yml.sample) 含全部配置注释，在仓库根目录复制为 `config.yml` 修改即可，热重载约 5 秒生效。
+- **Docker**：[`docker/Dockerfile`](docker/Dockerfile) + [`docker/docker-compose.yml`](docker/docker-compose.yml) 为精简默认；雨云见 [`docker/Dockerfile.full`](docker/Dockerfile.full) + [`docker/docker-compose.full.yml`](docker/docker-compose.full.yml)。[`docker/docker-entrypoint.sh`](docker/docker-entrypoint.sh) 负责 data/logs 赋权。详见 [docker/README.md](docker/README.md)、[文档站](https://666fy666.github.io/WebMoniter/) 与 [安装说明](docs/installation.md)。
 
 ---
 

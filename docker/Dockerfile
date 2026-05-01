@@ -1,5 +1,5 @@
 # 精简镜像（Docker Hub 默认标签 latest、semver 主标签）：无 Chromium，无雨云 optional 依赖
-# 雨云签到见 Dockerfile.full；构建：docker build .
+# 雨云签到见 docker/Dockerfile.full；从仓库根目录构建：docker build -f docker/Dockerfile .
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
@@ -30,14 +30,15 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 
-COPY pyproject.toml main.py config.yml.sample ./
+COPY pyproject.toml main.py ./
+COPY config/config.yml.sample ./config.yml.sample
 COPY monitors/ ./monitors/
 COPY src/ ./src/
 COPY tasks/ ./tasks/
 COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
-COPY docker-entrypoint.sh ./
+COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 ENV PYTHONUNBUFFERED=1 \

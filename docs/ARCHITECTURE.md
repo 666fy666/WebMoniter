@@ -893,15 +893,18 @@ _channel_type_to_class = {
 ```
 WebMoniter/
 ├── main.py                 # 主入口
-├── config.yml              # 配置文件（用户创建）
-├── config.yml.sample        # 配置示例文件
+├── config.yml              # 配置文件（用户在仓库根创建）
+├── config/
+│   └── config.yml.sample   # 配置模板（复制到根目录 config.yml）
+├── docker/
+│   ├── Dockerfile          # 精简镜像（构建：`docker build -f docker/Dockerfile .`）
+│   ├── Dockerfile.full     # 完整镜像（雨云/Chromium）
+│   ├── docker-compose.yml
+│   ├── docker-compose.full.yml
+│   ├── docker-entrypoint.sh
+│   └── README.md           # Compose 与构建说明
 ├── pyproject.toml          # 项目配置和依赖
 ├── uv.lock                 # 依赖锁定文件
-├── Dockerfile              # 精简镜像（默认 :latest），无浏览器栈
-├── Dockerfile.full         # 完整镜像（:full），Chromium + 雨云依赖
-├── docker-compose.yml      # 精简栈（对应当前 Dockerfile 构建的镜像）
-├── docker-compose.full.yml # 完整栈（雨云签到，对应 Dockerfile.full）
-├── docker-entrypoint.sh   # 容器入口：启动前为 data/logs 赋予读写权限，再启动 main.py
 │
 ├── src/                    # 核心源代码
 │   ├── __init__.py
@@ -1029,6 +1032,7 @@ WebMoniter/
 │       └── logs.html
 │
 ├── docs/                   # 文档
+│   ├── mkdocs.yml          # MkDocs 配置（站点输出目录为仓库根 site/）
 │   ├── index.md            # 文档首页
 │   ├── API.md              # API 文档
 │   ├── ARCHITECTURE.md     # 架构文档（本文档）

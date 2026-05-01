@@ -15,7 +15,7 @@
 ## 操作步骤（首次使用）
 
 1. **复制配置文件**  
-   在项目根目录执行：`cp config.yml.sample config.yml`（Windows 下复制并重命名为 `config.yml`）。
+   在项目根目录执行：`cp config/config.yml.sample config.yml`（Windows 下复制并重命名为 `config.yml`）。
 
 2. **按需编辑 `config.yml`**  
    - 先配置至少一个 **推送通道**（[推送通道配置详解](push-channels.md)），否则监控/签到结果无法收到通知。  
@@ -34,8 +34,8 @@
 
 | 配置类型   | 说明 |
 |:----------:|:-----|
-| **应用配置** | 监控、签到、推送、免打扰等均在 **`config.yml.sample`** 中有注释说明。以该文件为模板复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | **`docker-compose.yml`**（精简，对根目录 **`Dockerfile`**）；雨云用 **`docker-compose.full.yml`**（对 **`Dockerfile.full`** / 标签 `full`）。**`docker-entrypoint.sh`** 为 `data/`、`logs/` 赋权。`docker compose up -d` 或 `-f docker-compose.full.yml`。 |
+| **应用配置** | 监控、签到、推送、免打扰等均在 **`config/config.yml.sample`** 中有注释说明。以该文件为模板在仓库根复制为 `config.yml` 后按需修改。 |
+| **Docker 编排** | **`docker/docker-compose.yml`**（精简，对 **`docker/Dockerfile`**）；雨云用 **`docker/docker-compose.full.yml`**（对 **`docker/Dockerfile.full`** / 标签 `full`）。**`docker/docker-entrypoint.sh`** 为 `data/`、`logs/` 赋权。请在仓库根执行：`docker compose -f docker/docker-compose.yml up -d` 或 `-f docker/docker-compose.full.yml`。 |
 
 ---
 

@@ -76,7 +76,7 @@ iKuuu 签到使用**顶层配置**（与贴吧签到一致）：在 `config.yml`
 
 ### 2.1 配置：config.yml
 
-在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config.yml.sample`）。
+在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config/config.yml.sample`）。
 
 **单账号示例：**
 

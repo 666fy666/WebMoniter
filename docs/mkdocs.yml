@@ -1,8 +1,11 @@
-# MkDocs Material 文档站配置
+# MkDocs Material（配置文件位于 docs/；文档源目录为当前目录；站点输出到仓库根目录 site/）
 site_name: WebMoniter 文档
 site_description: 多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发
 site_author: FY
 site_url: https://666fy666.github.io/WebMoniter/
+
+docs_dir: .
+site_dir: ../site
 
 repo_name: 666fy666/WebMoniter
 repo_url: https://github.com/666fy666/WebMoniter

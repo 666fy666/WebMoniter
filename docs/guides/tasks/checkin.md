@@ -96,7 +96,7 @@ checkin:
 **配置节点**：`rainyun`  
 **默认时间**：08:30  
 **认证方式**：账号密码（Selenium + ddddocr，参考 [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)）。**签到使用账号密码登录**，`api_key` 仅用于服务器到期自动续费（可选）。需安装 Chrome/Chromium 及 chromedriver。  
-**部署说明**：默认 **`Dockerfile` / `latest` 精简镜像**不含浏览器与雨云 Python 依赖；雨云请用 **`Dockerfile.full`**、镜像标签 **`full`** 或 **`docker-compose.full.yml`**。本地开发：`uv sync --locked --extra rainyun` 并自备 Chromium。  
+**部署说明**：默认 **`docker/Dockerfile` / `latest` 精简镜像**不含浏览器与雨云 Python 依赖；雨云请用 **`docker/Dockerfile.full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发：`uv sync --locked --extra rainyun` 并自备 Chromium。  
 **服务器自动续费**：签到完成后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天。
 
 ### 配置项
