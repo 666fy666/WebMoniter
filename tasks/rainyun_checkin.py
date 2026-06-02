@@ -6,6 +6,7 @@
 - 支持每天固定时间（默认 08:30）自动签到
 - 项目启动时也会执行一次签到
 - 签到后检查游戏云服务器到期，可选自动续费
+- 签到失败时自动重试（内置，无需配置）
 """
 
 from __future__ import annotations
@@ -22,6 +23,10 @@ from tasks.rainyun.config_adapter import RainyunAccountConfig
 from tasks.rainyun.runner import run_single_account
 
 logger = logging.getLogger(__name__)
+
+# 签到失败后重试：共尝试 RETRY_COUNT + 1 次，每次间隔 RETRY_DELAY 秒
+_CHECKIN_RETRY_COUNT = 5
+_CHECKIN_RETRY_DELAY = 60
 
 
 def _build_accounts_from_config(config: AppConfig) -> list[RainyunAccountConfig]:
@@ -58,7 +63,6 @@ def _build_accounts_from_config(config: AppConfig) -> list[RainyunAccountConfig]
 async def _run_single_account_async(
     account: RainyunAccountConfig,
     renew_threshold_days: int,
-    push_manager,
     *,
     chrome_overrides: dict | None = None,
 ) -> tuple[bool, str]:
@@ -72,6 +76,52 @@ async def _run_single_account_async(
         lambda: run_single_account(account, **overrides),
     )
     return ok, msg
+
+
+async def _run_single_account_with_retry(
+    account: RainyunAccountConfig,
+    renew_threshold_days: int,
+    *,
+    chrome_overrides: dict | None = None,
+) -> tuple[bool, str]:
+    """签到失败时自动重试，全部失败后再返回最后一次错误信息"""
+    retry_count = _CHECKIN_RETRY_COUNT
+    retry_delay = _CHECKIN_RETRY_DELAY
+    max_attempts = retry_count + 1
+    last_msg = ""
+
+    for attempt in range(1, max_attempts + 1):
+        if attempt > 1:
+            logger.warning(
+                "雨云签到：账号 %s 第 %d/%d 次重试，%d 秒后执行",
+                account.username,
+                attempt,
+                max_attempts,
+                retry_delay,
+            )
+            await asyncio.sleep(retry_delay)
+
+        ok, msg = await _run_single_account_async(
+            account,
+            renew_threshold_days,
+            chrome_overrides=chrome_overrides,
+        )
+        if ok:
+            if attempt > 1:
+                msg = f"{msg}\n（第 {attempt} 次尝试成功）"
+            return True, msg
+
+        last_msg = msg
+        logger.warning(
+            "雨云签到：账号 %s 第 %d/%d 次尝试失败：%s",
+            account.username,
+            attempt,
+            max_attempts,
+            msg,
+        )
+
+    suffix = f"（已重试 {retry_count} 次，签到失败）" if retry_count > 0 else "（签到失败）"
+    return False, f"{last_msg}\n{suffix}"
 
 
 async def run_rainyun_checkin_once() -> None:
@@ -119,8 +169,10 @@ async def run_rainyun_checkin_once() -> None:
                 "雨云签到：正在处理第 %d/%d 个账号 %s", idx, len(accounts), account.username
             )
             try:
-                ok, msg = await _run_single_account_async(
-                    account, renew_threshold_days, push_manager, chrome_overrides=chrome_overrides
+                ok, msg = await _run_single_account_with_retry(
+                    account,
+                    renew_threshold_days,
+                    chrome_overrides=chrome_overrides,
                 )
                 if ok:
                     success_count += 1

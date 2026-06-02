@@ -2,14 +2,19 @@
 
 import logging
 import os
+import shutil
+import sys
 import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 
 import ddddocr
 from selenium import webdriver
+from selenium.common.exceptions import SessionNotCreatedException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.common.selenium_manager import SeleniumManager
 from selenium.webdriver.support.wait import WebDriverWait
 
 from tasks.rainyun.api_client import RainyunAPI
@@ -27,6 +32,61 @@ class RuntimeContext:
     temp_dir: str
     api: RainyunAPI
     config: RainyunRunConfig
+
+
+def _default_chrome_binary() -> str | None:
+    """本机常见 Chrome/Chromium 路径，便于 Selenium Manager 匹配对应 chromedriver 版本"""
+    if sys.platform == "win32":
+        roots = [
+            os.environ.get("PROGRAMFILES", r"C:\Program Files"),
+            os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"),
+        ]
+        candidates = [os.path.join(r, "Google", "Chrome", "Application", "chrome.exe") for r in roots]
+    elif sys.platform == "darwin":
+        candidates = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+    else:
+        candidates = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+        ]
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
+def _chromedriver_cache_dir() -> Path:
+    return Path.home() / ".cache" / "selenium" / "chromedriver"
+
+
+def _clear_chromedriver_cache() -> None:
+    cache = _chromedriver_cache_dir()
+    if cache.is_dir():
+        shutil.rmtree(cache, ignore_errors=True)
+        logger.info("已清除 Selenium chromedriver 缓存: %s", cache)
+
+
+def _is_chromedriver_version_mismatch(exc: BaseException) -> bool:
+    msg = str(exc)
+    return "only supports Chrome version" in msg and "Current browser version" in msg
+
+
+def _resolve_chromedriver_via_manager(chrome_bin: str | None) -> str | None:
+    """通过 Selenium Manager 获取与当前 Chrome 主版本匹配的 chromedriver"""
+    args = ["--browser", "chrome"]
+    if chrome_bin:
+        args.extend(["--browser-path", chrome_bin])
+    try:
+        output = SeleniumManager().binary_paths(args)
+        path = output.get("driver_path", "")
+        if path and os.path.isfile(path):
+            logger.debug("Selenium Manager 选用 chromedriver: %s", path)
+            return path
+    except Exception as e:
+        logger.warning("Selenium Manager 获取 chromedriver 失败: %s", e)
+    return None
 
 
 def _get_chromedriver_path(config: RainyunRunConfig) -> str | None:
@@ -91,11 +151,29 @@ class BrowserSession:
             ops.add_argument("--js-flags=--max-old-space-size=256")
         if self.config.chrome_bin and os.path.exists(self.config.chrome_bin):
             ops.binary_location = self.config.chrome_bin
+        elif not ops.binary_location:
+            default_bin = _default_chrome_binary()
+            if default_bin:
+                ops.binary_location = default_bin
+
         driver_path = _get_chromedriver_path(self.config)
         if driver_path:
             return webdriver.Chrome(service=Service(driver_path), options=ops)
-        # 未配置 chromedriver 时，由 Selenium 4.6+ 的 Selenium Manager 自动下载并管理
-        return webdriver.Chrome(options=ops)
+
+        chrome_bin = ops.binary_location or None
+        for attempt in range(2):
+            resolved = _resolve_chromedriver_via_manager(chrome_bin)
+            try:
+                if resolved:
+                    return webdriver.Chrome(service=Service(resolved), options=ops)
+                return webdriver.Chrome(options=ops)
+            except SessionNotCreatedException as e:
+                if attempt == 0 and _is_chromedriver_version_mismatch(e):
+                    logger.warning("chromedriver 与 Chrome 版本不匹配，清除缓存后重试: %s", e)
+                    _clear_chromedriver_cache()
+                    continue
+                raise
+        raise RuntimeError("无法初始化 Chrome WebDriver")
 
     def _apply_stealth(self, driver: WebDriver) -> None:
         stealth_paths = [

@@ -4,6 +4,9 @@ from src.log_manager import _current_job_id
 
 from . import PushChannel
 
+# 保存到 Bark 历史记录的消息有效期（秒），到期后自动删除
+_BARK_HISTORY_TTL_SECONDS = 1 * 24 * 60 * 60
+
 
 def _bark_group_from_extend_data(extend_data: dict | None) -> str | None:
     """按 Bark 文档的 group 参数：优先显式 bark_group，其次青龙式 query_task_config.name，最后当前调度任务 job_id。"""
@@ -42,6 +45,7 @@ class Bark(PushChannel):
             "device_key": self.key,
             "title": title,
             "body": content,
+            "ttl": _BARK_HISTORY_TTL_SECONDS,
         }
         if jump_url:
             payload["url"] = jump_url
