@@ -155,7 +155,8 @@ docker compose -f docker/docker-compose.full.yml restart
 docker compose -f docker/docker-compose.full.yml down
 ```
 
-**单容器启动**
+<details>
+<summary><strong>单容器启动</strong></summary>
 
 ```bash
 # 精简镜像
@@ -196,6 +197,8 @@ docker image rm fengyu666/webmoniter:full
 ```
 
 Windows PowerShell 如遇挂载路径问题，可把 `$(pwd)` 改成当前目录的绝对路径。更多端口、挂载、更新与数据保留说明见 [安装与运行](docs/installation.md) 和 [docker/README.md](docker/README.md)。
+
+</details>
 
 ### 本地运行
 
