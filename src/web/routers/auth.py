@@ -93,7 +93,7 @@ async def check_auth(request: Request):
 @router.get("/api/version")
 async def get_version_api():
     """获取当前版本信息"""
-    from src.version import (
+    from src.core.version import (
         GITHUB_API_LATEST_TAG,
         GITHUB_RELEASES_URL,
         __version__,

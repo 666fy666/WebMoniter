@@ -1,6 +1,6 @@
 [project]
 name = "web-monitor"
-version = "2.2.7"
+version = "2.2.8"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
@@ -64,11 +64,11 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # 监控模块在文件末尾 import register_* 以避免循环依赖
-"monitors/*.py" = ["E402"]
+"src/monitors/*.py" = ["E402"]
 # 青龙脚本需先修改 sys.path 再 import
-"ql/*.py" = ["E402"]
+"src/ql/*.py" = ["E402"]
 # Selenium 常用 expected_conditions as EC 的惯例
-"tasks/rainyun/**/*.py" = ["N812"]
+"src/tasks/rainyun/**/*.py" = ["N812"]
 # wecom_crypto 需条件 import 及 ElementTree 兼容映射
 "src/ai_assistant/wecom_crypto.py" = ["E402", "N814"]
 
@@ -76,4 +76,6 @@ ignore = ["E501"]
 line-length = 100
 target-version = ["py310"]
 extend-exclude = "weworkapi_python"
+
+
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 from fastapi.responses import JSONResponse
 
-from src.config import AppConfig, get_config, load_config_from_yml
+from src.settings.config import AppConfig, get_config, load_config_from_yml
 
 logger = logging.getLogger(__name__)
 

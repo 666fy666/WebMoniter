@@ -200,8 +200,8 @@ docker image rm fengyu666/webmoniter:full
 **快速步骤**：
 
 1. **添加环境变量**（青龙 → 环境变量）：如 `WEBMONITER_CHECKIN_ENABLE=true`、`WEBMONITER_CHECKIN_EMAIL`、`WEBMONITER_CHECKIN_PASSWORD`
-2. **拉取脚本**：订阅 `https://github.com/666fy666/WebMoniter`，白名单 `ql/*.py`；或使用 `ql raw` 拉取单个脚本
-3. **添加定时任务**：命令 `task WebMoniter/ql/ikuuu_checkin.py`，定时规则 `0 8 * * *`（示例）
+2. **拉取脚本**：订阅 `https://github.com/666fy666/WebMoniter`，白名单 `src/ql/*.py`；或使用 `ql raw` 拉取单个脚本
+3. **添加定时任务**：命令 `task WebMoniter/src/ql/ikuuu_checkin.py`，定时规则 `0 8 * * *`（示例）
 
 !!! success "推送通知"
     青龙环境下自动使用**青龙系统通知**，在青龙「系统设置 → 通知设置」中配置推送方式即可，无需额外配置。

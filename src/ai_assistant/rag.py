@@ -12,7 +12,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from src.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+from src.core.paths import CONFIG_YAML_FILE, resolve_config_sample_path
 
 logger = logging.getLogger(__name__)
 

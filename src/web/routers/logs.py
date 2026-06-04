@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from src.job_registry import MONITOR_JOBS, TASK_JOBS, discover_and_import
+from src.jobs.registry import MONITOR_JOBS, TASK_JOBS, discover_and_import
 from src.web.auth import check_login
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ async def get_logs(request: Request, lines: int = 100, task: str | None = None):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        from src.log_manager import LogManager
+        from src.jobs.log_manager import LogManager
 
         log_manager = LogManager()
 
@@ -119,7 +119,7 @@ async def get_log_tasks_list(request: Request):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        from src.log_manager import LogManager
+        from src.jobs.log_manager import LogManager
 
         discover_and_import()
         log_manager = LogManager()

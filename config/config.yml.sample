@@ -484,7 +484,7 @@ app:
 # ==========================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
 # ==========================================================================
-# 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src/job_registry.TASK_MODULES 中移除 tasks.demo_task
+# 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src.jobs.registry.TASK_MODULES 中移除 src.tasks.demo_task
 plugins:
   demo_task:
     enable: false
@@ -620,4 +620,6 @@ ai_assistant:
   chroma_persist_dir: data/ai_assistant_chroma
   rate_limit_per_minute: 10  # 每分钟请求限制
   max_history_rounds: 10  # 多轮对话保留最近 N 轮
+
+
 

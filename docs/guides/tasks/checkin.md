@@ -954,7 +954,7 @@ quiet_hours:
 
 **配置节点**：`plugins.demo_task`  
 **默认时间**：08:30  
-**说明**：二次开发示例任务，不需要可在 `src/job_registry.py` 的 `TASK_MODULES` 中移除 `tasks.demo_task`。
+**说明**：二次开发示例任务，不需要可在 `src/jobs/registry.py` 的 `TASK_MODULES` 中移除 `src.tasks.demo_task`。
 
 ### 配置项
 

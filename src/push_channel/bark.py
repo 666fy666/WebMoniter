@@ -1,6 +1,6 @@
 from aiohttp import ClientResponseError
 
-from src.log_manager import _current_job_id
+from src.jobs.log_manager import _current_job_id
 
 from . import PushChannel
 

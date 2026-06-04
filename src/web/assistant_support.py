@@ -12,7 +12,7 @@ import re
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from src.config import get_config
+from src.settings.config import get_config
 from src.web.auth import check_login
 
 logger = logging.getLogger(__name__)
@@ -156,7 +156,7 @@ async def parse_executable_intent_and_reply(message: str) -> tuple[str | None, d
         parse_run_task_intent,
         parse_toggle_monitor_intent,
     )
-    from src.weibo_search import is_numeric_uid, search_weibo_users
+    from src.monitors.weibo_search import is_numeric_uid, search_weibo_users
 
     run_intent = parse_run_task_intent(message)
     if run_intent is not None:

@@ -5,8 +5,8 @@ import logging
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from src.job_metadata import get_job_description as _get_job_description
-from src.job_registry import (
+from src.jobs.metadata import get_job_description as _get_job_description
+from src.jobs.registry import (
     MONITOR_JOBS,
     TASK_JOBS,
     discover_and_import,

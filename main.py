@@ -2,7 +2,7 @@
 """
 Web任务系统主入口（异步调度 + FastAPI 管理界面）。
 
-扩展方式：在 monitors/、tasks/ 实现逻辑后，将模块路径写入 src/job_registry.py 的列表，
+扩展方式：在 monitors/、tasks/ 实现逻辑后，将模块路径写入 src/jobs/registry.py 的列表，
 并在模块内调用 register_monitor / register_task。详见 docs/SECONDARY_DEVELOPMENT.md。
 """
 
@@ -10,11 +10,9 @@ import asyncio
 import logging
 import sys
 
-from src.config import AppConfig, get_config
-from src.config_watcher import ConfigWatcher
-from src.cookie_cache import get_cookie_cache
-from src.database import close_shared_connection
-from src.lifecycle import (
+from src.core.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+from src.core.runtime import run_async_app
+from src.jobs.lifecycle import (
     attach_uvicorn_noise_filter,
     build_uvicorn_server,
     maybe_build_ai_rag_index,
@@ -25,9 +23,11 @@ from src.lifecycle import (
     shutdown_web_server,
     start_uvicorn_background,
 )
-from src.paths import CONFIG_YAML_FILE, resolve_config_sample_path
-from src.runtime import run_async_app
-from src.scheduler import TaskScheduler
+from src.jobs.scheduler import TaskScheduler
+from src.settings.config import AppConfig, get_config
+from src.settings.watcher import ConfigWatcher
+from src.storage.cookie_cache import get_cookie_cache
+from src.storage.database import close_shared_connection
 
 CONFIG_FILE = CONFIG_YAML_FILE.as_posix()
 CONFIG_POLL_INTERVAL_SEC = 5

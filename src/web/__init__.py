@@ -1,2 +1,1 @@
 """Web application package."""
-

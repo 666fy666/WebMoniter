@@ -7,8 +7,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from src.job_metadata import get_job_description as _get_job_description
-from src.job_registry import (
+from src.jobs.metadata import get_job_description as _get_job_description
+from src.jobs.registry import (
     MONITOR_JOBS,
     TASK_JOBS,
     discover_and_import,
@@ -277,7 +277,7 @@ async def assistant_apply_action(request: Request):
             return JSONResponse({"error": "value 不能为空"}, status_code=400)
 
         if platform_key == "weibo" and operation == "add":
-            from src.weibo_search import is_numeric_uid
+            from src.monitors.weibo_search import is_numeric_uid
 
             if not is_numeric_uid(value):
                 return JSONResponse(

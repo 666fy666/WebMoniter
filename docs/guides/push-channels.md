@@ -3,7 +3,7 @@
 监控与签到结果通过 **推送通道** 发送。在 `config.yml` 的 **`push_channel`** 中配置一个或多个通道（每项需 `name`、`type` 及该 type 所需参数）；各任务通过 **`push_channels`** 指定使用哪些通道（按 `name` 匹配），为空时使用全部已配置通道。
 
 !!! tip "青龙面板用户"
-    在 [青龙面板](https://github.com/whyour/qinglong) 中运行 `ql/*.py` 脚本时，推送**自动使用青龙内置通知**（QLAPI），与青龙「系统设置 → 通知设置」一致，无需在 `config.yml` 中配置推送通道。详见 [青龙面板兼容指南](../QINGLONG.md)。
+    在 [青龙面板](https://github.com/whyour/qinglong) 中运行 `src/ql/*.py` 脚本时，推送**自动使用青龙内置通知**（QLAPI），与青龙「系统设置 → 通知设置」一致，无需在 `config.yml` 中配置推送通道。详见 [青龙面板兼容指南](../QINGLONG.md)。
 
 ---
 
@@ -594,7 +594,7 @@ push_channel:
 
 ## 青龙 QLAPI（qlapi）
 
-在 [青龙面板](https://github.com/whyour/qinglong) 中运行 `ql/*.py` 脚本时，系统会自动使用 `qlapi` 类型通道，调用 `QLAPI.systemNotify` 发送推送。该通道**由青龙环境自动注入**，用户无需在 `config.yml` 中配置；推送方式在青龙「系统设置 → 通知设置」中统一配置。非青龙环境下 `qlapi` 不可用，会静默跳过。
+在 [青龙面板](https://github.com/whyour/qinglong) 中运行 `src/ql/*.py` 脚本时，系统会自动使用 `qlapi` 类型通道，调用 `QLAPI.systemNotify` 发送推送。该通道**由青龙环境自动注入**，用户无需在 `config.yml` 中配置；推送方式在青龙「系统设置 → 通知设置」中统一配置。非青龙环境下 `qlapi` 不可用，会静默跳过。
 
 ---
 

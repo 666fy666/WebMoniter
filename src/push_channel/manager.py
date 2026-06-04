@@ -7,8 +7,8 @@ from aiohttp import ClientSession
 
 from src.ai_assistant.config import is_ai_enabled
 from src.ai_assistant.llm_client import compress_text_with_llm, generate_push_content_with_llm
-from src.config import AppConfig, get_config
 from src.push_channel import get_push_channel
+from src.settings.config import AppConfig, get_config
 
 
 def _truncate_content_to_bytes(content: str, max_bytes: int) -> str:

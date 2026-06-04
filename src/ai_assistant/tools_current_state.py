@@ -73,7 +73,7 @@ async def query_current_state(platforms: list[str] | None = None) -> str:
     platforms 为 None 或空时查询所有平台；否则只查指定平台。
     """
     try:
-        from src.database import AsyncDatabase
+        from src.storage.database import AsyncDatabase
     except ImportError:
         return "无法连接数据库"
 

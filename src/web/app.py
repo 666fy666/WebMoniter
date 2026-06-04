@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from src.core.paths import WEB_UI_STATIC_DIR
 from src.web.routers import assistant, auth, config, data, logs, pages, tasks, webhooks
 
 SECRET_KEY = secrets.token_urlsafe(32)
@@ -17,7 +18,7 @@ def create_web_app() -> FastAPI:
     app = FastAPI(title="Web任务系统", description="Web任务系统管理界面")
     app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
-    app.mount("/static", StaticFiles(directory="web/static"), name="static")
+    app.mount("/static", StaticFiles(directory=str(WEB_UI_STATIC_DIR)), name="static")
 
     weibo_img_dir = Path("data/weibo")
     weibo_img_dir.mkdir(parents=True, exist_ok=True)

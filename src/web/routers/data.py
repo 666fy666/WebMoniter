@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from src.database import AsyncDatabase
+from src.storage.database import AsyncDatabase
 from src.web.auth import check_login
 from src.web.data_support import (
     _PLATFORM_LIST_SQL,

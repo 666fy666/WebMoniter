@@ -84,4 +84,4 @@
 
 ## 青龙面板部署
 
-若已使用 [青龙面板](https://github.com/whyour/qinglong)，可通过 `ql/` 目录下的脚本运行定时任务，配置使用**环境变量**，推送走**青龙内置通知**（QLAPI）。详见 [青龙面板兼容指南](../QINGLONG.md)。
+若已使用 [青龙面板](https://github.com/whyour/qinglong)，可通过 `src/ql/` 目录下的脚本运行定时任务，配置使用**环境变量**，推送走**青龙内置通知**（QLAPI）。详见 [青龙面板兼容指南](../QINGLONG.md)。

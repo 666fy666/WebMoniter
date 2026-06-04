@@ -2,4 +2,6 @@
 
 from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="web/templates")
+from src.core.paths import WEB_UI_TEMPLATES_DIR
+
+templates = Jinja2Templates(directory=str(WEB_UI_TEMPLATES_DIR))

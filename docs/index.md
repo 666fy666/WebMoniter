@@ -57,7 +57,7 @@ AI 助手支持在 Web 界面与企业微信中直接对话，可实现配置生
 
 ### 🚀 快速开始
 
-:material-rocket-launch: 使用 Docker 或 Windows 一键包，几分钟内完成部署并访问 Web 管理界面。若已使用青龙面板，可直接拉取 `ql/` 脚本，通过环境变量配置。
+:material-rocket-launch: 使用 Docker 或 Windows 一键包，几分钟内完成部署并访问 Web 管理界面。若已使用青龙面板，可直接拉取 `src/ql/` 脚本，通过环境变量配置。
 
 - [安装与运行](installation.md)
 - [青龙面板部署](QINGLONG.md)

@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from src.ql_compat import get_qlapi
+from src.ql.compat import get_qlapi
 
 from ._push_channel import PushChannel
 
