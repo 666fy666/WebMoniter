@@ -127,6 +127,7 @@ def monitor_job_enabled(job_id: str, config: AppConfig) -> bool:
     enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(job_id)
     return enable_field is None or getattr(config, enable_field, True)
 
+
 # 定时任务启用开关：在模块导入时构建一次，避免每个 register_task() 重复创建 dict
 TASK_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
     "ikuuu_checkin": "checkin_enable",

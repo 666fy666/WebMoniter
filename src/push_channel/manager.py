@@ -16,7 +16,7 @@ def _truncate_content_to_bytes(content: str, max_bytes: int) -> str:
     encoded = content.encode("utf-8")
     if len(encoded) <= max_bytes:
         return content
-    ellipsis_bytes = len("……".encode("utf-8"))
+    ellipsis_bytes = len("……".encode())
     if max_bytes <= ellipsis_bytes:
         return content.encode("utf-8")[:max_bytes].decode("utf-8", errors="ignore")
     truncated = encoded[: max_bytes - ellipsis_bytes].decode("utf-8", errors="ignore")
@@ -185,9 +185,7 @@ class UnifiedPushManager:
             and event_data is not None
         )
         if use_personalize:
-            base_desc = (
-                description_func(self.push_channels[0]) if description_func else description
-            )
+            base_desc = description_func(self.push_channels[0]) if description_func else description
             personalized = await generate_push_content_with_llm(
                 event_type, event_data, title, base_desc
             )

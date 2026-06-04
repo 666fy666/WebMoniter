@@ -331,7 +331,9 @@ class AsyncDatabase:
                     if attempt < max_retries - 1:
                         _logger.warning(
                             "数据库锁定，重试 %d/%d (延迟 %.2f秒)",
-                            attempt + 1, max_retries, delay,
+                            attempt + 1,
+                            max_retries,
+                            delay,
                         )
                         await asyncio.sleep(delay)
                         delay *= 2
@@ -434,9 +436,7 @@ class AsyncDatabase:
         Returns:
             True 如果表为空，False 如果表有数据
         """
-        if not table_name or not all(
-            c.isalnum() or c == "_" for c in table_name
-        ):
+        if not table_name or not all(c.isalnum() or c == "_" for c in table_name):
             _logger.warning("is_table_empty: 非法表名 %r，视为空", table_name)
             return True
         try:

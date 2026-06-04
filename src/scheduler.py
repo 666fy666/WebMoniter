@@ -2,16 +2,19 @@
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 import threading
 from collections.abc import Callable
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.base import SchedulerNotRunningError
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from src.config import AppConfig, get_config
+from src.runtime import arm_shutdown_watchdog
 
 # 控制台日志分隔符：在「任务源」日志（监控/定时任务/主流程）与上一组推送之间插入，提升阅读体验
 _LOG_SEPARATOR = "─" * 60
@@ -90,6 +93,7 @@ class TaskScheduler:
         self.scheduler = AsyncIOScheduler()
         self.logger = logging.getLogger(self.__class__.__name__)
         self._shutdown_event = asyncio.Event()
+        self._shutdown_signal_count = 0
 
     def add_job(
         self,
@@ -309,14 +313,23 @@ class TaskScheduler:
         Args:
             wait: 是否等待正在执行的任务完成
         """
-        self.scheduler.shutdown(wait=wait)
-        self.logger.debug("调度器已关闭")
+        try:
+            self.scheduler.shutdown(wait=wait)
+            self.logger.debug("调度器已关闭")
+        except SchedulerNotRunningError:
+            self.logger.debug("调度器未运行，无需关闭")
 
     async def run_forever(self):
         """运行调度器直到收到停止信号"""
 
         def signal_handler(signum, frame):
-            self.logger.debug("收到信号 %s，准备关闭", signum)
+            self._shutdown_signal_count += 1
+            if self._shutdown_signal_count > 1:
+                self.logger.warning("再次收到停止信号，强制退出")
+                logging.shutdown()
+                os._exit(130)
+            arm_shutdown_watchdog()
+            self.logger.info("收到停止信号 %s，正在关闭；如需强制退出请再次按 Ctrl+C", signum)
             self._shutdown_event.set()
 
         # Windows平台不支持SIGTERM，需要检查平台
@@ -331,7 +344,7 @@ class TaskScheduler:
             # 等待关闭信号
             await self._shutdown_event.wait()
         finally:
-            self.shutdown(wait=True)
+            self.shutdown(wait=False)
 
 
 def setup_logging(log_level: str = "INFO", console_output: bool = None):

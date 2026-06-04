@@ -102,9 +102,7 @@ def _apply_config_patch(
     return _merge_and_dump_config(config_path, config_data)
 
 
-async def _validate_and_save_config(
-    yaml_content: str, config_path: Path
-) -> JSONResponse | None:
+async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:
     """
     验证 YAML 内容并保存到 config.yml。
 
@@ -147,4 +145,3 @@ async def _validate_and_save_config(
         pass
 
     return None
-

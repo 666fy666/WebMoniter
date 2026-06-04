@@ -100,10 +100,7 @@ def _prepare_doc_chunks() -> list[tuple[str, dict]]:
     返回 [(content, metadata), ...]，metadata 含 source, parent_id, chunk_id
     """
     chunks: list[tuple[str, dict]] = []
-    md_paths = [
-        p for p in DOCS_GLOB_ROOT.rglob("*.md")
-        if p.is_file() and ".git" not in str(p)
-    ]
+    md_paths = [p for p in DOCS_GLOB_ROOT.rglob("*.md") if p.is_file() and ".git" not in str(p)]
     for path in sorted(md_paths):
         try:
             text = path.read_text(encoding="utf-8")
@@ -120,25 +117,29 @@ def _prepare_doc_chunks() -> list[tuple[str, dict]]:
                     for j in range(0, len(part), size - overlap):
                         block = part[j : j + size].strip()
                         if block:
-                            chunks.append((
-                                block,
-                                {
-                                    "source": str(path),
-                                    "parent_id": parent_id,
-                                    "chunk_id": str(uuid.uuid4()),
-                                    "chunk_index": i,
-                                },
-                            ))
+                            chunks.append(
+                                (
+                                    block,
+                                    {
+                                        "source": str(path),
+                                        "parent_id": parent_id,
+                                        "chunk_id": str(uuid.uuid4()),
+                                        "chunk_index": i,
+                                    },
+                                )
+                            )
                 else:
-                    chunks.append((
-                        part,
-                        {
-                            "source": str(path),
-                            "parent_id": parent_id,
-                            "chunk_id": str(uuid.uuid4()),
-                            "chunk_index": i,
-                        },
-                    ))
+                    chunks.append(
+                        (
+                            part,
+                            {
+                                "source": str(path),
+                                "parent_id": parent_id,
+                                "chunk_id": str(uuid.uuid4()),
+                                "chunk_index": i,
+                            },
+                        )
+                    )
         except Exception as e:
             logger.debug("读取 %s 失败: %s", path, e)
     return chunks
@@ -228,7 +229,9 @@ def _rrf_merge(
     sorted_contents = sorted(rrf_scores.keys(), key=lambda x: -rrf_scores[x])[:top_k]
     out: list[tuple[str, dict]] = []
     for c in sorted_contents:
-        meta = content_to_meta.get(c, {"source": "", "parent_id": "", "chunk_id": "", "chunk_index": 0})
+        meta = content_to_meta.get(
+            c, {"source": "", "parent_id": "", "chunk_id": "", "chunk_index": 0}
+        )
         out.append((c, meta))
     return out
 
@@ -274,7 +277,9 @@ def _chroma_retrieve(query: str, chunks: list[tuple[str, str]], top_k: int) -> l
         ids = [f"c{i}" for i in range(len(chunks))]
         contents = [c[0] for c in chunks]
         collection.add(ids=ids, documents=contents)
-    results = collection.query(query_texts=[query], n_results=min(top_k * 2, max(collection.count(), 1)))
+    results = collection.query(
+        query_texts=[query], n_results=min(top_k * 2, max(collection.count(), 1))
+    )
     if results and results.get("documents") and results["documents"][0]:
         return results["documents"][0]
     return []
@@ -303,7 +308,9 @@ def retrieve_docs(
     if HAS_CHROMADB and use_hybrid and HAS_BM25:
         # 混合检索：Chroma + BM25 + RRF
         content_to_meta = {c: m for c, m in chunks_flat}
-        vector_results = _chroma_retrieve(query, [(c, m["source"]) for c, m in chunks_flat], top_k * 2)
+        vector_results = _chroma_retrieve(
+            query, [(c, m["source"]) for c, m in chunks_flat], top_k * 2
+        )
         bm25_results = _bm25_retrieve(query, chunks_flat, top_k * 2)
         merged = _rrf_merge(vector_results, bm25_results, content_to_meta, top_k * 2)
         if use_parent_dedup and merged:

@@ -8,6 +8,13 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
+from src.config_loader_specs import (
+    CONFIG_MAPPINGS,
+    MULTI_ACCOUNT_SPECS,
+    MULTI_STRING_SPECS,
+    STRING_FIELDS,
+)
+
 # 获取logger
 logger = logging.getLogger(__name__)
 
@@ -460,277 +467,14 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         if not yml_config:
             raise ValueError(f"配置文件 {yml_path} 为空")
 
-        # 将嵌套的YAML配置转换为扁平化格式
-        # 定义配置映射：{yaml_key: {field_mapping: {yaml_field: config_field}}}
-        config_mappings = {
-            "app": {
-                "base_url": "base_url",
-                "push_compress_with_llm": "push_compress_with_llm",
-                "push_personalize_with_llm": "push_personalize_with_llm",
-            },
-            "weibo": {
-                "enable": "weibo_enable",
-                "cookie": "weibo_cookie",
-                "uids": "weibo_uids",
-                "concurrency": "weibo_concurrency",
-                "monitor_interval_seconds": "weibo_monitor_interval_seconds",
-                "push_channels": "weibo_push_channels",
-            },
-            "huya": {
-                "enable": "huya_enable",
-                "rooms": "huya_rooms",
-                "concurrency": "huya_concurrency",
-                "monitor_interval_seconds": "huya_monitor_interval_seconds",
-                "push_channels": "huya_push_channels",
-            },
-            "bilibili": {
-                "enable": "bilibili_enable",
-                "cookie": "bilibili_cookie",
-                "payload": "bilibili_payload",
-                "uids": "bilibili_uids",
-                "skip_forward": "bilibili_skip_forward",
-                "concurrency": "bilibili_concurrency",
-                "monitor_interval_seconds": "bilibili_monitor_interval_seconds",
-                "push_channels": "bilibili_push_channels",
-            },
-            "douyin": {
-                "enable": "douyin_enable",
-                "douyin_ids": "douyin_douyin_ids",
-                "concurrency": "douyin_concurrency",
-                "monitor_interval_seconds": "douyin_monitor_interval_seconds",
-                "push_channels": "douyin_push_channels",
-            },
-            "douyu": {
-                "enable": "douyu_enable",
-                "rooms": "douyu_rooms",
-                "concurrency": "douyu_concurrency",
-                "monitor_interval_seconds": "douyu_monitor_interval_seconds",
-                "push_channels": "douyu_push_channels",
-            },
-            "xhs": {
-                "enable": "xhs_enable",
-                "cookie": "xhs_cookie",
-                "profile_ids": "xhs_profile_ids",
-                "concurrency": "xhs_concurrency",
-                "monitor_interval_seconds": "xhs_monitor_interval_seconds",
-                "push_channels": "xhs_push_channels",
-            },
-            "checkin": {
-                "enable": "checkin_enable",
-                "email": "checkin_email",
-                "password": "checkin_password",
-                "time": "checkin_time",
-                "push_channels": "checkin_push_channels",
-            },
-            "tieba": {
-                "enable": "tieba_enable",
-                "cookie": "tieba_cookie",
-                "time": "tieba_time",
-                "push_channels": "tieba_push_channels",
-            },
-            "weibo_chaohua": {
-                "enable": "weibo_chaohua_enable",
-                "cookie": "weibo_chaohua_cookie",
-                "time": "weibo_chaohua_time",
-                "push_channels": "weibo_chaohua_push_channels",
-            },
-            "rainyun": {
-                "enable": "rainyun_enable",
-                "time": "rainyun_time",
-                "push_channels": "rainyun_push_channels",
-            },
-            "enshan": {
-                "enable": "enshan_enable",
-                "cookie": "enshan_cookie",
-                "time": "enshan_time",
-                "push_channels": "enshan_push_channels",
-            },
-            "tyyun": {
-                "enable": "tyyun_enable",
-                "username": "tyyun_username",
-                "password": "tyyun_password",
-                "time": "tyyun_time",
-                "push_channels": "tyyun_push_channels",
-            },
-            "aliyun": {
-                "enable": "aliyun_enable",
-                "refresh_token": "aliyun_refresh_token",
-                "time": "aliyun_time",
-                "push_channels": "aliyun_push_channels",
-            },
-            "smzdm": {
-                "enable": "smzdm_enable",
-                "cookie": "smzdm_cookie",
-                "time": "smzdm_time",
-                "push_channels": "smzdm_push_channels",
-            },
-            "zdm_draw": {
-                "enable": "zdm_draw_enable",
-                "cookie": "zdm_draw_cookie",
-                "time": "zdm_draw_time",
-                "push_channels": "zdm_draw_push_channels",
-            },
-            "fg": {
-                "enable": "fg_enable",
-                "cookie": "fg_cookie",
-                "time": "fg_time",
-                "push_channels": "fg_push_channels",
-            },
-            "miui": {
-                "enable": "miui_enable",
-                "account": "miui_account",
-                "password": "miui_password",
-                "time": "miui_time",
-                "push_channels": "miui_push_channels",
-            },
-            "iqiyi": {
-                "enable": "iqiyi_enable",
-                "cookie": "iqiyi_cookie",
-                "time": "iqiyi_time",
-                "push_channels": "iqiyi_push_channels",
-            },
-            "lenovo": {
-                "enable": "lenovo_enable",
-                "access_token": "lenovo_access_token",
-                "time": "lenovo_time",
-                "push_channels": "lenovo_push_channels",
-            },
-            "lbly": {
-                "enable": "lbly_enable",
-                "request_body": "lbly_request_body",
-                "time": "lbly_time",
-                "push_channels": "lbly_push_channels",
-            },
-            "pinzan": {
-                "enable": "pinzan_enable",
-                "account": "pinzan_account",
-                "password": "pinzan_password",
-                "time": "pinzan_time",
-                "push_channels": "pinzan_push_channels",
-            },
-            "dml": {
-                "enable": "dml_enable",
-                "openid": "dml_openid",
-                "time": "dml_time",
-                "push_channels": "dml_push_channels",
-            },
-            "xiaomao": {
-                "enable": "xiaomao_enable",
-                "token": "xiaomao_token",
-                "mt_version": "xiaomao_mt_version",
-                "time": "xiaomao_time",
-                "push_channels": "xiaomao_push_channels",
-            },
-            "ydwx": {
-                "enable": "ydwx_enable",
-                "device_params": "ydwx_device_params",
-                "token": "ydwx_token",
-                "time": "ydwx_time",
-                "push_channels": "ydwx_push_channels",
-            },
-            "xingkong": {
-                "enable": "xingkong_enable",
-                "username": "xingkong_username",
-                "password": "xingkong_password",
-                "time": "xingkong_time",
-                "push_channels": "xingkong_push_channels",
-            },
-            "freenom": {
-                "enable": "freenom_enable",
-                "time": "freenom_time",
-                "push_channels": "freenom_push_channels",
-            },
-            "weather": {
-                "enable": "weather_enable",
-                "city_code": "weather_city_code",
-                "time": "weather_time",
-                "push_channels": "weather_push_channels",
-            },
-            "qtw": {
-                "enable": "qtw_enable",
-                "cookie": "qtw_cookie",
-                "time": "qtw_time",
-                "push_channels": "qtw_push_channels",
-            },
-            "kuake": {
-                "enable": "kuake_enable",
-                "cookie": "kuake_cookie",
-                "time": "kuake_time",
-                "push_channels": "kuake_push_channels",
-            },
-            "kjwj": {
-                "enable": "kjwj_enable",
-                "time": "kjwj_time",
-                "push_channels": "kjwj_push_channels",
-            },
-            "fr": {
-                "enable": "fr_enable",
-                "cookie": "fr_cookie",
-                "time": "fr_time",
-                "push_channels": "fr_push_channels",
-            },
-            "nine_nine_nine": {
-                "enable": "nine_nine_nine_enable",
-                "time": "nine_nine_nine_time",
-                "push_channels": "nine_nine_nine_push_channels",
-            },
-            "zgfc": {
-                "enable": "zgfc_enable",
-                "time": "zgfc_time",
-                "push_channels": "zgfc_push_channels",
-            },
-            "ssq_500w": {
-                "enable": "ssq_500w_enable",
-                "time": "ssq_500w_time",
-                "push_channels": "ssq_500w_push_channels",
-            },
-            "log_cleanup": {
-                "enable": "log_cleanup_enable",
-                "time": "log_cleanup_time",
-                "retention_days": "retention_days",
-            },
-            "quiet_hours": {
-                "enable": "quiet_hours_enable",
-                "start": "quiet_hours_start",
-                "end": "quiet_hours_end",
-            },
-        }
-
-        # 通用配置映射处理
-        # 需要将 None 转换为空字符串的字段（Pydantic 期望 str 类型）
-        # 注意：YAML 中类似 `account:`、`access_token:` 这类写法会被解析为 None，
-        # 如果不在此列表中转换为 ""，会导致 AppConfig 校验时报 "Input should be a valid string"。
-        string_fields = {
-            "cookie",
-            "api_key",
-            "uids",
-            "rooms",
-            "douyin_ids",
-            "profile_ids",
-            "payload",
-            "email",
-            "password",
-            "time",
-            "start",
-            "end",
-            "username",
-            "refresh_token",
-            "token",
-            "mt_version",
-            "device_params",
-            "account",
-            "access_token",
-            "request_body",
-            "openid",
-        }
-
-        for section_key, field_mapping in config_mappings.items():
+        # Convert nested YAML sections into AppConfig flat fields.
+        for section_key, field_mapping in CONFIG_MAPPINGS.items():
             if section_key in yml_config:
                 section = yml_config[section_key]
                 for yaml_field, config_field in field_mapping.items():
                     if yaml_field in section:
                         value = section[yaml_field]
-                        if yaml_field in string_fields and value is None:
+                        if yaml_field in STRING_FIELDS and value is None:
                             value = ""
                         if yaml_field == "push_channels":
                             if value is None:
@@ -744,36 +488,19 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                                 value = str(value) if value is not None else ""
                         config_dict[config_field] = value
 
-        # ── 多账号（dict 列表）配置：统一使用 _parse_multi_accounts ──
-        _parse_multi_accounts(yml_config, "checkin", ["email", "password"], "checkin_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "rainyun", ["username", "password", "api_key"], "rainyun_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "tyyun", ["username", "password"], "tyyun_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "miui", ["account", "password"], "miui_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "pinzan", ["account", "password"], "pinzan_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "ydwx", ["device_params", "token"], "ydwx_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "xingkong", ["username", "password"], "xingkong_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "kjwj", ["username", "password"], "kjwj_accounts", config_dict)
-        _parse_multi_accounts(yml_config, "freenom", ["email", "password"], "freenom_accounts", config_dict)
+        # Multi-account sections.
+        for spec in MULTI_ACCOUNT_SPECS:
+            _parse_multi_accounts(
+                yml_config, spec.section_key, list(spec.fields), spec.config_key, config_dict
+            )
 
-        # ── 多 Cookie / Token / 字符串列表配置：统一使用 _parse_multi_strings ──
-        _parse_multi_strings(yml_config, "tieba", "cookies", "tieba_cookies", config_dict)
-        _parse_multi_strings(yml_config, "weibo_chaohua", "cookies", "weibo_chaohua_cookies", config_dict)
-        _parse_multi_strings(yml_config, "enshan", "cookies", "enshan_cookies", config_dict)
-        _parse_multi_strings(yml_config, "smzdm", "cookies", "smzdm_cookies", config_dict)
-        _parse_multi_strings(yml_config, "zdm_draw", "cookies", "zdm_draw_cookies", config_dict)
-        _parse_multi_strings(yml_config, "fg", "cookies", "fg_cookies", config_dict)
-        _parse_multi_strings(yml_config, "iqiyi", "cookies", "iqiyi_cookies", config_dict)
-        _parse_multi_strings(yml_config, "qtw", "cookies", "qtw_cookies", config_dict)
-        _parse_multi_strings(yml_config, "kuake", "cookies", "kuake_cookies", config_dict)
-        _parse_multi_strings(yml_config, "aliyun", "refresh_tokens", "aliyun_refresh_tokens", config_dict)
-        _parse_multi_strings(yml_config, "lenovo", "access_tokens", "lenovo_access_tokens", config_dict)
-        _parse_multi_strings(yml_config, "lbly", "request_bodies", "lbly_request_bodies", config_dict)
-        _parse_multi_strings(yml_config, "dml", "openids", "dml_openids", config_dict)
-        _parse_multi_strings(yml_config, "xiaomao", "tokens", "xiaomao_tokens", config_dict)
-        _parse_multi_strings(yml_config, "nine_nine_nine", "tokens", "nine_nine_nine_tokens", config_dict)
-        _parse_multi_strings(yml_config, "zgfc", "tokens", "zgfc_tokens", config_dict)
+        # Multi-cookie / token / string-list sections.
+        for spec in MULTI_STRING_SPECS:
+            _parse_multi_strings(
+                yml_config, spec.section_key, spec.yaml_key, spec.config_key, config_dict
+            )
 
-        # ── 雨云特殊续费配置（账号部分已由上方 _parse_multi_accounts 处理） ──
+        # Rainyun renewal options (accounts are handled by the specs above).
         rainyun = yml_config.get("rainyun") or {}
         if "auto_renew" in rainyun:
             config_dict["rainyun_auto_renew"] = bool(rainyun["auto_renew"])
@@ -806,16 +533,12 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # 推送通道配置（直接复制，需确保为 list 类型）
         if "push_channel" in yml_config:
             push_ch = yml_config["push_channel"]
-            config_dict["push_channel_list"] = (
-                push_ch if isinstance(push_ch, list) else []
-            )
+            config_dict["push_channel_list"] = push_ch if isinstance(push_ch, list) else []
 
         # 插件/扩展任务配置（直接复制，需确保为 dict 类型）
         if "plugins" in yml_config:
             plugins_val = yml_config["plugins"]
-            config_dict["plugins"] = (
-                plugins_val if isinstance(plugins_val, dict) else {}
-            )
+            config_dict["plugins"] = plugins_val if isinstance(plugins_val, dict) else {}
 
         logger.debug("成功从 %s 加载配置", yml_path)
         return config_dict

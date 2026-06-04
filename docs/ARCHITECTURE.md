@@ -161,20 +161,22 @@ async def main():
 
 ---
 
-### 2. src/config.py - 配置管理模块
+### 2. src/config.py / src/config_loader_specs.py - 配置管理模块
 
-**职责**：配置文件的加载、解析和验证
+**职责**：配置文件的加载、解析、验证与 YAML 映射规格管理
 
 **核心类**：
 - `AppConfig`：配置数据模型（基于 Pydantic）
 - `WeiboConfig`：微博配置子模型
 - `HuyaConfig`：虎牙配置子模型
+- `CONFIG_MAPPINGS`：`config.yml` 节点到 `AppConfig` 扁平字段的映射规格
+- `MULTI_ACCOUNT_SPECS` / `MULTI_STRING_SPECS`：多账号、多 Cookie/Token 字段解析规格
 
 **关键功能**：
 - 从YAML文件加载配置
 - 配置缓存机制（避免重复读取）
 - 配置验证（Pydantic模型验证）
-- 扁平化配置映射（YAML嵌套 → 扁平字段）
+- 扁平化配置映射（YAML嵌套 → 扁平字段，规格集中在 `src/config_loader_specs.py`）
 
 **配置结构**：
 ```python
@@ -206,9 +208,10 @@ class AppConfig(BaseModel):
 
 **配置加载流程**：
 1. `load_config_from_yml()` 读取YAML文件
-2. 将嵌套结构转换为扁平结构
-3. 创建 `AppConfig` 实例（Pydantic验证）
-4. 缓存配置实例（`_config_cache`）
+2. 按 `CONFIG_MAPPINGS` 将嵌套结构转换为扁平结构
+3. 按 `MULTI_ACCOUNT_SPECS` / `MULTI_STRING_SPECS` 解析多账号与多字符串字段
+4. 创建 `AppConfig` 实例（Pydantic验证）
+5. 缓存配置实例（`_config_cache`）
 
 ---
 
@@ -271,7 +274,7 @@ class BaseMonitor(ABC):
 - 添加间隔任务（`add_interval_job`）
 - 添加Cron任务（`add_cron_job`）
 - 更新任务参数（热重载支持）
-- 优雅关闭（信号处理）
+- 优雅关闭（信号处理）：Ctrl+C 后停止调度器接收新任务，不无限等待正在执行的同步任务；第二次 Ctrl+C 强制退出
 
 **任务类型**：
 - **间隔任务**：使用 `IntervalTrigger`，按固定间隔执行
@@ -283,9 +286,18 @@ class BaseMonitor(ABC):
 - `update_interval_job()`：更新间隔任务的间隔时间
 - `update_cron_job()`：更新Cron任务的执行时间
 
+### 5. src/runtime.py - 运行时与退出兜底
+
+**职责**：统一运行 asyncio 主协程，并处理 Ctrl+C 时的退出兜底。
+
+**关键功能**：
+- 使用带 daemon worker 的默认线程池，避免 `asyncio.to_thread()` 中的同步网络/Selenium 任务拖住进程。
+- 关闭时取消未完成异步任务，并给默认线程池一个短超时。
+- 收到 Ctrl+C 后启动 watchdog；若清理流程卡住，会在兜底时间后强制退出。
+
 ---
 
-### 5. src/database.py - 数据库模块
+### 6. src/database.py - 数据库模块
 
 **职责**：异步SQLite数据库操作
 
@@ -328,7 +340,7 @@ CREATE TABLE huya (
 
 ---
 
-### 6. src/job_registry.py - 任务注册表
+### 7. src/job_registry.py - 任务注册表
 
 **职责**：统一管理监控和定时任务的注册
 
@@ -374,7 +386,7 @@ register_monitor(
 
 ---
 
-### 7. src/config_db_sync.py - 配置与数据库同步
+### 8. src/config_db_sync.py - 配置与数据库同步
 
 **职责**：在配置热重载时，删除配置中已移除的 uid/room 对应的数据库记录，保持配置与数据库一致。
 
@@ -385,7 +397,7 @@ register_monitor(
 
 ---
 
-### 8. src/config_watcher.py - 配置监控器
+### 9. src/config_watcher.py - 配置监控器
 
 **职责**：监控配置文件变化并触发热重载
 
@@ -412,7 +424,7 @@ register_monitor(
 
 ---
 
-### 9. src/cookie_cache.py - Cookie缓存管理
+### 10. src/cookie_cache.py - Cookie缓存管理
 
 **职责**：管理各平台Cookie的过期状态
 
@@ -452,7 +464,7 @@ register_monitor(
 
 ---
 
-### 10. src/push_channel/ - 推送通道模块
+### 11. src/push_channel/ - 推送通道模块
 
 **职责**：统一管理多种推送通道
 
@@ -500,9 +512,9 @@ def get_push_channel(config: dict, session) -> PushChannel:
 
 ---
 
-### 11. src/web_server.py - Web服务器
+### 12. src/web_server.py 与 Web 辅助模块 - Web服务器
 
-**职责**：提供Web管理界面和API接口
+**职责**：提供 Web 管理界面和 API 接口。`src/web_server.py` 保留 FastAPI 路由和请求编排，通用逻辑拆到小模块以便维护。
 
 **技术栈**：
 - FastAPI：Web框架
@@ -514,6 +526,13 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - **数据查看**：查看监控数据（分页、过滤）
 - **日志查看**：查看系统日志
 - **API接口**：RESTful API供外部调用
+- **AI 助手入口**：Web 对话、SSE 流式对话、企业微信/Telegram Webhook
+
+**辅助模块**：
+- `src/web_auth.py`：登录会话、认证文件读写、密码哈希
+- `src/web_config_io.py`：配置合并、配置保存前校验、AI 配置补丁、热重载触发
+- `src/web_data.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换
+- `src/job_metadata.py`：任务 ID 到展示文案的映射
 
 **页面路由**：
 - `/`：首页（已登录则配置页，未登录则登录页）
@@ -546,7 +565,7 @@ def get_push_channel(config: dict, session) -> PushChannel:
 
 ---
 
-### 12. src/log_manager.py - 日志管理
+### 13. src/log_manager.py - 日志管理
 
 **职责**：统一管理日志文件
 
@@ -581,7 +600,7 @@ logs/
 
 ---
 
-### 13. src/ai_assistant/ - AI 助手模块
+### 14. src/ai_assistant/ - AI 助手模块
 
 **职责**：基于 RAG（检索增强生成）+ LLM 提供智能对话能力，支持配置生成、日志诊断、数据洞察及可执行操作。
 
@@ -611,7 +630,7 @@ logs/
 
 ---
 
-### 14. src/version.py - 版本信息模块
+### 15. src/version.py - 版本信息模块
 
 **职责**：管理应用版本信息，支持版本更新检测
 
@@ -782,9 +801,9 @@ class AppConfig(BaseModel):
     # 其他配置...
 ```
 
-4. **在 `config.py` 中添加配置映射**
+4. **在 `config_loader_specs.py` 中添加配置映射**
 ```python
-config_mappings = {
+CONFIG_MAPPINGS = {
     "new_platform": {
         "interval_seconds": "new_platform_interval_seconds",
     },
@@ -909,6 +928,7 @@ WebMoniter/
 ├── src/                    # 核心源代码
 │   ├── __init__.py
 │   ├── config.py           # 配置管理
+│   ├── config_loader_specs.py  # YAML 到 AppConfig 的映射规格
 │   ├── config_db_sync.py   # 配置与数据库同步（热重载时删除已移除的 uid/room）
 │   ├── config_watcher.py   # 配置监控（热重载，默认 5 秒轮询）
 │   ├── ai_assistant/       # AI 助手（RAG + LLM）
@@ -929,15 +949,20 @@ WebMoniter/
 │   │       └── telegram.py # Telegram
 │   ├── cookie_cache.py    # Cookie缓存管理
 │   ├── database.py         # 数据库操作
+│   ├── job_metadata.py     # 任务展示文案
 │   ├── job_registry.py     # 任务注册表
 │   ├── ql_compat.py        # 青龙面板兼容（环境变量配置、QLAPI）
 │   ├── log_manager.py      # 日志管理
 │   ├── monitor.py          # 监控基类
+│   ├── runtime.py          # asyncio 运行与 Ctrl+C 退出兜底
 │   ├── scheduler.py        # 任务调度器
 │   ├── task_tracker.py     # 任务运行追踪（当天已运行则跳过）
 │   ├── utils.py            # 工具函数
 │   ├── version.py          # 版本信息管理
-│   ├── web_server.py       # Web服务器
+│   ├── web_auth.py         # Web 登录与认证
+│   ├── web_config_io.py    # Web 配置读写与校验
+│   ├── web_data.py         # Web 数据 API 元数据与行转换
+│   ├── web_server.py       # Web 路由入口
 │   │
 │   └── push_channel/       # 推送通道模块
 │       ├── __init__.py
@@ -1145,9 +1170,10 @@ push_channel:
 ### 配置加载流程
 
 1. **读取YAML文件**：`load_config_from_yml()`
-2. **扁平化转换**：嵌套结构 → 扁平字段
-3. **Pydantic验证**：创建 `AppConfig` 实例
-4. **缓存配置**：避免重复读取
+2. **扁平化转换**：按 `src/config_loader_specs.py` 的 `CONFIG_MAPPINGS` 将嵌套结构转为扁平字段
+3. **列表规格解析**：按 `MULTI_ACCOUNT_SPECS` / `MULTI_STRING_SPECS` 解析多账号、多 Cookie/Token
+4. **Pydantic验证**：创建 `AppConfig` 实例
+5. **缓存配置**：避免重复读取
 
 ### 配置热重载
 

@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import secrets
 import time
 from datetime import datetime
@@ -19,13 +18,13 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.config import get_config
 from src.database import AsyncDatabase
+from src.job_metadata import get_job_description as _get_job_description
 from src.job_registry import (
     MONITOR_JOBS,
     TASK_JOBS,
     discover_and_import,
     run_task_with_logging,
 )
-from src.job_metadata import get_job_description as _get_job_description
 from src.web_auth import (
     active_sessions,
     check_login,
@@ -42,12 +41,12 @@ from src.web_config_io import (
     _validate_and_save_config,
 )
 from src.web_data import (
-    PLATFORM_CONFIG,
-    PLATFORM_PRIMARY_KEY,
-    VALID_PLATFORMS,
     _PLATFORM_LIST_SQL,
     _PLATFORM_LIST_SQL_HUYA_BASIC,
     _PLATFORM_SELECT,
+    PLATFORM_CONFIG,
+    PLATFORM_PRIMARY_KEY,
+    VALID_PLATFORMS,
     _parse_weibo_created_at,
     _row_to_item,
 )
@@ -75,6 +74,7 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 WEIBO_IMG_DIR = Path("data/weibo")
 WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/weibo_img", StaticFiles(directory=str(WEIBO_IMG_DIR)), name="weibo_img")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -639,6 +639,7 @@ async def get_table_data(
         data = [_row_to_item(platform, row) for row in rows]
 
         if platform == "weibo" and data:
+
             def sort_key(item: dict):
                 dt = _parse_weibo_created_at(item.get("文本"))
                 if dt is None:

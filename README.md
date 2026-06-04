@@ -6,146 +6,160 @@
 
 <sub>监控 · 签到 · 开播提醒 · 推送 · 定时任务 · 配置热重载</sub>
 
-<br/>
-
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Docker](https://img.shields.io/badge/docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
-[![APScheduler](https://img.shields.io/badge/scheduler-APScheduler-red?style=flat-square)](https://apscheduler.readthedocs.io/)
-[![uv](https://img.shields.io/badge/uv-FFD43B?style=flat-square&logo=python&logoColor=3776AB)](https://github.com/astral-sh/uv)
-[![docs](https://img.shields.io/badge/docs-MkDocs%20Material-1997B5?style=flat-square&logo=readme&logoColor=white)](https://666fy666.github.io/WebMoniter/)
-
-[![GitHub Stars](https://img.shields.io/github/stars/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
-[![GitHub Forks](https://img.shields.io/github/forks/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![APScheduler](https://img.shields.io/badge/APScheduler-scheduler-blueviolet?style=flat-square)](https://apscheduler.readthedocs.io/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?style=flat-square)](https://docs.astral.sh/uv/)
+[![docs](https://img.shields.io/badge/docs-online-1997B5?style=flat-square&logo=readme&logoColor=white)](https://666fy666.github.io/WebMoniter/)
+[![GitHub Stars](https://img.shields.io/github/stars/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter/forks)
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/666fy666/WebMoniter?style=flat-square&logo=github)](https://github.com/666fy666/WebMoniter/commits/main)
-[![Docker Pulls](https://img.shields.io/docker/pulls/fengyu666/webmoniter?style=flat-square)](https://hub.docker.com/r/fengyu666/webmoniter)
-[![Docker Image Version](https://img.shields.io/docker/v/fengyu666/webmoniter/latest?style=flat-square&logo=docker&sort=semver)](https://hub.docker.com/r/fengyu666/webmoniter)
-[![Docker Image Size (latest)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/latest?style=flat-square&logo=docker&label=size%20(latest))](https://hub.docker.com/r/fengyu666/webmoniter/tags)
-[![Docker Image Size (full)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/full?style=flat-square&logo=docker&label=size%20(full))](https://hub.docker.com/r/fengyu666/webmoniter/tags)
+[![Docker Pulls](https://img.shields.io/docker/pulls/fengyu666/webmoniter?style=flat-square&logo=docker)](https://hub.docker.com/r/fengyu666/webmoniter)
+[![Docker Image Version](https://img.shields.io/docker/v/fengyu666/webmoniter/latest?style=flat-square&logo=docker&label=latest)](https://hub.docker.com/r/fengyu666/webmoniter/tags)
+[![Docker Image Size (latest)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/latest?style=flat-square&logo=docker&label=latest%20size)](https://hub.docker.com/r/fengyu666/webmoniter/tags)
+[![Docker Image Size (full)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/full?style=flat-square&logo=docker&label=full%20size)](https://hub.docker.com/r/fengyu666/webmoniter/tags)
 [![GitHub Release](https://img.shields.io/github/v/release/666fy666/WebMoniter?style=flat-square&logo=github&label=EXE)](https://github.com/666fy666/WebMoniter/releases/latest)
 
----
-
-**Web 任务系统**：多平台监控（虎牙/微博/B站/抖音/斗鱼/小红书）+ 30+ 定时签到（iKuuu、贴吧、雨云、阿里云盘等）+ 15+ 推送通道（企业微信、钉钉、飞书、Telegram 等）。配置热重载，AI 助手（RAG+LLM）支持问答、配置生成、日志诊断，可在 Web/企业微信/Telegram 对话。
-
----
-
-[🚀 快速开始](#-快速开始) · [🐳 Docker](#-docker-部署推荐) · [💻 Windows](#-windows-部署) · [🐉 青龙](#-青龙面板部署) ·
-[🌐 Web 管理](#-web-管理界面) · [🤖 AI 助手](docs/guides/ai-assistant.md) · [⚙️ 配置](#️-配置说明)
-
-[📚 文档站](https://666fy666.github.io/WebMoniter/) · [📡 API](docs/API.md) · [🏗️ 架构](docs/ARCHITECTURE.md) · [🛠 二次开发](docs/SECONDARY_DEVELOPMENT.md)
-
----
+[文档站](https://666fy666.github.io/WebMoniter/) ·
+[安装](docs/installation.md) ·
+[配置](docs/guides/config.md) ·
+[API](docs/API.md) ·
+[二次开发](docs/SECONDARY_DEVELOPMENT.md) ·
+[Releases](https://github.com/666fy666/WebMoniter/releases/latest)
 
 **代码仓库**：[GitHub](https://github.com/666fy666/WebMoniter) · [GitCode](https://gitcode.com/qq_35720175/WebMoniter)
 
 </div>
 
-<br/>
+---
 
-## 📋 目录
+## 简介
 
-[支持的平台](#-支持的平台和推送通道) · [快速开始](#-快速开始) · [AI 助手](#-ai-助手) · [配置](#️-配置说明) · [API](#-api-调用) ·
-[常见问题](#-常见问题) · [参考与致谢](#-参考与致谢) · [许可证](#-许可证) · [Contributors](#contributors) · [Star History](#star-history)
+WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，用于统一管理：
 
-<br/>
+- 平台监控：虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书。
+- 定时任务：iKuuu、贴吧、微博超话、雨云、阿里云盘、什么值得买、Freenom、天气推送等 30+ 签到/提醒任务。
+- 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 15+ 通道。
+- Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理。
+- AI 助手：RAG + LLM，支持配置生成、日志诊断、数据查询和确认后执行操作。
+
+配置支持热重载，修改 `config.yml` 后通常约 5 秒内生效。
 
 ---
 
-## 📊 支持的平台和推送通道
+## 界面预览
 
-**监控**：虎牙 / 微博 / 哔哩哔哩 / 抖音 / 斗鱼 / 小红书（支持 `enable` 开关，热重载生效）。  
-**定时任务**：30+（iKuuu、贴吧、雨云、阿里云盘、什么值得买、Freenom、天气推送等），启动时执行一次、按 `time` 每日定点、当天已运行则跳过（Web 手动触发可强制执行）。  
-**推送**：15+ 通道（企业微信/钉钉/飞书/Telegram/Bark/邮件等）；`app.push_compress_with_llm` 可超限时 LLM 压缩，`app.push_personalize_with_llm` 可个性化标题与内容。
+| 配置管理 | 任务管理 |
+|:--:|:--:|
+| ![配置管理](web/static/配置管理.png) | ![任务管理](web/static/任务管理.png) |
+
+更多截图与功能说明见 [文档首页](docs/index.md) 和 [Web 管理界面](docs/guides/web-ui.md)。
 
 <details>
-<summary><strong>📋 展开：监控类型表 / 定时任务列表 / 推送通道表</strong></summary>
+<summary><strong>展开更多项目展示</strong></summary>
 
-### 监控
+### 支持平台
 
-| 平台     | type     | 动态 | 开播/下播 |
-|:--------:|:--------:|:----:|:--------:|
-| 虎牙     | huya     | ❌   | ✅       |
-| 微博     | weibo    | ✅   | ❌       |
-| 哔哩哔哩 | bilibili | ✅   | ✅       |
-| 抖音     | douyin   | ❌   | ✅       |
-| 斗鱼     | douyu    | ❌   | ✅       |
-| 小红书   | xhs      | ✅   | ❌       |
+| 平台 | type | 动态 | 开播/下播 |
+|:--:|:--:|:--:|:--:|
+| 虎牙 | `huya` | 否 | 是 |
+| 微博 | `weibo` | 是 | 否 |
+| 哔哩哔哩 | `bilibili` | 是 | 是 |
+| 抖音 | `douyin` | 否 | 是 |
+| 斗鱼 | `douyu` | 否 | 是 |
+| 小红书 | `xhs` | 是 | 否 |
 
-### 定时任务（节选）
+### 定时任务节选
 
-| 任务       | 配置节点      | 时间  |
-|:----------:|:-------------:|:-----:|
-| 日志清理   | log_cleanup   | 02:10 |
-| iKuuu 签到 | checkin       | 08:00 |
-| 雨云签到   | rainyun       | 08:30 |
-| 贴吧签到   | tieba         | 08:10 |
-| 微博超话   | weibo_chaohua | 23:45 |
-| 阿里云盘   | aliyun        | 05:30 |
-| 天气推送   | weather       | 07:30 |
-| …          | …             | …     |
+| 任务 | 配置节点 | 默认时间 |
+|:--:|:--:|:--:|
+| 日志清理 | `log_cleanup` | 02:10 |
+| iKuuu 签到 | `checkin` | 08:00 |
+| 雨云签到 | `rainyun` | 08:30 |
+| 贴吧签到 | `tieba` | 08:10 |
+| 微博超话 | `weibo_chaohua` | 23:45 |
+| 阿里云盘 | `aliyun` | 05:30 |
+| 天气推送 | `weather` | 07:30 |
 
-部分签到逻辑参考 [only_for_happly](https://github.com/wd210010/only_for_happly)，主包未单独维护，接口变更可能导致失效。雨云签到依赖已放入可选组 **`rainyun`**（本地：`uv sync --locked --extra rainyun`；Docker 用 **`full` 镜像**）。cv2 异常可试 `uv pip install --force-reinstall opencv-python-headless`。
+### 推送通道节选
 
-### 推送通道（节选）
+| 通道 | type | 图文 |
+|:--:|:--:|:--:|
+| 企业微信群机器人 | `wecom_bot` | 是 |
+| 钉钉机器人 | `dingtalk_bot` | 是 |
+| 飞书机器人 | `feishu_bot` | 否 |
+| Telegram | `telegram_bot` | 是 |
+| WxPusher | `wxpusher` | 是 |
+| Bark | `bark` | 否 |
+| PushPlus | `pushplus` | 是 |
 
-| 通道             | type          | 图 |
-|:----------------:|:-------------:|:--:|
-| 企业微信群机器人 | wecom_bot     | ✅ |
-| 钉钉机器人       | dingtalk_bot  | ✅ |
-| 飞书机器人       | feishu_bot    | ❌ |
-| Telegram         | telegram_bot  | ✅ |
-| WxPusher         | wxpusher      | ✅ |
-| Bark             | bark          | ❌ |
-| PushPlus         | pushplus      | ✅ |
-| …                | …             | …  |
+### 更多界面截图
+
+| 密码修改 | 数据展示 | 日志查看 |
+|:--:|:--:|:--:|
+| ![密码修改](web/static/密码修改.png) | ![数据展示](web/static/数据展示.png) | ![日志查看](web/static/日志查看.png) |
+
+### AI 助手展示
+
+| 功能介绍 | 修改配置 | 执行任务 | 查询数据 |
+|:--:|:--:|:--:|:--:|
+| ![AI 助手功能介绍](web/static/AI助手功能介绍.png) | ![AI 助手修改配置](web/static/AI助手修改配置.png) | ![AI 助手执行任务](web/static/AI助手执行任务.png) | ![AI 助手查询数据](web/static/AI助手查询数据.png) |
+
+| 企业微信后台 | 查询示例 1 | 查询示例 2 | 查询示例 3 |
+|:--:|:--:|:--:|:--:|
+| ![企业微信后台介绍](web/static/企业微信后台介绍.jpg) | ![企业微信查询数据 1](web/static/企业微信查询数据1.jpg) | ![企业微信查询数据 2](web/static/企业微信查询数据2.jpg) | ![企业微信查询数据 3](web/static/企业微信查询数据3.jpg) |
 
 </details>
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
-### 🐳 Docker 部署（推荐）
+### Docker
 
-> **要求**：Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。镜像仓库：[fengyu666/webmoniter](https://hub.docker.com/r/fengyu666/webmoniter)。
+精简镜像 `latest` 适合大多数监控和 HTTP 签到任务；完整镜像 `full` 额外包含 Chromium/Chromedriver 与雨云浏览器签到依赖。
 
-仓库提供两种镜像：**精简**（`latest` 及 `2.x.x` 等版本号标签，体积小，无 Chromium）与 **完整**（`full` 及 `2.x.x-full` 等，含 Chromium + 雨云签到依赖）。除 **雨云浏览器签到** 外，一般用精简即可；`rainyun.enable: true` 时必须用完整镜像。
-
----
-
-#### 1）精简镜像：拉取并启动
-
-**说明**：无系统浏览器与雨云相关 Python 包；若误开雨云签到，日志会出现「导入任务模块 tasks.rainyun_checkin 失败」，请改用下面的完整镜像。
-
-**方式 A：Compose（推荐，使用 [`docker/docker-compose.yml`](docker/docker-compose.yml)，须在克隆后的仓库根目录执行）**
+**Compose 启动（推荐）**
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 cp config/config.yml.sample config.yml
-# 编辑 config.yml 后执行：
+
+# 精简镜像：启动
 docker compose -f docker/docker-compose.yml pull
 docker compose -f docker/docker-compose.yml up -d
+
+# 精简镜像：查看、停止、再次启动、重启、删除容器/网络
+docker compose -f docker/docker-compose.yml logs -f
+docker compose -f docker/docker-compose.yml stop
+docker compose -f docker/docker-compose.yml start
+docker compose -f docker/docker-compose.yml restart
+docker compose -f docker/docker-compose.yml down
 ```
 
-- 关闭并移除容器（保留数据）：
-  ```bash
-  docker compose -f docker/docker-compose.yml down
-  ```
-- 仅关闭服务（不删除容器）：
-  ```bash
-  docker compose -f docker/docker-compose.yml stop
-  ```
+访问 `http://localhost:8866`，默认账号 `admin` / `123`。首次登录后请修改密码。
 
-**方式 B：只拉镜像 + `docker run`（不克隆仓库时）**
-
-在放有 `config.yml` 的目录下执行（需先创建 `data`、`logs` 目录）：
+雨云浏览器签到请使用完整镜像：
 
 ```bash
+docker compose -f docker/docker-compose.full.yml pull
+docker compose -f docker/docker-compose.full.yml up -d
+
+docker compose -f docker/docker-compose.full.yml logs -f
+docker compose -f docker/docker-compose.full.yml stop
+docker compose -f docker/docker-compose.full.yml start
+docker compose -f docker/docker-compose.full.yml restart
+docker compose -f docker/docker-compose.full.yml down
+```
+
+**单容器启动**
+
+```bash
+# 精简镜像
 docker pull fengyu666/webmoniter:latest
-mkdir -p data logs
 docker run -d --name webmoniter --restart unless-stopped \
   -p 8866:8866 --shm-size=128m \
   -e TZ=Asia/Shanghai \
@@ -153,47 +167,17 @@ docker run -d --name webmoniter --restart unless-stopped \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/logs:/app/logs" \
   fengyu666/webmoniter:latest
-```
 
-- 停止并删除容器（保留数据目录）：
-  ```bash
-  docker stop webmoniter && docker rm webmoniter
-  ```
+docker stop webmoniter
+docker start webmoniter
+docker restart webmoniter
+# 删除容器；容器运行中可改用 docker rm -f webmoniter
+docker rm webmoniter
+docker image rm fengyu666/webmoniter:latest
 
-Windows PowerShell 可将 `$(pwd)` 改为 `$PWD` 或使用绝对路径。
-
----
-
-#### 2）完整镜像：拉取并启动（雨云签到）
-
-**说明**：镜像内已含 Chromium / Chromedriver 与 `rainyun` 依赖；`config.yml` 中配置 `rainyun.enable: true` 与 `accounts` 即可。
-
-**方式 A：Compose（使用 [`docker/docker-compose.full.yml`](docker/docker-compose.full.yml)，须在仓库根目录执行）**
-
-```bash
-git clone https://github.com/666fy666/WebMoniter.git
-cd WebMoniter
-cp config/config.yml.sample config.yml
-# 编辑 config.yml 后执行：
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-```
-
-- 关闭并移除容器（保留数据）：
-  ```bash
-  docker compose -f docker/docker-compose.full.yml down
-  ```
-- 仅关闭服务（不删除容器）：
-  ```bash
-  docker compose -f docker/docker-compose.full.yml stop
-  ```
-
-**方式 B：只拉镜像 + `docker run`**
-
-```bash
+# 完整镜像
 docker pull fengyu666/webmoniter:full
-mkdir -p data logs
-docker run -d --name webmoniter --restart unless-stopped \
+docker run -d --name webmoniter-full --restart unless-stopped \
   -p 8866:8866 --shm-size=256m \
   -e TZ=Asia/Shanghai \
   -e CHROME_BIN=/usr/bin/chromium \
@@ -202,214 +186,131 @@ docker run -d --name webmoniter --restart unless-stopped \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/logs:/app/logs" \
   fengyu666/webmoniter:full
+
+docker stop webmoniter-full
+docker start webmoniter-full
+docker restart webmoniter-full
+# 删除容器；容器运行中可改用 docker rm -f webmoniter-full
+docker rm webmoniter-full
+docker image rm fengyu666/webmoniter:full
 ```
 
----
+Windows PowerShell 如遇挂载路径问题，可把 `$(pwd)` 改成当前目录的绝对路径。更多端口、挂载、更新与数据保留说明见 [安装与运行](docs/installation.md) 和 [docker/README.md](docker/README.md)。
 
-启动后访问 **`http://localhost:8866`**，默认账号 **`admin` / `123`**。配置热重载约 5 秒；`data/`、`logs/` 建议挂载以持久化。改端口：Compose 里改 `ports`，`docker run` 里改 `-p`。本地构建：`docker build -f docker/Dockerfile .`（精简）与 `docker build -f docker/Dockerfile.full .`（完整）。编排说明见 [`docker/README.md`](docker/README.md)。
-
----
-
-<span id="-windows-部署"></span>
-<details>
-<summary><strong>💻 Windows 部署</strong></summary>
-
-1. [Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载 `WebMoniter-vX.X.X-windows-x64.zip`，解压
-2. 将解压目录下的 `config.yml.sample` 复制为 `config.yml` 并编辑（与源码仓库中的 `config/config.yml.sample` 内容一致）
-3. 双击 `WebMoniter.exe` 启动。访问 `http://localhost:8866`，默认 `admin` / `123`
-
-无需 Python；防火墙提示请放行；关控制台即停；配置热重载生效。
-
-</details>
-
-<br/>
-
----
-
-<span id="-青龙面板部署"></span>
-<details>
-<summary><strong>🐉 青龙面板部署</strong></summary>
-
-[青龙面板](https://github.com/whyour/qinglong) 用户：环境变量配置（如 `WEBMONITER_CHECKIN_ENABLE`、`WEBMONITER_CHECKIN_EMAIL`），订阅本仓库白名单 `ql/*.py`，定时任务命令 `task WebMoniter/ql/ikuuu_checkin.py`（例：`0 8 * * *`）。推送走青龙系统通知，在「系统设置 → 通知设置」配置。详见 [青龙兼容指南](docs/QINGLONG.md)。
-
-</details>
-
----
-
-### 🌐 Web 管理界面
-
-配置管理、任务管理、数据展示、日志查看；启用 `ai_assistant` 后可使用 AI 助手。默认 `admin` / `123`，生产环境请修改。
-
-<details>
-<summary><strong>📷 界面截图</strong></summary>
-
-<table>
-<tr>
-<td width="70%"><strong>配置管理</strong><br/><img src="web/static/配置管理.png" alt="配置管理" width="100%"></td>
-<td width="30%"><strong>密码修改</strong><br/><img src="web/static/密码修改.png" alt="密码修改" width="100%"></td>
-</tr>
-</table>
-<img src="web/static/任务管理.png" alt="任务管理" width="600"><br/>
-<img src="web/static/数据展示.png" alt="数据展示" width="600"><br/>
-<img src="web/static/日志查看.png" alt="日志查看" width="600">
-
-</details>
-
-<br/>
-
----
-
-<span id="-ai-助手"></span>
-### 🤖 AI 助手
-
-RAG + LLM：配置生成、日志诊断、数据洞察、可执行操作（如关监控、删列表项，确认后热重载）。入口：Web 底部「问 AI」、企业微信回调、Telegram Webhook。Web 支持流式（SSE）。
-
-**启用**：`uv sync` → `config.yml` 配置 `ai_assistant`（`enable: true`，`provider`、`api_key`、`model`）。支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等。详见 [AI 助手指南](docs/guides/ai-assistant.md)。
-
-<details>
-<summary><strong>📷 AI 助手截图</strong></summary>
-
-<table>
-<tr>
-<td><img src="web/static/AI助手功能介绍.png" alt="功能介绍" width="100%"></td>
-<td><img src="web/static/AI助手修改配置.png" alt="修改配置" width="100%"></td>
-<td><img src="web/static/AI助手执行任务.png" alt="执行任务" width="100%"></td>
-<td><img src="web/static/AI助手查询数据.png" alt="查询数据" width="100%"></td>
-</tr>
-</table>
-<table>
-<tr>
-<td><img src="web/static/企业微信后台介绍.jpg" alt="企业微信后台" width="100%"></td>
-<td><img src="web/static/企业微信查询数据1.jpg" alt="企业微信示例1" width="100%"></td>
-<td><img src="web/static/企业微信查询数据2.jpg" alt="企业微信示例2" width="100%"></td>
-<td><img src="web/static/企业微信查询数据3.jpg" alt="企业微信示例3" width="100%"></td>
-</tr>
-</table>
-
-</details>
-
----
-
-### 📦 本地安装
-
-> **要求**：Python >= 3.10、[uv](https://docs.astral.sh/uv/getting-started/installation/)
+### 本地运行
 
 ```bash
-# 1. 克隆项目
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-# 2. 安装依赖（需要雨云签到时加 --extra rainyun）
 uv sync --locked
-# uv sync --locked --extra rainyun
-
-# 3. 复制配置文件（源码仓库模板在 config/ 目录）
 cp config/config.yml.sample config.yml
-
-# 4. 启动（默认 8866，PORT=8080 uv run python main.py 可改端口）
 uv run python main.py
-# 后台：uv run python main.py &
 ```
 
-### 🆙 更新
+需要雨云签到时安装可选依赖：
 
-| 部署方式 | 命令                                                        |
-|:--------:|:------------------------------------------------------------|
-| Docker   | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d`（雨云：`docker/docker-compose.full.yml` 或镜像 `:full`，对应 `docker/Dockerfile.full`） |
-| Windows  | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`）       |
-| 本地     | `git pull` → `uv sync --locked` → 重启应用                  |
+```bash
+uv sync --locked --extra rainyun
+```
 
-配置热重载，多数更新无需重启；建议备份 `config.yml`、`data/`。Web 侧边栏显示版本号，有新版本时顶部有更新横幅，可跳转 [Releases](https://github.com/666fy666/WebMoniter/releases)。
+停止服务：在终端按 `Ctrl+C`。程序会关闭 Web、配置监控和数据库连接；如同步任务阻塞，最多约 12 秒后强制退出，再按一次 `Ctrl+C` 会立即强制退出。
 
----
+### Windows 一键包
 
-## ⚙️ 配置说明
+从 [Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载 `WebMoniter-vX.X.X-windows-x64.zip`，解压后复制 `config.yml.sample` 为 `config.yml`，双击 `WebMoniter.exe` 启动。
 
-- **应用**：[`config/config.yml.sample`](config/config.yml.sample) 含全部配置注释，在仓库根目录复制为 `config.yml` 修改即可，热重载约 5 秒生效。
-- **Docker**：[`docker/Dockerfile`](docker/Dockerfile) + [`docker/docker-compose.yml`](docker/docker-compose.yml) 为精简默认；雨云见 [`docker/Dockerfile.full`](docker/Dockerfile.full) + [`docker/docker-compose.full.yml`](docker/docker-compose.full.yml)。[`docker/docker-entrypoint.sh`](docker/docker-entrypoint.sh) 负责 data/logs 赋权。详见 [docker/README.md](docker/README.md)、[文档站](https://666fy666.github.io/WebMoniter/) 与 [安装说明](docs/installation.md)。
+### 青龙面板
 
----
-
-## 🔌 API 调用
-
-RESTful API（FastAPI），认证、配置、数据、监控状态、日志等。详见 [API 指南](docs/API.md)。
+青龙用户可通过环境变量配置并运行 `ql/*.py` 单任务脚本。详见 [青龙面板兼容指南](docs/QINGLONG.md)。
 
 ---
 
-## ❓ 常见问题
+## 配置
 
-<details>
-<summary><strong>Q: 如何更新 Cookie？</strong></summary>
+核心配置文件为仓库根目录的 `config.yml`。首次使用请从模板复制：
 
-改 `config.yml` 中 Cookie 即可，热重载约 5 秒生效，无需重启。
-</details>
+```bash
+cp config/config.yml.sample config.yml
+```
 
-<details>
-<summary><strong>Q: 监控没执行？</strong></summary>
+配置项说明见：
 
-查 `logs/main_*.log` 或 `docker compose logs`；确认 YAML 格式、网络、Cookie、`enable: true`。
-</details>
-
-<details>
-<summary><strong>Q: 如何改监控频率？</strong></summary>
-
-改 `config.yml` 中对应 `*_monitor_interval_seconds`（如 `weibo`、`huya`、`bilibili`、`douyin`、`douyu`、`xhs`），热重载生效。
-</details>
-
-<details>
-<summary><strong>Q: 数据库/日志在哪？</strong></summary>
-
-`./data/`、`./logs/`（Docker/本地一致）。
-</details>
-
-<details>
-<summary><strong>Q: Docker 下 RAG/Chroma 报错？</strong></summary>
-
-入口脚本已为 data/logs 赋权。仍报错可：重拉镜像；删 `./data/ai_assistant_chroma` 重建；宿主机 `chmod -R 777 ./data ./logs`。
-</details>
-
-<details>
-<summary><strong>Q: Web 打不开？</strong></summary>
-
-确认已启动、端口 8866 未占用、Docker 映射 `8866:8866`、防火墙放行。
-</details>
-
-<details>
-<summary><strong>Q: 免打扰会漏消息吗？</strong></summary>
-
-任务照常执行并写库，仅不推送；可查日志或关免打扰。
-</details>
+- [配置说明](docs/guides/config.md)
+- [监控与定时任务](docs/guides/tasks.md)
+- [推送通道](docs/guides/push-channels.md)
+- [AI 助手](docs/guides/ai-assistant.md)
 
 ---
 
-## 📄 参考与致谢
+## 功能入口
 
-| 项目 | 说明 |
-|:-----|:-----|
-| [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push) | 推送与调度 |
-| [only_for_happly](https://github.com/wd210010/only_for_happly) | 部分签到逻辑 |
-| [RainyunCheckIn](https://github.com/FalseHappiness/RainyunCheckIn) / [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao) | 雨云签到与续费 |
-| [all-in-rag](https://github.com/datawhalechina/all-in-rag) | AI 助手 RAG 架构 |
+| 功能 | 文档 |
+|---|---|
+| 安装部署 | [docs/installation.md](docs/installation.md) |
+| Web 管理界面 | [docs/guides/web-ui.md](docs/guides/web-ui.md) |
+| 任务配置 | [docs/guides/tasks.md](docs/guides/tasks.md) |
+| 监控任务 | [docs/guides/tasks/monitors.md](docs/guides/tasks/monitors.md) |
+| 签到任务 | [docs/guides/tasks/checkin.md](docs/guides/tasks/checkin.md) |
+| 推送通道 | [docs/guides/push-channels.md](docs/guides/push-channels.md) |
+| AI 助手 | [docs/guides/ai-assistant.md](docs/guides/ai-assistant.md) |
+| REST API | [docs/API.md](docs/API.md) |
+| 架构说明 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| 二次开发 | [docs/SECONDARY_DEVELOPMENT.md](docs/SECONDARY_DEVELOPMENT.md) |
+| 常见问题 | [docs/faq.md](docs/faq.md) |
 
 ---
 
-## 📄 许可证
+## 开发
 
-[MIT License](./LICENSE)
+```bash
+uv sync --extra dev
+uv run ruff check .
+uv run black --check .
+```
+
+新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。项目当前采用模块化结构：
+
+- `main.py`：应用入口与生命周期编排。
+- `src/scheduler.py`：APScheduler 封装与退出信号处理。
+- `src/job_registry.py`：任务注册与发现。
+- `src/config.py`：配置模型与加载流程。
+- `src/config_loader_specs.py`：YAML 到配置模型的映射规格。
+- `src/web_server.py`：FastAPI 路由入口。
+- `src/web_auth.py`、`src/web_config_io.py`、`src/web_data.py`：Web 认证、配置读写、数据 API 辅助逻辑。
+- `src/runtime.py`：事件循环与 Ctrl+C 退出兜底。
+
+---
+
+## 致谢
+
+部分签到、推送与 RAG 思路参考了以下项目：
+
+- [aio-dynamic-push](https://github.com/nfe-w/aio-dynamic-push)
+- [only_for_happly](https://github.com/wd210010/only_for_happly)
+- [RainyunCheckIn](https://github.com/FalseHappiness/RainyunCheckIn)
+- [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)
+- [all-in-rag](https://github.com/datawhalechina/all-in-rag)
 
 ---
 
 ## Contributors
 
-<a href="https://github.com/666fy666/WebMoniter/graphs/contributors"><img src="https://contrib.rocks/image?repo=666fy666/WebMoniter" /></a>
+<a href="https://github.com/666fy666/WebMoniter/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=666fy666/WebMoniter" alt="Contributors" />
+</a>
 
 ---
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=666fy666/WebMoniter&type=Date)](https://star-history.com/#666fy666/WebMoniter&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=666fy666/WebMoniter&type=Date)](https://www.star-history.com/#666fy666/WebMoniter&Date)
 
 ---
+
+## 许可证
+
+[MIT License](LICENSE)
 
 <div align="center">
 

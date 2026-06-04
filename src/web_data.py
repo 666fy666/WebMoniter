@@ -231,4 +231,3 @@ _PLATFORM_LIST_SQL = {
 }
 
 _PLATFORM_LIST_SQL_HUYA_BASIC = "SELECT room, name, is_live FROM huya"
-

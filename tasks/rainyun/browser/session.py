@@ -41,7 +41,9 @@ def _default_chrome_binary() -> str | None:
             os.environ.get("PROGRAMFILES", r"C:\Program Files"),
             os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"),
         ]
-        candidates = [os.path.join(r, "Google", "Chrome", "Application", "chrome.exe") for r in roots]
+        candidates = [
+            os.path.join(r, "Google", "Chrome", "Application", "chrome.exe") for r in roots
+        ]
     elif sys.platform == "darwin":
         candidates = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
     else:

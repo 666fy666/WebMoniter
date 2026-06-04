@@ -229,7 +229,12 @@ class BilibiliMonitor(BaseMonitor):
                 picurl=pic_url
                 or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",
                 event_type="bilibili_dynamic",
-                event_data={"uname": uname, "dynamic_id": dynamic_id, "content": content[:300], "title_msg": title_msg},
+                event_data={
+                    "uname": uname,
+                    "dynamic_id": dynamic_id,
+                    "content": content[:300],
+                    "title_msg": title_msg,
+                },
             )
         except Exception as e:
             self.logger.error(f"推送失败: {e}")

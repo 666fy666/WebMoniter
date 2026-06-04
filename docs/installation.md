@@ -22,6 +22,20 @@
 
 **要求**: Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。
 
+### 镜像选择
+
+| 镜像 | 标签 | Compose 文件 | 适用场景 |
+|:--|:--|:--|:--|
+| 精简镜像 | `fengyu666/webmoniter:latest` | `docker/docker-compose.yml` | 默认推荐。适合监控、推送和大多数 HTTP 类签到 |
+| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 需要在容器内运行雨云浏览器签到时使用 |
+
+`latest` 与 semver 主标签（如 `2.2.2`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
+
+!!! warning "二选一运行"
+    两个 Compose 文件的默认容器名都是 `webmoniter`，请根据需要选择精简镜像或完整镜像，不要同时启动两套 Compose。
+
+### 方式一：Docker Compose
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/666fy666/WebMoniter.git
@@ -31,9 +45,59 @@ cd WebMoniter
 cp config/config.yml.sample config.yml
 # 编辑 config.yml，配置监控任务和推送通道
 
-# 3. 启动服务（Compose 文件在 docker/，请在仓库根目录执行）
+# 3. 启动精简镜像（Compose 文件在 docker/，请在仓库根目录执行）
 docker compose -f docker/docker-compose.yml pull
 docker compose -f docker/docker-compose.yml up -d
+```
+
+精简镜像常用命令：
+
+```bash
+# 查看状态和日志
+docker compose -f docker/docker-compose.yml ps
+docker compose -f docker/docker-compose.yml logs -f
+
+# 停止容器，保留容器和数据
+docker compose -f docker/docker-compose.yml stop
+
+# 再次启动已经停止的容器
+docker compose -f docker/docker-compose.yml start
+
+# 重启容器
+docker compose -f docker/docker-compose.yml restart
+
+# 停止并删除容器/网络，保留仓库根目录下的 config.yml、data/、logs/
+docker compose -f docker/docker-compose.yml down
+
+# 更新镜像并重新创建容器
+docker compose -f docker/docker-compose.yml pull
+docker compose -f docker/docker-compose.yml up -d
+
+# 删除本地精简镜像（需要先 down 或 rm 掉使用它的容器）
+docker image rm fengyu666/webmoniter:latest
+```
+
+如果启用雨云浏览器签到（`rainyun.enable: true`），使用完整镜像：
+
+```bash
+# 启动完整镜像
+docker compose -f docker/docker-compose.full.yml pull
+docker compose -f docker/docker-compose.full.yml up -d
+
+# 查看状态和日志
+docker compose -f docker/docker-compose.full.yml ps
+docker compose -f docker/docker-compose.full.yml logs -f
+
+# 停止 / 再次启动 / 重启
+docker compose -f docker/docker-compose.full.yml stop
+docker compose -f docker/docker-compose.full.yml start
+docker compose -f docker/docker-compose.full.yml restart
+
+# 删除容器/网络，保留仓库根目录下的 config.yml、data/、logs/
+docker compose -f docker/docker-compose.full.yml down
+
+# 删除本地完整镜像（需要先 down 或 rm 掉使用它的容器）
+docker image rm fengyu666/webmoniter:full
 ```
 
 !!! tip "提示"
@@ -42,20 +106,74 @@ docker compose -f docker/docker-compose.yml up -d
     - 容器启动时会通过 **docker/docker-entrypoint.sh**（镜像内 `/app/docker-entrypoint.sh`）自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
     - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
 
-### Docker 镜像：精简版与完整版
+### 方式二：docker run 单容器
 
-**文件对应关系**：**`docker/Dockerfile`** → 精简镜像；**`docker/Dockerfile.full`** → 完整镜像。Compose：**`docker/docker-compose.yml`** / **`docker/docker-compose.full.yml`**（构建上下文均为仓库根目录；说明见仓库 **docker/README.md**）。
-
-Docker Hub 上 **`latest` 与 semver 主标签（如 `2.2.2`）** 由 **`docker/Dockerfile`** 构建：不包含 Chromium/Chromedriver，也不安装雨云签到所需的 Python 依赖（Selenium、ddddocr、OpenCV 等）。监控与其它 HTTP 类签到不受影响。
-
-若要在容器内使用 **雨云浏览器签到**（`rainyun.enable: true`），请改用 **`full` 标签**（或本地 **`docker build -f docker/Dockerfile.full .`**）：
+不使用 Compose 时，可以直接运行单个容器。请先准备配置文件和持久化目录：
 
 ```bash
-docker pull fengyu666/webmoniter:full
-docker compose -f docker/docker-compose.full.yml up -d
+cp config/config.yml.sample config.yml
+mkdir -p data logs
 ```
 
-也可在自有 `compose` 中将 `image` 写为 `fengyu666/webmoniter:full`，并保留 `CHROME_BIN`、`CHROMEDRIVER_PATH` 与较大 `shm_size`（见 `docker/docker-compose.full.yml`）。
+精简镜像：
+
+```bash
+# 拉取并启动
+docker pull fengyu666/webmoniter:latest
+docker run -d --name webmoniter --restart unless-stopped \
+  -p 8866:8866 --shm-size=128m \
+  -e TZ=Asia/Shanghai \
+  -v "$(pwd)/config.yml:/app/config.yml" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  fengyu666/webmoniter:latest
+
+# 查看日志 / 停止 / 再次启动 / 重启
+docker logs -f webmoniter
+docker stop webmoniter
+docker start webmoniter
+docker restart webmoniter
+
+# 删除容器；如果容器仍在运行，可使用 docker rm -f webmoniter
+docker rm webmoniter
+
+# 删除镜像
+docker image rm fengyu666/webmoniter:latest
+```
+
+完整镜像：
+
+```bash
+# 拉取并启动
+docker pull fengyu666/webmoniter:full
+docker run -d --name webmoniter-full --restart unless-stopped \
+  -p 8866:8866 --shm-size=256m \
+  -e TZ=Asia/Shanghai \
+  -e CHROME_BIN=/usr/bin/chromium \
+  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+  -v "$(pwd)/config.yml:/app/config.yml" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  fengyu666/webmoniter:full
+
+# 查看日志 / 停止 / 再次启动 / 重启
+docker logs -f webmoniter-full
+docker stop webmoniter-full
+docker start webmoniter-full
+docker restart webmoniter-full
+
+# 删除容器；如果容器仍在运行，可使用 docker rm -f webmoniter-full
+docker rm webmoniter-full
+
+# 删除镜像
+docker image rm fengyu666/webmoniter:full
+```
+
+!!! tip "Windows PowerShell"
+    如果 `-v "$(pwd)/config.yml:/app/config.yml"` 在 PowerShell 中解析异常，可把 `$(pwd)` 换成当前目录的绝对路径，例如 `D:/code/WebMoniter/config.yml:/app/config.yml`。
+
+!!! danger "删除数据"
+    `docker compose ... down`、`docker rm` 只删除容器和网络，不会删除仓库根目录下的 `config.yml`、`data/`、`logs/`。如果要彻底清空历史数据，请在确认备份后手动删除这些文件和目录。
 
 ---
 
@@ -121,15 +239,19 @@ uv run python main.py &
 # 在 config.yml 中配置 ai_assistant 节点（enable: true，provider、api_key、model 等），uv sync 已包含 AI 依赖
 ```
 
+!!! tip "停止程序"
+    在终端按 `Ctrl+C` 会触发优雅关闭：停止调度器、关闭 Web 服务、配置监控器和数据库连接。项目会为同步网络请求、浏览器任务等阻塞场景设置兜底，通常会在数秒内退出；如果仍在等待，再按一次 `Ctrl+C` 会立即强制退出。
+
 ---
 
 ## 更新
 
 | 部署方式 | 更新方式 |
 |:--------:|:--------|
-| Docker   | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d` |
-| Windows  | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`） |
-| 本地     | `git pull` → `uv sync --locked` → 重启应用 |
+| Docker 精简镜像 | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d` |
+| Docker 完整镜像 | `docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d` |
+| Windows | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`） |
+| 本地 | `git pull` → `uv sync --locked` → 重启应用 |
 
 !!! tip "提示"
     配置支持热重载，多数更新无需重启。更新前建议备份 `config.yml`、`data/`。

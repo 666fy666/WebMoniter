@@ -26,12 +26,23 @@ from src.lifecycle import (
     start_uvicorn_background,
 )
 from src.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+from src.runtime import run_async_app
 from src.scheduler import TaskScheduler
 
 CONFIG_FILE = CONFIG_YAML_FILE.as_posix()
 CONFIG_POLL_INTERVAL_SEC = 5
+SHUTDOWN_STEP_TIMEOUT_SEC = 5.0
 
 cookie_cache = get_cookie_cache()
+
+
+async def _shutdown_step(name: str, awaitable, logger: logging.Logger) -> None:
+    try:
+        await asyncio.wait_for(awaitable, timeout=SHUTDOWN_STEP_TIMEOUT_SEC)
+    except TimeoutError:
+        logger.warning("%s 关闭超时，继续退出", name)
+    except Exception as e:
+        logger.warning("%s 关闭时出错（继续退出）: %s", name, e)
 
 
 async def main() -> None:
@@ -93,10 +104,10 @@ async def main() -> None:
         logger.error("程序运行出错: %s", e)
         raise
     finally:
-        await shutdown_web_server(server, web_task)
-        await config_watcher.stop()
-        await close_shared_connection()
+        await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)
+        await _shutdown_step("配置监控器", config_watcher.stop(), logger)
+        await _shutdown_step("数据库连接", close_shared_connection(), logger)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run_async_app(main())

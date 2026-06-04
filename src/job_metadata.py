@@ -43,4 +43,3 @@ JOB_DESCRIPTIONS = {
 def get_job_description(job_id: str) -> str:
     """根据任务 ID 获取任务描述。"""
     return JOB_DESCRIPTIONS.get(job_id, f"任务 {job_id}")
-

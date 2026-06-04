@@ -54,4 +54,3 @@ def verify_password(password: str, password_hash: str) -> bool:
 def check_login(session_id: str | None) -> bool:
     """检查用户是否已登录。"""
     return session_id is not None and session_id in active_sessions
-
