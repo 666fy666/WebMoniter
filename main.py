@@ -52,7 +52,7 @@ async def main() -> None:
     logger = logging.getLogger(__name__)
 
     # Web 延后 import，避免在未使用 Web 的测试/脚本场景里提前加载 FastAPI 栈
-    from src.web_server import create_web_app
+    from src.web.app import create_web_app
 
     web_app = create_web_app()
     attach_uvicorn_noise_filter()

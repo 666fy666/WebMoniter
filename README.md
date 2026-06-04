@@ -276,8 +276,9 @@ uv run black --check .
 - `src/job_registry.py`：任务注册与发现。
 - `src/config.py`：配置模型与加载流程。
 - `src/config_loader_specs.py`：YAML 到配置模型的映射规格。
-- `src/web_server.py`：FastAPI 路由入口。
-- `src/web_auth.py`、`src/web_config_io.py`、`src/web_data.py`：Web 认证、配置读写、数据 API 辅助逻辑。
+- `src/web/app.py`：FastAPI 应用组装入口。
+- `src/web/routers/`：页面、认证、任务、配置、数据、日志、AI 助手、Webhook 路由。
+- `src/web/auth.py`、`src/web/config_io.py`、`src/web/data_support.py`、`src/web/assistant_support.py`：Web 辅助逻辑。
 - `src/runtime.py`：事件循环与 Ctrl+C 退出兜底。
 
 ---

@@ -512,9 +512,9 @@ def get_push_channel(config: dict, session) -> PushChannel:
 
 ---
 
-### 12. src/web_server.py 与 Web 辅助模块 - Web服务器
+### 12. src/web/ - Web服务器
 
-**职责**：提供 Web 管理界面和 API 接口。`src/web_server.py` 保留 FastAPI 路由和请求编排，通用逻辑拆到小模块以便维护。
+**职责**：提供 Web 管理界面和 API 接口。`src/web/app.py` 负责 FastAPI 应用组装，具体接口按功能拆到 `src/web/routers/`，通用逻辑放在同一 `src/web/` 功能包内。
 
 **技术栈**：
 - FastAPI：Web框架
@@ -528,10 +528,20 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - **API接口**：RESTful API供外部调用
 - **AI 助手入口**：Web 对话、SSE 流式对话、企业微信/Telegram Webhook
 
-**辅助模块**：
-- `src/web_auth.py`：登录会话、认证文件读写、密码哈希
-- `src/web_config_io.py`：配置合并、配置保存前校验、AI 配置补丁、热重载触发
-- `src/web_data.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换
+**模块层级**：
+- `src/web/app.py`：应用创建、SessionMiddleware、静态资源挂载、router 注册
+- `src/web/routers/pages.py`：页面模板路由
+- `src/web/routers/auth.py`：登录、登出、改密、版本 API
+- `src/web/routers/tasks.py`：任务列表与手动执行 API
+- `src/web/routers/config.py`：配置读取与保存 API
+- `src/web/routers/data.py`：数据展示与监控状态 API
+- `src/web/routers/logs.py`：日志读取 API
+- `src/web/routers/assistant.py`：AI 助手对话、流式对话、apply-action API
+- `src/web/routers/webhooks.py`：企业微信、Telegram Webhook
+- `src/web/auth.py`：登录会话、认证文件读写、密码哈希
+- `src/web/config_io.py`：配置合并、配置保存前校验、AI 配置补丁、热重载触发
+- `src/web/data_support.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换
+- `src/web/assistant_support.py`：AI Web 鉴权、意图解析、聊天上下文构建、Webhook 通道发现
 - `src/job_metadata.py`：任务 ID 到展示文案的映射
 
 **页面路由**：
@@ -959,10 +969,21 @@ WebMoniter/
 │   ├── task_tracker.py     # 任务运行追踪（当天已运行则跳过）
 │   ├── utils.py            # 工具函数
 │   ├── version.py          # 版本信息管理
-│   ├── web_auth.py         # Web 登录与认证
-│   ├── web_config_io.py    # Web 配置读写与校验
-│   ├── web_data.py         # Web 数据 API 元数据与行转换
-│   ├── web_server.py       # Web 路由入口
+│   ├── web/                # Web 应用、路由和辅助逻辑
+│   │   ├── app.py          # FastAPI 应用组装
+│   │   ├── auth.py         # Web 登录与认证
+│   │   ├── config_io.py    # Web 配置读写与校验
+│   │   ├── data_support.py # Web 数据 API 元数据与行转换
+│   │   ├── assistant_support.py # AI Web 辅助逻辑
+│   │   └── routers/        # APIRouter 分模块路由
+│   │       ├── pages.py
+│   │       ├── auth.py
+│   │       ├── tasks.py
+│   │       ├── config.py
+│   │       ├── data.py
+│   │       ├── logs.py
+│   │       ├── assistant.py
+│   │       └── webhooks.py
 │   │
 │   └── push_channel/       # 推送通道模块
 │       ├── __init__.py

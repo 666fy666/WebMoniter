@@ -1,0 +1,2 @@
+"""Web application package."""
+
