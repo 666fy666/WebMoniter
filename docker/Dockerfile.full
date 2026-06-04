@@ -52,11 +52,8 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 COPY pyproject.toml main.py ./
-COPY config/config.yml.sample ./config.yml.sample
-COPY monitors/ ./monitors/
+COPY config/ ./config/
 COPY src/ ./src/
-COPY tasks/ ./tasks/
-COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
 COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh
@@ -67,5 +64,7 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     CHROME_BIN=/usr/bin/chromium \
     CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
+EXPOSE 8866
 
 CMD ["/app/docker-entrypoint.sh"]

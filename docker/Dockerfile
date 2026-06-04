@@ -31,11 +31,8 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 COPY pyproject.toml main.py ./
-COPY config/config.yml.sample ./config.yml.sample
-COPY monitors/ ./monitors/
+COPY config/ ./config/
 COPY src/ ./src/
-COPY tasks/ ./tasks/
-COPY web/ ./web/
 COPY docs/ ./docs/
 COPY README.md ./
 COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh
@@ -44,5 +41,7 @@ RUN chmod +x /app/docker-entrypoint.sh
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8866
 
 CMD ["/app/docker-entrypoint.sh"]

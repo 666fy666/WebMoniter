@@ -1,6 +1,6 @@
 # Docker
 
-容器内工作目录为 `/app`，与仓库根目录布局一致（`main.py`、`web/`、`config.yml`、`data/`、`logs/` 等）。
+容器内工作目录为 `/app`，与仓库根目录布局一致（`main.py`、`src/`（含 `webUI/`、任务与监控模块）、`config/`、`config.yml`、`data/`、`logs/` 等）。
 
 ## 镜像选择
 
