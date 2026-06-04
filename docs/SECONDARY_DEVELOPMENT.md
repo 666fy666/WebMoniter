@@ -66,6 +66,13 @@ uv run pytest
 
 主入口 `main.py` 通过 `job_registry.discover_and_import()` 加载所有列出的模块并注册到调度器，**无需再改 main.py**。
 
+Web 后端的路由集中在 `src/web_server.py`，通用逻辑已拆到小模块，新增 Web 功能时优先复用：
+
+- `src/web_auth.py`：登录会话、认证文件读写、密码哈希。
+- `src/web_config_io.py`：配置合并、AI 配置补丁、配置保存前校验与热重载。
+- `src/web_data.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换。
+- `src/job_metadata.py`：任务 ID 到展示文案的映射。
+
 ---
 
 ## 二、定时任务示例一：iKuuu 签到（顶层配置）

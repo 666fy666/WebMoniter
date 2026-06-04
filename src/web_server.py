@@ -1,14 +1,13 @@
 """Web服务器模块 - 提供Web界面和API接口"""
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
 import re
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -18,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.config import get_config, load_config_from_yml
+from src.config import get_config
 from src.database import AsyncDatabase
 from src.job_registry import (
     MONITOR_JOBS,
@@ -26,15 +25,32 @@ from src.job_registry import (
     discover_and_import,
     run_task_with_logging,
 )
-
-# 尝试导入 ruamel.yaml 以保留注释
-try:
-    from ruamel.yaml import YAML as RUAMEL_YAML
-
-    RUAMEL_AVAILABLE = True
-except ImportError:
-    RUAMEL_AVAILABLE = False
-    RUAMEL_YAML = None
+from src.job_metadata import get_job_description as _get_job_description
+from src.web_auth import (
+    active_sessions,
+    check_login,
+    hash_password,
+    load_auth,
+    save_auth,
+    verify_password,
+)
+from src.web_config_io import (
+    RUAMEL_AVAILABLE,
+    RUAMEL_YAML,
+    _apply_config_patch,
+    _merge_and_dump_config,
+    _validate_and_save_config,
+)
+from src.web_data import (
+    PLATFORM_CONFIG,
+    PLATFORM_PRIMARY_KEY,
+    VALID_PLATFORMS,
+    _PLATFORM_LIST_SQL,
+    _PLATFORM_LIST_SQL_HUYA_BASIC,
+    _PLATFORM_SELECT,
+    _parse_weibo_created_at,
+    _row_to_item,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,119 +75,6 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 WEIBO_IMG_DIR = Path("data/weibo")
 WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/weibo_img", StaticFiles(directory=str(WEIBO_IMG_DIR)), name="weibo_img")
-
-# 凭据文件路径
-AUTH_FILE = Path("data/auth.json")
-
-# 默认凭据
-DEFAULT_USERNAME = "admin"
-DEFAULT_PASSWORD = "123"
-
-# 存储登录会话
-active_sessions: set[str] = set()
-
-
-def hash_password(password: str) -> str:
-    """使用 SHA-256 哈希密码"""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def load_auth() -> dict:
-    """加载认证信息，如果文件不存在则返回默认值"""
-    if AUTH_FILE.exists():
-        try:
-            with open(AUTH_FILE, encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error("加载认证文件失败: %s", e)
-    # 返回默认凭据（哈希后的密码）
-    return {
-        "username": DEFAULT_USERNAME,
-        "password_hash": hash_password(DEFAULT_PASSWORD),
-    }
-
-
-def save_auth(auth_data: dict) -> bool:
-    """保存认证信息到文件"""
-    try:
-        # 确保 data 目录存在
-        AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(AUTH_FILE, "w", encoding="utf-8") as f:
-            json.dump(auth_data, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception as e:
-        logger.error("保存认证文件失败: %s", e)
-        return False
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    """验证密码"""
-    return hash_password(password) == password_hash
-
-
-def _simple_merge_dict(target: dict, source: dict) -> None:
-    """递归合并 source 到 target，保留 target 中未被 source 覆盖的键（避免前端未收集的配置丢失）"""
-    for key, value in source.items():
-        if key in ("cookies", "accounts") and isinstance(value, list) and len(value) == 0:
-            if key in target and isinstance(target[key], list):
-                del target[key]
-            continue
-        if key not in target:
-            target[key] = value
-        elif isinstance(target[key], dict) and isinstance(value, dict):
-            _simple_merge_dict(target[key], value)
-        elif isinstance(target[key], list) and isinstance(value, list):
-            if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
-                existing_map = {
-                    item.get("name"): idx
-                    for idx, item in enumerate(target[key])
-                    if isinstance(item, dict) and "name" in item
-                }
-                new_names = {
-                    item.get("name") for item in value if isinstance(item, dict) and "name" in item
-                }
-                for new_item in value:
-                    if isinstance(new_item, dict) and "name" in new_item:
-                        name = new_item["name"]
-                        if name in existing_map:
-                            _simple_merge_dict(target[key][existing_map[name]], new_item)
-                        else:
-                            target[key].append(new_item)
-                target[key][:] = [
-                    item
-                    for item in target[key]
-                    if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
-                ]
-            else:
-                target[key] = value
-        else:
-            target[key] = value
-
-
-def _merge_and_dump_config(config_path: Path, config_data: dict) -> str:
-    """将前端提交的 config_data 合并到现有 config.yml，再导出为 YAML 字符串，避免未收集的配置丢失"""
-    original = {}
-    if config_path.exists():
-        try:
-            with open(config_path, encoding="utf-8") as f:
-                original = yaml.safe_load(f)
-            if original is None:
-                original = {}
-        except Exception as e:
-            logger.warning("读取现有配置失败，将使用前端数据: %s", e)
-    _simple_merge_dict(original, config_data)
-    return yaml.dump(
-        original,
-        allow_unicode=True,
-        default_flow_style=False,
-        sort_keys=False,
-    )
-
-
-def check_login(session_id: str | None) -> bool:
-    """检查用户是否已登录"""
-    return session_id is not None and session_id in active_sessions
-
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -361,49 +264,6 @@ async def get_tasks_api(request: Request):
     except Exception as e:
         logger.error("获取任务列表失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
-def _get_job_description(job_id: str) -> str:
-    """根据任务ID获取任务描述"""
-    descriptions = {
-        "huya_monitor": "虎牙直播状态监控",
-        "weibo_monitor": "微博动态监控",
-        "bilibili_monitor": "哔哩哔哩动态+直播监控",
-        "douyin_monitor": "抖音直播状态监控",
-        "douyu_monitor": "斗鱼直播状态监控",
-        "xhs_monitor": "小红书动态监控",
-        "log_cleanup": "日志文件清理",
-        "ikuuu_checkin": "ikuuu 每日签到",
-        "tieba_checkin": "百度贴吧签到",
-        "weibo_chaohua_checkin": "微博超话签到",
-        "rainyun_checkin": "雨云签到",
-        "enshan_checkin": "恩山论坛签到",
-        "fg_checkin": "富贵论坛签到",
-        "aliyun_checkin": "阿里云盘签到",
-        "smzdm_checkin": "什么值得买签到",
-        "zdm_draw": "值得买每日抽奖",
-        "tyyun_checkin": "天翼云盘签到",
-        "miui_checkin": "小米社区签到",
-        "iqiyi_checkin": "爱奇艺签到",
-        "lenovo_checkin": "联想乐豆签到",
-        "lbly_checkin": "丽宝乐园签到",
-        "pinzan_checkin": "品赞代理签到",
-        "dml_checkin": "达美乐任务",
-        "xiaomao_checkin": "小茅预约（i茅台）",
-        "ydwx_checkin": "一点万象签到",
-        "xingkong_checkin": "星空代理签到",
-        "qtw_checkin": "千图网签到",
-        "freenom_checkin": "Freenom 免费域名续期",
-        "weather_push": "天气每日推送",
-        "kuake_checkin": "夸克网盘签到",
-        "kjwj_checkin": "科技玩家签到",
-        "fr_checkin": "帆软社区签到 + 摇摇乐",
-        "nine_nine_nine_task": "999 会员中心健康打卡任务",
-        "zgfc_draw": "中国福彩抽奖活动",
-        "ssq_500w_notice": "双色球开奖通知（守号+冷号机选）",
-        "demo_task": "示例任务（二次开发演示）",
-    }
-    return descriptions.get(job_id, f"任务 {job_id}")
 
 
 @app.post("/api/tasks/{task_id}/run")
@@ -657,215 +517,6 @@ async def save_config_api(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-# 平台配置：table_name, primary_key, filter_query_param
-PLATFORM_CONFIG = {
-    "weibo": ("weibo", "UID", "uid"),
-    "huya": ("huya", "room", "room"),
-    "bilibili_live": ("bilibili_live", "uid", "uid"),
-    "bilibili_dynamic": ("bilibili_dynamic", "uid", "uid"),
-    "douyin": ("douyin", "douyin_id", "id"),
-    "douyu": ("douyu", "room", "room"),
-    "xhs": ("xhs", "profile_id", "id"),
-}
-PLATFORM_PRIMARY_KEY = {k: v[1] for k, v in PLATFORM_CONFIG.items()}
-VALID_PLATFORMS = frozenset(PLATFORM_CONFIG)
-
-
-def _parse_weibo_created_at(text: str | None) -> datetime | None:
-    """
-    从微博文本中解析发布时间。文本格式为 "...\n\n{created_at}"。
-    支持格式：Thu Feb 12 17:35:47 +0800 2026 等
-    """
-    if not text or not isinstance(text, str):
-        return None
-    raw = None
-    for sep in ("\n\n", "\r\n\r\n"):
-        if sep in text:
-            parts = text.rsplit(sep, 1)
-            if len(parts) >= 2:
-                raw = parts[-1].strip()
-                break
-    if not raw or len(raw) > 80:
-        return None
-    # 微博 API 常见格式
-    formats = [
-        "%a %b %d %H:%M:%S %z %Y",   # Thu Feb 12 17:35:47 +0800 2026
-        "%Y-%m-%d %H:%M:%S",          # 2026-02-12 17:35:47
-        "%Y-%m-%d %H:%M",             # 2026-02-12 17:35
-        "%b %d %H:%M:%S %z %Y",       # Feb 12 17:35:47 +0800 2026 (无星期)
-    ]
-    for fmt in formats:
-        try:
-            return datetime.strptime(raw, fmt)
-        except (ValueError, TypeError):
-            continue
-    # 正则兜底：Thu Feb 12 17:35:47 +0800 2026（避免 locale 导致 %a %b 解析失败）
-    m = re.match(
-        r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+"
-        r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+"
-        r"(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+([+-]\d{4})\s+(\d{4})",
-        raw,
-    )
-    if m:
-        try:
-            months = {
-                "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
-                "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
-            }
-            month = months.get(m.group(1), 1)
-            tz_str = m.group(6)
-            sign = 1 if tz_str[0] == "+" else -1
-            tz_h = sign * int(tz_str[1:3])
-            tz_m = sign * int(tz_str[3:5]) if len(tz_str) >= 5 else 0
-            tz = timezone(timedelta(hours=tz_h, minutes=tz_m))
-            return datetime(
-                int(m.group(7)), month, int(m.group(2)),
-                int(m.group(3)), int(m.group(4)), int(m.group(5)),
-                tzinfo=tz,
-            )
-        except (ValueError, KeyError, IndexError):
-            pass
-    return None
-
-
-def _weibo_row_to_item(row: tuple) -> dict:
-    """将 weibo 表的一行转为 API 返回项（含 url）。"""
-    return {
-        "UID": row[0],
-        "用户名": row[1],
-        "认证信息": row[2],
-        "简介": row[3],
-        "粉丝数": row[4],
-        "微博数": row[5],
-        "文本": row[6],
-        "mid": row[7],
-        "url": (
-            f"https://m.weibo.cn/detail/{row[7]}" if row[7] else f"https://www.weibo.com/u/{row[0]}"
-        ),
-    }
-
-
-def _huya_row_to_item(row: tuple) -> dict:
-    """将 huya 表的一行转为 API 返回项（含 url）。"""
-    return {
-        "room": row[0],
-        "name": row[1],
-        "is_live": row[2],
-        # 兼容旧数据：如果数据库中尚无这些列，SQL 会返回 NULL，这里用空字符串兜底
-        "room_pic": row[3] if len(row) > 3 else "",
-        "avatar_url": row[4] if len(row) > 4 else "",
-        "url": f"https://www.huya.com/{row[0]}",
-    }
-
-
-def _weibo_row_to_status_item(row: tuple) -> dict:
-    """将 weibo 表的一行转为 monitor-status 返回项（不含 url）。"""
-    return {
-        "UID": row[0],
-        "用户名": row[1],
-        "认证信息": row[2],
-        "简介": row[3],
-        "粉丝数": row[4],
-        "微博数": row[5],
-        "文本": row[6],
-        "mid": row[7],
-    }
-
-
-def _huya_row_to_status_item(row: tuple) -> dict:
-    """将 huya 表的一行转为 monitor-status 返回项。"""
-    return {"room": row[0], "name": row[1], "is_live": row[2]}
-
-
-def _bilibili_live_row_to_item(row: tuple) -> dict:
-    return {
-        "uid": row[0],
-        "uname": row[1],
-        "room_id": row[2],
-        "is_live": row[3],
-        "url": f"https://live.bilibili.com/{row[2]}" if row[2] else "",
-    }
-
-
-def _bilibili_dynamic_row_to_item(row: tuple) -> dict:
-    return {
-        "uid": row[0],
-        "uname": row[1],
-        "dynamic_id": row[2],
-        "dynamic_text": row[3] or "",
-        "url": (
-            f"https://www.bilibili.com/opus/{row[2]}"
-            if row[2]
-            else f"https://space.bilibili.com/{row[0]}"
-        ),
-    }
-
-
-def _douyin_row_to_item(row: tuple) -> dict:
-    return {
-        "douyin_id": row[0],
-        "name": row[1],
-        "is_live": row[2],
-        "url": f"https://live.douyin.com/{row[0]}",
-    }
-
-
-def _douyu_row_to_item(row: tuple) -> dict:
-    return {
-        "room": row[0],
-        "name": row[1],
-        "is_live": row[2],
-        "url": f"https://www.douyu.com/{row[0]}",
-    }
-
-
-def _xhs_row_to_item(row: tuple) -> dict:
-    return {
-        "profile_id": row[0],
-        "user_name": row[1],
-        "latest_note_title": row[2] or "",
-        "url": f"https://www.xiaohongshu.com/user/profile/{row[0]}",
-    }
-
-
-def _row_to_item(platform: str, row: tuple) -> dict:
-    """根据平台将行转为 API 返回项。"""
-    converters = {
-        "weibo": _weibo_row_to_item,
-        "huya": _huya_row_to_item,
-        "bilibili_live": _bilibili_live_row_to_item,
-        "bilibili_dynamic": _bilibili_dynamic_row_to_item,
-        "douyin": _douyin_row_to_item,
-        "douyu": _douyu_row_to_item,
-        "xhs": _xhs_row_to_item,
-    }
-    return converters.get(platform, lambda r: dict(zip(range(len(r)), r)))(row)
-
-
-# 各平台 SELECT 列与表名
-_PLATFORM_SELECT = {
-    "weibo": (
-        "weibo",
-        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :pk",
-    ),
-    "huya": ("huya", "SELECT room, name, is_live FROM huya WHERE room = :pk"),
-    "bilibili_live": (
-        "bilibili_live",
-        "SELECT uid, uname, room_id, is_live FROM bilibili_live WHERE uid = :pk",
-    ),
-    "bilibili_dynamic": (
-        "bilibili_dynamic",
-        "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic WHERE uid = :pk",
-    ),
-    "douyin": ("douyin", "SELECT douyin_id, name, is_live FROM douyin WHERE douyin_id = :pk"),
-    "douyu": ("douyu", "SELECT room, name, is_live FROM douyu WHERE room = :pk"),
-    "xhs": (
-        "xhs",
-        "SELECT profile_id, user_name, latest_note_title FROM xhs WHERE profile_id = :pk",
-    ),
-}
-
-
 @app.get("/api/data/huya/images")
 async def get_huya_images(request: Request, rooms: str = ""):
     """获取虎牙房间封面和头像 URL（需登录）。用于数据展示页异步加载图片。"""
@@ -923,22 +574,6 @@ async def get_data_item(request: Request, platform: str, item_id: str):
     except Exception as e:
         logger.error("获取单条数据失败: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
-# 各平台列表查询 SQL（不含 WHERE，含占位符）
-_PLATFORM_LIST_SQL = {
-    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo",
-    # 新增 room_pic / avatar_url 字段，便于前端展示头像和封面图
-    "huya": "SELECT room, name, is_live, room_pic, avatar_url FROM huya",
-    "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
-    "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",
-    "douyin": "SELECT douyin_id, name, is_live FROM douyin",
-    "douyu": "SELECT room, name, is_live FROM douyu",
-    "xhs": "SELECT profile_id, user_name, latest_note_title FROM xhs",
-}
-
-# 虎牙「仅基础字段」SQL（不含 room_pic/avatar_url，用于异步加载图片 URL）
-_PLATFORM_LIST_SQL_HUYA_BASIC = "SELECT room, name, is_live FROM huya"
 
 
 @app.get("/api/data/{platform}")
@@ -1757,28 +1392,6 @@ CONFIG_PATCH_PLATFORMS = {
 }
 
 
-def _apply_config_patch(
-    config_path: Path, platform_key: str, list_key: str, operation: str, value: str
-) -> str:
-    """对 config.yml 中的列表字段执行 add/remove，返回新的 YAML 内容（保留其他配置）"""
-    with open(config_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    section = data.get(platform_key) or {}
-    raw = section.get(list_key) or ""
-    items = [x.strip() for x in raw.split(",") if x.strip()]
-    val = value.strip()
-    if operation == "remove":
-        items = [x for x in items if x != val]
-    elif operation == "add":
-        if val not in items:
-            items.append(val)
-    else:
-        raise ValueError(f"不支持的 operation: {operation}")
-    new_value = ",".join(items) if items else ""
-    config_data = {platform_key: {list_key: new_value}}
-    return _merge_and_dump_config(config_path, config_data)
-
-
 @app.post("/api/assistant/apply-action")
 async def assistant_apply_action(request: Request):
     """执行 AI 助手识别的可确认操作（如开关监控、增删列表项）"""
@@ -2147,53 +1760,6 @@ async def webhook_telegram(request: Request, channel_name: str):
         asyncio.create_task(send_telegram_message(api_token, chat_id, text))
 
     return JSONResponse({"ok": True})
-
-
-async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:
-    """
-    验证 YAML 内容并保存到 config.yml，成功返回 None，失败返回错误 JSONResponse。
-    验证流程：写入临时文件 → load_config_from_yml → AppConfig 校验 → 写入正式文件 → 热重载。
-    """
-    import tempfile
-
-    temp_file = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yml", delete=False, encoding="utf-8"
-        ) as tmp:
-            tmp.write(yaml_content)
-            temp_file = tmp.name
-
-        try:
-            test_config_dict = load_config_from_yml(temp_file)
-            from src.config import AppConfig
-
-            AppConfig(**test_config_dict)
-        except Exception as e:
-            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-        finally:
-            if temp_file and Path(temp_file).exists():
-                Path(temp_file).unlink()
-    except Exception as e:
-        if temp_file and Path(temp_file).exists():
-            Path(temp_file).unlink()
-        return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-
-    await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
-
-    try:
-        get_config(reload=True)
-    except Exception as e:
-        logger.warning("热重载失败: %s", e)
-
-    try:
-        from src.ai_assistant.config import get_ai_config
-
-        get_ai_config(reload=True)
-    except ImportError:
-        pass
-
-    return None
 
 
 def create_web_app():
