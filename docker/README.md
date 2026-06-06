@@ -7,9 +7,9 @@
 | 镜像 | 标签 | Dockerfile | Compose 文件 | 适用场景 |
 |:--|:--|:--|:--|:--|
 | 精简镜像 | `fengyu666/webmoniter:latest` | `docker/Dockerfile` | `docker/docker-compose.yml` | 默认推荐，适合监控、推送和大多数 HTTP 类签到 |
-| 完整镜像 | `fengyu666/webmoniter:full` | `docker/Dockerfile.full` | `docker/docker-compose.full.yml` | 需要雨云浏览器签到时使用 |
+| 完整镜像 | `fengyu666/webmoniter:full` | `docker/Dockerfile.full` | `docker/docker-compose.full.yml` | 需要 iKuuu、雨云等浏览器签到时使用 |
 
-完整镜像包含 Chromium/Chromedriver 和雨云签到依赖，镜像体积更大。两个 Compose 文件的默认容器名都是 `webmoniter`，请二选一运行。
+完整镜像包含 Chromium/Chromedriver 和浏览器签到依赖，镜像体积更大。两个 Compose 文件的默认容器名都是 `webmoniter`，请二选一运行。
 
 ## 初始化
 

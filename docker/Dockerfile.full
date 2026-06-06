@@ -1,4 +1,4 @@
-# 完整镜像（Docker Hub 标签 :full、*-full）：Chromium + 雨云签到依赖（Selenium、ddddocr、OpenCV）
+# 完整镜像（Docker Hub 标签 :full、*-full）：Chromium + 浏览器签到依赖（Selenium、ddddocr、OpenCV）
 # 精简构建见 docker/Dockerfile；从仓库根目录构建：docker build -f docker/Dockerfile.full .
 FROM python:3.11-slim AS builder
 

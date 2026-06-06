@@ -98,6 +98,7 @@ xhs:
 # iKuuu 签到配置
 # ==========================================================================
 # 域名自动从 ikuuu.club 发现，无需手动配置
+# 登录会启动浏览器处理验证流程；Docker 请使用 Dockerfile.full / docker-compose.full.yml / full 镜像
 # 按配置每天固定时间（默认 08:00）自动签到，项目启动时也会执行一次（enable: true 且配置完整时）
 # 多账号：配置 accounts 列表，每项包含 email、password，会对每个账号依次登录、签到并分别推送；不配置时使用单账号 email/password
 checkin:

@@ -59,7 +59,8 @@ weibo_chaohua:
 
 **配置节点**：`checkin`  
 **默认时间**：08:00  
-**认证方式**：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。
+**认证方式**：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。  
+**部署说明**：登录会启动浏览器处理验证流程；Docker 请使用 **`docker/Dockerfile.full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发请使用 `uv sync --locked --extra rainyun` 并自备 Chromium/Chromedriver。
 
 ### 配置项
 

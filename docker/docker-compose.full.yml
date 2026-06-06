@@ -1,4 +1,4 @@
-# 完整栈：镜像 :full（由 docker/Dockerfile.full 构建）。用于 config.yml 中 rainyun.enable: true。请在仓库根目录执行 compose。
+# 完整栈：镜像 :full（由 docker/Dockerfile.full 构建）。用于 iKuuu、雨云等浏览器签到任务。请在仓库根目录执行 compose。
 # 示例：docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d
 services:
   web-monitor:

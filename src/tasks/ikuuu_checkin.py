@@ -10,15 +10,18 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import html
 import logging
-import random
+import os
 import re
+import shutil
+import time
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any
 
 import aiohttp
 from bs4 import BeautifulSoup
-from yarl import URL
 
 from src.jobs.registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
@@ -26,8 +29,32 @@ from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_
 
 logger = logging.getLogger(__name__)
 
-# ikuuu 域名发现入口
+# ikuuu 域名发现入口；后几个是历史上出现过的“最新域名公告页”，用于入口被拦截时兜底。
 _IKUUU_DISCOVERY_URL = "http://ikuuu.club"
+_IKUUU_DISCOVERY_URLS = (
+    "https://ikuuu.club",
+    "http://ikuuu.club",
+    "https://ikuuu.eu",
+    "https://ikuuu.de",
+    "https://ikuuu.pro",
+)
+_IKUUU_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
+_IKUUU_MAX_RETRIES = 5
+_IKUUU_RETRY_DELAY_SECONDS = 2
+_IKUUU_RECENT_DOMAINS = (
+    "ikuuu.win",
+    "ikuuu.eu",
+    "ikuuu.de",
+    "ikuuu.pro",
+    "ikuuu.pw",
+    "ikuuu.com",
+    "ikuuu.org",
+    "ikuuu.cc",
+)
 
 # ikuuu 历史使用过的 TLD，按首字母分组
 # 用于解析混淆 JS 中被拆分的域名片段（如 'uuu.f' + 混淆函数() → ikuuu.fyi）
@@ -51,19 +78,191 @@ _IKUUU_TLD_CANDIDATES: dict[str, list[str]] = {
 }
 
 
-async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> str | None:
-    """尝试通过 HTTP HEAD 请求验证域名是否可用，返回域名或 None。"""
+@dataclass
+class _DomainProbeResult:
+    domain: str
+    score: int
+    elapsed_ms: int
+    reason: str
+
+
+_IKUUU_DOMAIN_RE = re.compile(
+    r"(?<![a-z0-9-])(?:https?://)?(?:www\.)?(ikuuu\.[a-z]{2,12})(?![a-z0-9-])",
+    re.IGNORECASE,
+)
+
+
+def _normalize_ikuuu_domain(raw: str) -> str | None:
+    """把 URL/文本片段归一成 ikuuu.xxx 域名。"""
+    value = (raw or "").strip().lower()
+    if not value:
+        return None
+    match = _IKUUU_DOMAIN_RE.search(value)
+    if not match:
+        return None
+    domain = match.group(1).rstrip(".")
+    if domain == "ikuuu.club":
+        return None
+    return domain
+
+
+def _add_domain_candidate(
+    candidates: dict[str, int], raw_domain: str, score: int, source: str
+) -> None:
+    domain = _normalize_ikuuu_domain(raw_domain)
+    if not domain:
+        return
+    candidates[domain] = max(candidates.get(domain, 0), score)
+    logger.debug("ikuuu签到：域名候选 %s 来源=%s 分数=%d", domain, source, score)
+
+
+def _extract_literal_joined_chunks(text: str) -> list[str]:
+    """粗略还原 JS 中连续字符串字面量拼接出来的片段。"""
+    chunks: list[str] = []
+    pattern = re.compile(r"""(?:(['"])(?:\\.|(?!\1).)*\1\s*\+\s*)+(['"])(?:\\.|(?!\2).)*\2""")
+    for expr_match in pattern.finditer(text):
+        expr = expr_match.group(0)
+        if "ik" not in expr.lower() and "uuu" not in expr.lower():
+            continue
+        parts = re.findall(r"""(['"])((?:\\.|(?!\1).)*)\1""", expr)
+        joined = "".join(part for _, part in parts)
+        if joined:
+            chunks.append(joined)
+    return chunks
+
+
+def _extract_domain_candidates_from_text(
+    text: str, candidates: dict[str, int], *, source: str, base_score: int
+) -> set[str]:
+    """从 HTML/JS/纯文本中提取完整候选域名，并返回不完整 TLD 首字母。"""
+    if not text:
+        return set()
+
+    partial_chars: set[str] = set()
+    variants = [text, html.unescape(text)]
+    variants.extend(_extract_literal_joined_chunks(text))
+
+    for idx, content in enumerate(variants):
+        variant_score = max(base_score - idx, 1)
+
+        for match in _IKUUU_DOMAIN_RE.finditer(content):
+            _add_domain_candidate(candidates, match.group(1), variant_score, source)
+
+        for ext in re.findall(
+            r"""['"]ikuuu['"]\s*\+\s*['"]\.([a-z]{1,12})""",
+            content,
+            re.IGNORECASE,
+        ):
+            ext = ext.lower()
+            if len(ext) >= 2:
+                _add_domain_candidate(candidates, f"ikuuu.{ext}", variant_score, source)
+            else:
+                partial_chars.add(ext)
+
+        for ext in re.findall(r"""['"]uuu\.([a-z]{1,12})['"]""", content, re.IGNORECASE):
+            ext = ext.lower()
+            if len(ext) >= 2:
+                _add_domain_candidate(candidates, f"ikuuu.{ext}", variant_score, source)
+            else:
+                partial_chars.add(ext)
+
+    return {char for char in partial_chars if char}
+
+
+async def _fetch_discovery_page(
+    session: aiohttp.ClientSession, url: str
+) -> tuple[str, str, str] | None:
+    """获取域名公告页，返回原始 URL、最终 URL、HTML。"""
     try:
-        async with session.head(
-            f"https://{domain}",
-            timeout=aiohttp.ClientTimeout(total=5),
+        async with session.get(
+            url,
+            headers={"User-Agent": _IKUUU_USER_AGENT},
+            timeout=aiohttp.ClientTimeout(total=5, connect=3, sock_read=3),
             allow_redirects=True,
         ) as resp:
-            if resp.status < 500:
-                return domain
-    except Exception:  # noqa: BLE001
-        pass
+            text = await resp.text(errors="ignore")
+            logger.debug(
+                "ikuuu签到：域名发现入口 %s 返回 HTTP %s，最终地址 %s",
+                url,
+                resp.status,
+                resp.url,
+            )
+            return url, str(resp.url), text
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ikuuu签到：域名发现入口 %s 访问失败：%s", url, exc)
+        return None
+
+
+async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> _DomainProbeResult | None:
+    """验证候选域名是否像真实 iKuuu 登录站点。"""
+    started = perf_counter()
+    login_url = f"https://{domain}/auth/login"
+    try:
+        async with session.get(
+            login_url,
+            headers={
+                "User-Agent": _IKUUU_USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+            timeout=aiohttp.ClientTimeout(total=5, connect=3, sock_read=3),
+            allow_redirects=True,
+        ) as resp:
+            text = await resp.text(errors="ignore")
+            elapsed_ms = int((perf_counter() - started) * 1000)
+            body = text.lower()
+            final_domain = _normalize_ikuuu_domain(str(resp.url))
+
+            if resp.status >= 500:
+                return None
+
+            has_login_form = (
+                ('id="email"' in body or "name=\"email\"" in body or "email" in body)
+                and ('id="password"' in body or "name=\"password\"" in body or "password" in body)
+            )
+            is_domain_notice = "ikuuuvpn" in body and "2019-2026" in body
+
+            if has_login_form:
+                return _DomainProbeResult(domain, 100, elapsed_ms, "login-form")
+
+            if final_domain == domain and not is_domain_notice and resp.status in {200, 301, 302}:
+                return _DomainProbeResult(domain, 60, elapsed_ms, f"http-{resp.status}")
+
+            if final_domain and final_domain != domain:
+                return _DomainProbeResult(final_domain, 55, elapsed_ms, f"redirect:{domain}")
+
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ikuuu签到：候选域名 %s 探测失败：%s", domain, exc)
     return None
+
+
+async def _probe_domains(
+    session: aiohttp.ClientSession, candidates: dict[str, int]
+) -> list[_DomainProbeResult]:
+    """并发探测候选域名，按探测结果从优到劣排序。"""
+    if not candidates:
+        return []
+
+    semaphore = asyncio.Semaphore(8)
+
+    async def probe_one(domain: str) -> _DomainProbeResult | None:
+        async with semaphore:
+            result = await _probe_domain(session, domain)
+            if result:
+                result.score += min(candidates.get(result.domain, candidates.get(domain, 0)), 50)
+                logger.debug(
+                    "ikuuu签到：候选域名 %s 探测通过，分数=%d，耗时=%dms，原因=%s",
+                    result.domain,
+                    result.score,
+                    result.elapsed_ms,
+                    result.reason,
+                )
+            return result
+
+    ordered_domains = sorted(candidates, key=lambda d: (-candidates[d], d))[:32]
+    results = await asyncio.gather(*(probe_one(domain) for domain in ordered_domains))
+    valid_results = [result for result in results if result is not None]
+    valid_results.sort(key=lambda item: (-item.score, item.elapsed_ms, item.domain))
+    return valid_results
 
 
 async def _extract_ikuuu_domain() -> str | None:
@@ -80,98 +279,115 @@ async def _extract_ikuuu_domain() -> str | None:
     1. 访问 ikuuu.club（可能重定向或展示包含混淆 JS 的域名页面）
     2. 从最终 URL、原始 HTML/JS 源码中提取 ikuuu.xxx 格式的域名
     3. 对于只拿到 TLD 首字母的片段，通过 HTTP 探测补全
-    4. 随机选择一个可用域名返回
+    4. 优先返回已验证可打开登录页的高分域名
     """
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
-        )
-    }
-
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
-            async with session.get(
-                _IKUUU_DISCOVERY_URL, headers=headers, allow_redirects=True
-            ) as resp:
-                raw_html = await resp.text()
-                final_url = str(resp.url)
-
-            # ── 收集所有候选域名 ──
-            candidates: set[str] = set()
-
-            # 1. 从重定向后的最终 URL 中提取
-            redirect_match = re.search(r"ikuuu\.([a-zA-Z]{2,})", final_url)
-            if redirect_match:
-                candidates.add(f"ikuuu.{redirect_match.group(1)}")
-
-            # 2. 从原始 HTML/JS 源码中提取（关键：页面域名藏在混淆 JS 里）
-            #    直接匹配：ikuuu.xxx（出现在任何位置）
-            for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})\b", raw_html):
-                candidates.add(f"ikuuu.{ext}")
-
-            #    JS 字符串拼接模式：'ikuuu' + '.nl' 或 "ikuuu" + ".nl"
-            for ext in re.findall(r"""['"]ikuuu['"]\s*\+\s*['"]\.([a-zA-Z]{2,})""", raw_html):
-                candidates.add(f"ikuuu.{ext}")
-
-            #    URL 片段拼接模式（完整 TLD）：'uuu.xxx'
-            for ext in re.findall(r"""['"]uuu\.([a-zA-Z]{2,})""", raw_html):
-                candidates.add(f"ikuuu.{ext}")
-
-            # 3. 从 BeautifulSoup 解析的纯文本中提取
-            soup = BeautifulSoup(raw_html, "html.parser")
-            text_content = soup.get_text()
-            for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})\b", text_content):
-                candidates.add(f"ikuuu.{ext}")
-
-            # 4. 从页面链接中提取
-            for a_tag in soup.find_all("a", href=True):
-                href = a_tag["href"]
-                for ext in re.findall(r"ikuuu\.([a-zA-Z]{2,})", href):
-                    candidates.add(f"ikuuu.{ext}")
-
-            # ── 处理被混淆 JS 拆分的不完整 TLD 片段 ──
-            # 匹配如 'uuu.f' 这样只有首字母的情况（后半被混淆函数拼接）
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=8),
+            connector=aiohttp.TCPConnector(limit=16),
+        ) as session:
+            scored_candidates: dict[str, int] = {}
             partial_chars: set[str] = set()
-            for char in re.findall(r"""['"]uuu\.([a-zA-Z])['"]""", raw_html):
-                c = char.lower()
-                # 跳过已有完整域名中以该字母开头的 TLD
-                if not any(d.split(".")[-1].startswith(c) for d in candidates):
-                    partial_chars.add(c)
 
-            # 对每个不完整首字母，通过 HTTP 探测已知 TLD 候选
-            if partial_chars:
-                probe_tasks = []
-                for char in partial_chars:
-                    for tld in _IKUUU_TLD_CANDIDATES.get(char, []):
-                        probe_tasks.append(_probe_domain(session, f"ikuuu.{tld}"))
+            fetched_pages = await asyncio.gather(
+                *(_fetch_discovery_page(session, url) for url in _IKUUU_DISCOVERY_URLS)
+            )
+            fetched_pages = [page for page in fetched_pages if page is not None]
 
-                if probe_tasks:
-                    results = await asyncio.gather(*probe_tasks, return_exceptions=True)
-                    for result in results:
-                        if isinstance(result, str):
-                            candidates.add(result)
-                            logger.debug("ikuuu签到：HTTP 探测确认域名 %s 可用", result)
+            for source_url, final_url, raw_html in fetched_pages:
+                _add_domain_candidate(scored_candidates, final_url, 70, f"redirect:{source_url}")
+                partial_chars.update(
+                    _extract_domain_candidates_from_text(
+                        raw_html,
+                        scored_candidates,
+                        source=source_url,
+                        base_score=60,
+                    )
+                )
 
-            # 排除 ikuuu.club 本身（这是发现入口，不是实际服务域名）
-            candidates.discard("ikuuu.club")
+                soup = BeautifulSoup(raw_html, "html.parser")
+                partial_chars.update(
+                    _extract_domain_candidates_from_text(
+                        soup.get_text(" ", strip=True),
+                        scored_candidates,
+                        source=f"text:{source_url}",
+                        base_score=45,
+                    )
+                )
+                for a_tag in soup.find_all("a", href=True):
+                    _add_domain_candidate(
+                        scored_candidates, str(a_tag["href"]), 65, f"link:{source_url}"
+                    )
 
-            if candidates:
-                selected = random.choice(list(candidates))
+            for domain in list(scored_candidates):
+                tld = domain.split(".")[-1]
+                if len(tld) == 1:
+                    partial_chars.add(tld)
+
+            for char in sorted(partial_chars):
+                if any(domain.split(".")[-1].startswith(char) for domain in scored_candidates):
+                    continue
+                for tld in _IKUUU_TLD_CANDIDATES.get(char, []):
+                    _add_domain_candidate(scored_candidates, f"ikuuu.{tld}", 25, f"partial:{char}")
+
+            for domain in _IKUUU_RECENT_DOMAINS:
+                _add_domain_candidate(scored_candidates, domain, 10, "recent")
+
+            probe_results = await _probe_domains(session, scored_candidates)
+            if probe_results:
+                selected = probe_results[0].domain
                 logger.info(
-                    "ikuuu签到：自动发现域名 %s（候选: %s）",
+                    "ikuuu签到：自动发现域名 %s（已验证，候选 %d 个，耗时 %dms）",
                     selected,
-                    ", ".join(sorted(candidates)),
+                    len(scored_candidates),
+                    probe_results[0].elapsed_ms,
                 )
                 return selected
 
-        logger.warning("ikuuu签到：未能从 %s 提取到可用域名", _IKUUU_DISCOVERY_URL)
+            extracted_domains = [
+                domain for domain in sorted(scored_candidates, key=scored_candidates.get, reverse=True)
+                if scored_candidates[domain] >= 40
+            ]
+            if extracted_domains:
+                selected = extracted_domains[0]
+                logger.warning(
+                    "ikuuu签到：候选域名未能完成在线验证，回退使用解析分数最高的 %s（候选: %s）",
+                    selected,
+                    ", ".join(extracted_domains[:8]),
+                )
+                return selected
+
+        logger.warning("ikuuu签到：未能从 %s 提取或验证到可用域名", _IKUUU_DISCOVERY_URL)
         return None
 
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：自动提取域名失败：%s", exc, exc_info=True)
         return None
+
+
+async def _extract_ikuuu_domain_with_retry() -> str | None:
+    """最多尝试 5 次自动发现 ikuuu 可用域名。"""
+    for attempt in range(1, _IKUUU_MAX_RETRIES + 1):
+        if attempt > 1:
+            logger.info("ikuuu签到：第 %d/%d 次重试自动发现域名", attempt, _IKUUU_MAX_RETRIES)
+
+        domain = await _extract_ikuuu_domain()
+        if domain:
+            if attempt > 1:
+                logger.info("ikuuu签到：域名发现重试成功：%s", domain)
+            return domain
+
+        if attempt < _IKUUU_MAX_RETRIES:
+            logger.warning(
+                "ikuuu签到：第 %d/%d 次域名发现失败，%d 秒后重试",
+                attempt,
+                _IKUUU_MAX_RETRIES,
+                _IKUUU_RETRY_DELAY_SECONDS,
+            )
+            await asyncio.sleep(_IKUUU_RETRY_DELAY_SECONDS)
+
+    logger.error("ikuuu签到：连续 %d 次域名发现失败", _IKUUU_MAX_RETRIES)
+    return None
 
 
 @dataclass
@@ -247,7 +463,7 @@ class CheckinConfig:
     def validate(self) -> bool:
         """校验配置是否完整"""
         if not self.enable:
-            logger.debug("ikuuu签到未启用，跳过执行")
+            logger.info("ikuuu签到未启用，跳过执行；请在 config.yml 中设置 checkin.enable: true")
             return False
 
         missing_fields: list[str] = []
@@ -279,94 +495,185 @@ def _mask_email(email: str) -> str:
     return f"{masked_name}@{domain}"
 
 
-async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConfig) -> str | None:
-    """登录站点并获取 Cookie"""
+def _default_chrome_binary() -> str | None:
+    candidates = [
+        os.environ.get("CHROME_BIN", "").strip(),
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+def _default_chromedriver_path() -> str | None:
+    candidates = [
+        os.environ.get("CHROMEDRIVER_PATH", "").strip(),
+        shutil.which("chromedriver") or "",
+        "/usr/bin/chromedriver",
+        "/usr/local/bin/chromedriver",
+        "/usr/lib/chromium/chromedriver",
+        "/usr/lib/chromium-browser/chromedriver",
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
+    """通过浏览器登录站点并获取 Cookie。"""
     logger.debug("ikuuu签到：使用账号 %s 登录", _mask_email(cfg.email))
 
-    # 从登录地址中推导出站点根地址，用于设置 Referer / Origin
     try:
-        login_url = URL(cfg.login_url)
-        base_origin = f"{login_url.scheme}://{login_url.host}"
-    except Exception:
-        # 如果 URL 解析失败，则回退为配置值
-        base_origin = cfg.login_url
+        from selenium import webdriver
+        from selenium.common.exceptions import TimeoutException
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
+    except ModuleNotFoundError as exc:
+        logger.error("ikuuu签到：缺少 Selenium 依赖，请使用 Docker full 镜像运行")
+        logger.debug("ikuuu签到：Selenium 导入失败：%s", exc)
+        return None
 
-    headers: dict[str, str] = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
-        )
-    }
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--window-size=1280,800")
+    options.add_argument("--lang=zh-CN")
+    options.add_argument(f"--user-agent={_IKUUU_USER_AGENT}")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+
+    chrome_bin = _default_chrome_binary()
+    if chrome_bin:
+        options.binary_location = chrome_bin
+
+    driver = None
+    driver_path = _default_chromedriver_path()
 
     try:
-        # 访问登录页，获取 CSRF 等必要信息
-        async with session.get(cfg.login_url, headers=headers) as resp:
-            text = await resp.text()
+        if driver_path:
+            driver = webdriver.Chrome(service=Service(driver_path), options=options)
+        else:
+            driver = webdriver.Chrome(options=options)
 
-        soup = BeautifulSoup(text, "html.parser")
-        csrf_token: str | None = None
-        csrf_input = soup.find("input", {"name": "_token"})
-        if csrf_input:
-            csrf_token = csrf_input.get("value")
-
-        login_data: dict[str, str] = {
-            "email": cfg.email,
-            "passwd": cfg.password,
-        }
-        if csrf_token:
-            login_data["_token"] = csrf_token
-
-        headers.update(
+        driver.execute_cdp_cmd(
+            "Page.addScriptToEvaluateOnNewDocument",
             {
-                "Origin": base_origin,
-                "Referer": cfg.login_url,
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
+                "source": """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                """
+            },
         )
 
-        async with session.post(cfg.login_url, data=login_data, headers=headers) as resp:
-            status = resp.status
-            resp_url = str(resp.url)
+        wait = WebDriverWait(driver, 20)
+        logger.debug("ikuuu签到：打开登录页 %s", cfg.login_url)
+        driver.get(cfg.login_url)
 
-            # 优先尝试解析 JSON
-            json_data: dict[str, Any] | None = None
-            try:
-                json_data = await resp.json(content_type=None)
-            except Exception:
-                json_data = None
+        email_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#email")))
+        password_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#password")))
+        email_input.clear()
+        email_input.send_keys(cfg.email)
+        password_input.clear()
+        password_input.send_keys(cfg.password)
 
-        if status == 200:
-            # 1. 一些站点登录成功会跳转到 /user 等页面
-            # 2. 有些返回 JSON: {"ret": 1, "msg": "..."}
-            if "user" in resp_url or (json_data and json_data.get("ret") == 1):
-                logger.debug("ikuuu签到：登录成功")
-                # 从 session 中提取 Cookie
-                cookie_jar = session.cookie_jar
-                cookies = cookie_jar.filter_cookies(base_origin)
-                cookie_string = "; ".join(f"{k}={v.value}" for k, v in cookies.items())
-                return cookie_string
+        try:
+            verify_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".geetest_btn_click"))
+            )
+            verify_button.click()
+            logger.debug("ikuuu签到：已点击验证按钮")
+        except TimeoutException:
+            logger.debug("ikuuu签到：未发现验证按钮，继续提交登录")
 
-            msg = json_data.get("msg") if json_data else "未知错误"
-            logger.error("ikuuu签到：登录失败：%s", msg)
+        time.sleep(2)
+        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[type="submit"]'))).click()
+        time.sleep(5)
+
+        cookies = driver.get_cookies()
+        cookie_string = "; ".join(
+            f"{cookie['name']}={cookie['value']}"
+            for cookie in cookies
+            if cookie.get("name") and cookie.get("value") is not None
+        )
+        if not cookie_string:
+            logger.error("ikuuu签到：浏览器登录后未获取到 Cookie")
             return None
 
-        logger.error("ikuuu签到：登录请求失败，HTTP 状态码：%s", status)
-        return None
+        logger.debug("ikuuu签到：浏览器登录完成，已获取 Cookie")
+        return cookie_string
 
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：登录过程中发生错误：%s", exc, exc_info=True)
         return None
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:  # noqa: BLE001
+                pass
 
 
-async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str) -> bool:
+async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConfig) -> str | None:
+    """登录站点并获取 Cookie，失败时最多重试 5 次。session 参数保留给现有调用链。"""
+    _ = session
+    masked_email = _mask_email(cfg.email)
+
+    for attempt in range(1, _IKUUU_MAX_RETRIES + 1):
+        if attempt > 1:
+            logger.info(
+                "ikuuu签到：账号 %s 第 %d/%d 次重试登录（域名：%s）",
+                masked_email,
+                attempt,
+                _IKUUU_MAX_RETRIES,
+                cfg.domain,
+            )
+
+        cookie = await asyncio.to_thread(_login_and_get_cookie_sync, cfg)
+        if cookie:
+            if attempt > 1:
+                logger.info("ikuuu签到：账号 %s 登录重试成功", masked_email)
+            return cookie
+
+        if attempt >= _IKUUU_MAX_RETRIES:
+            break
+
+        logger.warning(
+            "ikuuu签到：账号 %s 第 %d/%d 次登录失败，准备重新发现域名后重试",
+            masked_email,
+            attempt,
+            _IKUUU_MAX_RETRIES,
+        )
+        new_domain = await _extract_ikuuu_domain_with_retry()
+        if new_domain and new_domain != cfg.domain:
+            logger.info("ikuuu签到：登录失败后切换域名：%s -> %s", cfg.domain, new_domain)
+            cfg.domain = new_domain
+
+        await asyncio.sleep(_IKUUU_RETRY_DELAY_SECONDS)
+
+    logger.error("ikuuu签到：账号 %s 连续 %d 次登录失败", masked_email, _IKUUU_MAX_RETRIES)
+    return None
+
+
+async def _checkin(
+    session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: str
+) -> tuple[bool, str]:
     """执行签到"""
     headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
-        ),
+        "User-Agent": _IKUUU_USER_AGENT,
         "Origin": cfg.checkin_url.rsplit("/user", 1)[0] if "/user" in cfg.checkin_url else "",
         "Referer": (
             cfg.checkin_url.rsplit("/checkin", 1)[0] if "/checkin" in cfg.checkin_url else ""
@@ -380,23 +687,23 @@ async def _checkin(session: aiohttp.ClientSession, cfg: CheckinConfig, cookie: s
                 data: dict[str, Any] = await resp.json(content_type=None)
             except Exception as exc:  # noqa: BLE001
                 logger.error("ikuuu签到：解析签到响应失败：%s", exc, exc_info=True)
-                return False
+                return False, "解析签到响应失败"
 
-        msg = data.get("msg", "")
+        msg = str(data.get("msg") or "未知结果")
         if data.get("ret") == 1:
             logger.info("ikuuu签到：✅ 签到成功：%s", msg)
-            return True
+            return True, msg
 
         if "已经签到" in msg or "已签到" in msg:
             logger.info("ikuuu签到：ℹ️ 今日已签到：%s", msg)
-            return True
+            return True, msg
 
         logger.error("ikuuu签到：❌ 签到失败：%s", msg)
-        return False
+        return False, msg
 
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：签到请求失败：%s", exc, exc_info=True)
-        return False
+        return False, f"签到请求失败：{exc}"
 
 
 async def _get_user_traffic(
@@ -474,12 +781,12 @@ async def run_checkin_once() -> None:
     app_config = get_config(reload=True)
 
     if not app_config.checkin_enable:
-        logger.debug("ikuuu签到未启用，跳过执行")
+        logger.info("ikuuu签到未启用，跳过执行；请在 config.yml 中设置 checkin.enable: true")
         return
 
     # 自动发现 ikuuu 可用域名
     logger.info("ikuuu签到：正在自动发现可用域名...")
-    domain = await _extract_ikuuu_domain()
+    domain = await _extract_ikuuu_domain_with_retry()
     if not domain:
         logger.error("ikuuu签到：无法自动发现可用域名，跳过本次执行")
         return
@@ -520,16 +827,15 @@ async def run_checkin_once() -> None:
                 )
                 continue
 
-            ok = await _checkin(session, cfg_one, cookie)
+            ok, checkin_msg = await _checkin(session, cfg_one, cookie)
             if ok:
                 success_count += 1
             traffic_info = await _get_user_traffic(session, cfg_one, cookie)
             title = "ikuuu签到成功" if ok else "ikuuu签到失败"
-            msg = "签到接口返回成功或已签到" if ok else "签到接口返回失败，请查看日志详情。"
             await _send_checkin_push(
                 push_manager,
                 title=title,
-                msg=msg,
+                msg=checkin_msg,
                 success=ok,
                 cfg=cfg_one,
                 traffic_info=traffic_info,
