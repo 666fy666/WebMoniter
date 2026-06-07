@@ -12,6 +12,8 @@ from urllib.parse import quote
 import aiohttp
 from aiohttp import ClientTimeout
 
+from src.core.http import create_certifi_connector
+
 logger = logging.getLogger(__name__)
 
 # 多个候选 API（不同域名/路径，微博历史版本可能不同）
@@ -88,7 +90,10 @@ async def search_weibo_users(keyword: str, cookie: str) -> list[dict[str, Any]]:
     headers["Referer"] = "https://www.weibo.com/"
 
     try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with aiohttp.ClientSession(
+            timeout=timeout,
+            connector=create_certifi_connector(),
+        ) as session:
             for base_url in _SUGGESTION_ENDPOINTS:
                 for param_name in _SUGGESTION_PARAMS:
                     params = {param_name: keyword}

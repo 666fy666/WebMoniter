@@ -10,6 +10,7 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 from PIL import Image
 
+from src.core.http import create_certifi_connector
 from src.core.paths import DATA_DIR
 from src.monitors.base import BaseMonitor, CookieExpiredError
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
@@ -42,6 +43,7 @@ class WeiboMonitor(BaseMonitor):
                     "X-Requested-With": "XMLHttpRequest",
                 },
                 timeout=ClientTimeout(total=10),
+                connector=create_certifi_connector(),
             )
             self._own_session = True
         else:

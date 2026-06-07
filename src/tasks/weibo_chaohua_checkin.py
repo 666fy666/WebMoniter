@@ -20,6 +20,7 @@ from dataclasses import dataclass
 
 import requests
 
+from src.core.http import create_certifi_connector
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
@@ -315,7 +316,10 @@ async def run_weibo_chaohua_checkin_once() -> None:
 
     import aiohttp
 
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=20),
+        connector=create_certifi_connector(),
+    ) as session:
         push_manager: UnifiedPushManager | None = await build_push_manager(
             app_config.push_channel_list,
             session,
