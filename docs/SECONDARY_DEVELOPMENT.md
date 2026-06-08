@@ -17,7 +17,7 @@
 uv sync --extra dev
 ```
 
-本地开发与调试 **雨云签到**（`src/tasks/rainyun`）时，还需安装 optional 依赖：`uv sync --locked --extra rainyun`（可与 `dev` 同时指定：`uv sync --locked --extra dev --extra rainyun`）。
+本地开发与调试 **iKuuu、雨云签到**（`src/tasks/ikuuu_checkin.py`、`src/tasks/rainyun`）时，还需安装 optional 依赖：`uv sync --locked --extra rainyun`（可与 `dev` 同时指定：`uv sync --locked --extra dev --extra rainyun`）。
 
 #### 代码格式化
 
@@ -233,8 +233,9 @@ register_task("ikuuu_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
 
 `register_task` 默认启用 `skip_if_run_today=True`，任务在执行前会检查当天是否已经运行过：
 - 如果已运行：输出日志 `{job_id}: 当天已经运行过了，跳过该任务`，然后跳过执行
-- 如果未运行：正常执行任务，成功后记录运行日期
-- 如果任务执行失败：不记录运行日期，允许后续重试
+- 如果未运行：正常执行任务；函数正常返回（未抛异常）后记录运行日期
+- 如果任务抛出未捕获异常：不记录运行日期，允许后续重试
+- 若任务内部自行捕获错误并 return，仍会被视为已运行
 
 若某个任务需要每次触发都执行（不检查当天是否已运行），可在注册时禁用：
 
@@ -603,9 +604,9 @@ await self.db.execute_insert(sql, data)
 
 青龙环境下，主程序不运行，而是由青龙按 Cron 调用 `src/ql/*.py` 单任务脚本。这些脚本：
 
-- 通过 `src/ql/_runner.py` 作为统一入口，根据脚本名或命令行参数调用对应任务逻辑
-- 配置来自**环境变量**（`WEBMONITER_*` 前缀），由 `src/ql/compat.py` 的 `load_config_from_env()` 解析
+- 在脚本末尾调用 `src/ql/_runner.py` 的 `run_task(task_id, run_func)`，由 runner 切换工作目录、注入环境变量配置并执行任务
+- 配置来自**环境变量**（`WEBMONITER_*` 前缀），由 `src/ql/compat.py` 的 `load_config_from_env()` / `inject_ql_config()` 解析
 - 推送通过 **qlapi** 通道，调用青龙内置的 `QLAPI.systemNotify`
 - 与 `src/tasks/*`、`src/monitors/*` 主流程解耦，共用同一套业务逻辑（如签到、监控 API 调用）
 
-**新增青龙脚本**：复制 `src/ql/ikuuu_checkin.py` 等示例，按需修改任务名、环境变量名，并在 `src/ql/_runner.py` 中注册。详见 [青龙面板兼容指南](QINGLONG.md)。
+**新增青龙脚本**：复制 `src/ql/ikuuu_checkin.py` 等示例，导入对应 `src/tasks/*` 中的 `run_*_once` 函数，在 `if __name__ == "__main__"` 中调用 `run_task("job_id", run_func)`。详见 [青龙面板兼容指南](QINGLONG.md)。

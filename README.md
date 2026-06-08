@@ -211,7 +211,7 @@ cp config/config.yml.sample config.yml
 uv run python main.py
 ```
 
-需要雨云签到时安装可选依赖：
+需要 iKuuu、雨云等浏览器签到时安装可选依赖：
 
 ```bash
 uv sync --locked --extra rainyun
@@ -284,7 +284,8 @@ uv run black --check .
 - `src/web/app.py`：FastAPI 应用组装入口。
 - `src/web/routers/`：页面、认证、任务、配置、数据、日志、AI 助手、Webhook 路由。
 - `src/web/auth.py`、`src/web/config_io.py`、`src/web/data_support.py`、`src/web/assistant_support.py`：Web 辅助逻辑。
-- `src/core/runtime.py`：事件循环与 Ctrl+C 退出兜底。
+- `src/jobs/lifecycle.py`：应用生命周期编排（Web、调度注册、AI 索引、热重载回调）。
+- `src/core/runtime.py`：事件循环与 Ctrl+C 退出兜底（12 秒强制退出 watchdog）。
 
 ---
 

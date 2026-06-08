@@ -15,7 +15,7 @@
 | `enable` | 布尔 | 否 | 是否启用该监控，默认 true；设为 false 时任务暂停，热重载生效 |
 | `cookie` | 字符串 | ✅ | 微博网页版登录后的 Cookie，用于请求接口 |
 | `uids` | 字符串 | ✅ | 要监控的用户 UID，多个用英文逗号分隔，如 `1234567890,9876543210` |
-| `concurrency` | 整数 | 否 | 并发数，建议 2～5，避免触发限流，默认 2 |
+| `concurrency` | 整数 | 否 | 并发数，建议 2～5，避免触发限流，默认 3 |
 | `monitor_interval_seconds` | 整数 | 否 | 监控间隔（秒），默认 300（5 分钟） |
 | `push_channels` | 列表 | 否 | 推送通道名称列表，为空时使用全部已配置通道 |
 
@@ -42,7 +42,7 @@ weibo:
   enable: true                                 # 是否启用微博监控
   cookie: "SUB=xxx; SUBP=xxx; ALF=xxx; ..."   # 从浏览器开发者工具复制完整 Cookie
   uids: 1234567890,9876543210                  # 要监控的用户 UID，逗号分隔
-  concurrency: 2
+  concurrency: 3
   monitor_interval_seconds: 300
   push_channels: []                            # 为空则使用全部通道
 ```

@@ -17,7 +17,7 @@
 
 ??? question "如何调整监控频率？"
     在 `config.yml` 中修改对应间隔（秒）即可，无需重启：
-    - 微博：`weibo.monitor_interval_seconds`（默认 300）
+    - 微博：`weibo.monitor_interval_seconds`（默认 300）；`weibo.concurrency`（默认 3）
     - 虎牙：`huya.monitor_interval_seconds`（默认 65）
     - 哔哩哔哩：`bilibili.monitor_interval_seconds`（默认 60）
     - 抖音：`douyin.monitor_interval_seconds`（默认 30）
@@ -78,7 +78,7 @@
 ---
 
 ??? question "定时任务为什么显示「当天已经运行过了，跳过该任务」？"
-    定时任务默认会检查当天是否已运行过（通过 `task_run_history` 表记录），若已运行则跳过，避免重复执行。程序重启或定时触发时都会进行此检查。若需立即再执行一次，可通过 Web 管理界面「任务管理」页面的「立即运行」手动触发，会绕过该检查并强制执行。
+    定时任务默认会检查当天是否已运行过（通过 `task_run_history` 表记录），若已运行则跳过，避免重复执行。程序重启或定时触发时都会进行此检查。任务函数正常返回后即写入记录；若抛出未捕获异常则不写入。若需立即再执行一次，可通过 Web 管理界面「任务管理」页面的「立即运行」手动触发，会绕过该检查并强制执行。
 
 ---
 

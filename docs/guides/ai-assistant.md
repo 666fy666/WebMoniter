@@ -103,7 +103,7 @@ ai_assistant:
 uv sync
 ```
 
-需安装 `openai`、`httpx`、`chromadb`（可选，用于向量检索）。
+默认依赖已包含 `openai`、`httpx`、`chromadb`（向量检索）等 AI 相关包，无需额外安装 optional 组。浏览器签到（iKuuu、雨云）需另行安装：`uv sync --locked --extra rainyun`。
 
 **数据来源**：AI 检索时使用
 - **文档**：`docs/*.md` 与 `README.md`，按 Markdown 标题结构分块，存入 Chroma 向量库，采用**向量 + BM25 混合检索**与 **RRF 重排**，检索到同一文档的多个子块时会智能去重并合并为完整父文档；项目启动时若 AI 助手已启用则自动构建向量库

@@ -219,7 +219,7 @@ docker image rm fengyu666/webmoniter:full
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-# 2. 安装依赖（需要雨云签到时追加 --extra rainyun）
+# 2. 安装依赖（需要 iKuuu、雨云等浏览器签到时追加 --extra rainyun）
 uv sync --locked
 # uv sync --locked --extra rainyun
 
