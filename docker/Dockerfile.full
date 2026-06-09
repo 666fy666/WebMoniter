@@ -5,18 +5,23 @@ FROM python:3.11-slim AS builder
 WORKDIR /app
 
 RUN pip install --no-cache-dir uv && \
-    rm -rf /root/.cache/pip
+    rm -rf /root/.cache/pip && \
+    apt-get update && apt-get install -y --no-install-recommends binutils && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
 
+# 安装依赖并裁剪体积（本阶段产物会被丢弃，仅最终拷贝裁剪后的 .venv）：
+# 1) 删除缓存、测试/示例目录、字节码
+# 2) 删除运行时无用文件：类型存根 .pyi、C 头文件 .h、静态库 .a、语言包 .mo
+# 3) strip 共享库调试符号（--strip-unneeded 对 .so 安全，不影响运行）
 RUN uv sync --frozen --no-dev --no-install-project --extra rainyun && \
     rm -rf /root/.cache/uv && \
     find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -type f -name "*.pyc" -delete && \
-    find /app/.venv -type f -name "*.pyo" -delete
+    find /app/.venv -type d \( -name tests -o -name test -o -name examples \) -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type f \( -name "*.pyc" -o -name "*.pyo" -o -name "*.pyi" -o -name "*.h" -o -name "*.a" \) -delete 2>/dev/null || true && \
+    find /app/.venv -path "*/locale/*" -name "*.mo" -delete 2>/dev/null || true && \
+    find /app/.venv -name "*.so" -exec strip --strip-unneeded {} + 2>/dev/null || true
 
 FROM python:3.11-slim
 

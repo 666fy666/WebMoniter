@@ -1,6 +1,6 @@
 [project]
 name = "web-monitor"
-version = "2.3.2"
+version = "2.3.3"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
@@ -77,5 +77,3 @@ ignore = ["E501"]
 line-length = 100
 target-version = ["py310"]
 extend-exclude = "weworkapi_python"
-
-
