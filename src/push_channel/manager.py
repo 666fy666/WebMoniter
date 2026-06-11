@@ -95,13 +95,19 @@ class UnifiedPushManager:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def _ensure_content_within_limit(
-        self, channel, content: str, app_config: AppConfig | None = None
+        self,
+        channel,
+        content: str,
+        app_config: AppConfig | None = None,
+        extend_data: dict | None = None,
     ) -> str:
         """
         若渠道有字数限制且内容超限，则尝试 LLM 压缩（当配置开启且 AI 可用）或截断。
         返回不超过该渠道 max_content_bytes 的内容。
         """
         max_bytes = getattr(channel, "max_content_bytes", None)
+        if extend_data and extend_data.get("plain_text"):
+            max_bytes = getattr(channel, "plain_text_max_content_bytes", max_bytes)
         if max_bytes is None:
             return content
         content_bytes = len(content.encode("utf-8"))
@@ -130,10 +136,40 @@ class UnifiedPushManager:
     ):
         """单渠道发送：先按渠道限制压缩/截断内容，再推送。"""
         final_description = await self._ensure_content_within_limit(
-            channel, channel_description, app_config
+            channel, channel_description, app_config, extend_data
         )
         return await self._send_with_error_handling(
             channel, title, final_description, to_url, picurl, btntxt, author, extend_data
+        )
+
+    async def send_text(
+        self,
+        title: str,
+        content: str,
+        author: str = "FengYu",
+        description_func=None,
+        extend_data: dict | None = None,
+        event_type: str | None = None,
+        event_data: dict | None = None,
+        **kwargs,
+    ) -> dict:
+        """发送纯文本消息，不附带跳转链接或图片。"""
+        text_extend_data = {"plain_text": True}
+        if extend_data:
+            text_extend_data.update(extend_data)
+
+        return await self.send_news(
+            title=title,
+            description=content,
+            to_url="",
+            picurl="",
+            btntxt="",
+            author=author,
+            description_func=description_func,
+            extend_data=text_extend_data,
+            event_type=event_type,
+            event_data=event_data,
+            **kwargs,
         )
 
     async def send_news(

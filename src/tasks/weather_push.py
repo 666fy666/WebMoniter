@@ -152,12 +152,9 @@ async def run_weather_push_once() -> None:
             try:
                 city_info = data.get("cityInfo", {})
                 today = (data.get("data", {}) or {}).get("forecast", [{}])[0]
-                await push.send_news(
+                await push.send_text(
                     title=title or "天气推送",
-                    description=msg,
-                    to_url="https://t.weather.itboy.net/",
-                    picurl="",
-                    btntxt="查看详情",
+                    content=msg,
                     event_type="weather",
                     event_data={
                         "city": city_info.get("city"),

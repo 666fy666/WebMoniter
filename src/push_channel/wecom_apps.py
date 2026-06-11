@@ -10,6 +10,7 @@ class WeComApps(PushChannel):
     """企业微信应用推送通道（textcard/news 描述约 500 字节限制，见官方文档 发送应用消息）"""
 
     max_content_bytes = 500
+    plain_text_max_content_bytes = 2048
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
@@ -68,7 +69,12 @@ class WeComApps(PushChannel):
         if extend_data and extend_data.get("wecom_pic_url"):
             pic_to_use = extend_data["wecom_pic_url"]
 
-        if pic_to_use is None:
+        if extend_data and extend_data.get("plain_text"):
+            body["msgtype"] = "text"
+            body["text"] = {
+                "content": f"{title}\n\n{content}" if title else content,
+            }
+        elif pic_to_use is None:
             body["msgtype"] = "textcard"
             body["textcard"] = {
                 "title": title,

@@ -9,6 +9,7 @@ class WeComBot(PushChannel):
     """企业微信机器人推送通道（图文/文本等消息内容最长 2048 字节，见官方文档 群机器人）"""
 
     max_content_bytes = 2048
+    plain_text_max_content_bytes = 2048
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
@@ -21,21 +22,29 @@ class WeComBot(PushChannel):
         push_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send"
         headers = {"Content-Type": "application/json"}
         params = {"key": self.key}
-        body = {
-            "msgtype": "news",
-            "news": {
-                "articles": [
-                    {
-                        "title": title,
-                        "description": content,
-                        "url": jump_url or "",
-                    }
-                ]
-            },
-        }
+        if extend_data and extend_data.get("plain_text"):
+            body = {
+                "msgtype": "text",
+                "text": {
+                    "content": f"{title}\n\n{content}" if title else content,
+                },
+            }
+        else:
+            body = {
+                "msgtype": "news",
+                "news": {
+                    "articles": [
+                        {
+                            "title": title,
+                            "description": content,
+                            "url": jump_url or "",
+                        }
+                    ]
+                },
+            }
 
-        if pic_url is not None:
-            body["news"]["articles"][0]["picurl"] = pic_url
+            if pic_url is not None:
+                body["news"]["articles"][0]["picurl"] = pic_url
 
         try:
             session = await self._get_session()
