@@ -388,10 +388,15 @@ function dismissUpdateBanner() {
     }
 }
 
+// 登录页可能由 / 或 /login 渲染，不能仅靠 pathname 判断
+function isLoginPage() {
+    return document.body.classList.contains('login-body');
+}
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
-    // 如果不是登录页，检查认证
-    if (!window.location.pathname.includes('/login')) {
+    // 登录页（含未登录时访问 /）不做认证检查，避免重复跳转
+    if (!isLoginPage()) {
         checkAuth();
         
         // 检查版本更新（如果本次会话未关闭过提示）

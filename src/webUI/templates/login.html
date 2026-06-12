@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=12">
+    <style>
+        html, body.login-body {
+            min-height: 100%;
+            background: linear-gradient(135deg, #34d399 0%, #38bdf8 100%);
+        }
+        [data-theme="dark"] body.login-body {
+            background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/style.css?v=13">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -61,7 +70,7 @@
     <button id="themeToggleBtn" class="btn btn-secondary" style="position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 10px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" aria-label="切换主题">
         <span id="themeIcon" style="font-size: 18px;">☀️</span>
     </button>
-    <script src="/static/js/common.js?v=6"></script>
+    <script src="/static/js/common.js?v=7"></script>
     <script src="/static/js/login.js?v=1"></script>
 </body>
 </html>
