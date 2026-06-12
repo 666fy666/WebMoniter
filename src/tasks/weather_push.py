@@ -107,19 +107,19 @@ def _build_message(data: dict[str, Any]) -> str:
     lines.append(f"温馨提示：{today.get('notice', '')}")
     lines.append(f"更新时间：{data.get('time', '')}")
 
-    # 7 日预报
-    forecast = d.get("forecast", [])[:7]
-    if forecast:
-        lines.append("")
-        lines.append("未来 7 日预报：")
-        for day in forecast:
-            line = (
-                f"{day.get('ymd', '')} {day.get('week', '')} "
-                f"{day.get('type', '')} "
-                f"{day.get('low', '')}/{day.get('high', '')} "
-                f"{day.get('notice', '')}"
-            )
-            lines.append(line)
+    # # 7 日预报
+    # forecast = d.get("forecast", [])[:7]
+    # if forecast:
+    #     lines.append("")
+    #     lines.append("未来 7 日预报：")
+    #     for day in forecast:
+    #         line = (
+    #             f"{day.get('ymd', '')} {day.get('week', '')} "
+    #             f"{day.get('type', '')} "
+    #             f"{day.get('low', '')}/{day.get('high', '')} "
+    #             f"{day.get('notice', '')}"
+    #         )
+    #         lines.append(line)
 
     return "\n".join(lines)
 

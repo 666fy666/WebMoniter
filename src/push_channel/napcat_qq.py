@@ -29,9 +29,9 @@ class NapCatQQ(PushChannel):
         """推送消息"""
         message = [{"type": "text", "data": {"text": f"{title}\n\n{content}"}}]
 
-        if pic_url:
-            message.append({"type": "text", "data": {"text": "\n\n"}})
-            message.append({"type": "image", "data": {"file": pic_url}})
+        # if pic_url:
+        #     message.append({"type": "text", "data": {"text": "\n\n"}})
+        #     message.append({"type": "image", "data": {"file": pic_url}})
 
         if jump_url:
             message.append({"type": "text", "data": {"text": f"\n\n原文: {jump_url}"}})
