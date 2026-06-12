@@ -18,7 +18,7 @@
 ??? question "如何调整监控频率？"
     在 `config.yml` 中修改对应间隔（秒）即可，无需重启：
     - 微博：`weibo.monitor_interval_seconds`（默认 300）；`weibo.concurrency`（默认 3）
-    - 虎牙：`huya.monitor_interval_seconds`（默认 65）
+    - 虎牙：`huya.monitor_interval_seconds`（默认 65）；`huya.concurrency`（默认 7）
     - 哔哩哔哩：`bilibili.monitor_interval_seconds`（默认 60）
     - 抖音：`douyin.monitor_interval_seconds`（默认 30）
     - 斗鱼：`douyu.monitor_interval_seconds`（默认 300）

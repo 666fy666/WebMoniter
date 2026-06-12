@@ -47,7 +47,10 @@ uv run ruff check .
 
 ```bash
 uv run pytest
+# 或指定目录：uv run pytest src/tests/ -q
 ```
+
+`src/tests/test_registry_integrity.py` 会在新增任务时校验 `TASK_MODULES`、`MONITOR_MODULES` 与 `enable_fields` 映射是否一致；漏配时测试失败。
 
 ---
 
@@ -329,7 +332,7 @@ register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
 huya:
   enable: true                  # 是否启用该监控，默认 true；设为 false 时任务暂停
   rooms: 991108,333003,518518   # 逗号分隔的房间号
-  concurrency: 5
+  concurrency: 7
   monitor_interval_seconds: 65   # 轮询间隔（秒）
 ```
 

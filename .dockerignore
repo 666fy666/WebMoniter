@@ -86,7 +86,7 @@ Thumbs.db
 .circleci/
 
 # 测试
-tests/
+src/tests/
 test_*.py
 *_test.py
 .pytest_cache/
