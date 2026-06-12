@@ -1,6 +1,6 @@
 [project]
 name = "web-monitor"
-version = "2.3.4"
+version = "2.3.5"
 description = "Web任务系统"
 requires-python = ">=3.10"
 dependencies = [
@@ -22,10 +22,6 @@ dependencies = [
     "pillow>=10.0.0",
     "rsa>=4.9",
     "pycryptodome>=3.19.0",
-    "chromadb>=0.4.0",
-    "httpx>=0.25.0",
-    "openai>=1.0.0",
-    "rank-bm25>=0.2.2",
 ]
 
 [project.optional-dependencies]
@@ -70,8 +66,6 @@ ignore = ["E501"]
 "src/ql/*.py" = ["E402"]
 # Selenium 常用 expected_conditions as EC 的惯例
 "src/tasks/rainyun/**/*.py" = ["N812"]
-# wecom_crypto 需条件 import 及 ElementTree 兼容映射
-"src/ai_assistant/wecom_crypto.py" = ["E402", "N814"]
 
 [tool.black]
 line-length = 100

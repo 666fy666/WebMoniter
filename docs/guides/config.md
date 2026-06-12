@@ -54,7 +54,6 @@
 | 推送通道   | `push_channel` | 列表形式，每项需 `name`、`type` 及该类型所需参数，详见 [推送通道配置详解](push-channels.md) |
 | 日志清理   | `log_cleanup` | 执行时间、日志保留天数 |
 | 免打扰时段 | `quiet_hours` | 启用后，在指定时间段内不推送通知（任务照常执行） |
-| AI 助手    | `ai_assistant` | 可选，配置后可在配置/任务/数据页使用「问 AI」功能，详见 [AI 助手](ai-assistant.md) |
 | 插件任务   | `plugins.demo_task` 等 | 二次开发扩展任务，不需要可删除并在注册表中移除 |
 
 ---
@@ -71,13 +70,6 @@ app:
   # - 局域网/公网: "http://your-domain.com:8866"
   # 留空时，微博监控仍会推送，但无法为大部分通道拼接出可访问的封面图 URL，将退回使用内置示例图片。
   base_url: "http://localhost:8866"
-
-  # 推送内容超过各渠道官方字数限制时，是否使用 LLM 压缩为摘要再推送（需配置 ai_assistant）
-  push_compress_with_llm: false
-
-  # 推送前是否使用 LLM 基于事件类型和数据生成个性化标题与内容（需配置 ai_assistant.api_key）
-  # 开启后，推送更自然贴切（如微博新动态、开播/下播、签到结果等），而非仅用固定模板
-  push_personalize_with_llm: false
 ```
 
 设置 `base_url` 后，微博监控会：

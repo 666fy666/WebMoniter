@@ -5,8 +5,6 @@ import logging
 
 from aiohttp import ClientSession
 
-from src.ai_assistant.config import is_ai_enabled
-from src.ai_assistant.llm_client import compress_text_with_llm, generate_push_content_with_llm
 from src.push_channel import get_push_channel
 from src.settings.config import AppConfig, get_config
 
@@ -102,8 +100,7 @@ class UnifiedPushManager:
         extend_data: dict | None = None,
     ) -> str:
         """
-        若渠道有字数限制且内容超限，则尝试 LLM 压缩（当配置开启且 AI 可用）或截断。
-        返回不超过该渠道 max_content_bytes 的内容。
+        若渠道有字数限制且内容超限，则截断到该渠道 max_content_bytes 以内。
         """
         max_bytes = getattr(channel, "max_content_bytes", None)
         if extend_data and extend_data.get("plain_text"):
@@ -113,13 +110,6 @@ class UnifiedPushManager:
         content_bytes = len(content.encode("utf-8"))
         if content_bytes <= max_bytes:
             return content
-        cfg = app_config if app_config is not None else get_config()
-        use_llm = getattr(cfg, "push_compress_with_llm", False) and is_ai_enabled()
-        if use_llm:
-            compressed = await compress_text_with_llm(content, max_bytes)
-            if compressed:
-                self.logger.debug("推送内容已通过 LLM 压缩以符合 %s 字数限制", channel.name)
-                return compressed
         return _truncate_content_to_bytes(content, max_bytes)
 
     async def _send_one(
@@ -149,8 +139,6 @@ class UnifiedPushManager:
         author: str = "FengYu",
         description_func=None,
         extend_data: dict | None = None,
-        event_type: str | None = None,
-        event_data: dict | None = None,
         **kwargs,
     ) -> dict:
         """发送纯文本消息，不附带跳转链接或图片。"""
@@ -167,8 +155,6 @@ class UnifiedPushManager:
             author=author,
             description_func=description_func,
             extend_data=text_extend_data,
-            event_type=event_type,
-            event_data=event_data,
             **kwargs,
         )
 
@@ -182,8 +168,6 @@ class UnifiedPushManager:
         author: str = "FengYu",
         description_func=None,
         extend_data: dict | None = None,
-        event_type: str | None = None,
-        event_data: dict | None = None,
         **kwargs,
     ) -> dict:
         """
@@ -198,8 +182,6 @@ class UnifiedPushManager:
             author: 作者
             description_func: 可选的函数，接收 channel 参数，返回该通道的 description
             extend_data: 额外扩展数据，会原样传递给各通道的 push 方法
-            event_type: 可选，事件类型（如 weibo/huya/checkin），配合 push_personalize_with_llm 使用
-            event_data: 可选，事件数据字典，用于 LLM 生成个性化推送内容
 
         Returns:
             包含所有推送结果的字典
@@ -212,23 +194,6 @@ class UnifiedPushManager:
             return {"results": results, "errors": errors}
 
         app_config = get_config()
-
-        # 若开启 LLM 个性化且提供了事件信息，则生成更贴切的标题和内容
-        use_personalize = (
-            getattr(app_config, "push_personalize_with_llm", False)
-            and is_ai_enabled()
-            and event_type
-            and event_data is not None
-        )
-        if use_personalize:
-            base_desc = description_func(self.push_channels[0]) if description_func else description
-            personalized = await generate_push_content_with_llm(
-                event_type, event_data, title, base_desc
-            )
-            if personalized:
-                title, description = personalized
-                description_func = None  # 使用统一 LLM 生成内容
-                self.logger.debug("已使用 LLM 生成个性化推送内容")
 
         # 并发发送到所有渠道
         tasks = []

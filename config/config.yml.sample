@@ -475,12 +475,6 @@ app:
   # - 局域网/公网: "http://your-domain.com:8866"
   # 留空时，不会构造对外 URL，仅使用各推送通道自身的 picurl（如固定 Bing 图）
   base_url: "http://localhost:8866"
-  # 推送全局：当某渠道内容超过该渠道官方字数限制时，是否使用 LLM 压缩（需配置 ai_assistant）
-  # 开启后，企业微信/钉钉/飞书/Telegram 等有字数限制的渠道会自动用摘要替代截断
-  push_compress_with_llm: false
-  # 推送全局：是否使用 LLM 结合事件生成个性化推送（需配置 ai_assistant.api_key）
-  # 开启后，推送前会基于事件类型和事件数据生成更自然、贴切的标题和内容
-  push_personalize_with_llm: false
 
 # ==========================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
@@ -516,9 +510,6 @@ push_channel:
     agent_id:
     corp_secret:
     touser: "@all"  # 接收消息的用户ID，多个用户用竖线分隔，@all表示所有人
-    # 以下为 AI 助手交互可选配置，配置后可在企业微信中与 AI 对话
-    callback_token:     # 在企业微信后台「接收消息」中配置的 Token
-    encoding_aes_key:  # 在企业微信后台「接收消息」中配置的 EncodingAESKey（43 字符）
   # 企业微信机器人
   - name: 企业微信机器人
     type: wecom_bot
@@ -604,23 +595,4 @@ push_channel:
     uids:  # 用户ID列表，逗号分隔（可选，与topic_ids二选一）
     topic_ids:  # 主题ID列表，逗号分隔（可选，与uids二选一）
     content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
-
-# ==========================================================================
-# AI 助手配置（可选）
-# ==========================================================================
-# 支持 OpenAI、DeepSeek、通义千问、智谱、Moonshot、Ollama 等 OpenAI 兼容 API
-# 在配置管理、任务管理、数据展示页面底部有悬浮「问 AI」入口
-ai_assistant:
-  enable: false  # 是否启用 AI 助手
-  provider: openai  # openai | deepseek | qwen | zhipu | moonshot | ollama | openai_compatible
-  api_base: ""  # 留空时使用 provider 默认地址；ollama 为 http://localhost:11434/v1
-  api_key: ""  # 可改用环境变量 AI_ASSISTANT_API_KEY
-  model: gpt-4o-mini  # 模型名，如 deepseek-chat、gpt-4o-mini
-  embedding_model: text-embedding-3-small  # RAG 嵌入模型
-  # 向量库存储目录（仅保留最新一份；重建时会清空该目录并重建，请勿在此目录下手动存放其他文件）
-  chroma_persist_dir: data/ai_assistant_chroma
-  rate_limit_per_minute: 10  # 每分钟请求限制
-  max_history_rounds: 10  # 多轮对话保留最近 N 轮
-
-
 

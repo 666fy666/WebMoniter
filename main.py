@@ -15,7 +15,6 @@ from src.core.runtime import run_async_app
 from src.jobs.lifecycle import (
     attach_uvicorn_noise_filter,
     build_uvicorn_server,
-    maybe_build_ai_rag_index,
     on_scheduler_config_changed,
     register_and_prime_jobs,
     setup_logging,
@@ -73,7 +72,6 @@ async def main() -> None:
         )
         sys.exit(1)
 
-    await maybe_build_ai_rag_index()
     await cookie_cache.reset_all()
 
     scheduler = TaskScheduler(config)

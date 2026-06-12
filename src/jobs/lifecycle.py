@@ -4,7 +4,6 @@
 - 日志：控制台初始化后主日志文件、Uvicorn 噪声过滤
 - Web：组装 Uvicorn、后台 serve 任务、退出时收尾
 - 调度：注册监控/定时任务、启动首轮执行、配置热重载后同步 APScheduler
-- AI：可选 RAG 索引构建
 """
 
 from __future__ import annotations
@@ -244,24 +243,8 @@ async def on_scheduler_config_changed(
 
 
 # ---------------------------------------------------------------------------
-# AI（可选）
+# 导出
 # ---------------------------------------------------------------------------
-
-
-async def maybe_build_ai_rag_index() -> None:
-    """启用 AI 助手时在启动阶段构建文档向量索引；失败或非致命场景仅 debug。"""
-    try:
-        from src.ai_assistant.config import is_ai_enabled
-
-        if not is_ai_enabled():
-            return
-        from src.ai_assistant.indexer import build_docs_index
-
-        logger.info("正在构建 RAG 向量库...")
-        await asyncio.to_thread(build_docs_index)
-        logger.info("RAG 向量库构建完成")
-    except Exception as e:
-        logger.debug("RAG 向量库构建跳过: %s", e)
 
 
 __all__ = [
@@ -271,7 +254,6 @@ __all__ = [
     "DEFAULT_BIND_HOST",
     "DEFAULT_PORT",
     "ENV_PORT",
-    "maybe_build_ai_rag_index",
     "on_scheduler_config_changed",
     "register_and_prime_jobs",
     "setup_main_file_logging",

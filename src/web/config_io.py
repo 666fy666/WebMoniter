@@ -137,11 +137,4 @@ async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSO
     except Exception as e:
         logger.warning("热重载失败: %s", e)
 
-    try:
-        from src.ai_assistant.config import get_ai_config
-
-        get_ai_config(reload=True)
-    except ImportError:
-        pass
-
     return None

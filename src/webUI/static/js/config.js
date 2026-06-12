@@ -5,7 +5,7 @@ let availablePushChannels = []; // 可用的推送通道列表
 let pushChannelTypes = {
     'serverChan_turbo': { name: 'Server酱 Turbo', fields: ['send_key'] },
     'serverChan_3': { name: 'Server酱 3', fields: ['send_key', 'uid', 'tags'] },
-    'wecom_apps': { name: '企业微信应用', fields: ['corp_id', 'agent_id', 'corp_secret', 'touser', 'callback_token', 'encoding_aes_key'] },
+    'wecom_apps': { name: '企业微信应用', fields: ['corp_id', 'agent_id', 'corp_secret', 'touser'] },
     'wecom_bot': { name: '企业微信机器人', fields: ['key'] },
     'dingtalk_bot': { name: '钉钉机器人', fields: ['access_token', 'secret'] },
     'feishu_apps': { name: '飞书自建应用', fields: ['app_id', 'app_secret', 'receive_id_type', 'receive_id'] },
@@ -245,7 +245,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         monitor: '在监控任务中搜索（如：微博、bilibili、虎牙...）',
         scheduled: '在定时任务中搜索（如：ikuuu、贴吧、签到...）',
         push: '在推送配置中搜索',
-        ai: '在 AI 配置中搜索',
         plugins: '在插件中搜索'
     };
 
@@ -391,15 +390,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         quietHoursEnableLabel.textContent = this.checked ? '开启' : '关闭';
     });
 
-    // AI 助手开关事件
-    const aiAssistantEnable = document.getElementById('ai_assistant_enable');
-    const aiAssistantEnableLabel = document.getElementById('ai_assistant_enable_label');
-    if (aiAssistantEnable && aiAssistantEnableLabel) {
-        aiAssistantEnable.addEventListener('change', function() {
-            aiAssistantEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-
     // 每日签到开关事件
     if (checkinEnable && checkinEnableLabel) {
         checkinEnable.addEventListener('change', function() {
@@ -477,31 +467,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 监控任务开关事件
     if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
-    const appCompressLlmLabelEl = document.getElementById('app_push_compress_with_llm_label');
-    const appPersonalizeLlmEl = document.getElementById('app_push_personalize_with_llm');
-    const appPersonalizeLlmLabelEl = document.getElementById('app_push_personalize_with_llm_label');
-    function syncAppCompressLlmLabel() {
-        if (appCompressLlmEl && appCompressLlmLabelEl) appCompressLlmLabelEl.textContent = appCompressLlmEl.checked ? '开启' : '关闭';
-    }
-    function syncAppPersonalizeLlmLabel() {
-        if (appPersonalizeLlmEl && appPersonalizeLlmLabelEl) appPersonalizeLlmLabelEl.textContent = appPersonalizeLlmEl.checked ? '开启' : '关闭';
-    }
-    if (appCompressLlmEl && appCompressLlmLabelEl) {
-        appCompressLlmEl.addEventListener('change', syncAppCompressLlmLabel);
-        appCompressLlmEl.addEventListener('click', function() { setTimeout(syncAppCompressLlmLabel, 0); });
-        const appSectionCard = document.querySelector('.config-section[data-section="app"]');
-        if (appSectionCard) appSectionCard.addEventListener('click', function(e) {
-            if (e.target.closest('label.switch') && e.target.closest('td') && (document.getElementById('app_push_compress_with_llm') || document.getElementById('app_push_personalize_with_llm'))) {
-                setTimeout(syncAppCompressLlmLabel, 0);
-                setTimeout(syncAppPersonalizeLlmLabel, 0);
-            }
-        });
-    }
-    if (appPersonalizeLlmEl && appPersonalizeLlmLabelEl) {
-        appPersonalizeLlmEl.addEventListener('change', syncAppPersonalizeLlmLabel);
-        appPersonalizeLlmEl.addEventListener('click', function() { setTimeout(syncAppPersonalizeLlmLabel, 0); });
-    }
     if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
     if (douyinEnable && douyinEnableLabel) douyinEnable.addEventListener('change', function() { douyinEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
@@ -560,7 +525,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadSectionConfig('log_cleanup', config);
             loadSectionConfig('app', config);
             loadSectionConfig('quiet_hours', config);
-            loadSectionConfig('ai_assistant', config);
             loadSectionConfig('push_channel', config);
             loadSectionConfig('plugins', config);
 
@@ -1331,20 +1295,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (input) {
                     input.value = appSection.base_url != null ? String(appSection.base_url).trim() : '';
                 }
-                const appCompressLlm = document.getElementById('app_push_compress_with_llm');
-                const appCompressLlmLabel = document.getElementById('app_push_compress_with_llm_label');
-                if (appCompressLlm) {
-                    const cv = appSection.push_compress_with_llm;
-                    appCompressLlm.checked = cv === true || cv === 'true' || cv === 1;
-                    if (appCompressLlmLabel) appCompressLlmLabel.textContent = appCompressLlm.checked ? '开启' : '关闭';
-                }
-                const appPersonalizeLlm = document.getElementById('app_push_personalize_with_llm');
-                const appPersonalizeLlmLabel = document.getElementById('app_push_personalize_with_llm_label');
-                if (appPersonalizeLlm) {
-                    const pv = appSection.push_personalize_with_llm;
-                    appPersonalizeLlm.checked = pv === true || pv === 'true' || pv === 1;
-                    if (appPersonalizeLlmLabel) appPersonalizeLlmLabel.textContent = appPersonalizeLlm.checked ? '开启' : '关闭';
-                }
                 break;
             }
             case 'weibo':
@@ -1941,34 +1891,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('quiet_hours_end').value = endTime.length === 5 ? endTime : '08:00';
                 }
                 break;
-            case 'ai_assistant':
-                if (config.ai_assistant) {
-                    const a = config.ai_assistant;
-                    const aiEnable = document.getElementById('ai_assistant_enable');
-                    const aiEnableLabel = document.getElementById('ai_assistant_enable_label');
-                    if (aiEnable) aiEnable.checked = a.enable || false;
-                    if (aiEnableLabel) aiEnableLabel.textContent = (a.enable ? '开启' : '关闭');
-                    const provider = document.getElementById('ai_assistant_provider');
-                    if (provider) {
-                        const pv = (a.provider || 'openai').toLowerCase().trim();
-                        provider.value = ['openai','deepseek','qwen','zhipu','moonshot','ollama','openai_compatible'].includes(pv) ? pv : 'openai';
-                    }
-                    const apiBase = document.getElementById('ai_assistant_api_base');
-                    if (apiBase) apiBase.value = a.api_base || '';
-                    const apiKey = document.getElementById('ai_assistant_api_key');
-                    if (apiKey) apiKey.value = a.api_key || '';
-                    const model = document.getElementById('ai_assistant_model');
-                    if (model) model.value = a.model || '';
-                    const emb = document.getElementById('ai_assistant_embedding_model');
-                    if (emb) emb.value = a.embedding_model || '';
-                    const chroma = document.getElementById('ai_assistant_chroma_persist_dir');
-                    if (chroma) chroma.value = a.chroma_persist_dir || '';
-                    const rate = document.getElementById('ai_assistant_rate_limit_per_minute');
-                    if (rate) rate.value = a.rate_limit_per_minute ?? 10;
-                    const maxRounds = document.getElementById('ai_assistant_max_history_rounds');
-                    if (maxRounds) maxRounds.value = a.max_history_rounds ?? 10;
-                }
-                break;
             case 'push_channel':
                 renderPushChannels(config.push_channel || []);
                 break;
@@ -1994,12 +1916,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         switch(section) {
             case 'app': {
                 const baseUrlInput = document.getElementById('app_base_url');
-                const appCompressLlmEl = document.getElementById('app_push_compress_with_llm');
-                const appPersonalizeLlmEl = document.getElementById('app_push_personalize_with_llm');
                 config.app = {
                     base_url: (baseUrlInput?.value || '').trim(),
-                    push_compress_with_llm: appCompressLlmEl?.checked || false,
-                    push_personalize_with_llm: appPersonalizeLlmEl?.checked || false
                 };
                 break;
             }
@@ -2448,21 +2366,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     end: document.getElementById('quiet_hours_end').value || '08:00'
                 };
                 break;
-            case 'ai_assistant': {
-                const aiEnableEl = document.getElementById('ai_assistant_enable');
-                config.ai_assistant = {
-                    enable: aiEnableEl ? aiEnableEl.checked : false,
-                    provider: (document.getElementById('ai_assistant_provider')?.value || 'openai').trim(),
-                    api_base: (document.getElementById('ai_assistant_api_base')?.value || '').trim(),
-                    api_key: (document.getElementById('ai_assistant_api_key')?.value || '').trim(),
-                    model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
-                    embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
-                    chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
-                    rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
-                    max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
-                };
-                break;
-            }
             case 'push_channel':
                 config.push_channel = [];
                 const channelItems = document.querySelectorAll('.push-channel-item');
@@ -2614,21 +2517,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             end: document.getElementById('quiet_hours_end').value || '08:00'
         };
 
-        // AI 助手配置
-        const aiEnableEl = document.getElementById('ai_assistant_enable');
-        config.ai_assistant = {
-            enable: aiEnableEl ? aiEnableEl.checked : false,
-            provider: (document.getElementById('ai_assistant_provider')?.value || 'openai').trim(),
-            api_base: (document.getElementById('ai_assistant_api_base')?.value || '').trim(),
-            api_key: (document.getElementById('ai_assistant_api_key')?.value || '').trim(),
-            model: (document.getElementById('ai_assistant_model')?.value || 'gpt-4o-mini').trim(),
-            embedding_model: (document.getElementById('ai_assistant_embedding_model')?.value || 'text-embedding-3-small').trim(),
-            chroma_persist_dir: (document.getElementById('ai_assistant_chroma_persist_dir')?.value || 'data/ai_assistant_chroma').trim(),
-            rate_limit_per_minute: parseInt(document.getElementById('ai_assistant_rate_limit_per_minute')?.value || '10', 10) || 10,
-            max_history_rounds: parseInt(document.getElementById('ai_assistant_max_history_rounds')?.value || '10', 10) || 10
-        };
-
-        // 应用基础配置（Base URL、推送超限 LLM 压缩）
+        // 应用基础配置（Base URL）
         config.app = collectSectionConfig('app').app;
 
         // 日志清理配置
@@ -3424,7 +3313,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始加载配置
     await loadConfig();
 
-    // 监听 config-saved（如 AI 助手 apply-action 成功后），刷新配置表单以反映最新状态
+    // 监听 config-saved 事件，刷新配置表单以反映最新状态
     document.addEventListener('config-saved', async function () {
         await loadConfig();
         if (textView && textView.style.display !== 'none') {

@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.core.paths import WEB_UI_STATIC_DIR
-from src.web.routers import assistant, auth, config, data, logs, pages, tasks, webhooks
+from src.web.routers import auth, config, data, logs, pages, tasks
 
 SECRET_KEY = secrets.token_urlsafe(32)
 
@@ -30,6 +30,4 @@ def create_web_app() -> FastAPI:
     app.include_router(config.router)
     app.include_router(data.router)
     app.include_router(logs.router)
-    app.include_router(assistant.router)
-    app.include_router(webhooks.router)
     return app

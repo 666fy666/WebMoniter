@@ -235,8 +235,6 @@ uv run python main.py &
 # 可选：将日志输出重定向到文件
 # uv run python main.py > webmoniter.log 2>&1 &
 
-# 可选：启用 AI 助手（配置生成、日志诊断、数据洞察等）
-# 在 config.yml 中配置 ai_assistant 节点（enable: true，provider、api_key、model 等），uv sync 已包含 AI 依赖
 ```
 
 !!! tip "停止程序"

@@ -24,8 +24,6 @@ class MultiStringSpec:
 CONFIG_MAPPINGS: dict[str, dict[str, str]] = {
     "app": {
         "base_url": "base_url",
-        "push_compress_with_llm": "push_compress_with_llm",
-        "push_personalize_with_llm": "push_personalize_with_llm",
     },
     "weibo": {
         "enable": "weibo_enable",

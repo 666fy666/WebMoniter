@@ -71,11 +71,6 @@ class AppConfig(BaseModel):
 
     # 基础访问地址，用于构造对外可访问的 HTTP 链接（例如微博封面图 URL）
     base_url: str = ""
-    # 推送通道全局：内容超过各渠道官方字数限制时，是否使用 LLM 压缩（需配置 ai_assistant）
-    push_compress_with_llm: bool = False
-    # 推送全局：是否使用 LLM 结合事件生成个性化推送（需配置 ai_assistant.api_key）
-    # 开启后，推送前会基于事件类型和事件数据生成更自然、贴切的标题和内容，而非仅用固定模板
-    push_personalize_with_llm: bool = False
 
     # 微博
     weibo_enable: bool = True  # 是否启用微博监控

@@ -70,11 +70,10 @@ uv run pytest
 Web 后端统一放在 `src/web/`，按“应用组装 → 路由模块 → 辅助逻辑”分层，新增 Web 功能时优先复用：
 
 - `src/web/app.py`：FastAPI 应用创建、SessionMiddleware、静态资源挂载、router 注册。
-- `src/web/routers/`：页面、认证、任务、配置、数据、日志、AI 助手、Webhook 等 APIRouter。
+- `src/web/routers/`：页面、认证、任务、配置、数据、日志等 APIRouter。
 - `src/web/auth.py`：登录会话、认证文件读写、密码哈希。
-- `src/web/config_io.py`：配置合并、AI 配置补丁、配置保存前校验与热重载。
+- `src/web/config_io.py`：配置合并、配置保存前校验与热重载。
 - `src/web/data_support.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换。
-- `src/web/assistant_support.py`：AI Web 鉴权、意图解析、聊天上下文构建、Webhook 通道发现。
 - `src/jobs/metadata.py`：任务 ID 到展示文案的映射。
 - `src/settings/loader_specs.py`：`config.yml` 节点到 `AppConfig` 扁平字段的映射，以及多账号、多 Cookie/Token 字段规格。
 

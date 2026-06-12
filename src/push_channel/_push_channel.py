@@ -7,7 +7,7 @@ from aiohttp import ClientSession, ClientTimeout
 class PushChannel(ABC):
     """推送通道基类 - 所有推送通道都应该继承此类"""
 
-    # 推送内容（content/description）的最大字节数，None 表示不限制。超限时由 UnifiedPushManager 做 LLM 压缩或截断。
+    # 推送内容（content/description）的最大字节数，None 表示不限制。超限时由 UnifiedPushManager 截断。
     # 各子类按官方文档设置，如企业微信应用 500、Telegram 约 4096 字符等。
     max_content_bytes: int | None = None
 

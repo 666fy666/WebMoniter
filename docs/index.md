@@ -2,7 +2,7 @@
 
 **多平台监控签到 · 开播提醒 · 多渠道推送**
 
-Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、抖音、斗鱼、小红书** 等平台监控与开播/动态提醒，以及 **iKuuu、百度贴吧、微博超话、雨云、阿里云盘、什么值得买、Freenom、天气推送** 等 30+ 定时签到/任务；使用 **APScheduler** 调度，支持 **15+ 推送通道**（企业微信、钉钉、飞书、Telegram、Bark、邮件等），**配置热重载**，**AI 助手**（RAG + LLM）支持智能问答、配置生成与数据洞察，开箱即用。
+Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、抖音、斗鱼、小红书** 等平台监控与开播/动态提醒，以及 **iKuuu、百度贴吧、微博超话、雨云、阿里云盘、什么值得买、Freenom、天气推送** 等 30+ 定时签到/任务；使用 **APScheduler** 调度，支持 **15+ 推送通道**（企业微信、钉钉、飞书、Telegram、Bark、邮件等），**配置热重载**，开箱即用。
 
 ---
 
@@ -37,18 +37,6 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 
 ![日志查看](assets/screenshots/日志查看.png){ width="800" }
 
-### AI 助手 & 企业微信交互
-
-AI 助手支持在 Web 界面与企业微信中直接对话，可实现配置生成、日志诊断、数据洞察与可执行操作。详见 [AI 助手使用指南](guides/ai-assistant.md)。
-
-| 功能介绍 | 修改配置 | 执行任务 | 查询数据 |
-|:--------:|:--------:|:--------:|:--------:|
-| ![AI助手功能介绍](assets/screenshots/AI助手功能介绍.png){ width="200" } | ![AI助手修改配置](assets/screenshots/AI助手修改配置.png){ width="200" } | ![AI助手执行任务](assets/screenshots/AI助手执行任务.png){ width="200" } | ![AI助手查询数据](assets/screenshots/AI助手查询数据.png){ width="200" } |
-
-| 企业微信后台配置 | 企业微信查询数据（示例） |
-|:----------------:|:------------------------:|
-| ![企业微信后台介绍](assets/screenshots/企业微信后台介绍.jpg){ width="300" } | ![企业微信查询数据1](assets/screenshots/企业微信查询数据1.jpg){ width="200" } ![企业微信查询数据2](assets/screenshots/企业微信查询数据2.jpg){ width="200" } ![企业微信查询数据3](assets/screenshots/企业微信查询数据3.jpg){ width="200" } |
-
 ---
 
 ## 从这里开始
@@ -68,7 +56,6 @@ AI 助手支持在 Web 界面与企业微信中直接对话，可实现配置生
 
 - [配置说明](guides/config.md)
 - [Web 管理界面](guides/web-ui.md)
-- [AI 助手](guides/ai-assistant.md)
 - [监控与定时任务](guides/tasks.md)
 - [监控任务详解](guides/tasks/monitors.md)
 - [定时任务详解](guides/tasks/checkin.md)
@@ -97,7 +84,6 @@ AI 助手支持在 Web 界面与企业微信中直接对话，可实现配置生
 | **多平台监控** | 虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书等 6 大平台 |
 | **定时签到** | 30+ 平台签到（贴吧、微博超话、iKuuu、雨云、阿里云盘、Freenom 等） |
 | **多渠道推送** | 企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 15+ 通道 |
-| **AI 助手** | RAG + LLM 智能问答，配置生成、日志诊断、数据洞察、可执行操作 |
 | **配置热重载** | 修改 `config.yml` 约 5 秒内生效，无需重启 |
 | **Web 管理** | 配置编辑、任务管理、数据查看、日志查看 |
 | **RESTful API** | 便于集成与自动化操作 |

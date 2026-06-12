@@ -363,10 +363,10 @@ class WeiboMonitor(BaseMonitor):
                 await self.push_notification(new_data, 1)
 
     def _build_description_for_channel(self, channel, data: dict) -> str:
-        """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一处理（app.push_compress_with_llm）。"""
+        """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一截断处理。"""
         return (
             f"Ta说:👇\n{data['文本']}\n"
-            f"{'=' * 22}\n"
+            f"{'=' * 20}\n"
             f"认证:{data['认证信息']}\n\n"
             f"简介:{data['简介']}"
         )
@@ -440,8 +440,7 @@ class WeiboMonitor(BaseMonitor):
                     extend_data = {}
                 extend_data["wecom_pic_url"] = wecom_pic_url
 
-            # 使用 description_func 为各通道生成描述，超限时的 LLM 压缩由 app.push_compress_with_llm 统一处理
-            # event_type/event_data 供 push_personalize_with_llm 生成个性化推送
+            # 使用 description_func 为各通道生成描述，超限时由 UnifiedPushManager 统一截断
             await self.push.send_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖

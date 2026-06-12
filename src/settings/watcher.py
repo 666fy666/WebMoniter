@@ -5,17 +5,9 @@ import logging
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-import yaml
-
 from src.settings.config import AppConfig, get_config
 
 logger = logging.getLogger(__name__)
-
-
-def _read_yaml_sync(config_path: Path) -> dict:
-    """同步读取 YAML 文件（供 asyncio.to_thread 调用）"""
-    with open(config_path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
 
 
 class ConfigWatcher:
@@ -42,7 +34,6 @@ class ConfigWatcher:
         self.on_config_changed = on_config_changed
         self._last_mtime: float = 0
         self._last_config: AppConfig | None = None
-        self._last_ai_assistant: dict = {}
         self._running = False
         self._task: asyncio.Task | None = None
 
@@ -57,8 +48,6 @@ class ConfigWatcher:
             self._last_mtime = self.config_path.stat().st_mtime
             try:
                 self._last_config = await asyncio.to_thread(get_config, True)
-                raw = await asyncio.to_thread(_read_yaml_sync, self.config_path)
-                self._last_ai_assistant = raw.get("ai_assistant") or {}
                 logger.debug("配置监控器已启动: %s", self.config_path)
             except Exception as e:
                 logger.error("初始化配置监控器失败: %s", e)
@@ -99,19 +88,14 @@ class ConfigWatcher:
                     try:
                         # 重新加载配置（在线程池执行避免阻塞事件循环）
                         new_config = await asyncio.to_thread(get_config, True)
-                        # 读取 ai_assistant 节点（独立于 AppConfig）
-                        raw = await asyncio.to_thread(_read_yaml_sync, self.config_path)
-                        current_ai = raw.get("ai_assistant") or {}
 
                         # 检查配置是否真的发生了变化（避免因文件保存但内容未变而触发）
                         config_changed = self._config_changed(self._last_config, new_config)
-                        ai_changed = current_ai != self._last_ai_assistant
-                        if config_changed or ai_changed:
+                        if config_changed:
                             # 保存旧配置的引用（在更新之前）
                             old_config = self._last_config
                             self._last_mtime = current_mtime
                             self._last_config = new_config
-                            self._last_ai_assistant = current_ai
 
                             # 调用回调函数
                             if self.on_config_changed:
