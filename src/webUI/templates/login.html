@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - Web任务系统</title>
+    <title>登录 - WebMoniter</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
         html, body.login-body {
@@ -14,7 +14,7 @@
             background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
         }
     </style>
-    <link rel="stylesheet" href="/static/css/style.css?v=13">
+    <link rel="stylesheet" href="/static/css/style.css?v=14">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -40,10 +40,12 @@
 
     <div class="login-container">
         <div class="login-box">
-            <div style="text-align: center; margin-bottom: 8px;">
-                <span style="font-size: 48px;">🔮</span>
+            <div style="text-align: center;">
+                <div class="login-brand-icon">
+                    <img src="/static/favicon.svg" alt="WebMoniter" width="48" height="48">
+                </div>
             </div>
-            <h1>Web任务系统</h1>
+            <h1>WebMoniter</h1>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">用户名</label>
@@ -51,26 +53,26 @@
                 </div>
                 <div class="form-group">
                     <label for="password">密码</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="请输入密码">
+                    <div class="password-input-wrap">
+                        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="请输入密码">
+                        <button type="button" class="password-toggle" id="passwordToggle" aria-label="显示密码">👁</button>
+                    </div>
                 </div>
                 <div id="errorMessage" class="error-message"></div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px;">
+                <button type="submit" class="btn btn-primary login-submit">
                     登录系统
                 </button>
             </form>
-            <div style="text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 13px;">
-                多平台Web任务系统，支持监控、签到、推送
-            </div>
-            <!-- 版本信息 -->
+            <p class="login-tagline">多平台监控 · 签到 · 推送 · 定时任务</p>
             <div class="login-version-info">
                 <a id="currentVersion" href="#" target="_blank">加载中...</a>
             </div>
         </div>
     </div>
-    <button id="themeToggleBtn" class="btn btn-secondary" style="position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 10px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" aria-label="切换主题">
+    <button id="themeToggleBtn" class="btn btn-secondary theme-toggle-fab" aria-label="切换主题">
         <span id="themeIcon" style="font-size: 18px;">☀️</span>
     </button>
-    <script src="/static/js/common.js?v=7"></script>
-    <script src="/static/js/login.js?v=1"></script>
+    <script src="/static/js/common.js?v=6"></script>
+    <script src="/static/js/login.js?v=2"></script>
 </body>
 </html>

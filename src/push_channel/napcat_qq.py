@@ -64,8 +64,8 @@ class NapCatQQ(PushChannel):
                     error_msg = resp_data.get("message", "未知错误")
                     raise Exception(f"API返回错误: {error_msg}")
         except ClientResponseError as e:
-            self.logger.error(f"【推送_{self.name}】请求失败: {e}")
+            self._log_push_error(f"请求失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】发送消息时出现异常: {e}")
+            self._log_push_error(f"发送消息时出现异常: {e}")
             raise

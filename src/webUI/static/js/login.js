@@ -93,6 +93,17 @@ function dismissUpdateBanner() {
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
+    const passwordInput = document.getElementById('password');
+    const passwordToggle = document.getElementById('passwordToggle');
+
+    if (passwordToggle && passwordInput) {
+        passwordToggle.addEventListener('click', function() {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            passwordToggle.textContent = isHidden ? '🙈' : '👁';
+            passwordToggle.setAttribute('aria-label', isHidden ? '隐藏密码' : '显示密码');
+        });
+    }
 
     // 登录表单提交
     loginForm.addEventListener('submit', async function(e) {

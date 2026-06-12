@@ -228,13 +228,20 @@ class UnifiedPushManager:
             for i, result in enumerate(task_results):
                 channel_name = channel_names[i]
                 if isinstance(result, Exception):
-                    errors.append(f"{channel_name}: {str(result)}")
-                    self.logger.error("推送通道 %s 失败: %s", channel_name, result)
+                    errors.append(f"{channel_name}: {result}")
                 else:
                     results[channel_name] = result
 
         if errors:
-            self.logger.warning("部分推送失败: %s", errors)
+            total = len(self.push_channels)
+            failed = len(errors)
+            summary = "; ".join(errors)
+            if failed == total:
+                self.logger.error("全部推送失败 (%d/%d): %s", failed, total, summary)
+            elif failed == 1:
+                self.logger.error("推送失败: %s", summary)
+            else:
+                self.logger.warning("部分推送失败 (%d/%d): %s", failed, total, summary)
 
         return {"results": results, "errors": errors}
 
@@ -261,8 +268,8 @@ class UnifiedPushManager:
                 extend_data=extend_data,
             )
             return {"status": "success"}
-        except Exception as e:
-            raise Exception(f"{channel.name}推送失败: {e}") from e
+        except Exception:
+            raise
 
     async def close(self):
         """关闭所有推送服务"""

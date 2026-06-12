@@ -40,8 +40,8 @@ class ServerChan3(PushChannel):
                     error_msg = result.get("message", "未知错误")
                     raise Exception(f"推送失败: {error_msg}")
         except ClientResponseError as e:
-            self.logger.error(f"【推送_{self.name}】请求失败: {e}")
+            self._log_push_error(f"请求失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】推送失败: {e}")
+            self._log_push_error(f"推送失败: {e}")
             raise

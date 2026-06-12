@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>控制台 - Web任务系统</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=12">
+    <link rel="stylesheet" href="/static/css/style.css?v=14">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -17,11 +17,21 @@
     </script>
 </head>
 <body>
-    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </button>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>Web任务系统</h2>
+            <a href="/config" class="sidebar-brand" title="WebMoniter">
+                <img src="/static/favicon.svg" alt="" class="sidebar-logo" width="36" height="36">
+                <div class="sidebar-brand-text">
+                    <span class="sidebar-title">WebMoniter</span>
+                    <span class="sidebar-tagline">多平台监控</span>
+                </div>
+            </a>
         </div>
         <nav class="sidebar-nav">
             <a href="/config" class="nav-item">
@@ -42,11 +52,11 @@
             </a>
         </nav>
         <div class="sidebar-footer">
-            <button id="themeToggleBtn" class="btn btn-secondary" style="margin-bottom: 10px;">
+            <button id="themeToggleBtn" class="btn btn-secondary">
                 <span id="themeIcon">☀️</span>
                 切换主题
             </button>
-            <button id="changePasswordBtn" class="btn btn-secondary" style="margin-bottom: 10px;">
+            <button id="changePasswordBtn" class="btn btn-secondary">
                 <span>🔐</span>
                 修改密码
             </button>
@@ -111,49 +121,48 @@
         </div>
         <div class="content-body">
             <div class="welcome-card fade-in">
-                <div style="font-size: 64px; margin-bottom: 24px;">🎯</div>
-                <h2>欢迎使用 Web 任务系统</h2>
+                <div class="welcome-hero-icon">🎯</div>
+                <h2>欢迎使用 WebMoniter</h2>
                 <p style="margin-bottom: 32px;">高效、稳定、易用的多平台监控解决方案</p>
-                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
-                    <a href="/config" class="btn btn-primary" style="text-decoration: none;">
+                <div class="welcome-actions">
+                    <a href="/config" class="btn btn-primary">
                         <span>⚙️</span>
                         开始配置
                     </a>
-                    <a href="/data" class="btn btn-secondary" style="text-decoration: none;">
+                    <a href="/data" class="btn btn-secondary">
                         <span>📊</span>
                         查看数据
                     </a>
                 </div>
             </div>
-            
-            <!-- 功能卡片区域 -->
-            <div class="dashboard-card-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px;">
+
+            <div class="dashboard-card-grid">
                 <div class="card fade-in" style="animation-delay: 0.1s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📱</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">微博监控</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">实时监控微博动态，第一时间推送更新</p>
+                    <div class="card-body feature-card-body">
+                        <div class="feature-card-icon">📱</div>
+                        <h3 class="feature-card-title">微博监控</h3>
+                        <p class="feature-card-desc">实时监控微博动态，第一时间推送更新</p>
                     </div>
                 </div>
                 <div class="card fade-in" style="animation-delay: 0.2s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">🎮</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">虎牙监控</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">关注主播开播状态，不错过任何精彩</p>
+                    <div class="card-body feature-card-body">
+                        <div class="feature-card-icon">🎮</div>
+                        <h3 class="feature-card-title">虎牙监控</h3>
+                        <p class="feature-card-desc">关注主播开播状态，不错过任何精彩</p>
                     </div>
                 </div>
                 <div class="card fade-in" style="animation-delay: 0.3s;">
-                    <div class="card-body" style="text-align: center; padding: 32px;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📅</div>
-                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">自动签到</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">支持多平台自动签到，省时省心</p>
+                    <div class="card-body feature-card-body">
+                        <div class="feature-card-icon">📅</div>
+                        <h3 class="feature-card-title">自动签到</h3>
+                        <p class="feature-card-desc">支持多平台自动签到，省时省心</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">↑</button>
-    <script src="/static/js/common.js?v=5"></script>
+    <script src="/static/js/common.js?v=6"></script>
     <script src="/static/js/dashboard.js?v=1"></script>
 </body>
 </html>

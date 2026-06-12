@@ -37,8 +37,8 @@ class Webhook(PushChannel):
             else:
                 raise ValueError(f"不支持的请求方法：{self.request_method}")
         except ClientResponseError as e:
-            self.logger.error(f"【推送_{self.name}】请求失败: {e}")
+            self._log_push_error(f"请求失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】推送失败: {e}")
+            self._log_push_error(f"推送失败: {e}")
             raise

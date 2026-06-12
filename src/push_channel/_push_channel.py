@@ -25,6 +25,10 @@ class PushChannel(ABC):
         self._own_session = False
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    def _log_push_error(self, message: str) -> None:
+        """记录推送失败详情；由 UnifiedPushManager 统一输出 error 汇总，此处仅 debug。"""
+        self.logger.debug("【推送_%s】%s", self.name, message)
+
     async def _get_session(self) -> ClientSession:
         """获取或创建 HTTP 会话"""
         if self.session is None:

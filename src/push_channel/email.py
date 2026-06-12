@@ -76,5 +76,5 @@ class Email(PushChannel):
             self.logger.debug(f"【推送_{self.name}】成功")
             return {"status": "success"}
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】推送失败: {e}", exc_info=True)
+            self.logger.debug("【推送_%s】推送失败: %s", self.name, e, exc_info=True)
             raise

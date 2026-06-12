@@ -1,5 +1,21 @@
 // 通用JavaScript函数
 
+// 根据当前路径高亮侧边栏导航
+function initActiveNav() {
+    const path = window.location.pathname;
+    const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+    if (!navItems.length) return;
+
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        const href = item.getAttribute('href');
+        if (!href) return;
+        if (path === href || (path === '/' && href === '/config')) {
+            item.classList.add('active');
+        }
+    });
+}
+
 // 初始化主题 (需要在 DOM 加载前就执行以避免闪烁，但保留这里作为备份和切换逻辑)
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
@@ -427,6 +443,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化移动端菜单
     initMobileMenu();
+
+    // 高亮当前导航
+    initActiveNav();
 
     // 初始化修改密码功能
     initChangePassword();

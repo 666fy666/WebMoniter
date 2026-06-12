@@ -195,7 +195,7 @@ class FeishuApps(PushChannel):
             # 尝试从错误消息中提取错误码
             if e.status == 400:
                 suggestion = self._get_error_suggestion(230006, e.message)
-                self.logger.error(f"【推送_{self.name}】{suggestion}")
+                self._log_push_error(f"{suggestion}")
             return None
         except Exception as e:
             self.logger.error(f"【推送_{self.name}】处理图片失败: {e}")
@@ -277,8 +277,8 @@ class FeishuApps(PushChannel):
                     error_info = (
                         f"HTTP {response.status}, code={error_code}, message='{error_detail}'"
                     )
-                    self.logger.error(f"【推送_{self.name}】请求失败: {error_info}")
-                    self.logger.error(f"【推送_{self.name}】{suggestion}")
+                    self._log_push_error(f"请求失败: {error_info}")
+                    self._log_push_error(f"{suggestion}")
                     raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
 
                 if result.get("code") != 0:
@@ -286,21 +286,21 @@ class FeishuApps(PushChannel):
                     error_code = result.get("code", "未知")
                     suggestion = self._get_error_suggestion(error_code, error_msg)
                     error_info = f"code={error_code}, msg={error_msg}"
-                    self.logger.error(f"【推送_{self.name}】推送失败: {error_info}")
-                    self.logger.error(f"【推送_{self.name}】{suggestion}")
+                    self._log_push_error(f"推送失败: {error_info}")
+                    self._log_push_error(f"{suggestion}")
                     raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
 
                 self.logger.debug(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
             error_info = f"HTTP {e.status}, message='{e.message}', url='{e.request_info.url}'"
-            self.logger.error(f"【推送_{self.name}】请求失败: {error_info}")
+            self._log_push_error(f"请求失败: {error_info}")
             # 尝试从错误消息中提取错误码（常见错误码）
             if e.status == 400:
                 suggestion = self._get_error_suggestion(230006, e.message)
-                self.logger.error(f"【推送_{self.name}】{suggestion}")
+                self._log_push_error(f"{suggestion}")
                 raise Exception(f"飞书自建应用推送失败: {error_info}\n{suggestion}")
             raise Exception(f"飞书自建应用推送失败: {error_info}")
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】推送失败: {e}")
+            self._log_push_error(f"推送失败: {e}")
             raise

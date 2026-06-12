@@ -2,6 +2,8 @@
 
 // 当前过滤器
 let currentFilter = 'all';
+let currentSearch = '';
+let allTasks = [];
 
 // 任务运行状态
 const runningTasks = new Set();
@@ -19,7 +21,8 @@ async function loadTasks() {
             throw new Error(data.error || '加载任务失败');
         }
 
-        renderTasks(data.tasks);
+        allTasks = data.tasks || [];
+        renderTasks(allTasks);
     } catch (error) {
         console.error('加载任务失败:', error);
         container.innerHTML = `
@@ -28,35 +31,48 @@ async function loadTasks() {
                 <button class="btn btn-primary" onclick="loadTasks()">重试</button>
             </div>
         `;
+        updateTaskCount(0);
     }
 }
 
-// 渲染任务列表
+// 筛选并渲染任务列表
 function renderTasks(tasks) {
     const container = document.getElementById('tasksContainer');
-    
-    // 根据过滤器筛选任务
-    const filteredTasks = currentFilter === 'all' 
-        ? tasks 
+
+    let filteredTasks = currentFilter === 'all'
+        ? tasks
         : tasks.filter(task => task.type === currentFilter);
 
+    const query = currentSearch.trim().toLowerCase();
+    if (query) {
+        filteredTasks = filteredTasks.filter(task =>
+            task.job_id.toLowerCase().includes(query) ||
+            (task.description && task.description.toLowerCase().includes(query)) ||
+            (task.type_label && task.type_label.toLowerCase().includes(query))
+        );
+    }
+
+    updateTaskCount(filteredTasks.length);
+
     if (filteredTasks.length === 0) {
+        const emptyHint = query
+            ? `未找到匹配「${escapeHtml(currentSearch.trim())}」的任务`
+            : `暂无${getFilterLabel(currentFilter)}任务`;
         container.innerHTML = `
             <div class="empty-state">
-                <p>暂无${getFilterLabel(currentFilter)}任务</p>
+                <p>${emptyHint}</p>
             </div>
         `;
         return;
     }
 
-    // 生成任务卡片列表
     let html = '<div class="task-list">';
-    
+
     filteredTasks.forEach(task => {
         const isRunning = runningTasks.has(task.job_id);
         const typeIcon = task.type === 'monitor' ? '📡' : '⏰';
         const typeClass = task.type === 'monitor' ? 'task-type-monitor' : 'task-type-task';
-        
+
         html += `
             <div class="task-item fade-in" data-job-id="${task.job_id}">
                 <div class="task-info">
@@ -70,16 +86,16 @@ function renderTasks(tasks) {
                     </div>
                 </div>
                 <div class="task-actions">
-                    <button 
-                        class="btn btn-primary run-task-btn ${isRunning ? 'running' : ''}" 
+                    <button
+                        class="btn btn-primary run-task-btn ${isRunning ? 'running' : ''}"
                         data-job-id="${task.job_id}"
                         ${isRunning ? 'disabled' : ''}
                     >
                         <span class="btn-icon">${isRunning ? '⏳' : '▶️'}</span>
                         <span class="btn-text">${isRunning ? '运行中...' : '运行'}</span>
                     </button>
-                    <button 
-                        class="btn btn-secondary view-log-btn" 
+                    <button
+                        class="btn btn-secondary view-log-btn"
                         data-job-id="${task.job_id}"
                         title="查看今日日志"
                     >
@@ -90,18 +106,23 @@ function renderTasks(tasks) {
             </div>
         `;
     });
-    
+
     html += '</div>';
     container.innerHTML = html;
 
-    // 绑定运行按钮事件
     document.querySelectorAll('.run-task-btn').forEach(btn => {
         btn.addEventListener('click', () => runTask(btn.dataset.jobId));
     });
-    // 绑定查看日志按钮事件
     document.querySelectorAll('.view-log-btn').forEach(btn => {
         btn.addEventListener('click', () => openTaskLogModal(btn.dataset.jobId));
     });
+}
+
+function updateTaskCount(count) {
+    const badge = document.getElementById('taskCountBadge');
+    if (badge) {
+        badge.textContent = `共 ${count} 个任务`;
+    }
 }
 
 // 当前查看日志的任务ID（用于弹窗）
@@ -144,7 +165,7 @@ async function loadTaskLogInModal(jobId) {
         }
 
         if (!data.logs || data.logs.length === 0) {
-            container.innerHTML = '<div class="loading">今日暂无日志</div>';
+            container.innerHTML = '<div class="logs-empty">今日暂无日志</div>';
             return;
         }
 
@@ -192,7 +213,6 @@ async function runTask(jobId) {
     const btn = document.querySelector(`.run-task-btn[data-job-id="${jobId}"]`);
     if (!btn) return;
 
-    // 设置运行状态
     runningTasks.add(jobId);
     btn.disabled = true;
     btn.classList.add('running');
@@ -214,7 +234,6 @@ async function runTask(jobId) {
         console.error('运行任务失败:', error);
         showToast(`运行任务失败: ${error.message}`, 'error');
     } finally {
-        // 恢复按钮状态
         runningTasks.delete(jobId);
         btn.disabled = false;
         btn.classList.remove('running');
@@ -236,33 +255,36 @@ function updateTitle(filter) {
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 加载任务列表
     loadTasks();
 
-    // 绑定刷新按钮
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadTasks);
     }
 
-    // 绑定过滤器标签切换
+    const taskSearch = document.getElementById('taskSearch');
+    if (taskSearch) {
+        let searchTimer;
+        taskSearch.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                currentSearch = taskSearch.value;
+                renderTasks(allTasks);
+            }, 200);
+        });
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            // 移除所有active状态
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            // 添加当前active状态
             this.classList.add('active');
-            
-            // 更新过滤器
+
             currentFilter = this.dataset.filter;
             updateTitle(currentFilter);
-            
-            // 重新加载任务列表
-            loadTasks();
+            renderTasks(allTasks);
         });
     });
 
-    // 任务日志弹窗：关闭按钮、遮罩点击、刷新按钮
     const closeTaskLogModalBtn = document.getElementById('closeTaskLogModal');
     const closeTaskLogBtn = document.getElementById('closeTaskLogBtn');
     const refreshTaskLogBtn = document.getElementById('refreshTaskLogBtn');

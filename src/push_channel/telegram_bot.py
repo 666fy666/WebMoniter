@@ -71,10 +71,10 @@ class TelegramBot(PushChannel):
                 self.logger.debug(f"【推送_{self.name}】成功（本地图片上传）")
                 return {"status": "success"}
             except ClientResponseError as e:
-                self.logger.error(f"【推送_{self.name}】请求失败: {e}")
+                self._log_push_error(f"请求失败: {e}")
                 raise
             except Exception as e:
-                self.logger.error(f"【推送_{self.name}】发送带本地图片的消息失败: {e}")
+                self._log_push_error(f"发送带本地图片的消息失败: {e}")
                 raise
 
         # 否则退回到原有逻辑：纯文本 + 可选链接预览
@@ -111,8 +111,8 @@ class TelegramBot(PushChannel):
                 self.logger.debug(f"【推送_{self.name}】成功")
                 return {"status": "success"}
         except ClientResponseError as e:
-            self.logger.error(f"【推送_{self.name}】请求失败: {e}")
+            self._log_push_error(f"请求失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"【推送_{self.name}】推送失败: {e}")
+            self._log_push_error(f"推送失败: {e}")
             raise
