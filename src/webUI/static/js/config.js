@@ -862,6 +862,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         return `<input type="text" class="field-${field} form-input" value="${value || ''}">`;
     }
 
+    // 从 DOM 元素收集单个推送通道配置（空字段不写入，配合后端整项替换以清除已删除的值）
+    function collectPushChannelFromElement(item) {
+        const channel = {
+            name: item.querySelector('.channel-name').value.trim(),
+            type: item.querySelector('.channel-type').value
+        };
+
+        const typeInfo = pushChannelTypes[channel.type] || { fields: [] };
+        typeInfo.fields.forEach(field => {
+            const input = item.querySelector(`.field-${field}`);
+            if (!input) return;
+            if (input.type === 'checkbox') {
+                channel[field] = input.checked;
+            } else if (field === 'push_target_list') {
+                try {
+                    channel[field] = JSON.parse(input.value.trim() || '[]');
+                } catch (e) {
+                    channel[field] = [];
+                }
+            } else if (field === 'smtp_port' || field === 'content_type') {
+                const value = input.value.trim();
+                if (value) {
+                    channel[field] = field === 'content_type' ? parseInt(value) : parseInt(value);
+                }
+            } else {
+                const value = input.value.trim();
+                if (value) {
+                    channel[field] = value;
+                }
+            }
+        });
+
+        return channel;
+    }
+
     // 渲染签到多账号列表
     function renderCheckinAccounts(accounts) {
         const container = document.getElementById('checkin_accounts_list');
@@ -2368,40 +2403,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 break;
             case 'push_channel':
                 config.push_channel = [];
-                const channelItems = document.querySelectorAll('.push-channel-item');
-                channelItems.forEach(item => {
-                    const channel = {
-                        name: item.querySelector('.channel-name').value.trim(),
-                        type: item.querySelector('.channel-type').value
-                    };
-
-                    const typeInfo = pushChannelTypes[channel.type] || { fields: [] };
-                    typeInfo.fields.forEach(field => {
-                        const input = item.querySelector(`.field-${field}`);
-                        if (input) {
-                            if (input.type === 'checkbox') {
-                                channel[field] = input.checked;
-                            } else if (field === 'push_target_list') {
-                                try {
-                                    channel[field] = JSON.parse(input.value.trim() || '[]');
-                                } catch (e) {
-                                    channel[field] = [];
-                                }
-                            } else if (field === 'smtp_port' || field === 'content_type') {
-                                const value = input.value.trim();
-                                if (value) {
-                                    channel[field] = field === 'content_type' ? parseInt(value) : parseInt(value);
-                                }
-                            } else {
-                                const value = input.value.trim();
-                                if (value) {
-                                    channel[field] = value;
-                                }
-                            }
-                        }
-                    });
-
-                    config.push_channel.push(channel);
+                document.querySelectorAll('.push-channel-item').forEach(item => {
+                    config.push_channel.push(collectPushChannelFromElement(item));
                 });
                 break;
             case 'plugins':
@@ -2559,41 +2562,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 推送通道配置
         config.push_channel = [];
-        const channelItems = document.querySelectorAll('.push-channel-item');
-        channelItems.forEach(item => {
-            const channel = {
-                name: item.querySelector('.channel-name').value.trim(),
-                type: item.querySelector('.channel-type').value
-            };
-
-            const typeInfo = pushChannelTypes[channel.type] || { fields: [] };
-            typeInfo.fields.forEach(field => {
-                const input = item.querySelector(`.field-${field}`);
-                if (input) {
-                    if (input.type === 'checkbox') {
-                        channel[field] = input.checked;
-                    } else if (field === 'push_target_list') {
-                        try {
-                            channel[field] = JSON.parse(input.value.trim() || '[]');
-                        } catch (e) {
-                            channel[field] = [];
-                        }
-                    } else if (field === 'smtp_port' || field === 'content_type') {
-                        // 数字字段
-                        const value = input.value.trim();
-                        if (value) {
-                            channel[field] = field === 'content_type' ? parseInt(value) : parseInt(value);
-                        }
-                    } else {
-                        const value = input.value.trim();
-                        if (value) {
-                            channel[field] = value;
-                        }
-                    }
-                }
-            });
-
-            config.push_channel.push(channel);
+        document.querySelectorAll('.push-channel-item').forEach(item => {
+            config.push_channel.push(collectPushChannelFromElement(item));
         });
 
         // 插件/扩展配置
@@ -2777,36 +2747,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const actualIndex = parseInt(channelDiv.dataset.index);
 
             // 收集当前通道的配置
-            const channel = {
-                name: channelDiv.querySelector('.channel-name').value.trim(),
-                type: channelDiv.querySelector('.channel-type').value
-            };
-
-            const typeInfo = pushChannelTypes[channel.type] || { fields: [] };
-            typeInfo.fields.forEach(field => {
-                const input = channelDiv.querySelector(`.field-${field}`);
-                if (input) {
-                    if (input.type === 'checkbox') {
-                        channel[field] = input.checked;
-                    } else if (field === 'push_target_list') {
-                        try {
-                            channel[field] = JSON.parse(input.value.trim() || '[]');
-                        } catch (e) {
-                            channel[field] = [];
-                        }
-                    } else if (field === 'smtp_port' || field === 'content_type') {
-                        const value = input.value.trim();
-                        if (value) {
-                            channel[field] = field === 'content_type' ? parseInt(value) : parseInt(value);
-                        }
-                    } else {
-                        const value = input.value.trim();
-                        if (value) {
-                            channel[field] = value;
-                        }
-                    }
-                }
-            });
+            const channel = collectPushChannelFromElement(channelDiv);
 
             // 更新通道列表中的对应通道
             if (actualIndex >= 0 && actualIndex < channels.length) {

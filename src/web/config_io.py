@@ -21,6 +21,33 @@ except ImportError:
     RUAMEL_YAML = None
 
 
+def _merge_push_channel_list(target: list, source: list) -> None:
+    """按 name 合并推送通道：整项替换而非递归合并，以便清空 user_id 等可选字段。"""
+    if not source:
+        return
+    existing_map = {
+        item.get("name"): idx
+        for idx, item in enumerate(target)
+        if isinstance(item, dict) and "name" in item
+    }
+    new_names = {
+        item.get("name") for item in source if isinstance(item, dict) and "name" in item
+    }
+    for new_item in source:
+        if not isinstance(new_item, dict) or "name" not in new_item:
+            continue
+        name = new_item["name"]
+        if name in existing_map:
+            target[existing_map[name]] = new_item
+        else:
+            target.append(new_item)
+    target[:] = [
+        item
+        for item in target
+        if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
+    ]
+
+
 def _simple_merge_dict(target: dict, source: dict) -> None:
     """递归合并 source 到 target，避免前端未收集的配置丢失。"""
     for key, value in source.items():
@@ -34,26 +61,7 @@ def _simple_merge_dict(target: dict, source: dict) -> None:
             _simple_merge_dict(target[key], value)
         elif isinstance(target[key], list) and isinstance(value, list):
             if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
-                existing_map = {
-                    item.get("name"): idx
-                    for idx, item in enumerate(target[key])
-                    if isinstance(item, dict) and "name" in item
-                }
-                new_names = {
-                    item.get("name") for item in value if isinstance(item, dict) and "name" in item
-                }
-                for new_item in value:
-                    if isinstance(new_item, dict) and "name" in new_item:
-                        name = new_item["name"]
-                        if name in existing_map:
-                            _simple_merge_dict(target[key][existing_map[name]], new_item)
-                        else:
-                            target[key].append(new_item)
-                target[key][:] = [
-                    item
-                    for item in target[key]
-                    if not isinstance(item, dict) or "name" not in item or item["name"] in new_names
-                ]
+                _merge_push_channel_list(target[key], value)
             else:
                 target[key] = value
         else:

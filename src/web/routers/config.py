@@ -13,6 +13,7 @@ from src.web.config_io import (
     RUAMEL_AVAILABLE,
     RUAMEL_YAML,
     _merge_and_dump_config,
+    _merge_push_channel_list,
     _validate_and_save_config,
 )
 
@@ -116,33 +117,7 @@ async def save_config_api(request: Request):
                                         and len(target[key]) > 0
                                         and len(value) > 0
                                     ):
-                                        existing_map = {}
-                                        for idx, item in enumerate(target[key]):
-                                            if isinstance(item, dict) and "name" in item:
-                                                existing_map[item["name"]] = idx
-
-                                        new_names = {
-                                            item.get("name")
-                                            for item in value
-                                            if isinstance(item, dict) and "name" in item
-                                        }
-
-                                        for new_item in value:
-                                            if isinstance(new_item, dict) and "name" in new_item:
-                                                name = new_item["name"]
-                                                if name in existing_map:
-                                                    idx = existing_map[name]
-                                                    update_dict(target[key][idx], new_item)
-                                                else:
-                                                    target[key].append(new_item)
-
-                                        target[key][:] = [
-                                            item
-                                            for item in target[key]
-                                            if not isinstance(item, dict)
-                                            or "name" not in item
-                                            or item["name"] in new_names
-                                        ]
+                                        _merge_push_channel_list(target[key], value)
                                     else:
                                         target[key] = value
                                 else:
