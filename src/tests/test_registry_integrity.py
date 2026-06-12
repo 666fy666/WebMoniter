@@ -14,7 +14,7 @@ from src.jobs.registry import (
     monitor_job_enabled,
 )
 from src.settings.config import AppConfig, get_config
-from src.tests.conftest import OPTIONAL_IMPORT_MODULES, safe_reload_modules
+from src.tests.conftest import safe_reload_modules
 
 PLUGIN_ONLY_TASKS = frozenset({"demo_task"})
 

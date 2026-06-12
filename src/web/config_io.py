@@ -30,9 +30,7 @@ def _merge_push_channel_list(target: list, source: list) -> None:
         for idx, item in enumerate(target)
         if isinstance(item, dict) and "name" in item
     }
-    new_names = {
-        item.get("name") for item in source if isinstance(item, dict) and "name" in item
-    }
+    new_names = {item.get("name") for item in source if isinstance(item, dict) and "name" in item}
     for new_item in source:
         if not isinstance(new_item, dict) or "name" not in new_item:
             continue

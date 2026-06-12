@@ -216,9 +216,8 @@ async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> _DomainP
                 return None
 
             has_login_form = (
-                ('id="email"' in body or "name=\"email\"" in body or "email" in body)
-                and ('id="password"' in body or "name=\"password\"" in body or "password" in body)
-            )
+                'id="email"' in body or 'name="email"' in body or "email" in body
+            ) and ('id="password"' in body or 'name="password"' in body or "password" in body)
             is_domain_notice = "ikuuuvpn" in body and "2019-2026" in body
 
             if has_login_form:
@@ -345,7 +344,8 @@ async def _extract_ikuuu_domain() -> str | None:
                 return selected
 
             extracted_domains = [
-                domain for domain in sorted(scored_candidates, key=scored_candidates.get, reverse=True)
+                domain
+                for domain in sorted(scored_candidates, key=scored_candidates.get, reverse=True)
                 if scored_candidates[domain] >= 40
             ]
             if extracted_domains:
@@ -536,7 +536,7 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.chrome.service import Service
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support import expected_conditions
         from selenium.webdriver.support.ui import WebDriverWait
     except ModuleNotFoundError as exc:
         logger.error("ikuuu签到：缺少 Selenium 依赖，请使用 Docker full 镜像运行")
@@ -583,8 +583,12 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
         logger.debug("ikuuu签到：打开登录页 %s", cfg.login_url)
         driver.get(cfg.login_url)
 
-        email_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#email")))
-        password_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#password")))
+        email_input = wait.until(
+            expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#email"))
+        )
+        password_input = wait.until(
+            expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#password"))
+        )
         email_input.clear()
         email_input.send_keys(cfg.email)
         password_input.clear()
@@ -592,7 +596,7 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
 
         try:
             verify_button = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, ".geetest_btn_click"))
+                expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, ".geetest_btn_click"))
             )
             verify_button.click()
             logger.debug("ikuuu签到：已点击验证按钮")
@@ -600,7 +604,9 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
             logger.debug("ikuuu签到：未发现验证按钮，继续提交登录")
 
         time.sleep(2)
-        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[type="submit"]'))).click()
+        wait.until(
+            expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, 'button[type="submit"]'))
+        ).click()
         time.sleep(5)
 
         cookies = driver.get_cookies()
