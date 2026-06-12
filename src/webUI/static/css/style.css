@@ -2092,6 +2092,66 @@ input:focus + .slider {
     color: var(--text-muted);
 }
 
+/* 日志页：整页一屏展示，日志在容器内滚动 */
+body.page-logs {
+    overflow: hidden;
+}
+
+body.page-logs .main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding-top: 24px;
+    padding-bottom: 16px;
+}
+
+body.page-logs .content-header {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+    padding: 20px 28px;
+}
+
+body.page-logs .content-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+body.page-logs .content-body > .card {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+body.page-logs .content-body > .card:hover {
+    transform: none;
+}
+
+body.page-logs .card-header {
+    flex-shrink: 0;
+}
+
+body.page-logs .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px 20px;
+}
+
+body.page-logs .logs-container {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    height: auto;
+}
+
 .logs-container .logs-empty {
     color: #94a3b8;  /* 深色背景下的柔和文字色 */
 }
@@ -2558,6 +2618,20 @@ input:focus + .slider {
         font-size: 12px;
         padding: 16px;
         max-height: 500px;
+    }
+
+    body.page-logs .logs-container {
+        max-height: none;
+    }
+
+    body.page-logs .main-content {
+        padding-top: 70px;
+        padding-bottom: 12px;
+    }
+
+    body.page-logs .content-header {
+        margin-bottom: 12px;
+        padding: 16px 20px;
     }
 
     .yaml-editor {
