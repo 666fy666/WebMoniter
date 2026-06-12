@@ -140,4 +140,9 @@ def _get_fr_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("fr_checkin", run_fr_checkin_once, _get_fr_trigger_kwargs)
+register_task(
+    "fr_checkin",
+    run_fr_checkin_once,
+    _get_fr_trigger_kwargs,
+    description="帆软社区签到 + 摇摇乐",
+)

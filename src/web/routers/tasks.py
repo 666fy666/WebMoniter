@@ -5,7 +5,6 @@ import logging
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from src.jobs.metadata import get_job_description as _get_job_description
 from src.jobs.registry import (
     MONITOR_JOBS,
     TASK_JOBS,
@@ -36,7 +35,7 @@ async def get_tasks_api(request: Request):
                     "trigger": job.trigger,
                     "type": "monitor",
                     "type_label": "监控任务",
-                    "description": _get_job_description(job.job_id),
+                    "description": job.description,
                 }
             )
 
@@ -47,7 +46,7 @@ async def get_tasks_api(request: Request):
                     "trigger": job.trigger,
                     "type": "task",
                     "type_label": "定时任务",
-                    "description": _get_job_description(job.job_id),
+                    "description": job.description,
                 }
             )
 

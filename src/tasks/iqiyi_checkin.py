@@ -231,4 +231,9 @@ def _get_iqiyi_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("iqiyi_checkin", run_iqiyi_checkin_once, _get_iqiyi_trigger_kwargs)
+register_task(
+    "iqiyi_checkin",
+    run_iqiyi_checkin_once,
+    _get_iqiyi_trigger_kwargs,
+    description="爱奇艺签到",
+)

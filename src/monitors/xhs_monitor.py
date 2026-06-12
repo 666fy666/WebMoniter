@@ -301,4 +301,9 @@ def _get_xhs_trigger_kwargs(config: AppConfig) -> dict:
 
 from src.jobs.registry import register_monitor
 
-register_monitor("xhs_monitor", run_xhs_monitor, _get_xhs_trigger_kwargs)
+register_monitor(
+    "xhs_monitor",
+    run_xhs_monitor,
+    _get_xhs_trigger_kwargs,
+    description="小红书动态监控",
+)

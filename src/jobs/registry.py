@@ -12,9 +12,10 @@ import importlib
 import logging
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from src.jobs.enable_fields import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_JOB_ENABLE_FIELD_MAP
 from src.jobs.log_manager import LogManager, TaskLogFilter, _current_job_id
 from src.settings.config import AppConfig, get_config
 
@@ -29,8 +30,9 @@ class JobDescriptor:
     run_func: Callable[[], Awaitable[None]]
     trigger: str  # "interval" | "cron"
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]]
+    description: str = ""
     # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
-    original_run_func: Callable[[], Awaitable[None]] | None = None
+    original_run_func: Callable[[], Awaitable[None]] | None = field(default=None)
 
 
 # 监控任务（间隔执行）模块列表，新增监控时在此追加模块路径即可
@@ -111,62 +113,18 @@ async def run_task_with_logging(job_id: str, run_func: Callable[[], Awaitable[No
         await run_func()
 
 
-# 监控任务启用开关映射：job_id -> AppConfig 中对应的 enable 字段名
-MONITOR_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
-    "weibo_monitor": "weibo_enable",
-    "huya_monitor": "huya_enable",
-    "bilibili_monitor": "bilibili_enable",
-    "douyin_monitor": "douyin_enable",
-    "douyu_monitor": "douyu_enable",
-    "xhs_monitor": "xhs_enable",
-}
-
-
 def monitor_job_enabled(job_id: str, config: AppConfig) -> bool:
     """监控类任务是否在配置中启用（未映射的 job_id 视为始终启用）。"""
     enable_field = MONITOR_JOB_ENABLE_FIELD_MAP.get(job_id)
     return enable_field is None or getattr(config, enable_field, True)
 
 
-# 定时任务启用开关：在模块导入时构建一次，避免每个 register_task() 重复创建 dict
-TASK_JOB_ENABLE_FIELD_MAP: dict[str, str] = {
-    "ikuuu_checkin": "checkin_enable",
-    "tieba_checkin": "tieba_enable",
-    "weibo_chaohua_checkin": "weibo_chaohua_enable",
-    "rainyun_checkin": "rainyun_enable",
-    "enshan_checkin": "enshan_enable",
-    "tyyun_checkin": "tyyun_enable",
-    "aliyun_checkin": "aliyun_enable",
-    "smzdm_checkin": "smzdm_enable",
-    "zdm_draw": "zdm_draw_enable",
-    "fg_checkin": "fg_enable",
-    "miui_checkin": "miui_enable",
-    "iqiyi_checkin": "iqiyi_enable",
-    "lenovo_checkin": "lenovo_enable",
-    "lbly_checkin": "lbly_enable",
-    "pinzan_checkin": "pinzan_enable",
-    "dml_checkin": "dml_enable",
-    "xiaomao_checkin": "xiaomao_enable",
-    "ydwx_checkin": "ydwx_enable",
-    "xingkong_checkin": "xingkong_enable",
-    "freenom_checkin": "freenom_enable",
-    "weather_push": "weather_enable",
-    "qtw_checkin": "qtw_enable",
-    "kuake_checkin": "kuake_enable",
-    "kjwj_checkin": "kjwj_enable",
-    "fr_checkin": "fr_enable",
-    "nine_nine_nine_task": "nine_nine_nine_enable",
-    "zgfc_draw": "zgfc_enable",
-    "ssq_500w_notice": "ssq_500w_enable",
-    "log_cleanup": "log_cleanup_enable",
-    # demo_task 使用 plugins 配置，不在此列出
-}
-
-
 def register_monitor(
     job_id: str,
     run_func: Callable[[], Awaitable[None]],
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]],
+    *,
+    description: str = "",
 ) -> None:
     """
     注册一个监控任务（间隔触发）。
@@ -188,6 +146,7 @@ def register_monitor(
             run_func=wrapped_run_func,
             trigger="interval",
             get_trigger_kwargs=get_trigger_kwargs,
+            description=description or f"任务 {job_id}",
             original_run_func=run_func,
         )
     )
@@ -200,6 +159,7 @@ def register_task(
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]],
     *,
     skip_if_run_today: bool = True,
+    description: str = "",
 ) -> None:
     """
     注册一个定时任务（Cron 触发）。
@@ -210,10 +170,10 @@ def register_task(
         run_func: 任务执行函数
         get_trigger_kwargs: 获取触发参数的函数
         skip_if_run_today: 是否在当天已运行过时跳过（默认 True）
+        description: Web 任务列表展示文案
     """
-    # 延迟导入避免循环依赖
-    from src.jobs.tracker import has_run_today as check_run_today
-    from src.jobs.tracker import mark_as_run_today
+    from src.storage.database import has_run_today as check_run_today
+    from src.storage.database import mark_as_run_today
 
     @functools.wraps(run_func)
     async def wrapped_run_func() -> None:
@@ -233,18 +193,34 @@ def register_task(
             if skip_if_run_today:
                 await mark_as_run_today(job_id)
 
-    actual_run_func = wrapped_run_func
-
     TASK_JOBS.append(
         JobDescriptor(
             job_id=job_id,
-            run_func=actual_run_func,
+            run_func=wrapped_run_func,
             trigger="cron",
             get_trigger_kwargs=get_trigger_kwargs,
-            original_run_func=run_func,  # 保存原始函数，用于手动触发时绕过跳过检查
+            description=description or f"任务 {job_id}",
+            original_run_func=run_func,
         )
     )
     logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)
+
+
+def get_registered_task(job_id: str) -> JobDescriptor | None:
+    """按 job_id 查找已注册的定时任务（青龙 CLI 等场景使用）。"""
+    for job in TASK_JOBS:
+        if job.job_id == job_id:
+            return job
+    return None
+
+
+def discover_and_import_tasks_only() -> None:
+    """仅导入 TASK_MODULES，供青龙 CLI 等轻量场景使用。"""
+    for mod_name in TASK_MODULES:
+        try:
+            importlib.import_module(mod_name)
+        except Exception as e:
+            logger.warning("导入任务模块 %s 失败: %s", mod_name, e)
 
 
 def discover_and_import() -> None:

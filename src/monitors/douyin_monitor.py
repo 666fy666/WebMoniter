@@ -290,4 +290,9 @@ def _get_douyin_trigger_kwargs(config: AppConfig) -> dict:
 
 from src.jobs.registry import register_monitor
 
-register_monitor("douyin_monitor", run_douyin_monitor, _get_douyin_trigger_kwargs)
+register_monitor(
+    "douyin_monitor",
+    run_douyin_monitor,
+    _get_douyin_trigger_kwargs,
+    description="抖音直播状态监控",
+)

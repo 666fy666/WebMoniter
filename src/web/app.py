@@ -1,16 +1,28 @@
 """FastAPI application assembly for the Web UI and API."""
 
 import secrets
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.core.paths import WEB_UI_STATIC_DIR
+from src.core.paths import SESSION_SECRET_FILE, WEB_UI_STATIC_DIR, WEIBO_IMG_DIR
 from src.web.routers import auth, config, data, logs, pages, tasks
 
-SECRET_KEY = secrets.token_urlsafe(32)
+
+def _get_or_create_session_secret() -> str:
+    """持久化 Session 密钥，避免重启后全员掉线。"""
+    if SESSION_SECRET_FILE.is_file():
+        stored = SESSION_SECRET_FILE.read_text(encoding="utf-8").strip()
+        if stored:
+            return stored
+    secret = secrets.token_urlsafe(32)
+    SESSION_SECRET_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SESSION_SECRET_FILE.write_text(secret, encoding="utf-8")
+    return secret
+
+
+SECRET_KEY = _get_or_create_session_secret()
 
 
 def create_web_app() -> FastAPI:
@@ -20,9 +32,8 @@ def create_web_app() -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=str(WEB_UI_STATIC_DIR)), name="static")
 
-    weibo_img_dir = Path("data/weibo")
-    weibo_img_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/weibo_img", StaticFiles(directory=str(weibo_img_dir)), name="weibo_img")
+    WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount("/weibo_img", StaticFiles(directory=str(WEIBO_IMG_DIR)), name="weibo_img")
 
     app.include_router(pages.router)
     app.include_router(auth.router)

@@ -176,4 +176,9 @@ def _get_weather_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("weather_push", run_weather_push_once, _get_weather_trigger_kwargs)
+register_task(
+    "weather_push",
+    run_weather_push_once,
+    _get_weather_trigger_kwargs,
+    description="天气每日推送",
+)

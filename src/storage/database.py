@@ -3,25 +3,12 @@
 import asyncio
 import logging
 import re
-import sys
 from contextlib import asynccontextmanager
-from pathlib import Path
+from datetime import date
 
 import aiosqlite
 
-from src.core.paths import PROJECT_ROOT
-
-# 数据库文件路径（始终使用 data/ 目录，如果不存在则自动创建）
-# 打包为 exe 时以可执行文件所在目录为基准，避免 data 落在包内被覆盖
-# Docker/本地：以项目根目录为基准
-_base_path = (
-    Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else PROJECT_ROOT
-)
-_data_dir = _base_path / "data"
-# 确保 data 目录存在（Docker 挂载时已存在也不会报错，exist_ok=True）
-_data_dir.mkdir(parents=True, exist_ok=True)
-# 确保 DB_PATH 是绝对路径，避免因工作目录不同导致在根目录创建数据库文件
-DB_PATH = (_data_dir / "data.db").resolve()
+from src.core.paths import DB_PATH
 
 # 全局单例数据库连接
 _shared_connection: aiosqlite.Connection | None = None
@@ -179,6 +166,16 @@ class AsyncDatabase:
                 profile_id TEXT PRIMARY KEY,
                 user_name TEXT NOT NULL,
                 latest_note_title TEXT
+            )
+        """
+        )
+
+        # 定时任务运行记录（当天已运行则跳过）
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS task_run_history (
+                job_id TEXT PRIMARY KEY,
+                last_run_date TEXT NOT NULL
             )
         """
         )
@@ -457,6 +454,71 @@ class AsyncDatabase:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器出口"""
         await self.close()
+
+
+async def _ensure_shared_connection() -> aiosqlite.Connection:
+    """确保共享连接已建立（供 task_run_history 等模块级 API 使用）。"""
+    global _shared_connection
+
+    if _shared_connection is not None:
+        return _shared_connection
+
+    async with _connection_lock:
+        if _shared_connection is None:
+            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _shared_connection = await aiosqlite.connect(str(DB_PATH.resolve()), timeout=30.0)
+            _shared_connection.row_factory = aiosqlite.Row
+            await _shared_connection.execute("PRAGMA journal_mode=WAL")
+            await _shared_connection.execute("PRAGMA synchronous=NORMAL")
+            await _shared_connection.execute("PRAGMA busy_timeout=30000")
+            await _shared_connection.commit()
+            await AsyncDatabase()._init_tables(_shared_connection)
+
+    return _shared_connection
+
+
+async def has_run_today(job_id: str) -> bool:
+    """检查指定任务今天是否已经运行过。"""
+    conn = await _ensure_shared_connection()
+    today_str = date.today().isoformat()
+
+    async with conn.execute(
+        "SELECT last_run_date FROM task_run_history WHERE job_id = ?",
+        (job_id,),
+    ) as cursor:
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+        return row[0] == today_str
+
+
+async def mark_as_run_today(job_id: str) -> None:
+    """标记指定任务今天已经运行过。"""
+    conn = await _ensure_shared_connection()
+    today_str = date.today().isoformat()
+
+    await conn.execute(
+        """
+        INSERT OR REPLACE INTO task_run_history (job_id, last_run_date)
+        VALUES (?, ?)
+        """,
+        (job_id, today_str),
+    )
+    await conn.commit()
+
+
+async def clear_run_history(job_id: str | None = None) -> None:
+    """清除任务运行记录；job_id 为 None 时清除全部。"""
+    conn = await _ensure_shared_connection()
+
+    if job_id is None:
+        await conn.execute("DELETE FROM task_run_history")
+    else:
+        await conn.execute(
+            "DELETE FROM task_run_history WHERE job_id = ?",
+            (job_id,),
+        )
+    await conn.commit()
 
 
 async def close_shared_connection():

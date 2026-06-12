@@ -214,7 +214,7 @@ uv sync --locked --extra rainyun
 
 ### 青龙面板
 
-青龙用户可通过环境变量配置并运行 `src/ql/*.py` 单任务脚本。详见 [青龙面板兼容指南](docs/QINGLONG.md)。
+青龙用户可通过环境变量配置，使用 `python -m src.ql <task_id>` 运行定时任务。详见 [青龙面板兼容指南](docs/QINGLONG.md)。
 
 ---
 
@@ -257,13 +257,15 @@ cp config/config.yml.sample config.yml
 uv sync --extra dev
 uv run ruff check .
 uv run black --check .
+uv run pytest tests/ -q
 ```
 
 新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。项目当前采用模块化结构：
 
 - `main.py`：应用入口与生命周期编排。
 - `src/jobs/scheduler.py`：APScheduler 封装与退出信号处理。
-- `src/jobs/registry.py`：任务注册与发现。
+- `src/jobs/registry.py`：任务注册与发现；`src/jobs/enable_fields.py`：启用开关映射。
+- `src/ql/__main__.py`：青龙 CLI（`python -m src.ql <task_id>`）。
 - `src/settings/config.py`：配置模型与加载流程。
 - `src/settings/loader_specs.py`：YAML 到配置模型的映射规格。
 - `src/monitors/`：平台监控任务。

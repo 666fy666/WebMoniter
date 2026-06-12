@@ -83,4 +83,9 @@ def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:
 
 
 # 自注册到任务注册表（需在 src.jobs.registry.TASK_MODULES 中加入 "src.tasks.demo_task"）
-register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
+register_task(
+    "demo_task",
+    run_demo_task_once,
+    _get_demo_task_trigger_kwargs,
+    description="示例任务（二次开发演示）",
+)

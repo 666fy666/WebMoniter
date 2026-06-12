@@ -544,7 +544,7 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `src/web/auth.py`：登录会话、认证文件读写、密码哈希
 - `src/web/config_io.py`：配置合并、配置保存前校验、热重载触发
 - `src/web/data_support.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换
-- `src/jobs/metadata.py`：任务 ID 到展示文案的映射
+- `JobDescriptor.description`：任务 ID 到展示文案（在 `register_*` 时注册）
 
 **页面路由**：
 - `/`：首页（已登录则配置页，未登录则登录页）
@@ -919,7 +919,7 @@ WebMoniter/
 │   │   ├── lifecycle.py    # Web/调度启动编排与热重载回调
 │   │   ├── log_manager.py  # 按日轮转与任务专属日志
 │   │   ├── tracker.py      # task_run_history（当天已运行则跳过）
-│   │   └── metadata.py     # 任务 ID → 展示文案
+│   │   └── enable_fields.py # 任务启用开关映射（registry + 青龙 compat 共用）
 │   ├── storage/            # 持久化
 │   │   ├── database.py     # AsyncDatabase（SQLite WAL）
 │   │   └── cookie_cache.py # Cookie 过期状态缓存
@@ -951,10 +951,10 @@ WebMoniter/
 │   ├── webUI/              # 前端静态资源与 Jinja2 模板
 │   │   ├── static/         # css、js、截图等
 │   │   └── templates/      # login、config、tasks、data、logs（dashboard.html 暂无路由）
-│   └── ql/                 # 青龙单任务脚本与环境变量兼容
-│       ├── _runner.py      # 统一入口 run_task()
-│       ├── compat.py       # WEBMONITER_* 环境变量 → 配置
-│       └── *.py            # 各任务青龙脚本（与 src/tasks/* 共用逻辑）
+│   └── ql/                 # 青龙 CLI 与环境变量兼容
+│       ├── __main__.py     # python -m src.ql <task_id>
+│       ├── _runner.py      # run_task() 执行封装
+│       └── compat.py       # WEBMONITER_* 环境变量 → 配置
 │
 ├── docs/                   # 文档（MkDocs 源目录，配置见 docs/mkdocs.yml）
 │   ├── mkdocs.yml
@@ -978,7 +978,7 @@ WebMoniter/
 
 ### 1. 插件化架构
 
-**实现**：通过 `src.jobs.registry` 模块（`discover_and_import()`、`MONITOR_MODULES`、`TASK_MODULES`）实现任务的自动发现和注册。**青龙面板** 下通过 `src/ql/*.py` 单任务脚本 + 环境变量 + `src.ql.compat` 模块实现兼容，与主流程解耦。
+**实现**：通过 `src.jobs.registry` 模块（`discover_and_import()`、`MONITOR_MODULES`、`TASK_MODULES`）实现任务的自动发现和注册。**青龙面板** 下通过 `python -m src.ql <task_id>` CLI + 环境变量 + `src.ql.compat` 模块实现兼容，与主流程解耦。
 
 **优势**：
 - 新增任务只需添加模块路径，无需修改核心代码

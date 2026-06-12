@@ -189,4 +189,9 @@ def _get_aliyun_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("aliyun_checkin", run_aliyun_checkin_once, _get_aliyun_trigger_kwargs)
+register_task(
+    "aliyun_checkin",
+    run_aliyun_checkin_once,
+    _get_aliyun_trigger_kwargs,
+    description="阿里云盘签到",
+)

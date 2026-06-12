@@ -144,4 +144,9 @@ def _get_dml_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("dml_checkin", run_dml_checkin_once, _get_dml_trigger_kwargs)
+register_task(
+    "dml_checkin",
+    run_dml_checkin_once,
+    _get_dml_trigger_kwargs,
+    description="达美乐任务",
+)

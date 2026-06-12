@@ -137,4 +137,9 @@ def _get_qtw_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("qtw_checkin", run_qtw_checkin_once, _get_qtw_trigger_kwargs)
+register_task(
+    "qtw_checkin",
+    run_qtw_checkin_once,
+    _get_qtw_trigger_kwargs,
+    description="千图网签到",
+)

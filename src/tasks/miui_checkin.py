@@ -295,4 +295,9 @@ def _get_miui_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("miui_checkin", run_miui_checkin_once, _get_miui_trigger_kwargs)
+register_task(
+    "miui_checkin",
+    run_miui_checkin_once,
+    _get_miui_trigger_kwargs,
+    description="小米社区签到",
+)

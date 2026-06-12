@@ -378,4 +378,9 @@ def _get_xiaomao_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("xiaomao_checkin", run_xiaomao_checkin_once, _get_xiaomao_trigger_kwargs)
+register_task(
+    "xiaomao_checkin",
+    run_xiaomao_checkin_once,
+    _get_xiaomao_trigger_kwargs,
+    description="小茅预约（i茅台）",
+)

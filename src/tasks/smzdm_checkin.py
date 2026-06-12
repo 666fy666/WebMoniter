@@ -184,4 +184,9 @@ def _get_smzdm_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("smzdm_checkin", run_smzdm_checkin_once, _get_smzdm_trigger_kwargs)
+register_task(
+    "smzdm_checkin",
+    run_smzdm_checkin_once,
+    _get_smzdm_trigger_kwargs,
+    description="什么值得买签到",
+)

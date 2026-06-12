@@ -53,7 +53,7 @@ packages = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-exclude = [".git", ".venv", "weworkapi_python"]
+exclude = [".git", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -62,12 +62,16 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 # 监控模块在文件末尾 import register_* 以避免循环依赖
 "src/monitors/*.py" = ["E402"]
-# 青龙脚本需先修改 sys.path 再 import
-"src/ql/*.py" = ["E402"]
+# 青龙 CLI 需先 import _runner 设置 sys.path
+"src/ql/__main__.py" = ["E402"]
 # Selenium 常用 expected_conditions as EC 的惯例
 "src/tasks/rainyun/**/*.py" = ["N812"]
 
 [tool.black]
 line-length = 100
 target-version = ["py310"]
-extend-exclude = "weworkapi_python"
+
+[[tool.uv.index]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true

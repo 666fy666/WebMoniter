@@ -237,4 +237,9 @@ def _get_rainyun_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("rainyun_checkin", run_rainyun_checkin_once, _get_rainyun_trigger_kwargs)
+register_task(
+    "rainyun_checkin",
+    run_rainyun_checkin_once,
+    _get_rainyun_trigger_kwargs,
+    description="雨云签到",
+)

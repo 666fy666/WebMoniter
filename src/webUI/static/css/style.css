@@ -2838,11 +2838,6 @@ body.page-logs .logs-container {
         font-size: 20px;
     }
 
-    /* 控制台功能卡片网格：小屏单列避免溢出 */
-    .dashboard-card-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px !important;
-    }
 }
 
 /* =======================================
@@ -3939,55 +3934,6 @@ body.page-logs .logs-container {
     margin: 0;
     border-radius: 0;
     border: none;
-}
-
-/* 控制台欢迎区（dashboard 预留） */
-.welcome-hero-icon {
-    font-size: 64px;
-    margin-bottom: 24px;
-    line-height: 1;
-}
-
-.welcome-actions {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.welcome-actions .btn {
-    text-decoration: none;
-}
-
-.dashboard-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-top: 32px;
-}
-
-.feature-card-body {
-    text-align: center;
-    padding: 32px;
-}
-
-.feature-card-icon {
-    font-size: 40px;
-    margin-bottom: 16px;
-    line-height: 1;
-}
-
-.feature-card-title {
-    margin-bottom: 8px;
-    color: var(--text-primary);
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.feature-card-desc {
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.6;
 }
 
 /* 导航激活态增强 */

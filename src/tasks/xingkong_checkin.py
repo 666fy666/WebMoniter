@@ -124,4 +124,5 @@ register_task(
         "minute": parse_checkin_time(getattr(c, "xingkong_time", "07:30") or "07:30")[1],
         "hour": parse_checkin_time(getattr(c, "xingkong_time", "07:30") or "07:30")[0],
     },
+    description="星空代理签到",
 )

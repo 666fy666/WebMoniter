@@ -436,5 +436,8 @@ def _get_weibo_chaohua_trigger_kwargs(config: AppConfig) -> dict:
 
 
 register_task(
-    "weibo_chaohua_checkin", run_weibo_chaohua_checkin_once, _get_weibo_chaohua_trigger_kwargs
+    "weibo_chaohua_checkin",
+    run_weibo_chaohua_checkin_once,
+    _get_weibo_chaohua_trigger_kwargs,
+    description="微博超话签到",
 )

@@ -368,4 +368,9 @@ def _get_tieba_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("tieba_checkin", run_tieba_checkin_once, _get_tieba_trigger_kwargs)
+register_task(
+    "tieba_checkin",
+    run_tieba_checkin_once,
+    _get_tieba_trigger_kwargs,
+    description="百度贴吧签到",
+)

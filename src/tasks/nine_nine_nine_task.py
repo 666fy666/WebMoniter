@@ -261,4 +261,5 @@ register_task(
     "nine_nine_nine_task",
     run_nine_nine_nine_task_once,
     _get_nine_trigger_kwargs,
+    description="999 会员中心健康打卡任务",
 )

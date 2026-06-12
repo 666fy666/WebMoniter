@@ -288,4 +288,9 @@ def _get_tyyun_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("tyyun_checkin", run_tyyun_checkin_once, _get_tyyun_trigger_kwargs)
+register_task(
+    "tyyun_checkin",
+    run_tyyun_checkin_once,
+    _get_tyyun_trigger_kwargs,
+    description="天翼云盘签到",
+)

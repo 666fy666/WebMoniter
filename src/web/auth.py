@@ -3,11 +3,10 @@
 import hashlib
 import json
 import logging
-from pathlib import Path
+
+from src.core.paths import AUTH_FILE
 
 logger = logging.getLogger(__name__)
-
-AUTH_FILE = Path("data/auth.json")
 DEFAULT_USERNAME = "admin"
 DEFAULT_PASSWORD = "123"
 

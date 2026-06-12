@@ -217,4 +217,9 @@ def _get_douyu_trigger_kwargs(config: AppConfig) -> dict:
 
 from src.jobs.registry import register_monitor
 
-register_monitor("douyu_monitor", run_douyu_monitor, _get_douyu_trigger_kwargs)
+register_monitor(
+    "douyu_monitor",
+    run_douyu_monitor,
+    _get_douyu_trigger_kwargs,
+    description="斗鱼直播状态监控",
+)

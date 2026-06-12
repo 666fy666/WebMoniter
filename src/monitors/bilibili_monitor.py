@@ -402,4 +402,9 @@ def _get_bilibili_trigger_kwargs(config: AppConfig) -> dict:
     return {"seconds": config.bilibili_monitor_interval_seconds}
 
 
-register_monitor("bilibili_monitor", run_bilibili_monitor, _get_bilibili_trigger_kwargs)
+register_monitor(
+    "bilibili_monitor",
+    run_bilibili_monitor,
+    _get_bilibili_trigger_kwargs,
+    description="哔哩哔哩动态+直播监控",
+)

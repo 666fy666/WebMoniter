@@ -156,4 +156,9 @@ def _get_zdm_draw_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("zdm_draw", run_zdm_draw_once, _get_zdm_draw_trigger_kwargs)
+register_task(
+    "zdm_draw",
+    run_zdm_draw_once,
+    _get_zdm_draw_trigger_kwargs,
+    description="值得买每日抽奖",
+)

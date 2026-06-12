@@ -381,4 +381,9 @@ def _get_huya_trigger_kwargs(config: AppConfig) -> dict:
 # 自注册到任务注册表（由 src.jobs.registry.discover_and_import 导入时执行）
 from src.jobs.registry import register_monitor
 
-register_monitor("huya_monitor", run_huya_monitor, _get_huya_trigger_kwargs)
+register_monitor(
+    "huya_monitor",
+    run_huya_monitor,
+    _get_huya_trigger_kwargs,
+    description="虎牙直播状态监控",
+)

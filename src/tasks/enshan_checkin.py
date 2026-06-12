@@ -148,4 +148,9 @@ def _get_enshan_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("enshan_checkin", run_enshan_checkin_once, _get_enshan_trigger_kwargs)
+register_task(
+    "enshan_checkin",
+    run_enshan_checkin_once,
+    _get_enshan_trigger_kwargs,
+    description="恩山论坛签到",
+)

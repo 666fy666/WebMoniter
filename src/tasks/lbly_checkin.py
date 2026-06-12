@@ -115,4 +115,9 @@ def _get_lbly_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("lbly_checkin", run_lbly_checkin_once, _get_lbly_trigger_kwargs)
+register_task(
+    "lbly_checkin",
+    run_lbly_checkin_once,
+    _get_lbly_trigger_kwargs,
+    description="丽宝乐园签到",
+)

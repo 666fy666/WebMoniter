@@ -59,7 +59,7 @@
 ---
 
 ??? question "青龙面板如何部署？"
-    在青龙「环境变量」中添加 `WEBMONITER_*` 前缀的变量（如 `WEBMONITER_CHECKIN_ENABLE`、`WEBMONITER_CHECKIN_EMAIL`），拉取或克隆项目后，在「定时任务」中添加 `task src/ql/ikuuu_checkin.py` 等脚本。推送自动走青龙内置通知（QLAPI）。详见 [青龙面板兼容指南](QINGLONG.md)。
+    在青龙「环境变量」中添加 `WEBMONITER_*` 前缀的变量（如 `WEBMONITER_CHECKIN_ENABLE`、`WEBMONITER_CHECKIN_EMAIL`），拉取或克隆项目后，在「定时任务」中执行 `python -m src.ql ikuuu_checkin` 等命令。推送自动走青龙内置通知（QLAPI）。详见 [青龙面板兼容指南](QINGLONG.md)。
 
 ---
 

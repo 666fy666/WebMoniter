@@ -162,4 +162,9 @@ def _get_fg_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("fg_checkin", run_fg_checkin_once, _get_fg_trigger_kwargs)
+register_task(
+    "fg_checkin",
+    run_fg_checkin_once,
+    _get_fg_trigger_kwargs,
+    description="富贵论坛签到",
+)

@@ -221,4 +221,9 @@ def _get_zgfc_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("zgfc_draw", run_zgfc_draw_once, _get_zgfc_trigger_kwargs)
+register_task(
+    "zgfc_draw",
+    run_zgfc_draw_once,
+    _get_zgfc_trigger_kwargs,
+    description="中国福彩抽奖活动",
+)

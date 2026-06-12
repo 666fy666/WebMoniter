@@ -3,21 +3,11 @@
 import asyncio
 import json
 import logging
-import sys
 from pathlib import Path
 
-from src.core.paths import PROJECT_ROOT
+from src.core.paths import COOKIE_CACHE_FILE
 
 logger = logging.getLogger(__name__)
-
-
-def _data_dir_path() -> Path:
-    """data 目录路径；打包为 exe 时以可执行文件所在目录为基准。"""
-    if getattr(sys, "frozen", False):
-        base = Path(sys.executable).resolve().parent
-    else:
-        base = PROJECT_ROOT
-    return base / "data"
 
 
 class CookieCache:
@@ -31,9 +21,7 @@ class CookieCache:
             cache_file: 缓存文件路径，如果为 None 则使用 data/cookie_cache.json（目录不存在则自动创建）
         """
         if cache_file is None:
-            _data_dir = _data_dir_path()
-            _data_dir.mkdir(parents=True, exist_ok=True)
-            self.cache_file = _data_dir / "cookie_cache.json"
+            self.cache_file = COOKIE_CACHE_FILE
         else:
             self.cache_file = Path(cache_file)
         # 缓存结构: {platform: {"valid": bool, "notified": bool}}

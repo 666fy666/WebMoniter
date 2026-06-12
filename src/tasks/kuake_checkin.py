@@ -155,4 +155,9 @@ def _get_kuake_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("kuake_checkin", run_kuake_checkin_once, _get_kuake_trigger_kwargs)
+register_task(
+    "kuake_checkin",
+    run_kuake_checkin_once,
+    _get_kuake_trigger_kwargs,
+    description="夸克网盘签到",
+)

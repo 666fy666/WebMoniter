@@ -179,4 +179,9 @@ def _get_pinzan_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("pinzan_checkin", run_pinzan_checkin_once, _get_pinzan_trigger_kwargs)
+register_task(
+    "pinzan_checkin",
+    run_pinzan_checkin_once,
+    _get_pinzan_trigger_kwargs,
+    description="品赞代理签到",
+)

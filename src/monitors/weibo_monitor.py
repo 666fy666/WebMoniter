@@ -627,4 +627,9 @@ def _get_weibo_trigger_kwargs(config: AppConfig) -> dict:
 # 自注册到任务注册表（由 src.jobs.registry.discover_and_import 导入时执行）
 from src.jobs.registry import register_monitor
 
-register_monitor("weibo_monitor", run_weibo_monitor, _get_weibo_trigger_kwargs)
+register_monitor(
+    "weibo_monitor",
+    run_weibo_monitor,
+    _get_weibo_trigger_kwargs,
+    description="微博动态监控",
+)

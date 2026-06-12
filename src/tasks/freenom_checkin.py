@@ -232,4 +232,9 @@ def _get_freenom_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("freenom_checkin", run_freenom_checkin_once, _get_freenom_trigger_kwargs)
+register_task(
+    "freenom_checkin",
+    run_freenom_checkin_once,
+    _get_freenom_trigger_kwargs,
+    description="Freenom 免费域名续期",
+)

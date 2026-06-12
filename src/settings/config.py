@@ -562,7 +562,7 @@ def get_config(reload: bool = False) -> AppConfig:
     """
     global _config_cache, _config_file_mtime
 
-    # 青龙面板兼容：当通过 src/ql/*.py 脚本运行时，从环境变量加载配置
+    # 青龙面板兼容：当通过 python -m src.ql 运行时，从环境变量加载配置
     if os.environ.get("WEBMONITER_QL_CRON"):
         try:
             from src.ql import compat as ql_compat

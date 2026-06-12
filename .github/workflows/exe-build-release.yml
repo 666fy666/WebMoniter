@@ -54,10 +54,8 @@ jobs:
       - name: Build EXE with PyInstaller
         shell: bash
         run: |
-          # 企业微信加解密依赖的 callback_python3 通过运行时 sys.path 加载，需随包附带
           pyinstaller --onedir --console --name WebMoniter \
             --paths . \
-            --add-data "src/weworkapi_python;src/weworkapi_python" \
             --add-data "src/webUI;src/webUI" \
             --collect-submodules src.monitors \
             --collect-submodules src.tasks \

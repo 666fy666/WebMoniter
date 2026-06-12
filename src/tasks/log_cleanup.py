@@ -25,4 +25,9 @@ def _get_cleanup_logs_trigger_kwargs(config: AppConfig) -> dict:
     }
 
 
-register_task("log_cleanup", cleanup_logs, _get_cleanup_logs_trigger_kwargs)
+register_task(
+    "log_cleanup",
+    cleanup_logs,
+    _get_cleanup_logs_trigger_kwargs,
+    description="日志文件清理",
+)

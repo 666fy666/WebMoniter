@@ -158,4 +158,9 @@ def _get_kjwj_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("kjwj_checkin", run_kjwj_checkin_once, _get_kjwj_trigger_kwargs)
+register_task(
+    "kjwj_checkin",
+    run_kjwj_checkin_once,
+    _get_kjwj_trigger_kwargs,
+    description="科技玩家签到",
+)

@@ -129,4 +129,5 @@ register_task(
         "minute": parse_checkin_time(getattr(c, "ydwx_time", "06:00") or "06:00")[1],
         "hour": parse_checkin_time(getattr(c, "ydwx_time", "06:00") or "06:00")[0],
     },
+    description="一点万象签到",
 )

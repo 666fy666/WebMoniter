@@ -205,4 +205,9 @@ def _get_lenovo_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-register_task("lenovo_checkin", run_lenovo_checkin_once, _get_lenovo_trigger_kwargs)
+register_task(
+    "lenovo_checkin",
+    run_lenovo_checkin_once,
+    _get_lenovo_trigger_kwargs,
+    description="联想乐豆签到",
+)
