@@ -3958,3 +3958,173 @@ body.page-logs .logs-container {
         max-width: none;
     }
 }
+
+/* Mobile UX guardrails: keep these after later shared component overrides. */
+body.mobile-sidebar-open {
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        top: calc(12px + env(safe-area-inset-top));
+        left: calc(12px + env(safe-area-inset-left));
+        z-index: 1201;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+    }
+
+    .sidebar {
+        width: min(82vw, 280px);
+        max-width: calc(100vw - 48px);
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        transform: translateX(-105%);
+        z-index: 1200;
+        transition: transform var(--transition-normal);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        z-index: 1190;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .sidebar-header {
+        padding: 28px 20px 20px;
+    }
+
+    .sidebar-nav {
+        padding: 12px 0;
+    }
+
+    .sidebar-footer {
+        padding: 16px 20px;
+    }
+
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        padding-top: calc(72px + env(safe-area-inset-top));
+    }
+
+    .content-body {
+        max-width: 100%;
+    }
+
+    .content-header {
+        margin-bottom: 20px;
+        padding: 18px 20px;
+        border-radius: var(--radius-md);
+    }
+
+    .card {
+        border-radius: var(--radius-md);
+    }
+
+    .card:hover,
+    .data-card:hover,
+    .push-channel-item:hover {
+        transform: none;
+    }
+
+    .card-actions .btn,
+    .collapse-all-actions .btn {
+        flex: 1 1 140px;
+        min-width: 0;
+    }
+
+    .tabs,
+    .config-module-tabs {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn,
+    .config-module-tab {
+        flex: 0 0 auto;
+        min-height: 44px;
+    }
+
+    .config-module-nav {
+        top: calc(64px + env(safe-area-inset-top));
+        padding: 12px;
+        border-radius: var(--radius-md);
+    }
+
+    .task-toolbar,
+    .logs-toolbar {
+        align-items: stretch;
+    }
+
+    .task-search {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .task-count-badge {
+        align-self: flex-start;
+    }
+
+    .logs-toolbar-label {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .logs-toolbar-label select.form-input {
+        flex: 1 1 180px;
+        min-height: 44px;
+    }
+
+    .logs-toolbar-checkbox {
+        min-height: 44px;
+    }
+
+    .modal-content,
+    .modal-content.modal-wide {
+        max-width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+        margin: 12px;
+        overflow: hidden;
+    }
+
+    .modal-body {
+        overflow: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: min(86vw, 280px);
+        max-width: calc(100vw - 36px);
+    }
+
+    .main-content {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .content-header {
+        padding: 16px;
+    }
+
+    .card-actions .btn,
+    .collapse-all-actions .btn,
+    .logs-toolbar .btn {
+        width: 100%;
+    }
+}

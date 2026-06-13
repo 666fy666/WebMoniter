@@ -154,33 +154,41 @@ function initMobileMenu() {
         return; // 登录页面没有这些元素
     }
 
-    // 切换菜单显示/隐藏
-    function toggleMenu() {
-        const isOpen = sidebar.classList.contains('show');
-        if (isOpen) {
-            sidebar.classList.remove('show');
-            sidebarOverlay.classList.remove('show');
-            mobileMenuBtn.classList.remove('active');
-            document.body.style.overflow = ''; // 恢复滚动
-        } else {
-            sidebar.classList.add('show');
-            sidebarOverlay.classList.add('show');
-            mobileMenuBtn.classList.add('active');
-            document.body.style.overflow = 'hidden'; // 禁止背景滚动
-        }
+    mobileMenuBtn.setAttribute('aria-controls', 'sidebar');
+    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    sidebar.setAttribute('aria-hidden', window.innerWidth <= 768 ? 'true' : 'false');
+
+    function isMobileViewport() {
+        return window.innerWidth <= 768;
     }
 
-    // 关闭菜单
+    function setMenuState(open) {
+        sidebar.classList.toggle('show', open);
+        sidebarOverlay.classList.toggle('show', open);
+        mobileMenuBtn.classList.toggle('active', open);
+        document.body.classList.toggle('mobile-sidebar-open', open);
+        mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sidebar.setAttribute('aria-hidden', open ? 'false' : String(isMobileViewport()));
+    }
+
+    function toggleMenu() {
+        setMenuState(!sidebar.classList.contains('show'));
+    }
+
     function closeMenu() {
-        sidebar.classList.remove('show');
-        sidebarOverlay.classList.remove('show');
-        mobileMenuBtn.classList.remove('active');
-        document.body.style.overflow = '';
+        setMenuState(false);
     }
 
     // 绑定事件
     mobileMenuBtn.addEventListener('click', toggleMenu);
     sidebarOverlay.addEventListener('click', closeMenu);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+            closeMenu();
+            mobileMenuBtn.focus();
+        }
+    });
 
     // 点击导航项后关闭菜单（移动端）
     const navItems = sidebar.querySelectorAll('.nav-item');
@@ -197,8 +205,11 @@ function initMobileMenu() {
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            if (window.innerWidth > 768) {
+            if (isMobileViewport()) {
+                sidebar.setAttribute('aria-hidden', sidebar.classList.contains('show') ? 'false' : 'true');
+            } else {
                 closeMenu();
+                sidebar.setAttribute('aria-hidden', 'false');
             }
         }, 250);
     });
