@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import tempfile
+from io import StringIO
 from pathlib import Path
 
 import yaml
@@ -19,6 +20,13 @@ try:
 except ImportError:
     RUAMEL_AVAILABLE = False
     RUAMEL_YAML = None
+
+
+_OPTIONAL_LIST_KEYS = frozenset({"cookies", "accounts"})
+
+
+def _should_remove_empty_optional_list(key: str, value) -> bool:
+    return key in _OPTIONAL_LIST_KEYS and isinstance(value, list) and len(value) == 0
 
 
 def _merge_push_channel_list(target: list, source: list) -> None:
@@ -49,7 +57,7 @@ def _merge_push_channel_list(target: list, source: list) -> None:
 def _simple_merge_dict(target: dict, source: dict) -> None:
     """递归合并 source 到 target，避免前端未收集的配置丢失。"""
     for key, value in source.items():
-        if key in ("cookies", "accounts") and isinstance(value, list) and len(value) == 0:
+        if _should_remove_empty_optional_list(key, value):
             if key in target and isinstance(target[key], list):
                 del target[key]
             continue
@@ -86,6 +94,65 @@ def _merge_and_dump_config(config_path: Path, config_data: dict) -> str:
     )
 
 
+def _update_ruamel_dict(target, source: dict) -> None:
+    """Merge config while preserving ruamel comments/style where possible."""
+    from ruamel.yaml.comments import CommentedSeq
+
+    for key, value in source.items():
+        if _should_remove_empty_optional_list(key, value):
+            if key in target and isinstance(target[key], list):
+                del target[key]
+            continue
+        if key == "push_channels":
+            new_list = CommentedSeq(value if value else [])
+            new_list.fa.set_flow_style()
+            target[key] = new_list
+            continue
+        if key not in target:
+            target[key] = value
+        elif isinstance(target[key], dict) and isinstance(value, dict):
+            _update_ruamel_dict(target[key], value)
+        elif isinstance(target[key], list) and isinstance(value, list):
+            if key == "push_channel" and len(target[key]) > 0 and len(value) > 0:
+                _merge_push_channel_list(target[key], value)
+            else:
+                target[key] = value
+        else:
+            target[key] = value
+
+
+def _merge_and_dump_config_ruamel(config_path: Path, config_data: dict) -> str:
+    """Merge config with ruamel.yaml so existing comments and quotes are preserved."""
+    ruamel_yaml = RUAMEL_YAML()
+    ruamel_yaml.preserve_quotes = True
+    ruamel_yaml.width = 4096
+    ruamel_yaml.indent(mapping=2, sequence=4, offset=2)
+    ruamel_yaml.default_flow_style = False
+    ruamel_yaml.allow_unicode = True
+
+    with open(config_path, encoding="utf-8") as f:
+        original_yaml = ruamel_yaml.load(f)
+
+    if original_yaml is None:
+        original_yaml = {}
+
+    _update_ruamel_dict(original_yaml, config_data)
+
+    output = StringIO()
+    ruamel_yaml.dump(original_yaml, output)
+    return output.getvalue()
+
+
+def merge_config_to_yaml(config_path: Path, config_data: dict) -> str:
+    """Merge frontend config into the existing YAML file and return YAML text."""
+    if RUAMEL_AVAILABLE and config_path.exists():
+        try:
+            return _merge_and_dump_config_ruamel(config_path, config_data)
+        except Exception as e:
+            logger.warning("ruamel.yaml merge failed, falling back to PyYAML: %s", e)
+    return _merge_and_dump_config(config_path, config_data)
+
+
 def _apply_config_patch(
     config_path: Path, platform_key: str, list_key: str, operation: str, value: str
 ) -> str:
@@ -105,7 +172,7 @@ def _apply_config_patch(
         raise ValueError(f"不支持的 operation: {operation}")
     new_value = ",".join(items) if items else ""
     config_data = {platform_key: {list_key: new_value}}
-    return _merge_and_dump_config(config_path, config_data)
+    return merge_config_to_yaml(config_path, config_data)
 
 
 async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:

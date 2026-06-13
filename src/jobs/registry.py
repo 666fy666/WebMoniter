@@ -83,6 +83,15 @@ MONITOR_JOBS: list[JobDescriptor] = []
 TASK_JOBS: list[JobDescriptor] = []
 
 
+def _upsert_job(jobs: list[JobDescriptor], descriptor: JobDescriptor) -> None:
+    """Register a job once; module reloads replace the existing descriptor."""
+    for idx, existing in enumerate(jobs):
+        if existing.job_id == descriptor.job_id:
+            jobs[idx] = descriptor
+            return
+    jobs.append(descriptor)
+
+
 @asynccontextmanager
 async def _task_logging_context(job_id: str):
     """
@@ -140,7 +149,8 @@ def register_monitor(
         async with _task_logging_context(job_id):
             await run_func()
 
-    MONITOR_JOBS.append(
+    _upsert_job(
+        MONITOR_JOBS,
         JobDescriptor(
             job_id=job_id,
             run_func=wrapped_run_func,
@@ -193,7 +203,8 @@ def register_task(
             if skip_if_run_today:
                 await mark_as_run_today(job_id)
 
-    TASK_JOBS.append(
+    _upsert_job(
+        TASK_JOBS,
         JobDescriptor(
             job_id=job_id,
             run_func=wrapped_run_func,
