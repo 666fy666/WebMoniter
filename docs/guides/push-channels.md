@@ -272,7 +272,7 @@ push_channel:
 |:-------|:-----|:----:|:-----|
 | `name` | 字符串 | ✅ | 通道名称，唯一 |
 | `type` | 字符串 | ✅ | 固定为 `qq_bot` |
-| `base_url` | 字符串 | 否 | 默认 `https://api.sgroup.qq.com` |
+| `base_url` | 字符串 | ✅ | QQ 机器人 API 地址，通常为 `https://api.sgroup.qq.com` |
 | `app_id` | 字符串 | ✅ | 机器人应用 App ID |
 | `app_secret` | 字符串 | ✅ | 机器人应用 App Secret（用于获取 AccessToken） |
 | `push_target_list` | 列表 | ✅ | 推送目标：`guild_name`（频道名）、`channel_name_list`（子频道名列表） |
@@ -315,8 +315,8 @@ push_channel:
 |:-------|:-----|:----:|:-----|
 | `name` | 字符串 | ✅ | 通道名称，唯一 |
 | `type` | 字符串 | ✅ | 固定为 `napcat_qq` |
-| `api_url` | 字符串 | 否 | NapCat 服务地址，默认 `http://localhost:3000` |
-| `token` | 字符串 | ✅ | NapCat 鉴权 token |
+| `api_url` | 字符串 | ✅ | NapCat 服务地址，如 `http://localhost:3000` |
+| `token` | 字符串 | 否 | NapCat 鉴权 token；服务端启用鉴权时填写 |
 | `user_id` | 字符串 | 与 group_id 二选一 | 推送目标 QQ 号（私聊） |
 | `group_id` | 字符串 | 与 user_id 二选一 | 推送目标群号 |
 | `at_qq` | 字符串 | 否 | 群内 @ 的 QQ，如 `all` 表示 @全体 |
@@ -450,7 +450,7 @@ push_channel:
 | `name` | 字符串 | ✅ | 通道名称，唯一 |
 | `type` | 字符串 | ✅ | 固定为 `serverChan_3` |
 | `send_key` | 字符串 | ✅ | 后台 SendKey |
-| `uid` | 字符串 | 否 | 用户 UID |
+| `uid` | 字符串 | ✅ | 用户 UID |
 | `tags` | 字符串 | 否 | 标签等 |
 
 ### 配置示例

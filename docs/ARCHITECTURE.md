@@ -623,7 +623,7 @@ logs/
 **导出内容**：
 ```python
 from src.core.version import (
-    __version__,          # 当前版本号，如 "2.3.5"
+    __version__,          # 当前版本号，如 "2.3.6"
     GITHUB_RELEASES_URL,  # GitHub Tags 页面 URL
     GITHUB_API_LATEST_TAG # GitHub API 获取 tags 的 URL
 )
@@ -950,7 +950,7 @@ WebMoniter/
 │   │   └── routers/        # pages、auth、tasks、config、data、logs
 │   ├── webUI/              # 前端静态资源与 Jinja2 模板
 │   │   ├── static/         # css、js、截图等
-│   │   └── templates/      # login、config、tasks、data、logs（dashboard.html 暂无路由）
+│   │   └── templates/      # login、config、tasks、data、logs
 │   ├── ql/                 # 青龙 CLI 与环境变量兼容
 │   │   ├── __main__.py     # python -m src.ql <task_id>
 │   │   ├── _runner.py      # run_task() 执行封装

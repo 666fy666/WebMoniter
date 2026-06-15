@@ -103,7 +103,7 @@ docker image rm fengyu666/webmoniter:full
 !!! tip "提示"
     - `config.yml` 支持热重载（约 5 秒生效），无需重启
     - 数据持久化：`config.yml`、`data/`、`logs/` 挂载到仓库根目录对应路径，`docker compose ... down` 不会丢失容器外数据
-    - 容器启动时会通过 **docker/docker-entrypoint.sh**（镜像内 `/app/docker-entrypoint.sh`）自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 与 RAG 向量库（Chroma）只读无法写入
+    - 容器启动时会通过 **docker/docker-entrypoint.sh**（镜像内 `/app/docker-entrypoint.sh`）自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 数据库或日志文件只读无法写入
     - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
 
 ### 方式二：docker run 单容器
@@ -200,7 +200,7 @@ docker image rm fengyu666/webmoniter:full
 **快速步骤**：
 
 1. **添加环境变量**（青龙 → 环境变量）：如 `WEBMONITER_CHECKIN_ENABLE=true`、`WEBMONITER_CHECKIN_EMAIL`、`WEBMONITER_CHECKIN_PASSWORD`
-2. **订阅项目**：订阅 `https://github.com/666fy666/WebMoniter`，白名单 `src/ql/`
+2. **订阅项目**：订阅 `https://github.com/666fy666/WebMoniter`，需保留完整项目代码；如果使用青龙白名单，请至少包含 `src/`、`pyproject.toml`、`uv.lock`
 3. **添加定时任务**：命令 `cd /path/to/WebMoniter && python -m src.ql ikuuu_checkin`，定时规则 `0 8 * * *`（示例）
 
 !!! success "推送通知"

@@ -110,7 +110,7 @@ douyu:
 
 ## 青龙面板
 
-若使用 [青龙面板](https://github.com/whyour/qinglong)，可通过 `src/ql/` 脚本运行定时任务，配置改为**环境变量**（`WEBMONITER_*` 前缀），推送走**青龙内置通知**。详见 [青龙面板兼容指南](../QINGLONG.md)。
+若使用 [青龙面板](https://github.com/whyour/qinglong)，可通过统一 CLI `python -m src.ql <task_id>` 运行定时任务，配置改为**环境变量**（`WEBMONITER_*` 前缀），推送走**青龙内置通知**。详见 [青龙面板兼容指南](../QINGLONG.md)。
 
 ---
 
