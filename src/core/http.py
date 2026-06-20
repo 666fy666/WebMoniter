@@ -28,9 +28,7 @@ async def fetch_hitokoto_quote(
         ) as resp:
             if resp.status == 200:
                 hitokoto = await resp.json()
-                return (
-                    f'\n{hitokoto.get("hitokoto", "")} —— {hitokoto.get("from", "")}\n'
-                )
+                return f'\n{hitokoto.get("hitokoto", "")} —— {hitokoto.get("from", "")}\n'
     except Exception as exc:
         logger.debug("获取一言语录失败: %s", exc)
     return " "

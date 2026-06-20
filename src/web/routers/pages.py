@@ -45,9 +45,7 @@ async def config_page(request: Request):
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse(
-        "config.html", _page_context(request, "配置管理", "config")
-    )
+    return templates.TemplateResponse("config.html", _page_context(request, "配置管理", "config"))
 
 
 @router.get("/data", response_class=HTMLResponse)
@@ -56,9 +54,7 @@ async def data_page(request: Request):
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse(
-        "data.html", _page_context(request, "数据展示", "data")
-    )
+    return templates.TemplateResponse("data.html", _page_context(request, "数据展示", "data"))
 
 
 @router.get("/logs", response_class=HTMLResponse)
@@ -67,9 +63,7 @@ async def logs_page(request: Request):
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse(
-        "logs.html", _page_context(request, "日志查看", "logs")
-    )
+    return templates.TemplateResponse("logs.html", _page_context(request, "日志查看", "logs"))
 
 
 @router.get("/tasks", response_class=HTMLResponse)
@@ -78,6 +72,4 @@ async def tasks_page(request: Request):
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse(
-        "tasks.html", _page_context(request, "任务管理", "tasks")
-    )
+    return templates.TemplateResponse("tasks.html", _page_context(request, "任务管理", "tasks"))

@@ -49,9 +49,7 @@ def test_ensure_content_within_limit_uses_plain_text_limit() -> None:
 def test_ensure_content_within_limit_keeps_short_content() -> None:
     manager = UnifiedPushManager([_FakeChannel()])
     content = "ok"
-    assert (
-        manager._ensure_content_within_limit(_FakeChannel(), content, None) is content
-    )
+    assert manager._ensure_content_within_limit(_FakeChannel(), content, None) is content
 
 
 def test_send_one_does_not_accept_app_config_parameter() -> None:

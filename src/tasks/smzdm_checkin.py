@@ -120,12 +120,16 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
                 reward_result = r3.json()
                 if isinstance(reward_result, dict) and _smzdm_api_success(reward_result):
                     reward_data = _smzdm_data(reward_result)
-                    normal = reward_data.get("normal_reward") if isinstance(
-                        reward_data.get("normal_reward"), dict
-                    ) else {}
-                    reward_add = normal.get("reward_add") if isinstance(
-                        normal.get("reward_add"), dict
-                    ) else {}
+                    normal = (
+                        reward_data.get("normal_reward")
+                        if isinstance(reward_data.get("normal_reward"), dict)
+                        else {}
+                    )
+                    reward_add = (
+                        normal.get("reward_add")
+                        if isinstance(normal.get("reward_add"), dict)
+                        else {}
+                    )
                     reward_title = reward_add.get("title")
                     reward_content = reward_add.get("content")
                     if isinstance(reward_title, str) and reward_title.strip():

@@ -170,7 +170,7 @@ def register_monitor(
             get_trigger_kwargs=get_trigger_kwargs,
             description=description or f"任务 {job_id}",
             original_run_func=run_func,
-        )
+        ),
     )
     logger.debug("已注册监控任务: %s", job_id)
 
@@ -223,7 +223,7 @@ def register_task(
             get_trigger_kwargs=get_trigger_kwargs,
             description=description or f"任务 {job_id}",
             original_run_func=run_func,
-        )
+        ),
     )
     logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)
 

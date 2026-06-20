@@ -549,7 +549,24 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
 # 全局配置缓存，用于热重载时检测变化
 _config_cache: AppConfig | None = None
 _config_file_mtime: float = 0  # 配置文件最后修改时间
-_config_lock = threading.Lock()
+_config_lock = threading.RLock()
+
+
+def _read_config_mtime() -> float:
+    """读取配置文件修改时间；不存在时返回 0。"""
+    config_file_path = CONFIG_YAML_FILE
+    if config_file_path.exists():
+        return config_file_path.stat().st_mtime
+    return 0
+
+
+def _try_return_cached_config(reload: bool, current_mtime: float) -> AppConfig | None:
+    """无锁快速路径：缓存仍有效时直接返回。"""
+    if reload or _config_cache is None:
+        return None
+    if current_mtime <= _config_file_mtime:
+        return _config_cache
+    return None
 
 
 def get_config(reload: bool = False) -> AppConfig:
@@ -565,6 +582,11 @@ def get_config(reload: bool = False) -> AppConfig:
     """
     global _config_cache, _config_file_mtime
 
+    current_mtime = _read_config_mtime()
+    cached = _try_return_cached_config(reload, current_mtime)
+    if cached is not None:
+        return cached
+
     with _config_lock:
         # 青龙面板兼容：当通过 python -m src.ql 运行时，从环境变量加载配置
         if os.environ.get("WEBMONITER_QL_CRON"):
@@ -579,17 +601,15 @@ def get_config(reload: bool = False) -> AppConfig:
             except Exception:  # noqa: BLE001
                 pass
 
-        old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
+        current_mtime = _read_config_mtime()
+        cached = _try_return_cached_config(reload, current_mtime)
+        if cached is not None:
+            return cached
 
-        config_file_path = CONFIG_YAML_FILE
-        current_mtime = 0
-        if config_file_path.exists():
-            current_mtime = config_file_path.stat().st_mtime
-
-        if not reload and _config_cache is not None:
-            if current_mtime <= _config_file_mtime:
-                return _config_cache
+        if not reload and _config_cache is not None and current_mtime > _config_file_mtime:
             logger.debug("检测到配置文件已修改，自动重新加载...")
+
+        old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
 
         if reload:
             logger.debug("开始重新加载配置文件...")

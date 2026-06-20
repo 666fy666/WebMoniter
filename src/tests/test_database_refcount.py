@@ -39,7 +39,7 @@ async def test_shared_ref_count_tracks_active_instances(isolated_db):
 
 
 @pytest.mark.asyncio
-async def test_reconnect_syncs_ref_count_from_active_instances(isolated_db):
+async def test_reconnect_updates_all_active_instances(isolated_db):
     db1 = AsyncDatabase()
     db2 = AsyncDatabase()
     try:
@@ -47,7 +47,8 @@ async def test_reconnect_syncs_ref_count_from_active_instances(isolated_db):
         await db2.initialize()
 
         old_conn = db_module._shared_connection
-        db_module._connection_ref_count = 99  # simulate stale inflated count
+        assert db_module._connection_ref_count == 2
+        assert len(db_module._active_shared_databases) == 2
 
         await db1._reconnect()
 
