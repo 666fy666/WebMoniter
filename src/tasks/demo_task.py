@@ -16,6 +16,7 @@ import logging
 import aiohttp
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -30,7 +31,7 @@ def _get_plugin_config(config: AppConfig) -> dict:
     return config.plugins.get(PLUGIN_KEY) or {}
 
 
-async def run_demo_task_once() -> None:
+async def run_demo_task_once() -> bool:
     """
     执行一次 Demo 定时任务。
     若 plugins.demo_task.enable 为 false 或未配置，则直接返回。
@@ -40,7 +41,7 @@ async def run_demo_task_once() -> None:
 
     if not plug.get("enable", False):
         logger.debug("demo_task 未启用，跳过执行")
-        return
+        return TASK_FAILED
 
     logger.info("demo_task：开始执行")
 
@@ -72,6 +73,7 @@ async def run_demo_task_once() -> None:
             await push_manager.close()
 
     logger.info("demo_task：结束")
+    return TASK_SUCCESS
 
 
 def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:

@@ -62,6 +62,12 @@ class BaseMonitor(ABC):
         if self.push is None:
             self.logger.warning("未配置任何推送通道，推送功能将不可用")
 
+    async def send_push_news(self, **kwargs) -> None:
+        """发送推送消息；未配置推送通道时静默跳过。"""
+        if not self.push:
+            return
+        await self.push.send_news(**kwargs)
+
     async def close(self):
         """关闭资源"""
         if self.db:

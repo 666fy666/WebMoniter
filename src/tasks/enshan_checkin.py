@@ -15,6 +15,7 @@ import requests
 
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -57,7 +58,7 @@ def _run_enshan_sync(cookie: str) -> tuple[bool, str, str]:
         return False, f"请求失败: {e}", ""
 
 
-async def run_enshan_checkin_once() -> None:
+async def run_enshan_checkin_once() -> bool:
     """执行一次恩山签到/查询（支持多 Cookie），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -97,11 +98,12 @@ async def run_enshan_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = EnshanConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective and cfg.cookie:
         effective = [cfg.cookie.strip()]
+    any_success = False
     logger.info("恩山签到：开始执行（共 %d 个 Cookie）", len(effective))
 
     import aiohttp
@@ -122,6 +124,8 @@ async def run_enshan_checkin_once() -> None:
                 logger.error("恩山签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg, detail = False, str(e), ""
 
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = mask_cookie_for_log(cookie_str)
                 title = "恩山签到成功" if ok else "恩山签到失败"
@@ -141,6 +145,7 @@ async def run_enshan_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("恩山签到：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_enshan_trigger_kwargs(config: AppConfig) -> dict:

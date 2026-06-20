@@ -170,6 +170,10 @@ class BilibiliMonitor(BaseMonitor):
         if dynamic_type not in allow_types:
             self.logger.debug(f"【B站-{uname}】动态类型 {dynamic_type} 跳过推送")
             self.old_dynamic_dict[uid].append(dynamic_id)
+            await self.db.execute_update(
+                "UPDATE bilibili_dynamic SET dynamic_id=%(dynamic_id)s WHERE uid=%(uid)s",
+                {"uid": uid, "dynamic_id": dynamic_id},
+            )
             return
 
         module_dynamic = modules.get("module_dynamic") or {}
@@ -222,7 +226,7 @@ class BilibiliMonitor(BaseMonitor):
         if is_in_quiet_hours(self.config):
             return
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"【B站】【{uname}】{title_msg}",
                 description=f"{content[:100]}{'...' if len(content) > 100 else ''}",
                 to_url=f"https://www.bilibili.com/opus/{dynamic_id}",
@@ -322,7 +326,7 @@ class BilibiliMonitor(BaseMonitor):
             or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg"
         )
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"【B站】【{uname}】{status_text}",
                 description=room_title or "直播间",
                 to_url=f"https://live.bilibili.com/{room_id}",
@@ -360,10 +364,6 @@ class BilibiliMonitor(BaseMonitor):
             self.session.headers["User-Agent"] = BILIBILI_USER_AGENT
 
         self.logger.debug("开始执行 %s", self.monitor_name)
-
-        if not self.bilibili_config.uids:
-            self.logger.warning("%s 没有配置 UID，跳过本次执行", self.monitor_name)
-            return
 
         semaphore = asyncio.Semaphore(self.bilibili_config.concurrency)
 

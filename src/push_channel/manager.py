@@ -6,7 +6,6 @@ import logging
 from aiohttp import ClientSession
 
 from src.push_channel import get_push_channel
-from src.settings.config import AppConfig, get_config
 
 
 def _truncate_content_to_bytes(content: str, max_bytes: int) -> str:
@@ -55,6 +54,8 @@ async def build_push_manager(
 
     push_channels = []
     for channel_config in push_channel_list:
+        if channel_config.get("enable") is False:
+            continue
         name = channel_config.get("name", "")
 
         # 按名称过滤通道（如果指定了）
@@ -92,11 +93,10 @@ class UnifiedPushManager:
         self.session = session
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    async def _ensure_content_within_limit(
+    def _ensure_content_within_limit(
         self,
         channel,
         content: str,
-        app_config: AppConfig | None = None,
         extend_data: dict | None = None,
     ) -> str:
         """
@@ -122,11 +122,10 @@ class UnifiedPushManager:
         btntxt: str,
         author: str,
         extend_data: dict | None,
-        app_config: AppConfig | None = None,
     ):
         """单渠道发送：先按渠道限制压缩/截断内容，再推送。"""
-        final_description = await self._ensure_content_within_limit(
-            channel, channel_description, app_config, extend_data
+        final_description = self._ensure_content_within_limit(
+            channel, channel_description, extend_data
         )
         return await self._send_with_error_handling(
             channel, title, final_description, to_url, picurl, btntxt, author, extend_data
@@ -193,21 +192,16 @@ class UnifiedPushManager:
             self.logger.warning("未配置任何推送渠道")
             return {"results": results, "errors": errors}
 
-        app_config = get_config()
-
         # 并发发送到所有渠道
         tasks = []
         channel_names = []
 
-        # 基础扩展数据，每个通道都会收到
         base_extend_data = {"btntxt": btntxt, "author": author}
-        # 如果调用方传入了自定义扩展数据，则进行合并（调用方优先）
         if extend_data:
             base_extend_data.update(extend_data)
 
         for channel in self.push_channels:
             channel_names.append(channel.name)
-            # 如果提供了 description_func，则使用它来生成该通道的 description
             channel_description = description_func(channel) if description_func else description
             tasks.append(
                 self._send_one(
@@ -219,7 +213,6 @@ class UnifiedPushManager:
                     btntxt,
                     author,
                     base_extend_data,
-                    app_config,
                 )
             )
 

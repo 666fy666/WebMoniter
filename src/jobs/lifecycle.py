@@ -22,6 +22,7 @@ from src.jobs.registry import (
     JobDescriptor,
     discover_and_import,
     monitor_job_enabled,
+    task_job_enabled,
 )
 from src.jobs.scheduler import TaskScheduler, setup_logging
 from src.settings.config import AppConfig
@@ -151,6 +152,12 @@ def _pause_monitors_disabled_in_config(scheduler: TaskScheduler, config: AppConf
             scheduler.pause_job(desc.job_id)
 
 
+def _pause_tasks_disabled_in_config(scheduler: TaskScheduler, config: AppConfig) -> None:
+    for desc in TASK_JOBS:
+        if not task_job_enabled(desc.job_id, config):
+            scheduler.pause_job(desc.job_id)
+
+
 async def _run_initial_pass(jobs: list[JobDescriptor]) -> None:
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
     for desc in jobs:
@@ -166,6 +173,7 @@ async def register_and_prime_jobs(scheduler: TaskScheduler, config: AppConfig) -
     _add_interval_jobs(scheduler, config)
     _add_cron_jobs(scheduler, config)
     _pause_monitors_disabled_in_config(scheduler, config)
+    _pause_tasks_disabled_in_config(scheduler, config)
     await _run_initial_pass(MONITOR_JOBS + TASK_JOBS)
 
 
@@ -218,9 +226,14 @@ def _apply_cron_jobs_after_config_reload(
 ) -> list[str]:
     out: list[str] = []
     for desc in TASK_JOBS:
-        kw = desc.get_trigger_kwargs(new_config)
-        if info := scheduler.update_cron_job(job_id=desc.job_id, **kw):
-            out.append(info)
+        if task_job_enabled(desc.job_id, new_config):
+            scheduler.resume_job(desc.job_id)
+            kw = desc.get_trigger_kwargs(new_config)
+            if info := scheduler.update_cron_job(job_id=desc.job_id, **kw):
+                out.append(info)
+        else:
+            scheduler.pause_job(desc.job_id)
+            out.append(f"{desc.job_id}(已暂停)")
     return out
 
 

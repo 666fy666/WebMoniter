@@ -18,6 +18,7 @@ from typing import Any
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -124,16 +125,16 @@ def _build_message(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-async def run_weather_push_once() -> None:
+async def run_weather_push_once() -> bool:
     """执行一次天气推送任务。"""
     app_cfg = get_config(reload=True)
     cfg = WeatherConfig.from_app_config(app_cfg)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     data = _fetch_weather(cfg.city_code)
     if not data:
-        return
+        return TASK_FAILED
 
     msg = _build_message(data)
     title = f"今日天气：{data.get('cityInfo', {}).get('city', '')}"
@@ -169,6 +170,8 @@ async def run_weather_push_once() -> None:
                 logger.error("天气推送：发送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS
 
 
 def _get_weather_trigger_kwargs(config: AppConfig) -> dict:

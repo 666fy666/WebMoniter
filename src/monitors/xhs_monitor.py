@@ -84,7 +84,7 @@ class XhsMonitor(BaseMonitor):
 
     async def load_old_info(self):
         try:
-            sql = "SELECT profile_id, user_name, latest_note_title FROM xhs"
+            sql = "SELECT profile_id, user_name, latest_note_title, note_id FROM xhs"
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
             self._is_first_time = len(self.old_data_dict) == 0
@@ -172,9 +172,14 @@ class XhsMonitor(BaseMonitor):
         }
 
     def check_info(self, data: dict, old_info: tuple) -> bool:
-        """是否有新动态"""
-        old_title = old_info[2] if len(old_info) > 2 else ""
-        return data.get("latest_note_title", "") != old_title
+        """是否有新动态（优先比较 note_id）"""
+        new_id = (data.get("note_id") or "").strip()
+        old_id = (old_info[3] or "").strip() if len(old_info) > 3 else ""
+        if new_id and old_id:
+            return new_id != old_id
+        old_title = (old_info[2] or "").strip() if len(old_info) > 2 else ""
+        new_title = (data.get("latest_note_title") or "").strip()
+        return new_title != old_title
 
     async def process_user(self, profile_id: str):
         try:
@@ -190,8 +195,8 @@ class XhsMonitor(BaseMonitor):
                 return
 
             sql = (
-                "UPDATE xhs SET user_name=%(user_name)s, latest_note_title=%(latest_note_title)s "
-                "WHERE profile_id=%(profile_id)s"
+                "UPDATE xhs SET user_name=%(user_name)s, latest_note_title=%(latest_note_title)s, "
+                "note_id=%(note_id)s WHERE profile_id=%(profile_id)s"
             )
             await self.db.execute_update(sql, new_data)
 
@@ -199,8 +204,8 @@ class XhsMonitor(BaseMonitor):
             await self.push_notification(new_data)
         else:
             sql = (
-                "INSERT INTO xhs (profile_id, user_name, latest_note_title) "
-                "VALUES (%(profile_id)s, %(user_name)s, %(latest_note_title)s)"
+                "INSERT INTO xhs (profile_id, user_name, latest_note_title, note_id) "
+                "VALUES (%(profile_id)s, %(user_name)s, %(latest_note_title)s, %(note_id)s)"
             )
             await self.db.execute_insert(sql, new_data)
 
@@ -231,7 +236,7 @@ class XhsMonitor(BaseMonitor):
         )
 
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"{data['user_name']} 发动态了📕",
                 description=f"【{title_text}】\n\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 to_url=jump_url,
@@ -264,10 +269,6 @@ class XhsMonitor(BaseMonitor):
                 self.session.headers["Cookie"] = self.xhs_config.cookie
 
         self.logger.debug("开始执行 %s", self.monitor_name)
-
-        if not self.xhs_config.profile_ids:
-            self.logger.warning("%s 没有配置 profile_id，跳过本次执行", self.monitor_name)
-            return
 
         semaphore = asyncio.Semaphore(self.xhs_config.concurrency)
 

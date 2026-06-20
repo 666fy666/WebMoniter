@@ -20,6 +20,7 @@ from collections import Counter
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -103,17 +104,17 @@ def _generate_cold_numbers(
     return reds, blue
 
 
-async def run_ssq_500w_notice_once() -> None:
+async def run_ssq_500w_notice_once() -> bool:
     """执行一次双色球开奖通知任务。"""
     app_cfg = get_config(reload=True)
     if not getattr(app_cfg, "ssq_500w_enable", False):
         logger.debug("ssq_500w 任务未启用，跳过执行")
-        return
+        return TASK_FAILED
 
     result, r_hist, b_hist = _fetch_latest_and_history()
     if not result or not r_hist or not b_hist:
         logger.error("ssq_500w：获取最新开奖数据失败")
-        return
+        return TASK_FAILED
 
     lines: list[str] = []
     lines.append(f"双色球 {result['period']} 已开奖！（仅供娱乐参考）")
@@ -167,6 +168,8 @@ async def run_ssq_500w_notice_once() -> None:
                 logger.error("ssq_500w：推送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS
 
 
 def _get_ssq_trigger_kwargs(config: AppConfig) -> dict:

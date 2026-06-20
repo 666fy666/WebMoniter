@@ -15,6 +15,7 @@ import requests
 
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -65,13 +66,13 @@ def _run_fg_sign_sync(cookie: str) -> tuple[bool, str]:
         msg_m = re.search(r"showDialog\s*\(\s*['\"]([^'\"]+)", res_text)
         if msg_m:
             return True, msg_m.group(1).strip()
-        return True, "请求已提交"
+        return False, "未能解析签到结果"
     except Exception as e:
         logger.warning("富贵论坛签到：请求失败 %s", e)
         return False, f"请求失败: {e}"
 
 
-async def run_fg_checkin_once() -> None:
+async def run_fg_checkin_once() -> bool:
     """执行一次富贵论坛签到（支持多 Cookie），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -111,12 +112,13 @@ async def run_fg_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = FgConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective and cfg.cookie:
         effective = [cfg.cookie.strip()]
     logger.info("富贵论坛签到：开始执行（共 %d 个 Cookie）", len(effective))
+    any_success = False
 
     import aiohttp
 
@@ -135,6 +137,9 @@ async def run_fg_checkin_once() -> None:
             except Exception as e:
                 logger.error("富贵论坛签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+
+            if ok:
+                any_success = True
 
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = mask_cookie_for_log(cookie_str)
@@ -155,6 +160,7 @@ async def run_fg_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("富贵论坛签到：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_fg_trigger_kwargs(config: AppConfig) -> dict:

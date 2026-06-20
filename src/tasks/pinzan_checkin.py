@@ -10,6 +10,7 @@ import random
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -77,7 +78,7 @@ def _run_pinzan_sync(account: str, password: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_pinzan_checkin_once() -> None:
+async def run_pinzan_checkin_once() -> bool:
     from dataclasses import dataclass
 
     @dataclass
@@ -125,7 +126,7 @@ async def run_pinzan_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = PinzanConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [
         {"account": (a.get("account") or "").strip(), "password": (a.get("password") or "").strip()}
@@ -134,6 +135,7 @@ async def run_pinzan_checkin_once() -> None:
     ]
     if not effective and cfg.account and cfg.password:
         effective = [{"account": cfg.account, "password": cfg.password}]
+    any_success = False
     logger.info("品赞签到：开始执行（共 %d 个账号）", len(effective))
 
     import aiohttp
@@ -152,6 +154,8 @@ async def run_pinzan_checkin_once() -> None:
             except Exception as e:
                 logger.error("品赞签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = (
                     acc["account"][:3] + "****" + acc["account"][-4:]
@@ -172,6 +176,7 @@ async def run_pinzan_checkin_once() -> None:
         if push_manager:
             await push_manager.close()
     logger.info("品赞签到：结束（共 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_pinzan_trigger_kwargs(config: AppConfig) -> dict:

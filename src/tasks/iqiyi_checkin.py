@@ -14,6 +14,7 @@ import requests
 
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -147,7 +148,7 @@ def _run_iqiyi_sync(cookie: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_iqiyi_checkin_once() -> None:
+async def run_iqiyi_checkin_once() -> bool:
     from dataclasses import dataclass
 
     @dataclass
@@ -185,11 +186,12 @@ async def run_iqiyi_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = IqiyiConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective and cfg.cookie:
         effective = [cfg.cookie.strip()]
+    any_success = False
     logger.info("爱奇艺签到：开始执行（共 %d 个 Cookie）", len(effective))
 
     import aiohttp
@@ -208,6 +210,8 @@ async def run_iqiyi_checkin_once() -> None:
             except Exception as e:
                 logger.error("爱奇艺签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = mask_cookie_for_log(cookie_str)
                 title = "爱奇艺签到成功" if ok else "爱奇艺签到失败"
@@ -224,6 +228,7 @@ async def run_iqiyi_checkin_once() -> None:
         if push_manager:
             await push_manager.close()
     logger.info("爱奇艺签到：结束（共 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_iqiyi_trigger_kwargs(config: AppConfig) -> dict:

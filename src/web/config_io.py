@@ -153,28 +153,6 @@ def merge_config_to_yaml(config_path: Path, config_data: dict) -> str:
     return _merge_and_dump_config(config_path, config_data)
 
 
-def _apply_config_patch(
-    config_path: Path, platform_key: str, list_key: str, operation: str, value: str
-) -> str:
-    """对 config.yml 中的列表字段执行 add/remove，返回新的 YAML 内容。"""
-    with open(config_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    section = data.get(platform_key) or {}
-    raw = section.get(list_key) or ""
-    items = [x.strip() for x in raw.split(",") if x.strip()]
-    val = value.strip()
-    if operation == "remove":
-        items = [x for x in items if x != val]
-    elif operation == "add":
-        if val not in items:
-            items.append(val)
-    else:
-        raise ValueError(f"不支持的 operation: {operation}")
-    new_value = ",".join(items) if items else ""
-    config_data = {platform_key: {list_key: new_value}}
-    return merge_config_to_yaml(config_path, config_data)
-
-
 async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:
     """
     验证 YAML 内容并保存到 config.yml。

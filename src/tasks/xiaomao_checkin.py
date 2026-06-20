@@ -19,6 +19,7 @@ import time
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -269,7 +270,7 @@ def _run_xiaomao_sync(
         return False, str(e)
 
 
-async def run_xiaomao_checkin_once() -> None:
+async def run_xiaomao_checkin_once() -> bool:
     """执行一次小茅预约（多账号），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -309,7 +310,7 @@ async def run_xiaomao_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = XiaomaoConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [t.strip() for t in cfg.tokens if t.strip()]
     if not effective and cfg.token:
@@ -317,7 +318,7 @@ async def run_xiaomao_checkin_once() -> None:
     mt_version = cfg.mt_version or _get_mt_version_from_store()
     if not mt_version:
         logger.error("小茅预约：未配置 mt_version 且无法从 App Store 获取")
-        return
+        return TASK_FAILED
 
     time_keys = str(int(time.mktime(datetime.date.today().timetuple())) * 1000)
     # 用第一个账号的经纬度拉取门店地图
@@ -333,6 +334,7 @@ async def run_xiaomao_checkin_once() -> None:
         p_c_map = {}
 
     logger.info("小茅预约：开始执行（共 %d 个账号）", len(effective))
+    any_success = False
 
     import aiohttp
 
@@ -356,6 +358,8 @@ async def run_xiaomao_checkin_once() -> None:
             except Exception as e:
                 logger.error("小茅预约：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 title = "小茅预约成功" if ok else "小茅预约失败"
                 try:
@@ -371,6 +375,7 @@ async def run_xiaomao_checkin_once() -> None:
         if push_manager:
             await push_manager.close()
     logger.info("小茅预约：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_xiaomao_trigger_kwargs(config: AppConfig) -> dict:

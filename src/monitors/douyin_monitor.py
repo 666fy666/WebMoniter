@@ -8,6 +8,7 @@ from datetime import datetime
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
+from src.core.http import fetch_hitokoto_quote
 from src.monitors.base import BaseMonitor
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
 
@@ -200,17 +201,7 @@ class DouyinMonitor(BaseMonitor):
             )
             return
 
-        quote = " "
-        try:
-            session = await self._get_session()
-            async with session.get(
-                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=30)
-            ) as resp:
-                if resp.status == 200:
-                    hitokoto = await resp.json()
-                    quote = f'\n{hitokoto.get("hitokoto", "")} —— {hitokoto.get("from", "")}\n'
-        except Exception as e:
-            self.logger.debug(f"[{data['name']}] 获取语录失败: {e}")
+        quote = await fetch_hitokoto_quote(await self._get_session())
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status_text = "开播了🎬🎬🎬" if res == 1 else "下播了💤💤💤"
@@ -221,7 +212,7 @@ class DouyinMonitor(BaseMonitor):
         )
 
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"{data['name']} {status_text}",
                 description=(
                     f"抖音号: {data['douyin_id']}\n" f"标题: {room_title}\n\n{quote}\n\n{timestamp}"
@@ -253,10 +244,6 @@ class DouyinMonitor(BaseMonitor):
             self.session.headers["User-Agent"] = DOUYIN_USER_AGENT
 
         self.logger.debug("开始执行 %s", self.monitor_name)
-
-        if not self.douyin_config.douyin_ids:
-            self.logger.warning("%s 没有配置抖音号，跳过本次执行", self.monitor_name)
-            return
 
         semaphore = asyncio.Semaphore(self.douyin_config.concurrency)
 

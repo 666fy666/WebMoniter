@@ -49,14 +49,34 @@ def _is_task_source(name: str) -> bool:
 
 
 # 视为「同一事件内推送」的 logger 名称：推送渠道，不在此前插分隔符
-def _is_push_channel(name: str) -> bool:
-    return name in (
+_PUSH_CHANNEL_LOGGER_NAMES = frozenset(
+    {
+        "UnifiedPushManager",
         "WxPusher",
         "DingtalkBot",
         "FeishuBot",
+        "FeishuApps",
         "WeComApps",
+        "WeComBot",
+        "TelegramBot",
+        "QQBot",
+        "NapCatQQ",
+        "Bark",
+        "Gotify",
+        "PushPlus",
+        "Webhook",
+        "Email",
+        "ServerChanTurbo",
+        "ServerChan3",
+        "QLAPIPushChannel",
+        "Demo",
         "PushChannelManager",
-    )
+    }
+)
+
+
+def _is_push_channel(name: str) -> bool:
+    return name in _PUSH_CHANNEL_LOGGER_NAMES
 
 
 class TaskGroupFormatter(logging.Formatter):

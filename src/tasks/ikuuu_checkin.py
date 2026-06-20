@@ -24,6 +24,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -782,25 +783,25 @@ async def _get_user_traffic(
         return None
 
 
-async def run_checkin_once() -> None:
+async def run_checkin_once() -> bool:
     """执行一次完整的 iKuuu/SSPanel 签到流程（支持多账号：登录 → 签到 → 获取流量信息 → 推送）"""
     app_config = get_config(reload=True)
 
     if not app_config.checkin_enable:
         logger.info("ikuuu签到未启用，跳过执行；请在 config.yml 中设置 checkin.enable: true")
-        return
+        return TASK_FAILED
 
     # 自动发现 ikuuu 可用域名
     logger.info("ikuuu签到：正在自动发现可用域名...")
     domain = await _extract_ikuuu_domain_with_retry()
     if not domain:
         logger.error("ikuuu签到：无法自动发现可用域名，跳过本次执行")
-        return
+        return TASK_FAILED
 
     cfg = CheckinConfig.from_app_config(app_config, domain=domain)
 
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     valid_accounts = [a for a in cfg.accounts if a.get("email") and a.get("password")]
     logger.info("ikuuu签到：开始执行（共 %d 个账号）", len(valid_accounts))
@@ -851,6 +852,7 @@ async def run_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("ikuuu签到：结束（成功 %d/%d 个账号）", success_count, len(valid_accounts))
+    return TASK_SUCCESS if success_count > 0 else TASK_FAILED
 
 
 async def _send_checkin_push(

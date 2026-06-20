@@ -178,6 +178,13 @@ class AsyncDatabase:
             )
         """
         )
+        try:
+            async with conn.execute("PRAGMA table_info(xhs)") as cursor:
+                columns = [row[1] for row in await cursor.fetchall()]
+            if "note_id" not in columns:
+                await conn.execute("ALTER TABLE xhs ADD COLUMN note_id TEXT DEFAULT ''")
+        except Exception as e:
+            _logger.warning("为 xhs 表添加 note_id 字段失败（不影响主流程）: %s", e)
 
         # 定时任务运行记录（当天已运行则跳过）
         await conn.execute(
@@ -238,6 +245,7 @@ class AsyncDatabase:
         # 共享连接模式
         async with _connection_lock:
             _logger.warning("检测到数据库连接失效，正在重新连接...")
+            saved_ref_count = _connection_ref_count
 
             # 关闭旧连接
             if _shared_connection is not None:
@@ -247,26 +255,21 @@ class AsyncDatabase:
                     _logger.debug("关闭旧连接时出错（可忽略）: %s", e)
                 finally:
                     _shared_connection = None
-                    _connection_ref_count = 0
 
             # 重新创建连接
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
             _shared_connection = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
             _shared_connection.row_factory = aiosqlite.Row
 
-            # 重新设置 WAL 模式
             await _shared_connection.execute("PRAGMA journal_mode=WAL")
             await _shared_connection.execute("PRAGMA synchronous=NORMAL")
             await _shared_connection.execute("PRAGMA busy_timeout=30000")
             await _shared_connection.commit()
 
-            # 重新初始化表结构（CREATE TABLE IF NOT EXISTS 是安全的）
             await self._init_tables(_shared_connection)
 
-            # 更新当前实例的连接引用
             self._conn = _shared_connection
-            _connection_ref_count = 1
+            _connection_ref_count = max(saved_ref_count, 1)
 
             _logger.info("数据库连接已重新建立（WAL模式）")
 

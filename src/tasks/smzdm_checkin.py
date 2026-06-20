@@ -16,6 +16,7 @@ import requests
 
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -54,6 +55,8 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
         r = requests.post(SMZDM_TOKEN_URL, headers=headers, data=data_token, timeout=15)
         r.raise_for_status()
         result = r.json()
+        if result.get("error_code") not in (None, 0):
+            return False, result.get("error_msg", "获取 token 失败")
         token = result.get("data", {}).get("token")
         if not token:
             return False, result.get("error_msg", "获取 token 失败")
@@ -77,7 +80,10 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
         }
         r2 = requests.post(SMZDM_CHECKIN_URL, headers=headers, data=data_check, timeout=15)
         r2.raise_for_status()
-        err_msg = r2.json().get("error_msg", "签到成功")
+        check_result = r2.json()
+        if check_result.get("error_code") not in (None, 0):
+            return False, check_result.get("error_msg", "签到失败")
+        err_msg = check_result.get("error_msg", "签到成功")
         r3 = requests.post(SMZDM_ALL_REWARD_URL, headers=headers, data=data_check, timeout=15)
         if r3.status_code == 200:
             try:
@@ -93,7 +99,7 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_smzdm_checkin_once() -> None:
+async def run_smzdm_checkin_once() -> bool:
     """执行一次什么值得买签到（支持多 Cookie），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -133,12 +139,13 @@ async def run_smzdm_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = SmzdmConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective and cfg.cookie:
         effective = [cfg.cookie.strip()]
     logger.info("什么值得买签到：开始执行（共 %d 个 Cookie）", len(effective))
+    any_success = False
 
     import aiohttp
 
@@ -157,6 +164,9 @@ async def run_smzdm_checkin_once() -> None:
             except Exception as e:
                 logger.error("什么值得买签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+
+            if ok:
+                any_success = True
 
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = mask_cookie_for_log(cookie_str)
@@ -177,6 +187,7 @@ async def run_smzdm_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("什么值得买签到：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_smzdm_trigger_kwargs(config: AppConfig) -> dict:

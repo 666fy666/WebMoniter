@@ -15,6 +15,7 @@ import requests
 
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -43,12 +44,14 @@ def _run_zdm_draw_sync(cookie: str, active_ids: list[str]) -> tuple[bool, str]:
         "Referer": "https://m.smzdm.com/",
     }
     messages = []
+    all_ok = True
     try:
         for active_id in ids:
             url = f"https://zhiyou.smzdm.com/user/lottery/jsonp_draw?active_id={active_id}"
             r = requests.post(url, headers=headers, timeout=15)
             if r.status_code != 200:
                 messages.append(f"active_id={active_id} 请求失败")
+                all_ok = False
                 continue
             text = r.text
             # 解析 jsonp 或 json 结果
@@ -57,13 +60,13 @@ def _run_zdm_draw_sync(cookie: str, active_ids: list[str]) -> tuple[bool, str]:
                 messages.append(msg_m.group(1))
             else:
                 messages.append("已抽奖")
-        return True, "；".join(messages) if messages else "抽奖请求已提交"
+        return all_ok, "；".join(messages) if messages else "抽奖请求已提交"
     except Exception as e:
         logger.warning("值得买抽奖：请求失败 %s", e)
         return False, str(e)
 
 
-async def run_zdm_draw_once() -> None:
+async def run_zdm_draw_once() -> bool:
     """执行一次值得买每日抽奖（支持多 Cookie），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -103,12 +106,13 @@ async def run_zdm_draw_once() -> None:
     app_config = get_config(reload=True)
     cfg = ZdmDrawConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective and cfg.cookie:
         effective = [cfg.cookie.strip()]
     logger.info("值得买抽奖：开始执行（共 %d 个 Cookie）", len(effective))
+    any_success = False
 
     import aiohttp
 
@@ -130,6 +134,9 @@ async def run_zdm_draw_once() -> None:
                 logger.error("值得买抽奖：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
 
+            if ok:
+                any_success = True
+
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = mask_cookie_for_log(cookie_str)
                 title = "值得买抽奖成功" if ok else "值得买抽奖失败"
@@ -149,6 +156,7 @@ async def run_zdm_draw_once() -> None:
             await push_manager.close()
 
     logger.info("值得买抽奖：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_zdm_draw_trigger_kwargs(config: AppConfig) -> dict:

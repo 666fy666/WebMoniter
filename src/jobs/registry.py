@@ -17,6 +17,7 @@ from typing import Any
 
 from src.jobs.enable_fields import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_JOB_ENABLE_FIELD_MAP
 from src.jobs.log_manager import LogManager, TaskLogFilter, _current_job_id
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS, TaskOutcome
 from src.settings.config import AppConfig, get_config
 
 logger = logging.getLogger(__name__)
@@ -27,12 +28,12 @@ class JobDescriptor:
     """任务描述：用于调度器注册与热重载时更新触发参数"""
 
     job_id: str
-    run_func: Callable[[], Awaitable[None]]
+    run_func: Callable[[], Awaitable[TaskOutcome]]
     trigger: str  # "interval" | "cron"
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]]
     description: str = ""
     # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
-    original_run_func: Callable[[], Awaitable[None]] | None = field(default=None)
+    original_run_func: Callable[[], Awaitable[TaskOutcome]] | None = field(default=None)
 
 
 # 监控任务（间隔执行）模块列表，新增监控时在此追加模块路径即可
@@ -128,6 +129,17 @@ def monitor_job_enabled(job_id: str, config: AppConfig) -> bool:
     return enable_field is None or getattr(config, enable_field, True)
 
 
+def task_job_enabled(job_id: str, config: AppConfig) -> bool:
+    """定时类任务是否在配置中启用。"""
+    if job_id == "demo_task":
+        plug = (getattr(config, "plugins", None) or {}).get("demo_task") or {}
+        return bool(plug.get("enable", False))
+    enable_field = TASK_JOB_ENABLE_FIELD_MAP.get(job_id)
+    if enable_field is None:
+        return True
+    return bool(getattr(config, enable_field, False))
+
+
 def register_monitor(
     job_id: str,
     run_func: Callable[[], Awaitable[None]],
@@ -165,7 +177,7 @@ def register_monitor(
 
 def register_task(
     job_id: str,
-    run_func: Callable[[], Awaitable[None]],
+    run_func: Callable[[], Awaitable[TaskOutcome]],
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]],
     *,
     skip_if_run_today: bool = True,
@@ -186,22 +198,21 @@ def register_task(
     from src.storage.database import mark_as_run_today
 
     @functools.wraps(run_func)
-    async def wrapped_run_func() -> None:
-        enable_field = TASK_JOB_ENABLE_FIELD_MAP.get(job_id)
-        if enable_field is not None:
-            config = get_config()
-            if not getattr(config, enable_field, False):
-                logger.debug("%s: 当前配置未启用，跳过调度执行", job_id)
-                return
+    async def wrapped_run_func() -> TaskOutcome:
+        config = get_config()
+        if not task_job_enabled(job_id, config):
+            logger.debug("%s: 当前配置未启用，跳过调度执行", job_id)
+            return TASK_FAILED
 
         if skip_if_run_today and await check_run_today(job_id):
             logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
-            return
+            return TASK_FAILED
 
         async with _task_logging_context(job_id):
-            await run_func()
-            if skip_if_run_today:
+            result = await run_func()
+            if skip_if_run_today and result is TASK_SUCCESS:
                 await mark_as_run_today(job_id)
+            return result
 
     _upsert_job(
         TASK_JOBS,

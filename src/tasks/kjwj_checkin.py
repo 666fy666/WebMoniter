@@ -18,6 +18,7 @@ from dataclasses import dataclass
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -112,21 +113,24 @@ def _sign_for_account(username: str, password: str) -> str:
         return f"❌ 账号 {username} 签到异常：{exc}"
 
 
-async def run_kjwj_checkin_once() -> None:
+async def run_kjwj_checkin_once() -> bool:
     """执行一次科技玩家签到任务（多账号）。"""
     app_cfg = get_config(reload=True)
     cfg = KjwjConfig.from_app_config(app_cfg)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     lines: list[str] = []
+    any_success = False
     for idx, acc in enumerate(cfg.accounts, start=1):
         logger.info("科技玩家签到：开始处理第 %d 个账号（%s）", idx, acc.username)
         msg = await asyncio.to_thread(_sign_for_account, acc.username, acc.password)
         lines.append(msg)
+        if not msg.startswith("❌"):
+            any_success = True
 
     if not lines:
-        return
+        return TASK_FAILED
 
     import aiohttp
 
@@ -151,6 +155,8 @@ async def run_kjwj_checkin_once() -> None:
                 logger.error("科技玩家签到：推送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_kjwj_trigger_kwargs(config: AppConfig) -> dict:

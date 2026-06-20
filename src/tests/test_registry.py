@@ -23,8 +23,8 @@ def test_discover_and_get_ikuuu_task() -> None:
 
 
 def test_register_monitor_replaces_existing_job_id() -> None:
-    async def noop() -> None:
-        return None
+    async def noop() -> bool:
+        return True
 
     registry.MONITOR_JOBS.clear()
     try:
@@ -39,8 +39,8 @@ def test_register_monitor_replaces_existing_job_id() -> None:
 
 
 def test_register_task_replaces_existing_job_id() -> None:
-    async def noop() -> None:
-        return None
+    async def noop() -> bool:
+        return True
 
     registry.TASK_JOBS.clear()
     try:

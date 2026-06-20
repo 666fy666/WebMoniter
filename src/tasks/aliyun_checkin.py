@@ -14,6 +14,7 @@ import logging
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -94,7 +95,7 @@ def _run_aliyun_sync(refresh_token: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_aliyun_checkin_once() -> None:
+async def run_aliyun_checkin_once() -> bool:
     """执行一次阿里云盘签到（支持多 refresh_token），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -138,11 +139,12 @@ async def run_aliyun_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = AliyunConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [t.strip() for t in cfg.refresh_tokens if t.strip()]
     if not effective and cfg.refresh_token:
         effective = [cfg.refresh_token.strip()]
+    any_success = False
     logger.info("阿里云盘签到：开始执行（共 %d 个账号）", len(effective))
 
     import aiohttp
@@ -163,6 +165,8 @@ async def run_aliyun_checkin_once() -> None:
                 logger.error("阿里云盘签到：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
 
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 masked = token[:8] + "***" + token[-4:] if len(token) > 12 else "***"
                 title = "阿里云盘签到成功" if ok else "阿里云盘签到失败"
@@ -182,6 +186,7 @@ async def run_aliyun_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("阿里云盘签到：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_aliyun_trigger_kwargs(config: AppConfig) -> dict:

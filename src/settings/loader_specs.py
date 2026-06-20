@@ -277,6 +277,8 @@ STRING_FIELDS = frozenset(
         "access_token",
         "request_body",
         "openid",
+        "city_code",
+        "base_url",
     }
 )
 

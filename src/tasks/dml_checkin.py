@@ -11,6 +11,7 @@ import logging
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -60,7 +61,7 @@ def _run_dml_sync(openid: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_dml_checkin_once() -> None:
+async def run_dml_checkin_once() -> bool:
     """执行一次达美乐任务（支持多 openid），并接入统一推送。"""
     from dataclasses import dataclass
 
@@ -99,11 +100,12 @@ async def run_dml_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = DmlConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective = [o.strip() for o in cfg.openids if o.strip()]
     if not effective and cfg.openid:
         effective = [cfg.openid.strip()]
+    any_success = False
     logger.info("达美乐任务：开始执行（共 %d 个账号）", len(effective))
 
     import aiohttp
@@ -122,6 +124,8 @@ async def run_dml_checkin_once() -> None:
             except Exception as e:
                 logger.error("达美乐任务：第 %d 个账号异常: %s", idx + 1, e)
                 ok, msg = False, str(e)
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 title = "达美乐任务成功" if ok else "达美乐任务失败"
                 try:
@@ -137,6 +141,7 @@ async def run_dml_checkin_once() -> None:
         if push_manager:
             await push_manager.close()
     logger.info("达美乐任务：结束（共处理 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_dml_trigger_kwargs(config: AppConfig) -> dict:

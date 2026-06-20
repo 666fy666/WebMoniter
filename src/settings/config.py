@@ -2,12 +2,14 @@
 
 import logging
 import os
+import threading
 from datetime import datetime, time
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel
 
+from src.core.paths import CONFIG_YAML_FILE
 from src.settings.loader_specs import (
     CONFIG_MAPPINGS,
     MULTI_ACCOUNT_SPECS,
@@ -547,6 +549,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
 # 全局配置缓存，用于热重载时检测变化
 _config_cache: AppConfig | None = None
 _config_file_mtime: float = 0  # 配置文件最后修改时间
+_config_lock = threading.Lock()
 
 
 def get_config(reload: bool = False) -> AppConfig:
@@ -562,49 +565,45 @@ def get_config(reload: bool = False) -> AppConfig:
     """
     global _config_cache, _config_file_mtime
 
-    # 青龙面板兼容：当通过 python -m src.ql 运行时，从环境变量加载配置
-    if os.environ.get("WEBMONITER_QL_CRON"):
-        try:
-            from src.ql import compat as ql_compat
+    with _config_lock:
+        # 青龙面板兼容：当通过 python -m src.ql 运行时，从环境变量加载配置
+        if os.environ.get("WEBMONITER_QL_CRON"):
+            try:
+                from src.ql import compat as ql_compat
 
-            task_id = getattr(ql_compat, "_current_ql_task_id", None)
-            if task_id is not None:
-                cfg = ql_compat.load_config_from_env(task_id)
-                _config_cache = AppConfig(**cfg)
+                task_id = getattr(ql_compat, "_current_ql_task_id", None)
+                if task_id is not None:
+                    cfg = ql_compat.load_config_from_env(task_id)
+                    _config_cache = AppConfig(**cfg)
+                    return _config_cache
+            except Exception:  # noqa: BLE001
+                pass
+
+        old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
+
+        config_file_path = CONFIG_YAML_FILE
+        current_mtime = 0
+        if config_file_path.exists():
+            current_mtime = config_file_path.stat().st_mtime
+
+        if not reload and _config_cache is not None:
+            if current_mtime <= _config_file_mtime:
                 return _config_cache
-        except Exception:  # noqa: BLE001
-            pass
+            logger.debug("检测到配置文件已修改，自动重新加载...")
 
-    old_weibo_cookie = _config_cache.weibo_cookie if _config_cache is not None else None
+        if reload:
+            logger.debug("开始重新加载配置文件...")
+        yml_config = load_config_from_yml()
+        _config_file_mtime = current_mtime
 
-    # 检查配置文件修改时间（优化热重载效率）
-    config_file_path = Path("config.yml")
-    current_mtime = 0
-    if config_file_path.exists():
-        current_mtime = config_file_path.stat().st_mtime
+        config = AppConfig(**yml_config)
 
-    # 如果不需要重载且已有缓存，检查文件是否被修改
-    if not reload and _config_cache is not None:
-        # 如果文件未被修改，直接返回缓存
-        if current_mtime <= _config_file_mtime:
-            return _config_cache
-        # 文件被修改了，需要重新加载
-        logger.debug("检测到配置文件已修改，自动重新加载...")
+        _config_cache = config
+        new_weibo_cookie = config.weibo_cookie
+        if old_weibo_cookie is not None and old_weibo_cookie != new_weibo_cookie:
+            logger.info("微博Cookie已更新 (长度: %s 字符)", len(new_weibo_cookie or ""))
 
-    if reload:
-        logger.debug("开始重新加载配置文件...")
-    yml_config = load_config_from_yml()
-    _config_file_mtime = current_mtime  # 更新文件修改时间
-
-    # 创建AppConfig实例
-    config = AppConfig(**yml_config)
-
-    _config_cache = config
-    new_weibo_cookie = config.weibo_cookie
-    if old_weibo_cookie is not None and old_weibo_cookie != new_weibo_cookie:
-        logger.info("微博Cookie已更新 (长度: %s 字符)", len(new_weibo_cookie or ""))
-
-    return config
+        return config
 
 
 def _parse_quiet_time(time_str: str) -> time | None:

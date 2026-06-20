@@ -21,6 +21,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -98,17 +99,17 @@ def _run_fr_sync(cookie: str) -> str:
         return f"❌ 帆软签到执行异常：{exc}"
 
 
-async def run_fr_checkin_once() -> None:
+async def run_fr_checkin_once() -> bool:
     """执行一次帆软社区签到 + 摇摇乐任务。"""
     app_cfg = get_config(reload=True)
     if not getattr(app_cfg, "fr_enable", False):
         logger.debug("帆软签到未启用，跳过执行")
-        return
+        return TASK_FAILED
     cookie = getattr(app_cfg, "fr_cookie", "") or ""
 
     text = await asyncio.to_thread(_run_fr_sync, cookie)
     if not text:
-        return
+        return TASK_FAILED
 
     import aiohttp
 
@@ -133,6 +134,8 @@ async def run_fr_checkin_once() -> None:
                 logger.error("帆软签到：推送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS
 
 
 def _get_fr_trigger_kwargs(config: AppConfig) -> dict:

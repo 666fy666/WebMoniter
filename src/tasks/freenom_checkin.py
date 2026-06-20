@@ -23,6 +23,7 @@ from typing import Any
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -172,12 +173,12 @@ def _renew_for_account(email: str, password: str) -> dict[str, Any]:
     }
 
 
-async def run_freenom_checkin_once() -> None:
+async def run_freenom_checkin_once() -> bool:
     """执行一次 Freenom 续期任务（多账号）。"""
     app_cfg = get_config(reload=True)
     cfg = FreenomTaskConfig.from_app_config(app_cfg)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     import aiohttp
 
@@ -191,6 +192,7 @@ async def run_freenom_checkin_once() -> None:
         )
 
         all_lines: list[str] = []
+        any_success = False
         for idx, acc in enumerate(cfg.accounts, start=1):
             masked = acc.email
             logger.info("Freenom 续期：开始处理第 %d 个账号（%s）", idx, masked)
@@ -202,6 +204,8 @@ async def run_freenom_checkin_once() -> None:
                 continue
 
             ok = bool(result.get("ok"))
+            if ok:
+                any_success = True
             msg = str(result.get("message") or "")
             detail = str(result.get("detail") or "")
             prefix = f"[{'✅' if ok else '❌'}] 账号 {masked}：{msg}"
@@ -225,6 +229,7 @@ async def run_freenom_checkin_once() -> None:
                 await push.close()
 
         logger.info("Freenom 续期任务执行完成")
+        return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_freenom_trigger_kwargs(config: AppConfig) -> dict:

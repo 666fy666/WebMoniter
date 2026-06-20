@@ -19,6 +19,7 @@ from dataclasses import dataclass
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -168,24 +169,27 @@ def _run_for_token(token: str, index: int) -> tuple[list[str], list[str]]:
     return lines, win_lines
 
 
-async def run_zgfc_draw_once() -> None:
+async def run_zgfc_draw_once() -> bool:
     """执行一次中国福彩抽奖任务（多 token）。"""
     app_cfg = get_config(reload=True)
     cfg = ZgfcConfig.from_app_config(app_cfg)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     all_lines: list[str] = []
     win_lines: list[str] = []
+    any_success = False
     for idx, token in enumerate(cfg.tokens, start=1):
         logger.info("中国福彩抽奖：开始处理第 %d 个账号", idx)
         lines, wins = await asyncio.to_thread(_run_for_token, token, idx)
         all_lines.extend(lines)
         all_lines.append("")
         win_lines.extend(wins)
+        if lines and not any("账号处理异常" in line for line in lines):
+            any_success = True
 
     if not all_lines:
-        return
+        return TASK_FAILED
 
     import aiohttp
 
@@ -214,6 +218,8 @@ async def run_zgfc_draw_once() -> None:
                 logger.error("中国福彩抽奖：推送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_zgfc_trigger_kwargs(config: AppConfig) -> dict:

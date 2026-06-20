@@ -10,6 +10,7 @@ import time
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -46,7 +47,7 @@ def _run_ydwx_sync(device_params: str, token: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-async def run_ydwx_checkin_once() -> None:
+async def run_ydwx_checkin_once() -> bool:
     from dataclasses import dataclass
 
     @dataclass
@@ -87,8 +88,9 @@ async def run_ydwx_checkin_once() -> None:
     app_config = get_config(reload=True)
     cfg = YdwxConfig.from_app_config(app_config)
     if not cfg.validate():
-        return
+        return TASK_FAILED
     effective = [a for a in cfg.accounts if a.get("device_params") or a.get("token")]
+    any_success = False
     logger.info("一点万象签到：开始执行（共 %d 个账号）", len(effective))
     import aiohttp
 
@@ -106,6 +108,8 @@ async def run_ydwx_checkin_once() -> None:
                 ok, msg = await asyncio.to_thread(_run_ydwx_sync, dp, tk)
             except Exception as e:
                 ok, msg = False, str(e)
+            if ok:
+                any_success = True
             if push_manager and not is_in_quiet_hours(app_config):
                 try:
                     await push_manager.send_news(
@@ -120,6 +124,7 @@ async def run_ydwx_checkin_once() -> None:
         if push_manager:
             await push_manager.close()
     logger.info("一点万象签到：结束（共 %d 个账号）", len(effective))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 register_task(

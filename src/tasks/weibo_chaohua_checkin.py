@@ -23,6 +23,7 @@ import requests
 from src.core.http import create_certifi_connector
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -301,18 +302,19 @@ def _run_weibo_chaohua_sign_sync(
     return True, user_info, success_count, already_signed_count, fail_count, total
 
 
-async def run_weibo_chaohua_checkin_once() -> None:
+async def run_weibo_chaohua_checkin_once() -> bool:
     """执行一次微博超话签到流程（支持多 Cookie），并接入统一推送。"""
     app_config = get_config(reload=True)
     cfg = WeiboChaohuaCheckinConfig.from_app_config(app_config)
 
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     effective_cookies = [c.strip() for c in cfg.cookies if c.strip()]
     if not effective_cookies and cfg.cookie:
         effective_cookies = [cfg.cookie.strip()]
     logger.info("微博超话签到：开始执行（共 %d 个 Cookie）", len(effective_cookies))
+    any_success = False
 
     import aiohttp
 
@@ -370,6 +372,7 @@ async def run_weibo_chaohua_checkin_once() -> None:
                     cfg=cfg_one,
                 )
             else:
+                any_success = True
                 logger.info(
                     "微博超话签到：第 %d 个账号 账号=%s 成功=%s 已签=%s 失败=%s 总计=%s",
                     idx + 1,
@@ -394,6 +397,7 @@ async def run_weibo_chaohua_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("微博超话签到：结束（共处理 %d 个账号）", len(effective_cookies))
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 async def _send_weibo_chaohua_push(

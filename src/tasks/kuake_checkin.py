@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import requests
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 
@@ -109,21 +110,24 @@ def _do_sign_for_cookie(cookie: str) -> str:
         return f"❌ 夸克签到异常：{exc}"
 
 
-async def run_kuake_checkin_once() -> None:
+async def run_kuake_checkin_once() -> bool:
     """执行一次夸克网盘签到任务（多 Cookie）。"""
     app_cfg = get_config(reload=True)
     cfg = KuakeConfig.from_app_config(app_cfg)
     if not cfg.validate():
-        return
+        return TASK_FAILED
 
     lines: list[str] = []
+    any_success = False
     for idx, cookie in enumerate(cfg.cookies, start=1):
         logger.info("夸克签到：开始处理第 %d 个 Cookie", idx)
         msg = await asyncio.to_thread(_do_sign_for_cookie, cookie)
         lines.append(msg)
+        if not msg.startswith("❌"):
+            any_success = True
 
     if not lines:
-        return
+        return TASK_FAILED
 
     import aiohttp
 
@@ -148,6 +152,8 @@ async def run_kuake_checkin_once() -> None:
                 logger.error("夸克签到：推送失败：%s", exc, exc_info=True)
             finally:
                 await push.close()
+
+    return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_kuake_trigger_kwargs(config: AppConfig) -> dict:

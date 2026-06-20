@@ -4,16 +4,18 @@ import logging
 
 from src.jobs.log_manager import LogManager
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_SUCCESS
 from src.settings.config import AppConfig, get_config, parse_checkin_time
 
 logger = logging.getLogger(__name__)
 
 
-async def cleanup_logs() -> None:
+async def cleanup_logs() -> bool:
     """清理旧日志文件任务。从配置读取保留天数。"""
     config = get_config(reload=True)
     log_manager = LogManager(retention_days=config.retention_days)
     log_manager.cleanup_old_logs()
+    return TASK_SUCCESS
 
 
 def _get_cleanup_logs_trigger_kwargs(config: AppConfig) -> dict:

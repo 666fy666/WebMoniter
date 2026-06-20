@@ -70,31 +70,33 @@ async def main() -> None:
             CONFIG_YAML_FILE.as_posix(),
             resolve_config_sample_path().as_posix(),
         )
+        await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)
         sys.exit(1)
 
-    await cookie_cache.reset_all()
-
-    scheduler = TaskScheduler(config)
-    await register_and_prime_jobs(scheduler, config)
-    logger.info(
-        "Web任务系统已启动，已注册 %d 个任务",
-        len(scheduler.scheduler.get_jobs()),
-    )
-
-    async def on_config_changed(
-        old_cfg: AppConfig | None,
-        new_cfg: AppConfig,
-    ) -> None:
-        await on_scheduler_config_changed(old_cfg, new_cfg, scheduler)
-
-    config_watcher = ConfigWatcher(
-        config_path=CONFIG_FILE,
-        check_interval=CONFIG_POLL_INTERVAL_SEC,
-        on_config_changed=on_config_changed,
-    )
-    await config_watcher.start()
-
+    config_watcher: ConfigWatcher | None = None
     try:
+        await cookie_cache.reset_all()
+
+        scheduler = TaskScheduler(config)
+        await register_and_prime_jobs(scheduler, config)
+        logger.info(
+            "Web任务系统已启动，已注册 %d 个任务",
+            len(scheduler.scheduler.get_jobs()),
+        )
+
+        async def on_config_changed(
+            old_cfg: AppConfig | None,
+            new_cfg: AppConfig,
+        ) -> None:
+            await on_scheduler_config_changed(old_cfg, new_cfg, scheduler)
+
+        config_watcher = ConfigWatcher(
+            config_path=CONFIG_FILE,
+            check_interval=CONFIG_POLL_INTERVAL_SEC,
+            on_config_changed=on_config_changed,
+        )
+        await config_watcher.start()
+
         await scheduler.run_forever()
     except KeyboardInterrupt:
         logger.info("正在关闭...")
@@ -103,7 +105,8 @@ async def main() -> None:
         raise
     finally:
         await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)
-        await _shutdown_step("配置监控器", config_watcher.stop(), logger)
+        if config_watcher is not None:
+            await _shutdown_step("配置监控器", config_watcher.stop(), logger)
         await _shutdown_step("数据库连接", close_shared_connection(), logger)
 
 

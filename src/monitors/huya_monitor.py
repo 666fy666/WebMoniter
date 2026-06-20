@@ -9,6 +9,7 @@ from datetime import datetime
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
+from src.core.http import fetch_hitokoto_quote
 from src.monitors.base import BaseMonitor, CookieExpiredError
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
 
@@ -78,14 +79,11 @@ class HuyaMonitor(BaseMonitor):
         url = f"https://m.huya.com/{room_id}"
 
         async with session.get(url) as response:
+            if response.status == 403:
+                raise CookieExpiredError("虎牙Cookie已失效，返回403状态码")
             response.raise_for_status()
             page_content = await response.text()
 
-            # 检测cookie是否失效：如果返回403或页面包含登录相关关键词，可能cookie失效
-            if response.status == 403:
-                raise CookieExpiredError("虎牙Cookie已失效，返回403状态码")
-
-            # 检查页面是否包含登录提示
             if "登录" in page_content and "请先登录" in page_content:
                 raise CookieExpiredError("虎牙Cookie已失效，需要重新登录")
 
@@ -191,18 +189,7 @@ class HuyaMonitor(BaseMonitor):
             )
             return
 
-        # 异步获取语录
-        quote = " "
-        try:
-            session = await self._get_session()
-            async with session.get(
-                "https://v1.hitokoto.cn/", timeout=ClientTimeout(total=30)
-            ) as resp:
-                if resp.status == 200:
-                    hitokoto = await resp.json()
-                    quote = f'\n{hitokoto.get("hitokoto", "")} —— {hitokoto.get("from", "")}\n'
-        except Exception as e:
-            self.logger.debug(f"[{data['name']}] 获取语录失败: {e}")
+        quote = await fetch_hitokoto_quote(await self._get_session())
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status_text = "开播了🐯🐯🐯" if res == 1 else "下播了🐟🐟🐟"
@@ -215,7 +202,7 @@ class HuyaMonitor(BaseMonitor):
             if avatar_url:
                 extend_data["avatar_url"] = avatar_url
 
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"{data['name']} {status_text}",
                 description=f"房间号: {data['room']}\n\n{quote}\n\n{timestamp}",
                 to_url=f"https://m.huya.com/{data['room']}",
@@ -240,7 +227,7 @@ class HuyaMonitor(BaseMonitor):
             return
 
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title="⚠️ 虎牙Cookie已失效",
                 description=(
                     "虎牙监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"

@@ -17,6 +17,7 @@ import logging
 import aiohttp
 
 from src.jobs.registry import register_task
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 from src.tasks.rainyun.config_adapter import RainyunAccountConfig
@@ -70,7 +71,7 @@ async def _run_single_account_async(
     overrides = {"renew_threshold_days": renew_threshold_days}
     if chrome_overrides:
         overrides.update(chrome_overrides)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     ok, msg = await loop.run_in_executor(
         None,
         lambda: run_single_account(account, **overrides),
@@ -124,20 +125,20 @@ async def _run_single_account_with_retry(
     return False, f"{last_msg}\n{suffix}"
 
 
-async def run_rainyun_checkin_once() -> None:
+async def run_rainyun_checkin_once() -> bool:
     """执行一次完整的雨云签到流程（支持多账号，使用 Rainyun-Qiandao 的 Selenium 流程）"""
     app_config = get_config(reload=True)
 
     if not app_config.rainyun_enable:
         logger.debug("雨云签到未启用，跳过执行")
-        return
+        return TASK_FAILED
 
     accounts = _build_accounts_from_config(app_config)
     if not accounts:
         logger.error(
             "雨云签到配置不完整，已跳过执行。请配置 rainyun.accounts（每项需 username、password，api_key 可选用于续费）"
         )
-        return
+        return TASK_FAILED
 
     renew_threshold_days = getattr(app_config, "rainyun_renew_threshold_days", 7)
     push_channels = getattr(app_config, "rainyun_push_channels", None) or []
@@ -198,6 +199,7 @@ async def run_rainyun_checkin_once() -> None:
             await push_manager.close()
 
     logger.info("雨云签到：任务执行完成（成功 %d/%d 个账号）", success_count, len(accounts))
+    return TASK_SUCCESS if success_count > 0 else TASK_FAILED
 
 
 async def _send_checkin_push(

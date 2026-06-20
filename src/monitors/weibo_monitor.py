@@ -620,6 +620,9 @@ class WeiboMonitor(BaseMonitor):
             )
             return
 
+        if not self.push:
+            return
+
         action = "发布" if diff > 0 else "删除"
         count = abs(diff)
 
@@ -678,7 +681,7 @@ class WeiboMonitor(BaseMonitor):
                 extend_data["wecom_pic_url"] = wecom_pic_url
 
             # 使用 description_func 为各通道生成描述，超限时由 UnifiedPushManager 统一截断
-            await self.push.send_news(
+            await self.send_push_news(
                 title=f"{data['用户名']} {action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖
                 description_func=lambda channel: self._build_description_for_channel(channel, data),
@@ -709,7 +712,7 @@ class WeiboMonitor(BaseMonitor):
             return
 
         try:
-            await self.push.send_news(
+            await self.send_push_news(
                 title="⚠️ 微博Cookie已失效",
                 description=(
                     "微博监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
