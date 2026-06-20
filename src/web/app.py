@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.core.paths import SESSION_SECRET_FILE, WEB_UI_STATIC_DIR, WEIBO_IMG_DIR
 from src.web.routers import auth, config, data, logs, pages, tasks
+from src.web.static_files import CachedStaticFiles
 
 
 def _get_or_create_session_secret() -> str:
@@ -33,7 +34,19 @@ def create_web_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(WEB_UI_STATIC_DIR)), name="static")
 
     WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
-    app.mount("/weibo_img", StaticFiles(directory=str(WEIBO_IMG_DIR)), name="weibo_img")
+    app.mount(
+        "/weibo_img",
+        CachedStaticFiles(
+            directory=str(WEIBO_IMG_DIR),
+            short_cache_paths=(
+                "profile_image.jpg",
+                "avatar_large.jpg",
+                "avatar_hd.jpg",
+                "cover_image_phone.jpg",
+            ),
+        ),
+        name="weibo_img",
+    )
 
     app.include_router(pages.router)
     app.include_router(auth.router)

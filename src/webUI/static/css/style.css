@@ -1365,9 +1365,21 @@ input:focus + .slider {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+.weibo-feed-avatar,
+.weibo-media-img {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.weibo-feed-avatar.image-loaded,
+.weibo-media-img.image-loaded {
+    opacity: 1;
+}
+
 .weibo-feed-avatar:not([src]),
 .weibo-media-img:not([src]) {
     visibility: hidden;
+    opacity: 0;
 }
 
 .weibo-feed-avatar.avatar-fallback {

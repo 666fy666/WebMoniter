@@ -10,9 +10,15 @@
 
 let currentTable = 'weibo';
 let currentPage = 1;
-const pageSize = 100;
+const DEFAULT_PAGE_SIZE = 100;
+const WEIBO_PAGE_SIZE = 25;
 const STORAGE_KEY_PREFIX = 'data-card-order-';
 const MAX_LAZY_IMAGE_LOADS = 3;
+const LAZY_IMAGE_ROOT_MARGIN = '150px 0px';
+
+function getPageSize() {
+    return currentTable === 'weibo' ? WEIBO_PAGE_SIZE : DEFAULT_PAGE_SIZE;
+}
 let sortableInstance = null;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -32,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let lazyImageQueue = [];
     let lazyImageQueueScheduled = false;
     let activeLazyImageLoads = 0;
+    let pendingLazyObserverEntries = [];
+    let lazyObserverRaf = 0;
 
     const tableTitles = {
         weibo: '📱 微博数据',
@@ -66,9 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const isHuya = currentTable === 'huya';
+            const currentPageSize = getPageSize();
             const url = isHuya
-                ? `/api/data/${currentTable}?page=${currentPage}&page_size=${pageSize}&include_media=false`
-                : `/api/data/${currentTable}?page=${currentPage}&page_size=${pageSize}`;
+                ? `/api/data/${currentTable}?page=${currentPage}&page_size=${currentPageSize}&include_media=false`
+                : `/api/data/${currentTable}?page=${currentPage}&page_size=${currentPageSize}`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -219,6 +228,23 @@ document.addEventListener('DOMContentLoaded', function () {
         window.setTimeout(() => callback({ timeRemaining: () => 12 }), 16);
     }
 
+    function markLazyImageLoaded(img, finish) {
+        if (typeof img.decode === 'function') {
+            img.decode()
+                .then(() => {
+                    img.classList.add('image-loaded');
+                    finish();
+                })
+                .catch(() => {
+                    img.classList.add('image-loaded');
+                    finish();
+                });
+            return;
+        }
+        img.classList.add('image-loaded');
+        finish();
+    }
+
     function loadLazyImage(img) {
         if (!img || !img.isConnected || !dataTableContainer.contains(img)) return;
         if (img.dataset.lazyVisible === '0') return;
@@ -232,38 +258,40 @@ document.addEventListener('DOMContentLoaded', function () {
             img.removeAttribute('data-lazy-loading');
             scheduleLazyImageQueue();
         };
-        img.addEventListener('load', finish, { once: true });
-        img.addEventListener('error', finish, { once: true });
+        img.addEventListener(
+            'load',
+            () => {
+                markLazyImageLoaded(img, finish);
+            },
+            { once: true },
+        );
+        img.addEventListener(
+            'error',
+            () => {
+                img.classList.add('image-loaded');
+                finish();
+            },
+            { once: true },
+        );
 
         img.src = src;
         img.removeAttribute('data-src');
         img.removeAttribute('data-lazy-queued');
-        img.classList.add('image-loaded');
     }
 
-    function unloadLazyImage(img) {
-        if (!img || !img.isConnected || !dataTableContainer.contains(img)) return;
-        const src = img.getAttribute('src');
-        if (!src) return;
-        if (img.dataset.lazyLoading === '1') {
-            activeLazyImageLoads = Math.max(0, activeLazyImageLoads - 1);
-            img.removeAttribute('data-lazy-loading');
-        }
-        img.dataset.src = src;
-        img.removeAttribute('src');
-        img.removeAttribute('data-lazy-queued');
-        img.classList.remove('image-loaded');
-    }
-
-    function getLazyImageDistance(img) {
-        const rect = img.getBoundingClientRect();
-        if (rect.bottom >= 0 && rect.top <= window.innerHeight) return 0;
-        if (rect.top > window.innerHeight) return rect.top - window.innerHeight;
-        return Math.abs(rect.bottom);
-    }
-
-    function sortLazyImageQueue() {
-        lazyImageQueue.sort((a, b) => getLazyImageDistance(a) - getLazyImageDistance(b));
+    function flushLazyObserverEntries() {
+        lazyObserverRaf = 0;
+        const entries = pendingLazyObserverEntries;
+        pendingLazyObserverEntries = [];
+        entries.forEach((entry) => {
+            const img = entry.target;
+            if (entry.isIntersecting) {
+                img.dataset.lazyVisible = '1';
+                enqueueLazyImage(img);
+                return;
+            }
+            img.dataset.lazyVisible = '0';
+        });
     }
 
     function scheduleLazyImageQueue() {
@@ -274,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function processLazyImageQueue(deadline) {
         lazyImageQueueScheduled = false;
-        sortLazyImageQueue();
         let count = 0;
         while (
             lazyImageQueue.length > 0 &&
@@ -305,6 +332,11 @@ document.addEventListener('DOMContentLoaded', function () {
             lazyImageObserver.disconnect();
             lazyImageObserver = null;
         }
+        if (lazyObserverRaf) {
+            cancelAnimationFrame(lazyObserverRaf);
+            lazyObserverRaf = 0;
+        }
+        pendingLazyObserverEntries = [];
         lazyImageQueue = lazyImageQueue.filter((img) => img.isConnected);
         activeLazyImageLoads = 0;
 
@@ -318,20 +350,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lazyImageObserver = new IntersectionObserver(
             (entries) => {
-                entries.forEach((entry) => {
-                    const img = entry.target;
-                    if (entry.isIntersecting) {
-                        img.dataset.lazyVisible = '1';
-                        enqueueLazyImage(img);
-                        return;
-                    }
-                    img.dataset.lazyVisible = '0';
-                    unloadLazyImage(img);
-                });
+                pendingLazyObserverEntries.push(...entries);
+                if (!lazyObserverRaf) {
+                    lazyObserverRaf = requestAnimationFrame(flushLazyObserverEntries);
+                }
             },
             {
                 root: null,
-                rootMargin: '450px 0px',
+                rootMargin: LAZY_IMAGE_ROOT_MARGIN,
                 threshold: 0.01,
             },
         );
@@ -363,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <button type="button" class="weibo-media-item" data-image-index="${index}" aria-label="查看第 ${index + 1} 张微博图片">
           <img class="weibo-media-img" data-src="${escapeAttr(
               visibleThumbs[index],
-          )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" loading="lazy" decoding="async" fetchpriority="low">
+          )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" decoding="async" fetchpriority="low">
         </button>`,
             )
             .join('');
@@ -579,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="weibo-feed-header">
       <img data-src="${escapeAttr(
           avatarUrl,
-      )}" alt="头像" class="weibo-feed-avatar" loading="lazy" decoding="async" onerror="this.classList.add('avatar-fallback')">
+      )}" alt="头像" class="weibo-feed-avatar" decoding="async" onerror="this.classList.add('avatar-fallback')">
       <div class="weibo-feed-user">
         <div class="weibo-feed-name-row">
           <span class="weibo-feed-name">${escapeHtml(row.用户名)}</span>
