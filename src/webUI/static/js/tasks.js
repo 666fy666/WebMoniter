@@ -72,15 +72,18 @@ function renderTasks(tasks) {
         const isRunning = runningTasks.has(task.job_id);
         const typeIcon = task.type === 'monitor' ? '📡' : '⏰';
         const typeClass = task.type === 'monitor' ? 'task-type-monitor' : 'task-type-task';
+        const taskTitle = escapeHtml(task.description || task.job_id);
+        const taskId = escapeHtml(task.job_id);
+        const typeLabel = escapeHtml(task.type_label);
 
         html += `
-            <div class="task-item fade-in" data-job-id="${task.job_id}">
+            <div class="task-item fade-in" data-job-id="${taskId}">
                 <div class="task-info">
                     <div class="task-header">
-                        <span class="task-type-badge ${typeClass}">${typeIcon} ${task.type_label}</span>
-                        <span class="task-id">${task.job_id}</span>
+                        <span class="task-type-badge ${typeClass}">${typeIcon} ${typeLabel}</span>
+                        <span class="task-title">${taskTitle}</span>
                     </div>
-                    <div class="task-description">${task.description}</div>
+                    <div class="task-id">${taskId}</div>
                     <div class="task-meta">
                         <span class="task-trigger">触发方式: ${task.trigger === 'interval' ? '间隔执行' : 'Cron定时'}</span>
                     </div>
@@ -88,7 +91,7 @@ function renderTasks(tasks) {
                 <div class="task-actions">
                     <button
                         class="btn btn-primary run-task-btn ${isRunning ? 'running' : ''}"
-                        data-job-id="${task.job_id}"
+                        data-job-id="${taskId}"
                         ${isRunning ? 'disabled' : ''}
                     >
                         <span class="btn-icon">${isRunning ? '⏳' : '▶️'}</span>
@@ -96,7 +99,7 @@ function renderTasks(tasks) {
                     </button>
                     <button
                         class="btn btn-secondary view-log-btn"
-                        data-job-id="${task.job_id}"
+                        data-job-id="${taskId}"
                         title="查看今日日志"
                     >
                         <span class="btn-icon">📝</span>

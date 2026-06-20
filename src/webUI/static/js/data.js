@@ -20,6 +20,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const tableTitle = document.getElementById('tableTitle');
     const dataTableContainer = document.getElementById('dataTableContainer');
     const pagination = document.getElementById('pagination');
+    let lightboxEl = null;
+    let lightboxImageEl = null;
+    let lightboxCounterEl = null;
+    let lightboxPrevBtn = null;
+    let lightboxNextBtn = null;
+    let lightboxImages = [];
+    let lightboxIndex = 0;
+    let lazyImageObserver = null;
+    let lazyImageQueue = [];
+    let lazyImageQueueScheduled = false;
 
     const tableTitles = {
         weibo: '📱 微博数据',
@@ -199,6 +209,272 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function runWhenIdle(callback) {
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(callback, { timeout: 220 });
+            return;
+        }
+        window.setTimeout(() => callback({ timeRemaining: () => 12 }), 16);
+    }
+
+    function loadLazyImage(img) {
+        if (!img || !img.isConnected || !dataTableContainer.contains(img)) return;
+        const src = img.dataset.src;
+        if (!src) return;
+        img.src = src;
+        img.removeAttribute('data-src');
+        img.removeAttribute('data-lazy-queued');
+    }
+
+    function processLazyImageQueue(deadline) {
+        lazyImageQueueScheduled = false;
+        let count = 0;
+        while (
+            lazyImageQueue.length > 0 &&
+            count < 4 &&
+            (!deadline || deadline.didTimeout || deadline.timeRemaining() > 4)
+        ) {
+            loadLazyImage(lazyImageQueue.shift());
+            count += 1;
+        }
+        if (lazyImageQueue.length > 0) {
+            lazyImageQueueScheduled = true;
+            runWhenIdle(processLazyImageQueue);
+        }
+    }
+
+    function enqueueLazyImage(img) {
+        if (!img || img.dataset.lazyQueued === '1') return;
+        img.dataset.lazyQueued = '1';
+        lazyImageQueue.push(img);
+        if (!lazyImageQueueScheduled) {
+            lazyImageQueueScheduled = true;
+            runWhenIdle(processLazyImageQueue);
+        }
+    }
+
+    function initLazyImages() {
+        if (lazyImageObserver) {
+            lazyImageObserver.disconnect();
+            lazyImageObserver = null;
+        }
+        lazyImageQueue = lazyImageQueue.filter((img) => img.isConnected);
+
+        const lazyImages = Array.from(dataTableContainer.querySelectorAll('img[data-src]'));
+        if (lazyImages.length === 0) return;
+
+        if (!('IntersectionObserver' in window)) {
+            lazyImages.forEach(enqueueLazyImage);
+            return;
+        }
+
+        lazyImageObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    lazyImageObserver.unobserve(entry.target);
+                    enqueueLazyImage(entry.target);
+                });
+            },
+            {
+                root: null,
+                rootMargin: '900px 0px',
+                threshold: 0.01,
+            },
+        );
+
+        lazyImages.forEach((img) => lazyImageObserver.observe(img));
+    }
+
+    function getWeiboMediaClass(count) {
+        if (count === 1) return 'weibo-media-count-1';
+        if (count === 2) return 'weibo-media-count-2';
+        if (count === 4) return 'weibo-media-count-4';
+        return 'weibo-media-count-grid';
+    }
+
+    function renderWeiboMedia(images, thumbs) {
+        const visibleImages = Array.isArray(images)
+            ? images.filter((src) => typeof src === 'string' && src.trim()).slice(0, 9)
+            : [];
+        if (visibleImages.length === 0) return '';
+
+        const visibleThumbs = visibleImages.map((src, index) => {
+            const thumb = Array.isArray(thumbs) ? thumbs[index] : '';
+            return typeof thumb === 'string' && thumb.trim() ? thumb.trim() : src.trim();
+        });
+        const mediaClass = getWeiboMediaClass(visibleImages.length);
+        const items = visibleImages
+            .map(
+                (src, index) => `
+        <button type="button" class="weibo-media-item" data-image-index="${index}" aria-label="查看第 ${index + 1} 张微博图片">
+          <img class="weibo-media-img" data-src="${escapeAttr(
+              visibleThumbs[index],
+          )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" loading="lazy" decoding="async" fetchpriority="low">
+        </button>`,
+            )
+            .join('');
+
+        return `<div class="weibo-media-grid ${mediaClass}" data-count="${
+            visibleImages.length
+        }" data-images="${escapeAttr(JSON.stringify(visibleImages))}">${items}</div>`;
+    }
+
+    function getImagesFromMediaGrid(grid) {
+        try {
+            const images = JSON.parse(grid.dataset.images || '[]');
+            return Array.isArray(images)
+                ? images.filter((src) => typeof src === 'string' && src.trim())
+                : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function getEventElement(event) {
+        if (event.target instanceof Element) return event.target;
+        return event.target && event.target.parentElement ? event.target.parentElement : null;
+    }
+
+    function ensureWeiboLightbox() {
+        if (lightboxEl) return;
+
+        lightboxEl = document.createElement('div');
+        lightboxEl.className = 'weibo-lightbox';
+        lightboxEl.setAttribute('aria-hidden', 'true');
+        lightboxEl.innerHTML = `
+<button type="button" class="weibo-lightbox-close" aria-label="关闭大图">×</button>
+<button type="button" class="weibo-lightbox-nav weibo-lightbox-prev" aria-label="上一张">‹</button>
+<figure class="weibo-lightbox-figure">
+  <img class="weibo-lightbox-image" alt="微博大图" decoding="async">
+  <figcaption class="weibo-lightbox-counter"></figcaption>
+</figure>
+<button type="button" class="weibo-lightbox-nav weibo-lightbox-next" aria-label="下一张">›</button>`;
+        document.body.appendChild(lightboxEl);
+
+        lightboxImageEl = lightboxEl.querySelector('.weibo-lightbox-image');
+        lightboxCounterEl = lightboxEl.querySelector('.weibo-lightbox-counter');
+        lightboxPrevBtn = lightboxEl.querySelector('.weibo-lightbox-prev');
+        lightboxNextBtn = lightboxEl.querySelector('.weibo-lightbox-next');
+
+        lightboxEl.querySelector('.weibo-lightbox-close').addEventListener('click', closeLightbox);
+        lightboxPrevBtn.addEventListener('click', () => showLightboxImage(lightboxIndex - 1));
+        lightboxNextBtn.addEventListener('click', () => showLightboxImage(lightboxIndex + 1));
+        lightboxEl.addEventListener('click', (e) => {
+            const target = getEventElement(e);
+            if (!target) return;
+            if (
+                target.closest(
+                    '.weibo-lightbox-image, .weibo-lightbox-close, .weibo-lightbox-nav',
+                )
+            ) {
+                return;
+            }
+            closeLightbox();
+        });
+    }
+
+    function prefetchLightboxNeighbor(index) {
+        if (lightboxImages.length < 2) return;
+        const nextIndex = (index + 1 + lightboxImages.length) % lightboxImages.length;
+        const prevIndex = (index - 1 + lightboxImages.length) % lightboxImages.length;
+        [nextIndex, prevIndex].forEach((i) => {
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = lightboxImages[i];
+        });
+    }
+
+    function showLightboxImage(index) {
+        if (!lightboxImages.length) return;
+        lightboxIndex = (index + lightboxImages.length) % lightboxImages.length;
+        lightboxImageEl.src = lightboxImages[lightboxIndex];
+        lightboxCounterEl.textContent =
+            lightboxImages.length > 1 ? `${lightboxIndex + 1} / ${lightboxImages.length}` : '';
+        const hasMultiple = lightboxImages.length > 1;
+        lightboxPrevBtn.hidden = !hasMultiple;
+        lightboxNextBtn.hidden = !hasMultiple;
+        prefetchLightboxNeighbor(lightboxIndex);
+    }
+
+    function openWeiboLightbox(images, index) {
+        if (!images.length) return;
+        ensureWeiboLightbox();
+        lightboxImages = images;
+        lightboxEl.classList.add('show');
+        lightboxEl.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('weibo-lightbox-open');
+        showLightboxImage(index);
+    }
+
+    function closeLightbox() {
+        if (!lightboxEl || !lightboxEl.classList.contains('show')) return;
+        lightboxEl.classList.remove('show');
+        lightboxEl.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('weibo-lightbox-open');
+        if (lightboxImageEl) {
+            lightboxImageEl.removeAttribute('src');
+        }
+    }
+
+    dataTableContainer.addEventListener('click', function (e) {
+        const target = getEventElement(e);
+        if (!target) return;
+
+        const mediaButton = target.closest('.weibo-media-item');
+        if (mediaButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            const grid = mediaButton.closest('.weibo-media-grid');
+            const images = grid ? getImagesFromMediaGrid(grid) : [];
+            const index = Number.parseInt(mediaButton.dataset.imageIndex || '0', 10) || 0;
+            openWeiboLightbox(images, index);
+            return;
+        }
+
+        if (target.closest('.data-card-drag-handle')) return;
+        if (target.tagName === 'A' && target.href) return;
+        const card = target.closest('.data-card-link');
+        if (!card || !dataTableContainer.contains(card)) return;
+        const href = card.getAttribute('data-href');
+        if (href) {
+            window.open(href, '_blank', 'noopener,noreferrer');
+        }
+    });
+
+    dataTableContainer.addEventListener('mousedown', function (e) {
+        const target = getEventElement(e);
+        if (target && target.closest('.data-card-drag-handle')) {
+            e.stopPropagation();
+        }
+    });
+
+    dataTableContainer.addEventListener(
+        'error',
+        function (e) {
+            const img = e.target;
+            if (!(img instanceof HTMLImageElement) || !img.classList.contains('weibo-media-img')) {
+                return;
+            }
+            const fullSrc = img.dataset.fullSrc || '';
+            if (fullSrc && img.src !== new URL(fullSrc, window.location.href).href) {
+                img.src = fullSrc;
+                img.dataset.fullSrc = '';
+                return;
+            }
+            const item = img.closest('.weibo-media-item');
+            if (item) item.style.display = 'none';
+        },
+        true,
+    );
+
+    document.addEventListener('keydown', function (e) {
+        if (!lightboxEl || !lightboxEl.classList.contains('show')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') showLightboxImage(lightboxIndex - 1);
+        if (e.key === 'ArrowRight') showLightboxImage(lightboxIndex + 1);
+    });
+
     // 渲染不同平台的卡片
     function renderCards(rows) {
         if (!rows || rows.length === 0) {
@@ -226,20 +502,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 解析发布时间：微博文本格式为 "...\n\n{created_at}"
                 const parts = textRaw.split(/\n\s*\n/);
                 const createdAt = parts.length > 1 ? parts.pop().trim() : '';
-                const contentRaw = parts.join('\n\n').replace(/^\s+/, '').trim();
+                const contentRaw = parts
+                    .join('\n\n')
+                    .replace(/^\s+/, '')
+                    .replace(/\n?\s*\[图片\]\s*\*\s*\d+\s*\(详情请点击噢!\)/g, '')
+                    .trim();
+                const mediaHtml = renderWeiboMedia(row.images, row.image_thumbs);
                 const contentDisplay =
                     contentRaw.length > 300
                         ? `${contentRaw.slice(0, 300)}...`
-                        : contentRaw || '暂无最新微博内容';
+                        : contentRaw || (mediaHtml ? '' : '暂无最新微博内容');
+                const textHtml = contentDisplay
+                    ? `<div class="weibo-feed-text">${contentDisplay
+                          .split('\n')
+                          .map((l) => escapeHtml(l))
+                          .join('<br>')}</div>`
+                    : '';
 
                 html += `
 <article class="data-card weibo-feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
   <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
   <div class="weibo-feed-inner">
     <div class="weibo-feed-header">
-      <img src="${escapeAttr(
+      <img data-src="${escapeAttr(
           avatarUrl,
-      )}" alt="头像" class="weibo-feed-avatar" loading="lazy" onerror="this.classList.add('avatar-fallback')">
+      )}" alt="头像" class="weibo-feed-avatar" loading="lazy" decoding="async" onerror="this.classList.add('avatar-fallback')">
       <div class="weibo-feed-user">
         <div class="weibo-feed-name-row">
           <span class="weibo-feed-name">${escapeHtml(row.用户名)}</span>
@@ -252,7 +539,8 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
     </div>
     <div class="weibo-feed-body">
-      <div class="weibo-feed-text">${contentDisplay.split('\n').map((l) => escapeHtml(l)).join('<br>')}</div>
+      ${textHtml}
+      ${mediaHtml}
     </div>
     <footer class="weibo-feed-footer">
       <span class="weibo-feed-action"><span class="weibo-feed-action-icon">↗</span> 转发</span>
@@ -468,25 +756,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         dataTableContainer.innerHTML = html;
-
-        // 卡片点击统一跳转（拖拽手柄不触发跳转）
-        dataTableContainer.querySelectorAll('.data-card-link').forEach((card) => {
-            card.addEventListener('click', function (e) {
-                if (e.target.closest('.data-card-drag-handle')) return;
-                if (e.target.tagName === 'A' && e.target.href) return;
-                const href = this.getAttribute('data-href');
-                if (href) {
-                    window.open(href, '_blank', 'noopener,noreferrer');
-                }
-            });
-        });
-
-        // 拖拽手柄阻止默认拖拽行为（使用 Sortable 的 handle）
-        dataTableContainer.querySelectorAll('.data-card-drag-handle').forEach((h) => {
-            h.addEventListener('mousedown', (e) => e.stopPropagation());
-            h.addEventListener('click', (e) => e.stopPropagation());
-        });
-
+        initLazyImages();
         initSortable();
     }
 

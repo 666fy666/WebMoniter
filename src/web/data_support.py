@@ -1,5 +1,6 @@
 """Web 数据 API 的平台元数据与行转换。"""
 
+import json
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -15,6 +16,30 @@ PLATFORM_CONFIG = {
 }
 PLATFORM_PRIMARY_KEY = {k: v[1] for k, v in PLATFORM_CONFIG.items()}
 VALID_PLATFORMS = frozenset(PLATFORM_CONFIG)
+
+
+def _parse_weibo_images(raw: str | None) -> list[str]:
+    """解析 weibo.图片 JSON 字段，异常或旧数据返回空数组。"""
+    if not raw or not isinstance(raw, str):
+        return []
+    try:
+        images = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    if not isinstance(images, list):
+        return []
+    return [item.strip() for item in images if isinstance(item, str) and item.strip()]
+
+
+def _weibo_thumb_url(image_url: str) -> str:
+    """按保存规则从原图 URL 推导缩略图 URL。"""
+    if "/" not in image_url:
+        return image_url
+    parent, filename = image_url.rsplit("/", 1)
+    if "." not in filename:
+        return image_url
+    stem, _ = filename.rsplit(".", 1)
+    return f"{parent}/{stem}.thumb.jpg"
 
 
 def _parse_weibo_created_at(text: str | None) -> datetime | None:
@@ -89,6 +114,8 @@ def _parse_weibo_created_at(text: str | None) -> datetime | None:
 
 
 def _weibo_row_to_item(row: tuple) -> dict:
+    mid = row[7] if len(row) > 7 else ""
+    images = _parse_weibo_images(row[8] if len(row) > 8 else None)
     return {
         "UID": row[0],
         "用户名": row[1],
@@ -97,10 +124,10 @@ def _weibo_row_to_item(row: tuple) -> dict:
         "粉丝数": row[4],
         "微博数": row[5],
         "文本": row[6],
-        "mid": row[7],
-        "url": (
-            f"https://m.weibo.cn/detail/{row[7]}" if row[7] else f"https://www.weibo.com/u/{row[0]}"
-        ),
+        "mid": mid,
+        "images": images,
+        "image_thumbs": [_weibo_thumb_url(image) for image in images],
+        "url": f"https://m.weibo.cn/detail/{mid}" if mid else f"https://www.weibo.com/u/{row[0]}",
     }
 
 
@@ -116,6 +143,7 @@ def _huya_row_to_item(row: tuple) -> dict:
 
 
 def _weibo_row_to_status_item(row: tuple) -> dict:
+    images = _parse_weibo_images(row[8] if len(row) > 8 else None)
     return {
         "UID": row[0],
         "用户名": row[1],
@@ -125,6 +153,8 @@ def _weibo_row_to_status_item(row: tuple) -> dict:
         "微博数": row[5],
         "文本": row[6],
         "mid": row[7],
+        "images": images,
+        "image_thumbs": [_weibo_thumb_url(image) for image in images],
     }
 
 
@@ -201,7 +231,7 @@ def _row_to_item(platform: str, row: tuple) -> dict:
 _PLATFORM_SELECT = {
     "weibo": (
         "weibo",
-        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo WHERE UID = :pk",
+        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo WHERE UID = :pk",
     ),
     "huya": ("huya", "SELECT room, name, is_live FROM huya WHERE room = :pk"),
     "bilibili_live": (
@@ -221,7 +251,7 @@ _PLATFORM_SELECT = {
 }
 
 _PLATFORM_LIST_SQL = {
-    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo",
+    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo",
     "huya": "SELECT room, name, is_live, room_pic, avatar_url FROM huya",
     "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
     "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",

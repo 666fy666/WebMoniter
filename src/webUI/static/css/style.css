@@ -520,10 +520,6 @@ body.sidebar-collapsed .main-content {
     margin-left: 0;
 }
 
-body.sidebar-collapsed .sidebar {
-    transform: translateX(-100%);
-}
-
 @media (min-width: 769px) {
     .sidebar-overlay {
         display: none !important;
@@ -1308,6 +1304,11 @@ input:focus + .slider {
     border-color: rgba(245, 158, 11, 0.4);
 }
 
+.weibo-feed-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .weibo-feed-inner {
     padding-left: 108px;
 }
@@ -1359,6 +1360,11 @@ input:focus + .slider {
     flex-shrink: 0;
     border: 2px solid rgba(102, 126, 234, 0.15);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.weibo-feed-avatar:not([src]),
+.weibo-media-img:not([src]) {
+    visibility: hidden;
 }
 
 .weibo-feed-avatar.avatar-fallback {
@@ -1422,6 +1428,202 @@ input:focus + .slider {
     margin-bottom: 0.25em;
 }
 
+.weibo-media-grid {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+    max-width: 552px;
+}
+
+.weibo-media-count-1 {
+    display: block;
+    max-width: 360px;
+}
+
+.weibo-media-count-2,
+.weibo-media-count-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 366px;
+}
+
+.weibo-media-count-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.weibo-media-item {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    background: var(--glass-bg-light);
+    cursor: pointer;
+    appearance: none;
+}
+
+.weibo-media-count-1 .weibo-media-item {
+    aspect-ratio: 4 / 3;
+}
+
+.weibo-media-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-normal);
+}
+
+.weibo-feed-card:hover .weibo-media-item img {
+    transform: scale(1.02);
+}
+
+@media (hover: none), (pointer: coarse) {
+    .weibo-feed-grid .data-card:hover,
+    .weibo-feed-card:hover .weibo-media-item img {
+        transform: none;
+    }
+}
+
+.weibo-lightbox-open {
+    overflow: hidden;
+}
+
+.weibo-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 72px 72px 52px;
+    background: rgba(0, 0, 0, 0.86);
+}
+
+.weibo-lightbox.show {
+    display: flex;
+}
+
+.weibo-lightbox-figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.weibo-lightbox-image {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.38);
+}
+
+.weibo-lightbox-counter {
+    min-height: 24px;
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 14px;
+}
+
+.weibo-lightbox-close,
+.weibo-lightbox-nav {
+    position: fixed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.weibo-lightbox-close:hover,
+.weibo-lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.weibo-lightbox-close {
+    top: 22px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.weibo-lightbox-nav {
+    top: 50%;
+    width: 52px;
+    height: 52px;
+    font-size: 42px;
+    line-height: 1;
+    transform: translateY(-50%);
+}
+
+.weibo-lightbox-nav:hover {
+    transform: translateY(-50%) scale(1.04);
+}
+
+.weibo-lightbox-prev {
+    left: 24px;
+}
+
+.weibo-lightbox-next {
+    right: 24px;
+}
+
+.weibo-lightbox-nav[hidden] {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .weibo-media-grid,
+    .weibo-media-count-1,
+    .weibo-media-count-2,
+    .weibo-media-count-4 {
+        max-width: 100%;
+    }
+
+    .weibo-lightbox {
+        padding: 60px 12px 44px;
+    }
+
+    .weibo-lightbox-image {
+        max-height: calc(100vh - 118px);
+    }
+
+    .weibo-lightbox-close {
+        top: 14px;
+        right: 14px;
+        width: 40px;
+        height: 40px;
+    }
+
+    .weibo-lightbox-nav {
+        width: 42px;
+        height: 42px;
+        font-size: 34px;
+        background: rgba(0, 0, 0, 0.28);
+    }
+
+    .weibo-lightbox-prev {
+        left: 10px;
+    }
+
+    .weibo-lightbox-next {
+        right: 10px;
+    }
+}
+
 .weibo-feed-footer {
     display: flex;
     align-items: center;
@@ -1483,14 +1685,25 @@ input:focus + .slider {
 .data-card {
     position: relative;
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--glass-border);
     overflow: hidden;
     transition: transform var(--transition-normal), box-shadow var(--transition-normal),
         border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+@supports (content-visibility: auto) {
+    .data-card {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 280px;
+    }
+
+    .weibo-feed-grid .data-card {
+        contain-intrinsic-size: auto 420px;
+    }
 }
 
 .data-card:hover {
@@ -2494,16 +2707,9 @@ body.page-logs .logs-container {
         border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
     }
 
-    body:not(.sidebar-collapsed) .sidebar {
-        transform: translateX(-105%);
-    }
-
-    .sidebar.show {
+    /* specificity must beat body.sidebar-collapsed .sidebar (desktop collapse rule) */
+    body .sidebar.show {
         transform: translateX(0);
-    }
-
-    body.sidebar-collapsed .sidebar {
-        transform: translateX(-105%);
     }
 
     .main-content {
@@ -2939,15 +3145,15 @@ body.page-logs .logs-container {
     color: #92400e;
 }
 
-.task-id {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 14px;
+.task-title {
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.task-description {
-    font-size: 14px;
+.task-id {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
     color: var(--text-secondary);
     margin-bottom: 8px;
     line-height: 1.5;

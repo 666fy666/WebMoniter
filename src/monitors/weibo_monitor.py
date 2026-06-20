@@ -1,14 +1,18 @@
 """微博监控模块"""
 
 import asyncio
+import json
 import logging
 import re
+import shutil
+import uuid
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
-from PIL import Image
+from PIL import Image, ImageOps
 
 from src.core.http import create_certifi_connector
 from src.core.paths import DATA_DIR
@@ -54,7 +58,7 @@ class WeiboMonitor(BaseMonitor):
     async def load_old_info(self):
         """从数据库加载旧信息"""
         try:
-            sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid FROM weibo"
+            sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo"
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
             # 检查是否是首次创建数据库（表为空）
@@ -84,6 +88,136 @@ class WeiboMonitor(BaseMonitor):
         data_dir = DATA_DIR / "weibo"
         data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir
+
+    def _sanitize_path_part(self, value: str) -> str:
+        """将微博 mid 等动态值转换为安全的单层路径名。"""
+        safe_value = re.sub(r"[^0-9A-Za-z._-]", "_", str(value or "")).strip()
+        return safe_value or "0"
+
+    def _build_weibo_img_url(self, *parts: str) -> str:
+        """构造 /weibo_img 静态图片 URL，路径片段统一做 URL 编码。"""
+        return "/weibo_img/" + "/".join(quote(str(part), safe="") for part in parts)
+
+    def _get_post_thumbnail_path(self, image_path: Path) -> Path:
+        """正文原图旁边的缩略图路径。"""
+        return image_path.with_name(f"{image_path.stem}.thumb.jpg")
+
+    def _make_post_thumbnail(self, image_path: Path, thumb_path: Path) -> bool:
+        """为微博正文图片生成列表缩略图；失败不影响原图展示。"""
+        try:
+            with Image.open(image_path) as img:
+                img = ImageOps.exif_transpose(img)
+                img.thumbnail((480, 480), Image.Resampling.LANCZOS)
+                if img.mode in ("RGBA", "LA", "P"):
+                    bg = Image.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
+                    bg.paste(img, mask=img.getchannel("A") if img.mode in ("RGBA", "LA") else None)
+                    img = bg
+                else:
+                    img = img.convert("RGB")
+                thumb_path.parent.mkdir(parents=True, exist_ok=True)
+                img.save(thumb_path, "JPEG", quality=82, optimize=True)
+            return True
+        except Exception as e:
+            self.logger.debug("生成微博正文图片缩略图失败（已忽略）: %s", e)
+            return False
+
+    def _add_pic_url(self, urls: list[str], url: str | None) -> None:
+        """追加去重后的图片 URL，兼容微博返回的 // 开头地址。"""
+        if not isinstance(url, str):
+            return
+        cleaned = url.strip()
+        if not cleaned:
+            return
+        if cleaned.startswith("//"):
+            cleaned = f"https:{cleaned}"
+        if cleaned not in urls:
+            urls.append(cleaned)
+
+    def _collect_pic_candidates_from_info(self, info: dict) -> list[str]:
+        """从单张微博图片信息里提取由高清到低清的候选 URL。"""
+        candidates: list[str] = []
+        if not isinstance(info, dict):
+            return candidates
+
+        for key in ("largest", "original", "mw2000", "mw1024", "large", "bmiddle", "thumbnail"):
+            value = info.get(key)
+            if isinstance(value, dict):
+                self._add_pic_url(candidates, value.get("url") or value.get("src"))
+            elif isinstance(value, str):
+                self._add_pic_url(candidates, value)
+
+        for key in ("url", "pic_url"):
+            self._add_pic_url(candidates, info.get(key))
+
+        return candidates
+
+    def _extract_pic_url_candidates(
+        self,
+        pic_ids: list | None,
+        pic_infos: dict | None,
+        pics: list | None = None,
+    ) -> list[list[str]]:
+        """按微博图片顺序提取每张图的下载候选 URL；视频不参与处理。"""
+        result: list[list[str]] = []
+        safe_pic_infos = pic_infos if isinstance(pic_infos, dict) else {}
+        ordered_ids = [str(pic_id) for pic_id in (pic_ids or []) if pic_id]
+        if not ordered_ids and safe_pic_infos:
+            ordered_ids = [str(pic_id) for pic_id in safe_pic_infos.keys()]
+
+        for pic_id in ordered_ids:
+            info = safe_pic_infos.get(pic_id)
+            candidates = self._collect_pic_candidates_from_info(info)
+            if candidates:
+                result.append(candidates)
+
+        if result or not isinstance(pics, list):
+            return result
+
+        for pic in pics:
+            if not isinstance(pic, dict):
+                continue
+            if str(pic.get("type") or "").lower() == "video":
+                continue
+            candidates = self._collect_pic_candidates_from_info(pic)
+            if candidates:
+                result.append(candidates)
+        return result
+
+    def _remove_path(self, path: Path) -> None:
+        """删除文件或目录；仅用于微博本地图片目录维护。"""
+        if not path.exists():
+            return
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+
+    def _commit_post_image_dir(self, user_dir: Path, post_mid: str, temp_dir: Path | None) -> Path:
+        """
+        将临时图片目录切换为 posts/<mid>，并移除同一用户其他旧微博图片目录。
+
+        temp_dir 为 None 时只保留当前 mid 目录；若当前 mid 目录不存在，则清空旧目录。
+        """
+        posts_dir = user_dir / "posts"
+        posts_dir.mkdir(parents=True, exist_ok=True)
+        target_dir = posts_dir / self._sanitize_path_part(post_mid)
+        keep_names = {target_dir.name}
+        if temp_dir is not None:
+            keep_names.add(temp_dir.name)
+
+        for child in posts_dir.iterdir():
+            if child.name in keep_names:
+                continue
+            self._remove_path(child)
+
+        if temp_dir is not None:
+            if target_dir.exists():
+                self._remove_path(target_dir)
+            shutil.move(str(temp_dir), str(target_dir))
+
+        return target_dir
 
     async def _download_image(self, url: str, save_path: Path) -> bool:
         """下载单张图片到指定路径，失败时仅记录日志；已存在则跳过。"""
@@ -128,6 +262,92 @@ class WeiboMonitor(BaseMonitor):
         except Exception as e:
             self.logger.warning("下载微博头像失败: %s, URL: %s", e, url)
             return False
+
+    async def _download_post_image(self, candidates: list[str], save_path: Path) -> bool:
+        """按候选 URL 下载一张最新微博图片，成功落盘后返回 True。"""
+        urls: list[str] = []
+        for item in candidates:
+            for candidate in str(item).split(";"):
+                self._add_pic_url(urls, candidate)
+        if not urls:
+            return False
+
+        try:
+            session = await self._get_session()
+            last_status: int | None = None
+
+            for candidate in urls:
+                async with session.get(candidate) as resp:
+                    last_status = resp.status
+                    if resp.status != 200:
+                        continue
+
+                    content = await resp.read()
+                    if not content:
+                        continue
+
+                    save_path.parent.mkdir(parents=True, exist_ok=True)
+                    save_path.write_bytes(content)
+                    self.logger.debug("已保存微博正文图片到: %s (URL: %s)", save_path, candidate)
+                    return True
+
+            self.logger.warning(
+                "下载微博正文图片失败，所有候选 URL 均返回非 200（最后状态码: %s）",
+                last_status,
+            )
+            return False
+        except Exception as e:
+            self.logger.warning("下载微博正文图片失败: %s", e)
+            return False
+
+    async def _save_post_images(self, data: dict) -> list[str]:
+        """
+        保存当前数据库微博对应的正文图片到 data/weibo/<用户名>/posts/<mid>/。
+
+        先下载到临时目录，再替换当前 mid 目录；同一用户只保留数据库当前微博的图片。
+        """
+        username = data.get("用户名") or "unknown_user"
+        safe_username = self._sanitize_username(username)
+        post_mid = self._sanitize_path_part(data.get("mid") or "0")
+        user_dir = self._get_weibo_data_dir() / safe_username
+        candidates_by_pic = data.get("_pic_url_candidates") or []
+        image_urls: list[str] = []
+
+        if not candidates_by_pic or post_mid == "0":
+            self._commit_post_image_dir(user_dir, post_mid, None)
+            data["图片"] = json.dumps(image_urls, ensure_ascii=False)
+            return image_urls
+
+        posts_dir = user_dir / "posts"
+        temp_dir = posts_dir / f".{post_mid}.{uuid.uuid4().hex}.tmp"
+        temp_dir.mkdir(parents=True, exist_ok=False)
+
+        try:
+            for index, candidates in enumerate(candidates_by_pic, start=1):
+                save_path = temp_dir / f"{index:02d}.jpg"
+                if await self._download_post_image(candidates, save_path):
+                    self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
+                    image_urls.append(
+                        self._build_weibo_img_url(
+                            safe_username,
+                            "posts",
+                            post_mid,
+                            save_path.name,
+                        )
+                    )
+
+            if image_urls:
+                self._commit_post_image_dir(user_dir, post_mid, temp_dir)
+            else:
+                self._remove_path(temp_dir)
+                self._commit_post_image_dir(user_dir, post_mid, None)
+        except Exception as e:
+            self._remove_path(temp_dir)
+            image_urls = []
+            self.logger.warning("保存微博正文图片时发生异常（已忽略）: %s", e)
+
+        data["图片"] = json.dumps(image_urls, ensure_ascii=False)
+        return image_urls
 
     def _resize_cover_for_wecom(self, cover_path: Path, wecom_path: Path) -> bool:
         """
@@ -253,6 +473,7 @@ class WeiboMonitor(BaseMonitor):
         if not wb_list:
             data["文本"] = "无内容"
             data["mid"] = "0"
+            data["图片"] = "[]"
             return data
 
         # 找到第一个非置顶微博
@@ -267,6 +488,8 @@ class WeiboMonitor(BaseMonitor):
         target_wb = wb_list[target_idx]
         text_raw = target_wb["text_raw"]
         pic_ids = target_wb.get("pic_ids", [])
+        pic_infos = target_wb.get("pic_infos", {})
+        pics = target_wb.get("pics", [])
         url_struct = target_wb.get("url_struct", [])
         created_at = target_wb["created_at"]
 
@@ -288,9 +511,11 @@ class WeiboMonitor(BaseMonitor):
 
         data["文本"] = text
         data["mid"] = str(target_wb["mid"])
+        data["图片"] = "[]"
         # 保存原始数据，用于推送时动态处理
         data["_text_raw"] = text_raw
         data["_pic_ids"] = pic_ids
+        data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
         data["_url_struct"] = url_struct
         data["_created_at"] = created_at
 
@@ -335,12 +560,18 @@ class WeiboMonitor(BaseMonitor):
             if diff == 0:
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
+                await self._save_post_images(new_data)
+
                 # 更新数据
                 sql = (
                     "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
-                    "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s WHERE UID=%(UID)s"
+                    "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
+                    "图片=%(图片)s WHERE UID=%(UID)s"
                 )
-                await self.db.execute_update(sql, new_data)
+                updated = await self.db.execute_update(sql, new_data)
+                if not updated:
+                    self.logger.error("更新 %s 微博数据失败，跳过推送", new_data["用户名"])
+                    return
 
                 if diff > 0:
                     self.logger.info(f"{new_data['用户名']} 发布了{diff}条微博😍")
@@ -349,12 +580,18 @@ class WeiboMonitor(BaseMonitor):
 
                 await self.push_notification(new_data, diff)
         else:
+            await self._save_post_images(new_data)
+
             # 新用户插入
             sql = (
-                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid) "
-                "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, %(微博数)s, %(文本)s, %(mid)s)"
+                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片) "
+                "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, "
+                "%(微博数)s, %(文本)s, %(mid)s, %(图片)s)"
             )
-            await self.db.execute_insert(sql, new_data)
+            inserted = await self.db.execute_insert(sql, new_data)
+            if not inserted:
+                self.logger.error("插入 %s 微博数据失败，跳过推送", new_data["用户名"])
+                return
 
             if self._is_first_time:
                 self.logger.info(f"{new_data['用户名']} 新收录（首次创建数据库，跳过推送）")
