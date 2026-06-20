@@ -1,0 +1,47 @@
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/config" class="sidebar-brand" title="WebMoniter">
+            <img src="/static/favicon.svg" alt="" class="sidebar-logo" width="36" height="36">
+            <div class="sidebar-brand-text">
+                <span class="sidebar-title">WebMoniter</span>
+                <span class="sidebar-tagline">多平台监控</span>
+            </div>
+        </a>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/config" class="nav-item{% if active_nav == 'config' %} active{% endif %}">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">配置管理</span>
+        </a>
+        <a href="/tasks" class="nav-item{% if active_nav == 'tasks' %} active{% endif %}">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">任务管理</span>
+        </a>
+        <a href="/data" class="nav-item{% if active_nav == 'data' %} active{% endif %}">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">数据展示</span>
+        </a>
+        <a href="/logs" class="nav-item{% if active_nav == 'logs' %} active{% endif %}">
+            <span class="nav-icon">📝</span>
+            <span class="nav-text">日志查看</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <button id="themeToggleBtn" class="btn btn-secondary">
+            <span id="themeIcon">☀️</span>
+            切换主题
+        </button>
+        <button id="changePasswordBtn" class="btn btn-secondary">
+            <span>🔐</span>
+            修改密码
+        </button>
+        <button id="logoutBtn" class="btn btn-secondary">
+            <span>🚪</span>
+            退出登录
+        </button>
+    </div>
+    <div class="version-info">
+        <a id="currentVersion" href="#" target="_blank">加载中...</a>
+    </div>
+</div>

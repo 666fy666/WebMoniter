@@ -144,75 +144,110 @@ function formatDateTime(dateString) {
     return date.toLocaleString('zh-CN');
 }
 
-// 移动端菜单切换
 function initMobileMenu() {
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
 
     if (!mobileMenuBtn || !sidebar || !sidebarOverlay) {
-        return; // 登录页面没有这些元素
+        return;
     }
+
+    const SIDEBAR_STATE_KEY = 'sidebarCollapsed';
 
     mobileMenuBtn.setAttribute('aria-controls', 'sidebar');
     mobileMenuBtn.setAttribute('aria-expanded', 'false');
-    sidebar.setAttribute('aria-hidden', window.innerWidth <= 768 ? 'true' : 'false');
 
     function isMobileViewport() {
         return window.innerWidth <= 768;
     }
 
-    function setMenuState(open) {
+    function isSidebarCollapsed() {
+        return document.body.classList.contains('sidebar-collapsed');
+    }
+
+    function applyDesktopCollapsedState(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? '1' : '0');
+        mobileMenuBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    function initDesktopSidebarState() {
+        if (isMobileViewport()) {
+            document.body.classList.remove('sidebar-collapsed');
+            sidebar.setAttribute('aria-hidden', 'true');
+            return;
+        }
+
+        const saved = localStorage.getItem(SIDEBAR_STATE_KEY);
+        const collapsed = saved === '1';
+        applyDesktopCollapsedState(collapsed);
+        sidebar.classList.remove('show');
+        sidebarOverlay.classList.remove('show');
+        document.body.classList.remove('mobile-sidebar-open');
+        sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+    }
+
+    function setMobileMenuState(open) {
         sidebar.classList.toggle('show', open);
         sidebarOverlay.classList.toggle('show', open);
         mobileMenuBtn.classList.toggle('active', open);
         document.body.classList.toggle('mobile-sidebar-open', open);
         mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        sidebar.setAttribute('aria-hidden', open ? 'false' : String(isMobileViewport()));
+        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+
+    function closeMobileMenu() {
+        setMobileMenuState(false);
     }
 
     function toggleMenu() {
-        setMenuState(!sidebar.classList.contains('show'));
+        if (isMobileViewport()) {
+            setMobileMenuState(!sidebar.classList.contains('show'));
+            return;
+        }
+
+        applyDesktopCollapsedState(!isSidebarCollapsed());
+        sidebar.setAttribute('aria-hidden', isSidebarCollapsed() ? 'true' : 'false');
     }
 
-    function closeMenu() {
-        setMenuState(false);
-    }
-
-    // 绑定事件
     mobileMenuBtn.addEventListener('click', toggleMenu);
-    sidebarOverlay.addEventListener('click', closeMenu);
+    sidebarOverlay.addEventListener('click', closeMobileMenu);
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && sidebar.classList.contains('show')) {
-            closeMenu();
+        if (event.key !== 'Escape') {
+            return;
+        }
+        if (isMobileViewport() && sidebar.classList.contains('show')) {
+            closeMobileMenu();
             mobileMenuBtn.focus();
         }
     });
 
-    // 点击导航项后关闭菜单（移动端）
-    const navItems = sidebar.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
+    sidebar.querySelectorAll('.nav-item').forEach((item) => {
         item.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                closeMenu();
+            if (isMobileViewport()) {
+                closeMobileMenu();
             }
         });
     });
 
-    // 窗口大小改变时，如果切换到桌面端，自动关闭移动端菜单
     let resizeTimer;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
             if (isMobileViewport()) {
+                document.body.classList.remove('sidebar-collapsed');
+                closeMobileMenu();
                 sidebar.setAttribute('aria-hidden', sidebar.classList.contains('show') ? 'false' : 'true');
             } else {
-                closeMenu();
-                sidebar.setAttribute('aria-hidden', 'false');
+                closeMobileMenu();
+                initDesktopSidebarState();
             }
         }, 250);
     });
+
+    initDesktopSidebarState();
 }
 
 // 修改密码功能
