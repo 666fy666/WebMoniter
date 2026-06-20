@@ -101,6 +101,8 @@ class UnifiedPushManager:
     ) -> str:
         """
         若渠道有字数限制且内容超限，则截断到该渠道 max_content_bytes 以内。
+
+        纯同步实现：仅做字节截断，不访问全局配置，调用方无需 await。
         """
         max_bytes = getattr(channel, "max_content_bytes", None)
         if extend_data and extend_data.get("plain_text"):
