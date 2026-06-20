@@ -12,6 +12,7 @@ let currentTable = 'weibo';
 let currentPage = 1;
 const pageSize = 100;
 const STORAGE_KEY_PREFIX = 'data-card-order-';
+const MAX_LAZY_IMAGE_LOADS = 3;
 let sortableInstance = null;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let lazyImageObserver = null;
     let lazyImageQueue = [];
     let lazyImageQueueScheduled = false;
+    let activeLazyImageLoads = 0;
 
     const tableTitles = {
         weibo: '📱 微博数据',
@@ -219,38 +221,83 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function loadLazyImage(img) {
         if (!img || !img.isConnected || !dataTableContainer.contains(img)) return;
+        if (img.dataset.lazyVisible === '0') return;
         const src = img.dataset.src;
         if (!src) return;
+        activeLazyImageLoads += 1;
+        img.dataset.lazyLoading = '1';
+
+        const finish = () => {
+            activeLazyImageLoads = Math.max(0, activeLazyImageLoads - 1);
+            img.removeAttribute('data-lazy-loading');
+            scheduleLazyImageQueue();
+        };
+        img.addEventListener('load', finish, { once: true });
+        img.addEventListener('error', finish, { once: true });
+
         img.src = src;
         img.removeAttribute('data-src');
         img.removeAttribute('data-lazy-queued');
+        img.classList.add('image-loaded');
+    }
+
+    function unloadLazyImage(img) {
+        if (!img || !img.isConnected || !dataTableContainer.contains(img)) return;
+        const src = img.getAttribute('src');
+        if (!src) return;
+        if (img.dataset.lazyLoading === '1') {
+            activeLazyImageLoads = Math.max(0, activeLazyImageLoads - 1);
+            img.removeAttribute('data-lazy-loading');
+        }
+        img.dataset.src = src;
+        img.removeAttribute('src');
+        img.removeAttribute('data-lazy-queued');
+        img.classList.remove('image-loaded');
+    }
+
+    function getLazyImageDistance(img) {
+        const rect = img.getBoundingClientRect();
+        if (rect.bottom >= 0 && rect.top <= window.innerHeight) return 0;
+        if (rect.top > window.innerHeight) return rect.top - window.innerHeight;
+        return Math.abs(rect.bottom);
+    }
+
+    function sortLazyImageQueue() {
+        lazyImageQueue.sort((a, b) => getLazyImageDistance(a) - getLazyImageDistance(b));
+    }
+
+    function scheduleLazyImageQueue() {
+        if (lazyImageQueueScheduled || lazyImageQueue.length === 0) return;
+        lazyImageQueueScheduled = true;
+        runWhenIdle(processLazyImageQueue);
     }
 
     function processLazyImageQueue(deadline) {
         lazyImageQueueScheduled = false;
+        sortLazyImageQueue();
         let count = 0;
         while (
             lazyImageQueue.length > 0 &&
-            count < 4 &&
+            activeLazyImageLoads < MAX_LAZY_IMAGE_LOADS &&
+            count < MAX_LAZY_IMAGE_LOADS &&
             (!deadline || deadline.didTimeout || deadline.timeRemaining() > 4)
         ) {
-            loadLazyImage(lazyImageQueue.shift());
+            const img = lazyImageQueue.shift();
+            if (img && img.dataset.lazyVisible === '0') {
+                img.removeAttribute('data-lazy-queued');
+                continue;
+            }
+            loadLazyImage(img);
             count += 1;
         }
-        if (lazyImageQueue.length > 0) {
-            lazyImageQueueScheduled = true;
-            runWhenIdle(processLazyImageQueue);
-        }
+        scheduleLazyImageQueue();
     }
 
     function enqueueLazyImage(img) {
-        if (!img || img.dataset.lazyQueued === '1') return;
+        if (!img || img.dataset.lazyQueued === '1' || img.dataset.lazyLoading === '1') return;
         img.dataset.lazyQueued = '1';
         lazyImageQueue.push(img);
-        if (!lazyImageQueueScheduled) {
-            lazyImageQueueScheduled = true;
-            runWhenIdle(processLazyImageQueue);
-        }
+        scheduleLazyImageQueue();
     }
 
     function initLazyImages() {
@@ -259,6 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
             lazyImageObserver = null;
         }
         lazyImageQueue = lazyImageQueue.filter((img) => img.isConnected);
+        activeLazyImageLoads = 0;
 
         const lazyImages = Array.from(dataTableContainer.querySelectorAll('img[data-src]'));
         if (lazyImages.length === 0) return;
@@ -271,14 +319,19 @@ document.addEventListener('DOMContentLoaded', function () {
         lazyImageObserver = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    if (!entry.isIntersecting) return;
-                    lazyImageObserver.unobserve(entry.target);
-                    enqueueLazyImage(entry.target);
+                    const img = entry.target;
+                    if (entry.isIntersecting) {
+                        img.dataset.lazyVisible = '1';
+                        enqueueLazyImage(img);
+                        return;
+                    }
+                    img.dataset.lazyVisible = '0';
+                    unloadLazyImage(img);
                 });
             },
             {
                 root: null,
-                rootMargin: '900px 0px',
+                rootMargin: '450px 0px',
                 threshold: 0.01,
             },
         );
