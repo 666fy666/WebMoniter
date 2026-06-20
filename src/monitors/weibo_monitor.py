@@ -8,7 +8,7 @@ import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
@@ -18,6 +18,12 @@ from src.core.http import create_certifi_connector
 from src.core.paths import DATA_DIR
 from src.monitors.base import BaseMonitor, CookieExpiredError
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
+
+POST_IMAGE_TIMEOUT = ClientTimeout(total=180, sock_connect=20, sock_read=90)
+POST_IMAGE_HEADERS = {
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    "Referer": "https://weibo.com/",
+}
 
 
 class WeiboMonitor(BaseMonitor):
@@ -194,6 +200,56 @@ class WeiboMonitor(BaseMonitor):
         else:
             path.unlink()
 
+    def _parse_post_image_urls(self, raw_images: object) -> list[str]:
+        """解析数据库中的微博正文图片 JSON。"""
+        if isinstance(raw_images, list):
+            values = raw_images
+        elif isinstance(raw_images, str) and raw_images.strip():
+            try:
+                values = json.loads(raw_images)
+            except json.JSONDecodeError:
+                return []
+        else:
+            return []
+        return [item for item in values if isinstance(item, str) and item]
+
+    def _get_local_post_image_path(self, image_url: str) -> Path | None:
+        """将 /weibo_img/... URL 转回本地路径，仅用于检查已保存图片是否存在。"""
+        prefix = "/weibo_img/"
+        if not isinstance(image_url, str) or not image_url.startswith(prefix):
+            return None
+
+        parts = [unquote(part) for part in image_url[len(prefix) :].split("/") if part]
+        if not parts or any(part in ("", ".", "..") or "\\" in part or "/" in part for part in parts):
+            return None
+
+        root = self._get_weibo_data_dir().resolve()
+        path = root.joinpath(*parts).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            return None
+        return path
+
+    def _local_post_image_exists(self, image_url: str) -> bool:
+        """检查数据库图片 URL 对应的本地文件是否还可用。"""
+        image_path = self._get_local_post_image_path(image_url)
+        return bool(image_path and image_path.is_file() and image_path.stat().st_size > 0)
+
+    def _needs_post_image_retry(self, data: dict, old_info: tuple) -> bool:
+        """同一条微博未变化时，判断是否需要补偿下载缺失正文图片。"""
+        expected_count = len(data.get("_pic_url_candidates") or [])
+        if expected_count <= 0:
+            return False
+
+        old_mid = str(old_info[7]) if len(old_info) > 7 else ""
+        if self._sanitize_path_part(old_mid) != self._sanitize_path_part(data.get("mid") or "0"):
+            return False
+
+        old_images = self._parse_post_image_urls(old_info[8] if len(old_info) > 8 else "")
+        available_count = sum(1 for image_url in old_images if self._local_post_image_exists(image_url))
+        return len(old_images) < expected_count or available_count < min(len(old_images), expected_count)
+
     def _commit_post_image_dir(self, user_dir: Path, post_mid: str, temp_dir: Path | None) -> Path:
         """
         将临时图片目录切换为 posts/<mid>，并移除同一用户其他旧微博图片目录。
@@ -272,35 +328,110 @@ class WeiboMonitor(BaseMonitor):
         if not urls:
             return False
 
-        try:
-            session = await self._get_session()
-            last_status: int | None = None
+        session = await self._get_session()
+        last_status: int | None = None
+        last_error = ""
 
-            for candidate in urls:
-                async with session.get(candidate) as resp:
+        for candidate in urls:
+            temp_path = save_path.with_name(f".{save_path.name}.{uuid.uuid4().hex}.download")
+            try:
+                async with session.get(
+                    candidate,
+                    headers=POST_IMAGE_HEADERS,
+                    timeout=POST_IMAGE_TIMEOUT,
+                ) as resp:
                     last_status = resp.status
                     if resp.status != 200:
                         continue
 
-                    content = await resp.read()
-                    if not content:
+                    save_path.parent.mkdir(parents=True, exist_ok=True)
+                    written = 0
+                    with temp_path.open("wb") as file:
+                        async for chunk in resp.content.iter_chunked(64 * 1024):
+                            if not chunk:
+                                continue
+                            file.write(chunk)
+                            written += len(chunk)
+
+                    if written == 0:
+                        self._remove_path(temp_path)
                         continue
 
-                    save_path.parent.mkdir(parents=True, exist_ok=True)
-                    save_path.write_bytes(content)
+                    temp_path.replace(save_path)
                     self.logger.debug("已保存微博正文图片到: %s (URL: %s)", save_path, candidate)
                     return True
+            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+                self._remove_path(temp_path)
+                last_error = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+                self.logger.debug(
+                    "微博正文图片候选 URL 下载失败（继续尝试）: %s, URL: %s",
+                    last_error,
+                    candidate,
+                )
+                continue
 
-            self.logger.warning(
-                "下载微博正文图片失败，所有候选 URL 均返回非 200（最后状态码: %s）",
-                last_status,
-            )
-            return False
+        self.logger.warning(
+            "下载微博正文图片失败，所有候选 URL 均不可用（最后状态码: %s, 最后异常: %s）",
+            last_status,
+            last_error or "无",
+        )
+        return False
+
+    async def _refresh_post_pic_url_candidates(self, uid: str, mid: str) -> list[list[str]]:
+        """重新请求微博列表，刷新当前 mid 的临时图片链接。"""
+        if not uid or not mid or mid == "0":
+            return []
+
+        try:
+            session = await self._get_session()
+            url = f"https://www.weibo.com/ajax/statuses/mymblog?uid={uid}&page=1&feature=0"
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                result = await resp.json()
+
+            if result.get("ok") == -100:
+                self.logger.warning("刷新微博正文图片链接失败：微博 Cookie 已失效")
+                return []
+
+            wb_list = result.get("data", {}).get("list", [])
+            for item in wb_list:
+                if str(item.get("mid") or "") != str(mid):
+                    continue
+                return self._extract_pic_url_candidates(
+                    item.get("pic_ids", []),
+                    item.get("pic_infos", {}),
+                    item.get("pics", []),
+                )
         except Exception as e:
-            self.logger.warning("下载微博正文图片失败: %s", e)
-            return False
+            self.logger.debug("刷新微博正文图片链接失败（已忽略）: %s", e)
 
-    async def _save_post_images(self, data: dict) -> list[str]:
+        return []
+
+    async def _download_post_images_to_temp(
+        self,
+        candidates_by_pic: list[list[str]],
+        temp_dir: Path,
+        safe_username: str,
+        post_mid: str,
+    ) -> list[str]:
+        """下载一批正文图片到临时目录，并按图片序号返回已落盘的本地 URL。"""
+        saved_indices: list[int] = []
+        for index, candidates in enumerate(candidates_by_pic, start=1):
+            save_path = temp_dir / f"{index:02d}.jpg"
+            if save_path.exists() and save_path.stat().st_size > 0:
+                saved_indices.append(index)
+                continue
+
+            if await self._download_post_image(candidates, save_path):
+                self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
+                saved_indices.append(index)
+
+        return [
+            self._build_weibo_img_url(safe_username, "posts", post_mid, f"{index:02d}.jpg")
+            for index in saved_indices
+        ]
+
+    async def _save_post_images(self, data: dict, keep_existing: bool = False) -> list[str]:
         """
         保存当前数据库微博对应的正文图片到 data/weibo/<用户名>/posts/<mid>/。
 
@@ -312,38 +443,72 @@ class WeiboMonitor(BaseMonitor):
         user_dir = self._get_weibo_data_dir() / safe_username
         candidates_by_pic = data.get("_pic_url_candidates") or []
         image_urls: list[str] = []
+        existing_urls = self._parse_post_image_urls(data.get("图片"))
+        existing_available_count = sum(
+            1 for image_url in existing_urls if self._local_post_image_exists(image_url)
+        )
 
         if not candidates_by_pic or post_mid == "0":
-            self._commit_post_image_dir(user_dir, post_mid, None)
+            if keep_existing:
+                image_urls = existing_urls
+            else:
+                self._commit_post_image_dir(user_dir, post_mid, None)
             data["图片"] = json.dumps(image_urls, ensure_ascii=False)
             return image_urls
 
+        expected_count = len(candidates_by_pic)
         posts_dir = user_dir / "posts"
         temp_dir = posts_dir / f".{post_mid}.{uuid.uuid4().hex}.tmp"
         temp_dir.mkdir(parents=True, exist_ok=False)
 
         try:
-            for index, candidates in enumerate(candidates_by_pic, start=1):
-                save_path = temp_dir / f"{index:02d}.jpg"
-                if await self._download_post_image(candidates, save_path):
-                    self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
-                    image_urls.append(
-                        self._build_weibo_img_url(
-                            safe_username,
-                            "posts",
-                            post_mid,
-                            save_path.name,
-                        )
+            image_urls = await self._download_post_images_to_temp(
+                candidates_by_pic,
+                temp_dir,
+                safe_username,
+                post_mid,
+            )
+
+            if len(image_urls) < expected_count:
+                refreshed_candidates = await self._refresh_post_pic_url_candidates(
+                    str(data.get("UID") or ""),
+                    str(data.get("mid") or ""),
+                )
+                if refreshed_candidates:
+                    expected_count = max(expected_count, len(refreshed_candidates))
+                    data["_pic_url_candidates"] = refreshed_candidates
+                    image_urls = await self._download_post_images_to_temp(
+                        refreshed_candidates,
+                        temp_dir,
+                        safe_username,
+                        post_mid,
                     )
+
+            if (
+                keep_existing
+                and existing_urls
+                and len(image_urls) <= existing_available_count
+                and len(image_urls) < expected_count
+            ):
+                self._remove_path(temp_dir)
+                data["图片"] = json.dumps(existing_urls, ensure_ascii=False)
+                self.logger.warning(
+                    "%s 微博正文图片补偿下载未改善，保留已有本地图片 %s/%s 张",
+                    username,
+                    existing_available_count,
+                    expected_count,
+                )
+                return existing_urls
 
             if image_urls:
                 self._commit_post_image_dir(user_dir, post_mid, temp_dir)
             else:
                 self._remove_path(temp_dir)
-                self._commit_post_image_dir(user_dir, post_mid, None)
+                if not keep_existing:
+                    self._commit_post_image_dir(user_dir, post_mid, None)
         except Exception as e:
             self._remove_path(temp_dir)
-            image_urls = []
+            image_urls = existing_urls if keep_existing else []
             self.logger.warning("保存微博正文图片时发生异常（已忽略）: %s", e)
 
         data["图片"] = json.dumps(image_urls, ensure_ascii=False)
@@ -558,6 +723,28 @@ class WeiboMonitor(BaseMonitor):
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
+                if self._needs_post_image_retry(new_data, old_info):
+                    new_data["图片"] = old_info[8] if len(old_info) > 8 else "[]"
+                    image_urls = await self._save_post_images(new_data, keep_existing=True)
+                    updated = await self.db.execute_update(
+                        "UPDATE weibo SET 图片=%(图片)s WHERE UID=%(UID)s AND mid=%(mid)s",
+                        new_data,
+                    )
+                    if updated:
+                        old_items = list(old_info)
+                        if len(old_items) > 8:
+                            old_items[8] = new_data["图片"]
+                        else:
+                            old_items.append(new_data["图片"])
+                        self.old_data_dict[uid] = tuple(old_items)
+                        self.logger.info(
+                            "%s 微博正文图片已补偿下载 %s/%s 张",
+                            new_data["用户名"],
+                            len(image_urls),
+                            len(new_data.get("_pic_url_candidates") or []),
+                        )
+                    else:
+                        self.logger.error("%s 微博正文图片补偿结果写入数据库失败", new_data["用户名"])
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 await self._save_post_images(new_data)

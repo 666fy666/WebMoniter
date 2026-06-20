@@ -1,5 +1,7 @@
 """Tests for Weibo post image persistence and API shape."""
 
+import json
+
 import aiosqlite
 import pytest
 from PIL import Image
@@ -111,3 +113,105 @@ def test_commit_post_image_dir_keeps_same_mid(tmp_path):
     assert target_dir == current_dir
     assert (current_dir / "01.jpg").read_bytes() == b"current"
     assert not stale_dir.exists()
+
+
+def test_needs_post_image_retry_when_local_file_is_missing(tmp_path, monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    root_dir = tmp_path / "weibo"
+    monkeypatch.setattr(monitor, "_get_weibo_data_dir", lambda: root_dir)
+
+    safe_username = monitor._sanitize_username("name")
+    post_dir = root_dir / safe_username / "posts" / "123"
+    post_dir.mkdir(parents=True)
+    (post_dir / "01.jpg").write_bytes(b"image")
+
+    image_urls = [
+        monitor._build_weibo_img_url(safe_username, "posts", "123", "01.jpg"),
+        monitor._build_weibo_img_url(safe_username, "posts", "123", "02.jpg"),
+    ]
+    data = {"mid": "123", "_pic_url_candidates": [["a"], ["b"]]}
+    old_info = ("1", "name", "verified", "intro", "10", "20", "text", "123", json.dumps(image_urls))
+
+    assert monitor._needs_post_image_retry(data, old_info) is True
+
+    (post_dir / "02.jpg").write_bytes(b"image")
+
+    assert monitor._needs_post_image_retry(data, old_info) is False
+
+
+@pytest.mark.asyncio
+async def test_save_post_images_keeps_existing_images_when_retry_fails(tmp_path, monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    root_dir = tmp_path / "weibo"
+    monkeypatch.setattr(monitor, "_get_weibo_data_dir", lambda: root_dir)
+
+    safe_username = monitor._sanitize_username("name")
+    post_dir = root_dir / safe_username / "posts" / "123"
+    post_dir.mkdir(parents=True)
+    (post_dir / "01.jpg").write_bytes(b"existing")
+    existing_url = monitor._build_weibo_img_url(safe_username, "posts", "123", "01.jpg")
+
+    async def fail_download(candidates, save_path):
+        return False
+
+    async def no_refreshed_links(uid, mid):
+        return []
+
+    monkeypatch.setattr(monitor, "_download_post_image", fail_download)
+    monkeypatch.setattr(monitor, "_refresh_post_pic_url_candidates", no_refreshed_links)
+
+    data = {
+        "UID": "1",
+        "用户名": "name",
+        "mid": "123",
+        "图片": json.dumps([existing_url]),
+        "_pic_url_candidates": [["stale1"], ["stale2"]],
+    }
+
+    image_urls = await monitor._save_post_images(data, keep_existing=True)
+
+    assert image_urls == [existing_url]
+    assert json.loads(data["图片"]) == [existing_url]
+    assert (post_dir / "01.jpg").read_bytes() == b"existing"
+    assert not any(path.name.startswith(".") for path in (root_dir / safe_username / "posts").iterdir())
+
+
+@pytest.mark.asyncio
+async def test_save_post_images_retries_with_refreshed_links(tmp_path, monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    root_dir = tmp_path / "weibo"
+    monkeypatch.setattr(monitor, "_get_weibo_data_dir", lambda: root_dir)
+    monkeypatch.setattr(monitor, "_make_post_thumbnail", lambda image_path, thumb_path: True)
+
+    async def fake_download(candidates, save_path):
+        if str(candidates[0]).startswith("fresh"):
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_bytes(b"image")
+            return True
+        return False
+
+    async def refreshed_links(uid, mid):
+        return [["fresh1"], ["fresh2"]]
+
+    monkeypatch.setattr(monitor, "_download_post_image", fake_download)
+    monkeypatch.setattr(monitor, "_refresh_post_pic_url_candidates", refreshed_links)
+
+    data = {
+        "UID": "1",
+        "用户名": "name",
+        "mid": "123",
+        "图片": "[]",
+        "_pic_url_candidates": [["stale1"], ["stale2"]],
+    }
+
+    image_urls = await monitor._save_post_images(data)
+    safe_username = monitor._sanitize_username("name")
+    post_dir = root_dir / safe_username / "posts" / "123"
+
+    assert image_urls == [
+        monitor._build_weibo_img_url(safe_username, "posts", "123", "01.jpg"),
+        monitor._build_weibo_img_url(safe_username, "posts", "123", "02.jpg"),
+    ]
+    assert json.loads(data["图片"]) == image_urls
+    assert (post_dir / "01.jpg").read_bytes() == b"image"
+    assert (post_dir / "02.jpg").read_bytes() == b"image"
