@@ -259,8 +259,7 @@ class XhsMonitor(BaseMonitor):
         new_config = get_config(reload=False)
         self.config = new_config
         self.xhs_config = new_config.get_xhs_config()
-        if not self.xhs_config.profile_ids:
-            self.logger.warning("%s 没有配置 profile_id，跳过本次执行", self.monitor_name)
+        if self.skip_if_no_targets(self.xhs_config.profile_ids, "profile_id"):
             return
 
         if self.session:

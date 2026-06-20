@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+import weakref
 from contextlib import asynccontextmanager
 from datetime import date
 
@@ -14,7 +15,15 @@ from src.core.paths import DB_PATH
 _shared_connection: aiosqlite.Connection | None = None
 _connection_lock = asyncio.Lock()
 _connection_ref_count = 0
+_active_shared_databases: weakref.WeakSet["AsyncDatabase"] = weakref.WeakSet()
 _logger = logging.getLogger(__name__)
+
+
+def _sync_shared_ref_count() -> int:
+    """根据仍持有共享连接的 AsyncDatabase 实例数同步引用计数。"""
+    global _connection_ref_count
+    _connection_ref_count = len(_active_shared_databases)
+    return _connection_ref_count
 
 # MySQL 风格 %(name)s 占位符 -> SQLite :name（预编译避免每条 SQL 重复编译正则）
 _MYSQL_STYLE_PARAM = re.compile(r"%\((\w+)\)s")
@@ -60,7 +69,8 @@ class AsyncDatabase:
                     _logger.debug("数据库连接已创建（WAL模式）")
 
                 self._conn = _shared_connection
-                _connection_ref_count += 1
+                _active_shared_databases.add(self)
+                _sync_shared_ref_count()
                 _logger.debug("数据库连接引用计数: %d", _connection_ref_count)
         else:
             # 使用独立连接（不推荐，仅用于特殊场景）
@@ -245,7 +255,6 @@ class AsyncDatabase:
         # 共享连接模式
         async with _connection_lock:
             _logger.warning("检测到数据库连接失效，正在重新连接...")
-            saved_ref_count = _connection_ref_count
 
             # 关闭旧连接
             if _shared_connection is not None:
@@ -268,8 +277,9 @@ class AsyncDatabase:
 
             await self._init_tables(_shared_connection)
 
-            self._conn = _shared_connection
-            _connection_ref_count = max(saved_ref_count, 1)
+            for db in list(_active_shared_databases):
+                db._conn = _shared_connection
+            _sync_shared_ref_count()
 
             _logger.info("数据库连接已重新建立（WAL模式）")
 
@@ -291,8 +301,9 @@ class AsyncDatabase:
 
         if self._use_shared:
             async with _connection_lock:
-                if _connection_ref_count > 0:
-                    _connection_ref_count -= 1
+                if self in _active_shared_databases:
+                    _active_shared_databases.discard(self)
+                    _sync_shared_ref_count()
                     _logger.debug("数据库连接引用计数: %d", _connection_ref_count)
                 else:
                     _logger.warning("数据库连接引用计数已为0，可能存在重复关闭")
@@ -546,4 +557,5 @@ async def close_shared_connection():
                 _logger.error("关闭数据库连接时出错: %s", e)
             finally:
                 _shared_connection = None
+                _active_shared_databases.clear()
                 _connection_ref_count = 0

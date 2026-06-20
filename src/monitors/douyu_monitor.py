@@ -163,8 +163,7 @@ class DouyuMonitor(BaseMonitor):
         new_config = get_config(reload=False)
         self.config = new_config
         self.douyu_config = new_config.get_douyu_config()
-        if not self.douyu_config.rooms:
-            self.logger.warning("%s 没有配置房间号，跳过本次执行", self.monitor_name)
+        if self.skip_if_no_targets(self.douyu_config.rooms, "房间号"):
             return
 
         if self.session:

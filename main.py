@@ -44,6 +44,16 @@ async def _shutdown_step(name: str, awaitable, logger: logging.Logger) -> None:
         logger.warning("%s 关闭时出错（继续退出）: %s", name, e)
 
 
+async def _stop_config_watcher(
+    watcher: ConfigWatcher | None,
+    logger: logging.Logger,
+) -> None:
+    """停止配置热重载监控；未创建或未启动时无操作。"""
+    if watcher is None:
+        return
+    await _shutdown_step("配置监控器", watcher.stop(), logger)
+
+
 async def main() -> None:
     """启动顺序：日志 → Web → 业务配置与调度 → 配置热监视 → 阻塞至收到退出信号。"""
     is_background = not sys.stdout.isatty()
@@ -96,17 +106,21 @@ async def main() -> None:
             on_config_changed=on_config_changed,
         )
         await config_watcher.start()
-
-        await scheduler.run_forever()
+        try:
+            await scheduler.run_forever()
+        finally:
+            # run_forever 正常/异常退出时先停热重载，避免关闭过程中仍触发回调
+            await _stop_config_watcher(config_watcher, logger)
+            config_watcher = None
     except KeyboardInterrupt:
         logger.info("正在关闭...")
     except Exception as e:
         logger.error("程序运行出错: %s", e)
         raise
     finally:
+        # start() 之后、进入 run_forever 之前若失败，此处仍会 stop 已启动的 watcher
+        await _stop_config_watcher(config_watcher, logger)
         await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)
-        if config_watcher is not None:
-            await _shutdown_step("配置监控器", config_watcher.stop(), logger)
         await _shutdown_step("数据库连接", close_shared_connection(), logger)
 
 

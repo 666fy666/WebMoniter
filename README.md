@@ -40,8 +40,8 @@
 WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，用于统一管理：
 
 - 平台监控：虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书。
-- 定时任务：iKuuu、贴吧、微博超话、雨云、阿里云盘、什么值得买、Freenom、天气推送等 30+ 签到/提醒任务。
-- 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 15+ 通道。
+- 定时任务：iKuuu、贴吧、微博超话、雨云、阿里云盘、什么值得买、Freenom、天气推送等 **29 个**签到/提醒任务（见 `src/jobs/registry.py`）。
+- 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 **18 种** type。
 - Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理。
 
 配置支持热重载，修改 `config.yml` 后通常约 5 秒内生效。
@@ -266,22 +266,22 @@ uv run black --check .
 uv run pytest -q
 ```
 
-新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。`src/tests/` 中有注册表与 enable 映射一致性测试，漏配时 `uv run pytest` 会失败。项目当前采用模块化结构：
+新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。`src/tests/` 中有注册表与 enable 映射一致性测试，漏配时 `uv run pytest` 会失败。完整架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。项目当前采用模块化结构：
 
-- `main.py`：应用入口与生命周期编排。
-- `src/jobs/scheduler.py`：APScheduler 封装与退出信号处理。
-- `src/jobs/registry.py`：任务注册与发现；`src/jobs/enable_fields.py`：启用开关映射。
-- `src/ql/__main__.py`：青龙 CLI（`python -m src.ql <task_id>`）。
-- `src/settings/config.py`：配置模型与加载流程。
-- `src/settings/loader_specs.py`：YAML 到配置模型的映射规格。
-- `src/monitors/`：平台监控任务。
-- `src/tasks/`：定时任务与签到任务。
-- `src/web/app.py`：FastAPI 应用组装入口。
-- `src/web/routers/`：页面、认证、任务、配置、数据、日志路由。
-- `src/web/auth.py`、`src/web/config_io.py`、`src/web/data_support.py`：Web 辅助逻辑。
-- `src/jobs/lifecycle.py`：应用生命周期编排（Web、调度注册、热重载回调）。
-- `src/core/runtime.py`：事件循环与 Ctrl+C 退出兜底（12 秒强制退出 watchdog）。
-- `src/tests/`：单元与 smoke 测试（`uv run pytest`）。
+| 模块 | 职责 |
+|------|------|
+| `main.py` | 应用入口：Web、调度器、配置热重载、优雅关闭 |
+| `src/core/` | 运行时（`runtime.py` 12 秒退出 watchdog）、路径（`paths.py`）、版本、HTTP 工具 |
+| `src/settings/` | 配置模型（`config.py`）、YAML 映射（`loader_specs.py`）、热重载（`watcher.py`）、DB 同步（`db_sync.py`） |
+| `src/jobs/` | 调度（`scheduler.py`）、注册（`registry.py`）、启用映射（`enable_fields.py`）、执行结果（`task_outcome.py`）、生命周期（`lifecycle.py`）、日志（`log_manager.py`）、运行记录（`tracker.py`） |
+| `src/storage/` | SQLite（`database.py`）、Cookie 缓存（`cookie_cache.py`） |
+| `src/monitors/` | 6 个平台监控（interval 触发，见 `registry.MONITOR_MODULES`） |
+| `src/tasks/` | 29 个定时/签到任务（Cron 触发，含 `rainyun/` 子包，见 `registry.TASK_MODULES`） |
+| `src/push_channel/` | 18 种推送 type（企业微信、钉钉、Telegram 等，含 `demo`、`qlapi`） |
+| `src/web/` | FastAPI 应用（`app.py`）、路由（`routers/`）、认证/配置/数据辅助、`templating.py`、`static_files.py` |
+| `src/webUI/` | 前端静态资源与 Jinja2 模板 |
+| `src/ql/` | 青龙 CLI（`python -m src.ql <task_id>`，环境变量兼容见 `compat.py`） |
+| `src/tests/` | pytest 单元与 smoke 测试 |
 
 </details>
 

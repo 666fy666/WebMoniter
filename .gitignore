@@ -30,6 +30,8 @@ ENV/
 # IDE
 .vscode/
 .idea/
+.cursor/
+.agents/
 *.swp
 *.swo
 *~
@@ -37,13 +39,19 @@ ENV/
 # 环境变量
 .env
 .env.local
+.env.*
 
 # 配置文件
 config.yml
 
-# Cookie缓存
-cookie_cache.json
-*.ruff_cache/
+# 开发工具缓存
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.uv/
 
 # 日志
 *.log
@@ -60,7 +68,10 @@ data/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
-*.json
+
+# PyInstaller 本地构建产物
+*.spec
+WebMoniter-*.zip
 
 # MkDocs build output
 site/

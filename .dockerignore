@@ -40,6 +40,8 @@ ENV/
 # IDE
 .vscode/
 .idea/
+.cursor/
+.agents/
 *.swp
 *.swo
 *~
@@ -78,6 +80,13 @@ Thumbs.db
 *.swo
 
 # README.md、docs/、config/*.sample 参与镜像构建（AI RAG）；运行时 config.yml 由 volume 挂载
+
+# MkDocs build output
+site/
+
+# PyInstaller 本地构建产物
+*.spec
+WebMoniter-*.zip
 
 # CI/CD
 .github/

@@ -236,8 +236,7 @@ class DouyinMonitor(BaseMonitor):
         new_config = get_config(reload=False)
         self.config = new_config
         self.douyin_config = new_config.get_douyin_config()
-        if not self.douyin_config.douyin_ids:
-            self.logger.warning("%s 没有配置抖音号，跳过本次执行", self.monitor_name)
+        if self.skip_if_no_targets(self.douyin_config.douyin_ids, "抖音号"):
             return
 
         if self.session:

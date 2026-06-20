@@ -27,6 +27,29 @@ SMZDM_TOKEN_URL = "https://user-api.smzdm.com/robot/token"
 SMZDM_CHECKIN_URL = "https://user-api.smzdm.com/checkin"
 SMZDM_ALL_REWARD_URL = "https://user-api.smzdm.com/checkin/all_reward"
 
+# SMZDM 移动端 API 成功时 error_code 为 0 或字符串 "0"（见 hex-ci/smzdm_script bot.js）
+_SMZDM_SUCCESS_CODES = frozenset({None, 0, "0"})
+
+
+def _smzdm_api_success(body: object) -> bool:
+    """判断 SMZDM API JSON 是否表示成功。"""
+    if not isinstance(body, dict):
+        return False
+    return body.get("error_code") in _SMZDM_SUCCESS_CODES
+
+
+def _smzdm_data(body: dict) -> dict:
+    """安全读取 SMZDM API 的 data 字段（可能为 null 或非 dict）。"""
+    data = body.get("data")
+    return data if isinstance(data, dict) else {}
+
+
+def _smzdm_error_msg(body: dict, default: str) -> str:
+    msg = body.get("error_msg")
+    if isinstance(msg, str) and msg.strip():
+        return msg.strip()
+    return default
+
 
 def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
     """
@@ -55,11 +78,13 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
         r = requests.post(SMZDM_TOKEN_URL, headers=headers, data=data_token, timeout=15)
         r.raise_for_status()
         result = r.json()
-        if result.get("error_code") not in (None, 0):
-            return False, result.get("error_msg", "获取 token 失败")
-        token = result.get("data", {}).get("token")
+        if not isinstance(result, dict):
+            return False, "获取 token 失败：响应格式异常"
+        if not _smzdm_api_success(result):
+            return False, _smzdm_error_msg(result, "获取 token 失败")
+        token = _smzdm_data(result).get("token")
         if not token:
-            return False, result.get("error_msg", "获取 token 失败")
+            return False, _smzdm_error_msg(result, "获取 token 失败")
         ts2 = int(round(time.time() * 1000))
         sk = "ierkM0OZZbsuBKLoAgQ6OJneLMXBQXmzX+LXkNTuKch8Ui2jGlahuFyWIzBiDq/L"
         sign2 = (
@@ -81,13 +106,33 @@ def _run_smzdm_sync(cookie: str) -> tuple[bool, str]:
         r2 = requests.post(SMZDM_CHECKIN_URL, headers=headers, data=data_check, timeout=15)
         r2.raise_for_status()
         check_result = r2.json()
-        if check_result.get("error_code") not in (None, 0):
-            return False, check_result.get("error_msg", "签到失败")
-        err_msg = check_result.get("error_msg", "签到成功")
+        if not isinstance(check_result, dict):
+            return False, "签到失败：响应格式异常"
+        if not _smzdm_api_success(check_result):
+            return False, _smzdm_error_msg(check_result, "签到失败")
+        check_data = _smzdm_data(check_result)
+        if not check_data:
+            return False, _smzdm_error_msg(check_result, "签到失败：响应数据为空")
+        err_msg = _smzdm_error_msg(check_result, "签到成功")
         r3 = requests.post(SMZDM_ALL_REWARD_URL, headers=headers, data=data_check, timeout=15)
         if r3.status_code == 200:
             try:
-                r3.json()
+                reward_result = r3.json()
+                if isinstance(reward_result, dict) and _smzdm_api_success(reward_result):
+                    reward_data = _smzdm_data(reward_result)
+                    normal = reward_data.get("normal_reward") if isinstance(
+                        reward_data.get("normal_reward"), dict
+                    ) else {}
+                    reward_add = normal.get("reward_add") if isinstance(
+                        normal.get("reward_add"), dict
+                    ) else {}
+                    reward_title = reward_add.get("title")
+                    reward_content = reward_add.get("content")
+                    if isinstance(reward_title, str) and reward_title.strip():
+                        extra = reward_title.strip()
+                        if isinstance(reward_content, str) and reward_content.strip():
+                            extra = f"{extra}: {reward_content.strip()}"
+                        err_msg = f"{err_msg}\n{extra}"
             except Exception:
                 pass
         return True, err_msg

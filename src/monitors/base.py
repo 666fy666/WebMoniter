@@ -68,6 +68,13 @@ class BaseMonitor(ABC):
             return
         await self.push.send_news(**kwargs)
 
+    def skip_if_no_targets(self, targets: list[str] | None, target_label: str) -> bool:
+        """监控目标列表为空时记录警告；返回 True 表示应跳过后续执行。"""
+        if targets:
+            return False
+        self.logger.warning("%s 没有配置%s，跳过本次执行", self.monitor_name, target_label)
+        return True
+
     async def close(self):
         """关闭资源"""
         if self.db:

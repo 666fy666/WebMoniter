@@ -53,7 +53,12 @@ class ConfigWatcher:
                 logger.error("初始化配置监控器失败: %s", e)
 
         self._running = True
-        self._task = asyncio.create_task(self._watch_loop())
+        try:
+            self._task = asyncio.create_task(self._watch_loop())
+        except Exception:
+            self._running = False
+            self._task = None
+            raise
 
     async def stop(self):
         """停止配置监控"""

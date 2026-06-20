@@ -169,11 +169,18 @@ class BilibiliMonitor(BaseMonitor):
         dynamic_type = item.get("type", "")
         if dynamic_type not in allow_types:
             self.logger.debug(f"【B站-{uname}】动态类型 {dynamic_type} 跳过推送")
-            self.old_dynamic_dict[uid].append(dynamic_id)
-            await self.db.execute_update(
+            updated = await self.db.execute_update(
                 "UPDATE bilibili_dynamic SET dynamic_id=%(dynamic_id)s WHERE uid=%(uid)s",
                 {"uid": uid, "dynamic_id": dynamic_id},
             )
+            if not updated:
+                self.logger.error(
+                    "【B站-%s】跳过动态后更新数据库失败，dynamic_id=%s",
+                    uname,
+                    dynamic_id,
+                )
+                return
+            self.old_dynamic_dict[uid].append(dynamic_id)
             return
 
         module_dynamic = modules.get("module_dynamic") or {}
@@ -356,8 +363,7 @@ class BilibiliMonitor(BaseMonitor):
         new_config = get_config(reload=False)
         self.config = new_config
         self.bilibili_config = new_config.get_bilibili_config()
-        if not self.bilibili_config.uids:
-            self.logger.warning("%s 没有配置 UID，跳过本次执行", self.monitor_name)
+        if self.skip_if_no_targets(self.bilibili_config.uids, "UID"):
             return
 
         if self.session:
