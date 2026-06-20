@@ -52,6 +52,7 @@ htmlcov/
 .tox/
 .hypothesis/
 .uv/
+.uv-cache/
 
 # 日志
 *.log
