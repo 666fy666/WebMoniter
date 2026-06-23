@@ -219,7 +219,7 @@ class BilibiliMonitor(BaseMonitor):
                 "uid": uid,
                 "uname": uname,
                 "dynamic_id": dynamic_id,
-                "dynamic_text": content[:200],
+                "dynamic_text": content,
             },
         )
 
@@ -235,7 +235,7 @@ class BilibiliMonitor(BaseMonitor):
         try:
             await self.send_push_news(
                 title=f"【B站】【{uname}】{title_msg}",
-                description=f"{content[:100]}{'...' if len(content) > 100 else ''}",
+                description=content,
                 to_url=f"https://www.bilibili.com/opus/{dynamic_id}",
                 picurl=pic_url
                 or "https://cn.bing.com/th?id=OHR.DolbadarnCastle_ZH-CN5397592090_1920x1080.jpg",

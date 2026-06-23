@@ -587,10 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     .replace(/\n?\s*\[图片\]\s*\*\s*\d+\s*\(详情请点击噢!\)/g, '')
                     .trim();
                 const mediaHtml = renderWeiboMedia(row.images, row.image_thumbs);
-                const contentDisplay =
-                    contentRaw.length > 300
-                        ? `${contentRaw.slice(0, 300)}...`
-                        : contentRaw || (mediaHtml ? '' : '暂无最新微博内容');
+                const contentDisplay = contentRaw || (mediaHtml ? '' : '暂无最新微博内容');
                 const textHtml = contentDisplay
                     ? `<div class="weibo-feed-text">${contentDisplay
                           .split('\n')
@@ -765,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         ? `https://space.bilibili.com/${row.uid}`
                         : '');
                 const text = (row.dynamic_text || '').toString().trim();
-                const brief = text.length > 200 ? `${text.slice(0, 200)}...` : text || '暂无动态内容';
+                const brief = text || '暂无动态内容';
 
                 html += `
 <article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
