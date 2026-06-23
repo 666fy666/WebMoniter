@@ -407,6 +407,57 @@ class WeiboMonitor(BaseMonitor):
 
         return []
 
+    def _get_weibo_xsrf_token(self) -> str:
+        """从微博 Cookie 中提取 XSRF-TOKEN，用于部分 ajax 接口。"""
+        match = re.search(r"(?:^|;\s*)XSRF-TOKEN=([^;]+)", self.weibo_config.cookie or "")
+        return unquote(match.group(1)) if match else ""
+
+    async def _fetch_long_text_content(self, status: dict) -> str | None:
+        """微博列表接口会截断长微博；需要额外请求 longtext 接口获取完整正文。"""
+        if not status.get("isLongText"):
+            return None
+
+        long_text_id = (
+            status.get("mblogid")
+            or status.get("idstr")
+            or status.get("mid")
+            or status.get("id")
+        )
+        if not long_text_id:
+            return None
+
+        try:
+            session = await self._get_session()
+            headers: dict[str, str] = {}
+            xsrf_token = self._get_weibo_xsrf_token()
+            if xsrf_token:
+                headers["X-XSRF-TOKEN"] = xsrf_token
+
+            async with session.get(
+                "https://www.weibo.com/ajax/statuses/longtext",
+                params={"id": str(long_text_id)},
+                headers=headers or None,
+            ) as resp:
+                resp.raise_for_status()
+                result = await resp.json()
+
+            if result.get("ok") == -100:
+                raise CookieExpiredError("微博Cookie已失效，需要重新登录")
+
+            data = result.get("data") or {}
+            for key in ("longTextContent_raw", "longTextContent"):
+                content = data.get(key)
+                if isinstance(content, str) and content:
+                    return content
+
+            self.logger.debug("微博长文本接口未返回正文: %s", long_text_id)
+        except CookieExpiredError:
+            raise
+        except Exception as e:
+            self.logger.debug("获取微博长文本失败，使用列表文本（id=%s）: %s", long_text_id, e)
+
+        return None
+
     async def _download_post_images_to_temp(
         self,
         candidates_by_pic: list[list[str]],
@@ -651,7 +702,10 @@ class WeiboMonitor(BaseMonitor):
                 break
 
         target_wb = wb_list[target_idx]
-        text_raw = target_wb["text_raw"]
+        text_raw = target_wb.get("text_raw") or ""
+        long_text_content = await self._fetch_long_text_content(target_wb)
+        if long_text_content:
+            text_raw = long_text_content
         pic_ids = target_wb.get("pic_ids", [])
         pic_infos = target_wb.get("pic_infos", {})
         pics = target_wb.get("pics", [])
@@ -723,28 +777,44 @@ class WeiboMonitor(BaseMonitor):
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
+                text_changed = new_data["文本"] != (old_info[6] if len(old_info) > 6 else "")
+                should_update_db = text_changed
+                if len(old_info) > 8:
+                    new_data["图片"] = old_info[8]
+
                 if self._needs_post_image_retry(new_data, old_info):
-                    new_data["图片"] = old_info[8] if len(old_info) > 8 else "[]"
                     image_urls = await self._save_post_images(new_data, keep_existing=True)
-                    updated = await self.db.execute_update(
-                        "UPDATE weibo SET 图片=%(图片)s WHERE UID=%(UID)s AND mid=%(mid)s",
-                        new_data,
+                    should_update_db = True
+                    self.logger.info(
+                        "%s 微博正文图片已补偿下载 %s/%s 张",
+                        new_data["用户名"],
+                        len(image_urls),
+                        len(new_data.get("_pic_url_candidates") or []),
                     )
-                    if updated:
-                        old_items = list(old_info)
-                        if len(old_items) > 8:
-                            old_items[8] = new_data["图片"]
-                        else:
-                            old_items.append(new_data["图片"])
-                        self.old_data_dict[uid] = tuple(old_items)
-                        self.logger.info(
-                            "%s 微博正文图片已补偿下载 %s/%s 张",
-                            new_data["用户名"],
-                            len(image_urls),
-                            len(new_data.get("_pic_url_candidates") or []),
-                        )
+
+                if should_update_db:
+                    sql = (
+                        "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
+                        "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
+                        "图片=%(图片)s WHERE UID=%(UID)s"
+                    )
+                    updated = await self.db.execute_update(sql, new_data)
+                    if not updated:
+                        self.logger.error("%s 微博数据补偿写入数据库失败", new_data["用户名"])
                     else:
-                        self.logger.error("%s 微博正文图片补偿结果写入数据库失败", new_data["用户名"])
+                        self.old_data_dict[uid] = (
+                            new_data["UID"],
+                            new_data["用户名"],
+                            new_data["认证信息"],
+                            new_data["简介"],
+                            new_data["粉丝数"],
+                            new_data["微博数"],
+                            new_data["文本"],
+                            new_data["mid"],
+                            new_data["图片"],
+                        )
+                        if text_changed:
+                            self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 await self._save_post_images(new_data)

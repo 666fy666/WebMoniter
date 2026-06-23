@@ -12,6 +12,48 @@ from src.storage.database import AsyncDatabase
 from src.web.data_support import _weibo_row_to_item
 
 
+class _FakeWeiboResponse:
+    def __init__(self, payload: dict, status: int = 200):
+        self.payload = payload
+        self.status = status
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+    def raise_for_status(self):
+        if self.status >= 400:
+            raise RuntimeError(f"HTTP {self.status}")
+
+    async def json(self):
+        return self.payload
+
+
+class _FakeWeiboSession:
+    def __init__(self, payloads: dict[str, dict]):
+        self.payloads = payloads
+        self.headers = {}
+        self.requests = []
+
+    def get(self, url, **kwargs):
+        self.requests.append((url, kwargs))
+        for marker, payload in self.payloads.items():
+            if marker in url:
+                return _FakeWeiboResponse(payload)
+        raise AssertionError(f"unexpected url: {url}")
+
+
+class _FakeWeiboDatabase:
+    def __init__(self):
+        self.update_calls = []
+
+    async def execute_update(self, sql, params):
+        self.update_calls.append((sql, dict(params)))
+        return True
+
+
 @pytest.mark.asyncio
 async def test_weibo_table_migration_adds_images_column(tmp_path):
     db_path = tmp_path / "old.db"
@@ -65,6 +107,153 @@ def test_weibo_row_to_item_handles_empty_or_invalid_images():
     assert _weibo_row_to_item(base_row)["images"] == []
     assert _weibo_row_to_item((*base_row, ""))["images"] == []
     assert _weibo_row_to_item((*base_row, "not-json"))["images"] == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_long_text_content_uses_mblogid_and_raw_body():
+    session = _FakeWeiboSession(
+        {
+            "statuses/longtext": {
+                "ok": 1,
+                "data": {
+                    "longTextContent": "完整正文",
+                    "longTextContent_raw": "完整原始正文",
+                },
+            }
+        }
+    )
+    monitor = WeiboMonitor(
+        AppConfig(weibo_cookie="SUB=abc; XSRF-TOKEN=token-1", weibo_uids="1"),
+        session=session,
+    )
+
+    content = await monitor._fetch_long_text_content(
+        {"isLongText": True, "mblogid": "R5tnnuAYY", "text_raw": "截断正文"}
+    )
+
+    assert content == "完整原始正文"
+    assert session.requests == [
+        (
+            "https://www.weibo.com/ajax/statuses/longtext",
+            {"params": {"id": "R5tnnuAYY"}, "headers": {"X-XSRF-TOKEN": "token-1"}},
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_fetch_long_text_content_skips_normal_status():
+    session = _FakeWeiboSession({})
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
+
+    assert await monitor._fetch_long_text_content({"isLongText": False}) is None
+    assert session.requests == []
+
+
+@pytest.mark.asyncio
+async def test_get_info_stores_full_long_text(monkeypatch):
+    session = _FakeWeiboSession(
+        {
+            "profile/info": {
+                "ok": 1,
+                "data": {
+                    "user": {
+                        "idstr": "1",
+                        "screen_name": "name",
+                        "verified_reason": "verified",
+                        "description": "intro",
+                        "followers_count_str": "10",
+                        "statuses_count": 20,
+                    }
+                },
+            },
+            "statuses/mymblog": {
+                "ok": 1,
+                "data": {
+                    "list": [
+                        {
+                            "isTop": 0,
+                            "isLongText": True,
+                            "mblogid": "R5tnnuAYY",
+                            "text_raw": "截断正文...",
+                            "pic_ids": [],
+                            "pic_infos": {},
+                            "pics": [],
+                            "url_struct": [],
+                            "created_at": "Tue Jun 23 18:57:39 +0800 2026",
+                            "mid": "5313045657292004",
+                        }
+                    ]
+                },
+            },
+            "statuses/longtext": {
+                "ok": 1,
+                "data": {"longTextContent_raw": "完整长微博正文"},
+            },
+        }
+    )
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
+
+    async def skip_save_user_images(user_info):
+        return None
+
+    monkeypatch.setattr(monitor, "_save_user_images", skip_save_user_images)
+
+    data = await monitor.get_info("1")
+
+    assert "完整长微博正文" in data["文本"]
+    assert "截断正文" not in data["文本"]
+    assert data["_text_raw"] == "完整长微博正文"
+
+
+@pytest.mark.asyncio
+async def test_process_user_backfills_long_text_without_push(monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    monitor.db = _FakeWeiboDatabase()
+    monitor.old_data_dict = {
+        "1": (
+            "1",
+            "name",
+            "verified",
+            "intro",
+            "10",
+            "20",
+            "          截断正文...\n\nTue Jun 23 18:57:39 +0800 2026",
+            "5313045657292004",
+            '["/weibo_img/name/posts/5313045657292004/01.jpg"]',
+        )
+    }
+
+    async def fake_get_info(uid):
+        return {
+            "UID": uid,
+            "用户名": "name",
+            "认证信息": "verified",
+            "简介": "intro",
+            "粉丝数": "10",
+            "微博数": "20",
+            "文本": "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026",
+            "mid": "5313045657292004",
+            "图片": "[]",
+            "_pic_url_candidates": [],
+        }
+
+    async def mark_cookie_valid():
+        return None
+
+    async def fail_push(data, diff):
+        raise AssertionError("不应在长文本补偿回写时推送")
+
+    monkeypatch.setattr(monitor, "get_info", fake_get_info)
+    monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
+    monkeypatch.setattr(monitor, "push_notification", fail_push)
+
+    await monitor.process_user("1")
+
+    assert len(monitor.db.update_calls) == 1
+    _, params = monitor.db.update_calls[0]
+    assert params["文本"] == "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026"
+    assert params["图片"] == '["/weibo_img/name/posts/5313045657292004/01.jpg"]'
+    assert monitor.old_data_dict["1"][6] == params["文本"]
 
 
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):
