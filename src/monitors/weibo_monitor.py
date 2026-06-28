@@ -1,6 +1,7 @@
 """微博监控模块"""
 
 import asyncio
+import html
 import json
 import logging
 import re
@@ -99,6 +100,12 @@ class WeiboMonitor(BaseMonitor):
         """将微博 mid 等动态值转换为安全的单层路径名。"""
         safe_value = re.sub(r"[^0-9A-Za-z._-]", "_", str(value or "")).strip()
         return safe_value or "0"
+
+    def _same_mid(self, left: object, right: object) -> bool:
+        """比较两个 mid，忽略空值和路径安全化差异。"""
+        left_mid = self._sanitize_path_part(str(left or ""))
+        right_mid = self._sanitize_path_part(str(right or ""))
+        return left_mid != "0" and left_mid == right_mid
 
     def _build_weibo_img_url(self, *parts: str) -> str:
         """构造 /weibo_img 静态图片 URL，路径片段统一做 URL 编码。"""
@@ -424,6 +431,79 @@ class WeiboMonitor(BaseMonitor):
             return value.strip().lower() in {"1", "true"}
         return False
 
+    @staticmethod
+    def _normalize_weibo_text_for_compare(text: object) -> str:
+        """归一化微博文本，避免不可见字符或 HTML 转义造成重复补偿。"""
+        value = html.unescape(str(text or ""))
+        value = value.replace("\r\n", "\n").replace("\r", "\n")
+        value = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", value)
+        value = re.sub(r"[ \t]+", " ", value)
+        value = "\n".join(line.strip() for line in value.split("\n"))
+        value = re.sub(r"\n{3,}", "\n\n", value)
+        return value.strip()
+
+    def _texts_equivalent(self, left: object, right: object) -> bool:
+        """判断两段微博展示文本是否等价。"""
+        return self._normalize_weibo_text_for_compare(left) == self._normalize_weibo_text_for_compare(
+            right
+        )
+
+    @staticmethod
+    def _extract_status_body_from_display_text(text: object) -> str:
+        """从数据库展示文本中取正文部分，去掉时间和本地追加的图片提示。"""
+        value = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+        if "\n\n" in value:
+            value = value.rsplit("\n\n", 1)[0]
+
+        lines = []
+        for line in value.split("\n"):
+            stripped = line.strip()
+            if re.fullmatch(r"\[图片\]\s+\*\s+\d+.*", stripped):
+                continue
+            lines.append(stripped)
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _strip_long_text_marker(text: str) -> str:
+        """去掉微博列表截断文本末尾的省略/展开标记。"""
+        return re.sub(r"(?:\.{3}|…|全文|展开全文)+$", "", text).strip()
+
+    def _is_long_text_backfill(self, new_data: dict, old_info: tuple) -> bool:
+        """判断本次文本变化是否为同一条微博从截断正文补成完整长文本。"""
+        if not new_data.get("_long_text_fetched"):
+            return False
+        old_mid = old_info[7] if len(old_info) > 7 else ""
+        if not self._same_mid(old_mid, new_data.get("mid")):
+            return False
+
+        old_body = self._normalize_weibo_text_for_compare(
+            self._extract_status_body_from_display_text(old_info[6] if len(old_info) > 6 else "")
+        )
+        new_body = self._normalize_weibo_text_for_compare(
+            self._extract_status_body_from_display_text(new_data.get("文本", ""))
+        )
+        if not old_body or not new_body or old_body == new_body:
+            return False
+
+        old_prefix = self._strip_long_text_marker(old_body)
+        old_has_marker = old_prefix != old_body
+        prefixes = [old_prefix] if old_has_marker else []
+
+        list_body = self._normalize_weibo_text_for_compare(new_data.get("_list_text_raw", ""))
+        list_prefix = self._strip_long_text_marker(list_body)
+        list_has_marker = bool(list_body and list_prefix and list_prefix != list_body)
+        old_matches_list_text = bool(
+            list_body
+            and (old_body == list_body or old_body.startswith(list_body) or list_body.startswith(old_prefix))
+        )
+        if list_has_marker and old_matches_list_text:
+            prefixes.append(list_prefix)
+
+        return any(
+            prefix and len(new_body) > len(prefix) and new_body.startswith(prefix)
+            for prefix in prefixes
+        )
+
     async def _fetch_long_text_content(self, status: dict) -> str | None:
         """微博列表接口会截断长微博；需要额外请求 longtext 接口获取完整正文。"""
         if not self._is_long_text_status(status):
@@ -711,6 +791,7 @@ class WeiboMonitor(BaseMonitor):
 
         target_wb = wb_list[target_idx]
         text_raw = target_wb.get("text_raw") or ""
+        list_text_raw = text_raw
         long_text_content = await self._fetch_long_text_content(target_wb)
         if long_text_content:
             text_raw = long_text_content
@@ -741,6 +822,8 @@ class WeiboMonitor(BaseMonitor):
         data["图片"] = "[]"
         # 保存原始数据，用于推送时动态处理
         data["_text_raw"] = text_raw
+        data["_list_text_raw"] = list_text_raw
+        data["_long_text_fetched"] = bool(long_text_content)
         data["_pic_ids"] = pic_ids
         data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
         data["_url_struct"] = url_struct
@@ -757,7 +840,7 @@ class WeiboMonitor(BaseMonitor):
             return 1  # 数据不完整，默认有变化
 
         old_text = old_info[6] if len(old_info) > 6 else ""
-        if data["文本"] != old_text:
+        if not self._texts_equivalent(data["文本"], old_text):
             try:
                 old_count = int(old_info[5]) if len(old_info) > 5 else 0
                 new_count = int(data["微博数"])
@@ -785,7 +868,12 @@ class WeiboMonitor(BaseMonitor):
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
-                text_changed = new_data["文本"] != (old_info[6] if len(old_info) > 6 else "")
+                text_changed = not self._texts_equivalent(
+                    new_data["文本"], old_info[6] if len(old_info) > 6 else ""
+                )
+                should_push_long_text = text_changed and self._is_long_text_backfill(
+                    new_data, old_info
+                )
                 should_update_db = text_changed
                 if len(old_info) > 8:
                     new_data["图片"] = old_info[8]
@@ -821,7 +909,7 @@ class WeiboMonitor(BaseMonitor):
                             new_data["mid"],
                             new_data["图片"],
                         )
-                        if text_changed:
+                        if should_push_long_text:
                             self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
                             await self.push_notification(new_data, 1)
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")

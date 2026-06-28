@@ -238,7 +238,7 @@ async def test_process_user_pushes_long_text_backfill(monkeypatch):
             "intro",
             "10",
             "20",
-            "          截断正文...\n\nTue Jun 23 18:57:39 +0800 2026",
+            "          完整长微博...\n          #网页链接#\n\nTue Jun 23 18:57:39 +0800 2026",
             "5313045657292004",
             '["/weibo_img/name/posts/5313045657292004/01.jpg"]',
         )
@@ -252,9 +252,11 @@ async def test_process_user_pushes_long_text_backfill(monkeypatch):
             "简介": "intro",
             "粉丝数": "10",
             "微博数": "20",
-            "文本": "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026",
+            "文本": "          完整长微博正文\n          #网页链接#\n\nTue Jun 23 18:57:39 +0800 2026",
             "mid": "5313045657292004",
             "图片": "[]",
+            "_long_text_fetched": True,
+            "_list_text_raw": "完整长微博...",
             "_pic_url_candidates": [],
         }
 
@@ -274,13 +276,117 @@ async def test_process_user_pushes_long_text_backfill(monkeypatch):
 
     assert len(monitor.db.update_calls) == 1
     _, params = monitor.db.update_calls[0]
-    assert params["文本"] == "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026"
+    assert params["文本"] == "          完整长微博正文\n          #网页链接#\n\nTue Jun 23 18:57:39 +0800 2026"
     assert params["图片"] == '["/weibo_img/name/posts/5313045657292004/01.jpg"]'
     assert monitor.old_data_dict["1"][6] == params["文本"]
     assert len(push_calls) == 1
     pushed_data, pushed_diff = push_calls[0]
     assert pushed_data["文本"] == params["文本"]
     assert pushed_diff == 1
+
+
+@pytest.mark.asyncio
+async def test_process_user_skips_equivalent_long_text_backfill(monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    monitor.db = _FakeWeiboDatabase()
+    monitor.old_data_dict = {
+        "1": (
+            "1",
+            "name",
+            "verified",
+            "intro",
+            "10",
+            "20",
+            "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026",
+            "5313045657292004",
+            "[]",
+        )
+    }
+
+    async def fake_get_info(uid):
+        return {
+            "UID": uid,
+            "用户名": "name",
+            "认证信息": "verified",
+            "简介": "intro",
+            "粉丝数": "10",
+            "微博数": "20",
+            "文本": "          完整长微博正文\u200b\n\nTue Jun 23 18:57:39 +0800 2026",
+            "mid": "5313045657292004",
+            "图片": "[]",
+            "_long_text_fetched": True,
+            "_list_text_raw": "完整长微博...",
+            "_pic_url_candidates": [],
+        }
+
+    push_calls = []
+
+    async def mark_cookie_valid():
+        return None
+
+    async def record_push(data, diff):
+        push_calls.append((dict(data), diff))
+
+    monkeypatch.setattr(monitor, "get_info", fake_get_info)
+    monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
+    monkeypatch.setattr(monitor, "push_notification", record_push)
+
+    await monitor.process_user("1")
+
+    assert monitor.db.update_calls == []
+    assert push_calls == []
+
+
+@pytest.mark.asyncio
+async def test_process_user_updates_non_backfill_text_without_push(monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    monitor.db = _FakeWeiboDatabase()
+    monitor.old_data_dict = {
+        "1": (
+            "1",
+            "name",
+            "verified",
+            "intro",
+            "10",
+            "20",
+            "          另一段旧正文\n\nTue Jun 23 18:57:39 +0800 2026",
+            "5313045657292004",
+            "[]",
+        )
+    }
+
+    async def fake_get_info(uid):
+        return {
+            "UID": uid,
+            "用户名": "name",
+            "认证信息": "verified",
+            "简介": "intro",
+            "粉丝数": "10",
+            "微博数": "20",
+            "文本": "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026",
+            "mid": "5313045657292004",
+            "图片": "[]",
+            "_long_text_fetched": True,
+            "_list_text_raw": "完整长微博...",
+            "_pic_url_candidates": [],
+        }
+
+    push_calls = []
+
+    async def mark_cookie_valid():
+        return None
+
+    async def record_push(data, diff):
+        push_calls.append((dict(data), diff))
+
+    monkeypatch.setattr(monitor, "get_info", fake_get_info)
+    monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
+    monkeypatch.setattr(monitor, "push_notification", record_push)
+
+    await monitor.process_user("1")
+
+    assert len(monitor.db.update_calls) == 1
+    assert push_calls == []
 
 
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):
