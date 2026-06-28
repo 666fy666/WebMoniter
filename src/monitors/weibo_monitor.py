@@ -412,18 +412,26 @@ class WeiboMonitor(BaseMonitor):
         match = re.search(r"(?:^|;\s*)XSRF-TOKEN=([^;]+)", self.weibo_config.cookie or "")
         return unquote(match.group(1)) if match else ""
 
+    @staticmethod
+    def _is_long_text_status(status: dict) -> bool:
+        """判断微博列表项是否明确标记为长文本。"""
+        value = status.get("isLongText")
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value == 1
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true"}
+        return False
+
     async def _fetch_long_text_content(self, status: dict) -> str | None:
         """微博列表接口会截断长微博；需要额外请求 longtext 接口获取完整正文。"""
-        if not status.get("isLongText"):
+        if not self._is_long_text_status(status):
             return None
 
-        long_text_id = (
-            status.get("mblogid")
-            or status.get("idstr")
-            or status.get("mid")
-            or status.get("id")
-        )
+        long_text_id = status.get("mblogid")
         if not long_text_id:
+            self.logger.debug("微博列表项标记为长文本但缺少 mblogid，跳过 longtext 接口")
             return None
 
         try:
@@ -815,6 +823,7 @@ class WeiboMonitor(BaseMonitor):
                         )
                         if text_changed:
                             self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
+                            await self.push_notification(new_data, 1)
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 await self._save_post_images(new_data)

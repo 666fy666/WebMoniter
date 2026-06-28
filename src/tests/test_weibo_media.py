@@ -150,6 +150,27 @@ async def test_fetch_long_text_content_skips_normal_status():
 
 
 @pytest.mark.asyncio
+async def test_fetch_long_text_content_skips_string_false_status():
+    session = _FakeWeiboSession({})
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
+
+    assert await monitor._fetch_long_text_content({"isLongText": "false", "mblogid": "R5tnnuAYY"}) is None
+    assert await monitor._fetch_long_text_content({"isLongText": "0", "mblogid": "R5tnnuAYY"}) is None
+    assert session.requests == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_long_text_content_requires_mblogid():
+    session = _FakeWeiboSession({})
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
+
+    status = {"isLongText": True, "mid": "5313045657292004", "text_raw": "截断正文..."}
+
+    assert await monitor._fetch_long_text_content(status) is None
+    assert session.requests == []
+
+
+@pytest.mark.asyncio
 async def test_get_info_stores_full_long_text(monkeypatch):
     session = _FakeWeiboSession(
         {
@@ -206,7 +227,7 @@ async def test_get_info_stores_full_long_text(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_process_user_backfills_long_text_without_push(monkeypatch):
+async def test_process_user_pushes_long_text_backfill(monkeypatch):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     monitor.db = _FakeWeiboDatabase()
     monitor.old_data_dict = {
@@ -240,12 +261,14 @@ async def test_process_user_backfills_long_text_without_push(monkeypatch):
     async def mark_cookie_valid():
         return None
 
-    async def fail_push(data, diff):
-        raise AssertionError("不应在长文本补偿回写时推送")
+    push_calls = []
+
+    async def record_push(data, diff):
+        push_calls.append((dict(data), diff))
 
     monkeypatch.setattr(monitor, "get_info", fake_get_info)
     monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
-    monkeypatch.setattr(monitor, "push_notification", fail_push)
+    monkeypatch.setattr(monitor, "push_notification", record_push)
 
     await monitor.process_user("1")
 
@@ -254,6 +277,10 @@ async def test_process_user_backfills_long_text_without_push(monkeypatch):
     assert params["文本"] == "          完整长微博正文\n\nTue Jun 23 18:57:39 +0800 2026"
     assert params["图片"] == '["/weibo_img/name/posts/5313045657292004/01.jpg"]'
     assert monitor.old_data_dict["1"][6] == params["文本"]
+    assert len(push_calls) == 1
+    pushed_data, pushed_diff = push_calls[0]
+    assert pushed_data["文本"] == params["文本"]
+    assert pushed_diff == 1
 
 
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):
