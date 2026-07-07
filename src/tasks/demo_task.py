@@ -4,7 +4,7 @@
 本模块演示如何在不改动主流程的前提下，新增一个定时任务：
 1. 在 config.yml 的 plugins.demo_task 下配置 enable、time 等
 2. 实现 run_demo_task_once() 并在模块末尾调用 register_task()
-3. 在 src.jobs.registry.TASK_MODULES 中追加 "src.tasks.demo_task"
+3. 在 src.jobs.metadata.TASK_SPECS 中添加对应 TaskSpec
 
 详见 docs/SECONDARY_DEVELOPMENT.md。
 """
@@ -84,7 +84,7 @@ def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:
     return {"minute": minute, "hour": hour}
 
 
-# 自注册到任务注册表（需在 src.jobs.registry.TASK_MODULES 中加入 "src.tasks.demo_task"）
+# 自注册到任务注册表（模块路径由 src.jobs.metadata.TASK_SPECS 维护）
 register_task(
     "demo_task",
     run_demo_task_once,

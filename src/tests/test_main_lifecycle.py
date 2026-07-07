@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import logging
+import signal
 
 import pytest
 
 from main import _stop_config_watcher
+from src.jobs.lifecycle import _run_initial_pass, build_uvicorn_server
+from src.jobs.registry import JobDescriptor
+from src.jobs.scheduler import TaskScheduler
+from src.jobs.task_outcome import TASK_SUCCESS
+from src.settings.config import AppConfig
 
 logger = logging.getLogger("test")
 
@@ -19,78 +25,9 @@ class _RecordingWatcher:
         self.stop_calls += 1
 
 
-async def _run_watcher_lifecycle(
-    *,
-    assign_watcher: bool,
-    start_raises: bool,
-    run_raises: bool,
-) -> tuple[int, bool]:
-    """复刻 main.py 中 config_watcher 的嵌套 try/finally 语义。"""
-    config_watcher: _RecordingWatcher | None = None
-    stop_calls = 0
-
-    async def stop_and_count(watcher: _RecordingWatcher | None) -> None:
-        nonlocal stop_calls
-        if watcher is None:
-            return
-        await watcher.stop()
-        stop_calls += 1
-
-    try:
-        if assign_watcher:
-            config_watcher = _RecordingWatcher()
-            if start_raises:
-                raise RuntimeError("start failed")
-            try:
-                if run_raises:
-                    raise RuntimeError("run failed")
-            finally:
-                await stop_and_count(config_watcher)
-                config_watcher = None
-    except RuntimeError:
-        pass
-    finally:
-        await stop_and_count(config_watcher)
-
-    return stop_calls, config_watcher is None
-
-
 @pytest.mark.asyncio
 async def test_stop_config_watcher_skips_none() -> None:
     await _stop_config_watcher(None, logger)
-
-
-@pytest.mark.asyncio
-async def test_watcher_not_stopped_when_never_created() -> None:
-    stop_calls, cleared = await _run_watcher_lifecycle(
-        assign_watcher=False,
-        start_raises=False,
-        run_raises=False,
-    )
-    assert stop_calls == 0
-    assert cleared is True
-
-
-@pytest.mark.asyncio
-async def test_watcher_stopped_once_when_run_forever_raises() -> None:
-    stop_calls, cleared = await _run_watcher_lifecycle(
-        assign_watcher=True,
-        start_raises=False,
-        run_raises=True,
-    )
-    assert stop_calls == 1
-    assert cleared is True
-
-
-@pytest.mark.asyncio
-async def test_watcher_stopped_when_start_raises_after_assignment() -> None:
-    """ConfigWatcher 已构造但 start() 失败：仅外层 finally stop 一次。"""
-    stop_calls, _ = await _run_watcher_lifecycle(
-        assign_watcher=True,
-        start_raises=True,
-        run_raises=False,
-    )
-    assert stop_calls == 1
 
 
 @pytest.mark.asyncio
@@ -98,3 +35,54 @@ async def test_recording_watcher_stop_via_helper() -> None:
     watcher = _RecordingWatcher()
     await _stop_config_watcher(watcher, logger)
     assert watcher.stop_calls == 1
+
+
+def test_background_uvicorn_server_does_not_install_signal_handlers(monkeypatch) -> None:
+    async def app(scope, receive, send):
+        return None
+
+    def fail_signal_install(*args):
+        raise AssertionError("background uvicorn must not own process signals")
+
+    server = build_uvicorn_server(app, port=0)
+    monkeypatch.setattr(signal, "signal", fail_signal_install)
+
+    with server.capture_signals():
+        pass
+
+
+def test_scheduler_signal_handlers_are_idempotent(monkeypatch) -> None:
+    installed = []
+
+    def record_signal(sig, handler):
+        installed.append(sig)
+
+    monkeypatch.setattr(signal, "signal", record_signal)
+
+    scheduler = TaskScheduler(AppConfig())
+    scheduler.install_signal_handlers()
+    scheduler.install_signal_handlers()
+
+    assert installed.count(signal.SIGINT) == 1
+
+
+@pytest.mark.asyncio
+async def test_initial_pass_skips_remaining_jobs_after_shutdown_request() -> None:
+    calls = []
+
+    async def first_run():
+        calls.append("first")
+        return TASK_SUCCESS
+
+    async def second_run():
+        calls.append("second")
+        return TASK_SUCCESS
+
+    jobs = [
+        JobDescriptor("first", first_run, "cron", lambda config: {}),
+        JobDescriptor("second", second_run, "cron", lambda config: {}),
+    ]
+
+    await _run_initial_pass(jobs, should_stop=lambda: bool(calls))
+
+    assert calls == ["first"]

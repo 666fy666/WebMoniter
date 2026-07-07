@@ -24,6 +24,7 @@ from src.jobs.metadata import (
     get_task_spec,
 )
 from src.push_channel import _channel_type_to_class
+from src.settings.config import AppConfig
 from src.settings.loader_specs import CONFIG_MAPPINGS
 from src.web.routers import config as config_router
 
@@ -56,6 +57,15 @@ def test_ql_env_map_is_generated_from_task_specs() -> None:
     assert TASK_ENV_MAP["demo_task"][0] == "DEMO_TASK"
 
 
+def test_ql_env_map_fields_exist_on_app_config() -> None:
+    fields = set(AppConfig.model_fields)
+    for job_id, (_, env_map) in TASK_ENV_MAP.items():
+        for env_name, field_name in env_map.items():
+            if field_name.startswith("plugins."):
+                continue
+            assert field_name in fields, f"{job_id}: {env_name}->{field_name}"
+
+
 def test_config_section_order_covers_loader_and_frontend_extras() -> None:
     for section in CONFIG_MAPPINGS:
         assert section in CONFIG_SECTION_ORDER
@@ -69,6 +79,24 @@ def test_config_section_order_matches_frontend_template() -> None:
 
     assert template_sections == CONFIG_SECTION_ORDER
     assert "/api/config/metadata" in js
+
+
+def test_frontend_fallback_metadata_matches_backend() -> None:
+    js = Path("src/webUI/static/js/config.js").read_text(encoding="utf-8")
+    fallback_sections_match = re.search(
+        r"const FALLBACK_CONFIG_SECTIONS = \[(.*?)\];",
+        js,
+        re.S,
+    )
+    assert fallback_sections_match is not None
+    fallback_sections = tuple(re.findall(r"'([^']+)'", fallback_sections_match.group(1)))
+
+    push_types_match = re.search(r"let pushChannelTypes = \{(.*?)\n\};", js, re.S)
+    assert push_types_match is not None
+    fallback_push_types = set(re.findall(r"^\s*'([^']+)':\s*\{", push_types_match.group(1), re.M))
+
+    assert fallback_sections == CONFIG_SECTION_ORDER
+    assert fallback_push_types == {spec.type for spec in PUSH_CHANNEL_SPECS}
 
 
 def test_config_sample_contains_metadata_sections() -> None:

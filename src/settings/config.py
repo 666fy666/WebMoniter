@@ -473,6 +473,19 @@ def _parse_multi_accounts(
             config_dict[config_key] = accounts
 
 
+def _coerce_bool(value) -> bool:
+    """按 YAML/Pydantic 常见语义解析 bool，避免 bool("false") 为 True。"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"1", "true", "yes", "on"}:
+            return True
+        if text in {"0", "false", "no", "off", ""}:
+            return False
+    return bool(value)
+
+
 def load_config_from_yml(yml_path: str = "config.yml") -> dict:
     """
     从YAML文件加载配置并转换为AppConfig所需的格式
@@ -532,7 +545,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
         # Rainyun renewal options (accounts are handled by the specs above).
         rainyun = yml_config.get("rainyun") or {}
         if "auto_renew" in rainyun:
-            config_dict["rainyun_auto_renew"] = bool(rainyun["auto_renew"])
+            config_dict["rainyun_auto_renew"] = _coerce_bool(rainyun["auto_renew"])
         if "renew_threshold_days" in rainyun:
             try:
                 config_dict["rainyun_renew_threshold_days"] = int(rainyun["renew_threshold_days"])

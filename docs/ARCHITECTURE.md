@@ -354,29 +354,28 @@ CREATE TABLE huya (
 
 **核心概念**：
 - `JobDescriptor`：任务描述符（job_id、run_func、trigger、get_trigger_kwargs、original_run_func、description；定时任务 `run_func` 返回 `TaskOutcome`，其中 original_run_func 用于 Web 手动触发时绕过「当天已运行则跳过」）
-- `MONITOR_MODULES`：监控模块列表
-- `TASK_MODULES`：定时任务模块列表
+- `MONITOR_MODULES`：由 `src/jobs/metadata.py` 生成的监控模块兼容导出
+- `TASK_MODULES`：由 `src/jobs/metadata.py` 生成的定时任务模块兼容导出
 - `MONITOR_JOBS`：已注册的监控任务列表
 - `TASK_JOBS`：已注册的定时任务列表
 
 **注册流程**：
-1. 在 `MONITOR_MODULES` 或 `TASK_MODULES` 中添加模块路径
+1. 在 `MONITOR_SPECS` 或 `TASK_SPECS` 中添加 `TaskSpec`
 2. `discover_and_import()` 按 `MONITOR_MODULES`、`TASK_MODULES` 顺序导入模块，模块加载时调用 `register_monitor()` 或 `register_task()`，任务描述符加入 `MONITOR_JOBS` 或 `TASK_JOBS`
 3. 调度器启动时注册 `MONITOR_JOBS`、`TASK_JOBS`
 
 **扩展新任务**：
 ```python
 # 1. 在 src/monitors/ 或 src/tasks/ 下创建模块（见 docs/SECONDARY_DEVELOPMENT.md）
-# 2. 在 src/jobs/registry.py 的 MONITOR_MODULES 或 TASK_MODULES 中追加模块路径
-MONITOR_MODULES: list[str] = [
-    "src.monitors.huya_monitor",
-    "src.monitors.weibo_monitor",
-    "src.monitors.bilibili_monitor",
-    "src.monitors.douyin_monitor",
-    "src.monitors.douyu_monitor",
-    "src.monitors.xhs_monitor",
-    "src.monitors.new_monitor",  # 新增
-]
+# 2. 在 src/jobs/metadata.py 的 MONITOR_SPECS 或 TASK_SPECS 中添加 TaskSpec
+TaskSpec(
+    module="src.monitors.new_monitor",
+    job_id="new_monitor",
+    description="新监控",
+    config_section="new_monitor",
+    enable_field="new_monitor_enable",
+    push_field="new_monitor_push_channels",
+)
 
 # 3. 在模块中注册任务
 from src.jobs.registry import register_monitor
@@ -931,9 +930,10 @@ WebMoniter/
 │   │   ├── loader_specs.py # YAML → AppConfig 映射规格
 │   │   ├── watcher.py      # ConfigWatcher（默认 5 秒轮询）
 │   │   └── db_sync.py      # 热重载时删除已移除的 uid/room 记录
-│   ├── jobs/               # 调度、注册、日志、生命周期
+│   ├── jobs/               # 任务元数据、调度、注册、日志、生命周期
 │   │   ├── scheduler.py    # APScheduler 封装
-│   │   ├── registry.py     # MONITOR_MODULES / TASK_MODULES、register_* 
+│   │   ├── metadata.py     # TaskSpec / PushChannelSpec 与模块清单单一来源
+│   │   ├── registry.py     # register_* 与 metadata 模块清单的兼容导出
 │   │   ├── lifecycle.py    # Web/调度启动编排与热重载回调
 │   │   ├── task_outcome.py # TASK_SUCCESS / TASK_FAILED 约定
 │   │   ├── log_manager.py  # 按日轮转与任务专属日志
@@ -956,7 +956,7 @@ WebMoniter/
 │   │   ├── rainyun_checkin.py
 │   │   ├── rainyun/        # 雨云子包（浏览器、验证码、续费等）
 │   │   ├── demo_task.py    # 二次开发示例
-│   │   └── ...             # 其余签到任务见 src/jobs/registry.py TASK_MODULES
+│   │   └── ...             # 其余签到任务见 src/jobs/metadata.py TASK_SPECS
 │   ├── push_channel/       # 推送通道（18 种 type，含 demo、qlapi）
 │   │   ├── _push_channel.py
 │   │   ├── manager.py

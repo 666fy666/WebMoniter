@@ -8,6 +8,7 @@ from aiohttp import ClientResponseError
 
 from src.push_channel import _channel_type_to_class, get_push_channel
 from src.push_channel._push_channel import PushChannel
+from src.push_channel.dingtalk_bot import DingtalkBot
 
 
 def test_push_channel_types_count() -> None:
@@ -28,6 +29,17 @@ def test_get_push_channel_rejects_unknown_type() -> None:
         raised = True
         assert "不支持的通道类型" in str(exc)
     assert raised
+
+
+def test_dingtalk_sign_is_not_pre_url_encoded(monkeypatch) -> None:
+    monkeypatch.setattr("src.push_channel.dingtalk_bot.time.time", lambda: 1_700_000_000.123)
+    channel = DingtalkBot({"name": "dingtalk", "type": "dingtalk_bot", "secret": "secret"})
+
+    timestamp, sign = channel._calculate_sign()
+
+    assert timestamp == "1700000000123"
+    assert "%" not in sign
+    assert "+" in sign or "/" in sign or sign.endswith("=")
 
 
 class _ConcretePushChannel(PushChannel):

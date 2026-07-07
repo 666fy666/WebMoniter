@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import time
-import urllib.parse
 
 from . import PushChannel
 
@@ -31,7 +30,7 @@ class DingtalkBot(PushChannel):
         string_to_sign = f"{timestamp}\n{self.secret}"
         string_to_sign_enc = string_to_sign.encode("utf-8")
         hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
-        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code).decode("utf-8"))
+        sign = base64.b64encode(hmac_code).decode("utf-8")
         return timestamp, sign
 
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):

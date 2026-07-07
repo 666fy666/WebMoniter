@@ -2,8 +2,8 @@
 """
 Web任务系统主入口（异步调度 + FastAPI 管理界面）。
 
-扩展方式：在 monitors/、tasks/ 实现逻辑后，将模块路径写入 src/jobs/registry.py 的列表，
-并在模块内调用 register_monitor / register_task。详见 docs/SECONDARY_DEVELOPMENT.md。
+扩展方式：在 monitors/、tasks/ 实现逻辑并调用 register_monitor / register_task，
+再到 src/jobs/metadata.py 添加对应 TaskSpec。详见 docs/SECONDARY_DEVELOPMENT.md。
 """
 
 import asyncio
@@ -88,7 +88,12 @@ async def main() -> None:
         await cookie_cache.reset_all()
 
         scheduler = TaskScheduler(config)
+        scheduler.install_signal_handlers()
         await register_and_prime_jobs(scheduler, config)
+        if scheduler.shutdown_requested:
+            logger.info("启动期间收到停止信号，正在关闭")
+            scheduler.shutdown(wait=False)
+            return
         logger.info(
             "Web任务系统已启动，已注册 %d 个任务",
             len(scheduler.scheduler.get_jobs()),

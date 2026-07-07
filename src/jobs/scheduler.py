@@ -114,6 +114,7 @@ class TaskScheduler:
         self.logger = logging.getLogger(self.__class__.__name__)
         self._shutdown_event = asyncio.Event()
         self._shutdown_signal_count = 0
+        self._signals_installed = False
 
     def add_job(
         self,
@@ -339,8 +340,15 @@ class TaskScheduler:
         except SchedulerNotRunningError:
             self.logger.debug("调度器未运行，无需关闭")
 
-    async def run_forever(self):
-        """运行调度器直到收到停止信号"""
+    @property
+    def shutdown_requested(self) -> bool:
+        """是否已收到停止信号。"""
+        return self._shutdown_event.is_set()
+
+    def install_signal_handlers(self) -> None:
+        """安装进程停止信号处理器；可在启动首轮任务前提前调用。"""
+        if self._signals_installed:
+            return
 
         def signal_handler(signum, frame):
             self._shutdown_signal_count += 1
@@ -356,6 +364,12 @@ class TaskScheduler:
         signal.signal(signal.SIGINT, signal_handler)
         if sys.platform != "win32":
             signal.signal(signal.SIGTERM, signal_handler)
+        self._signals_installed = True
+
+    async def run_forever(self):
+        """运行调度器直到收到停止信号"""
+
+        self.install_signal_handlers()
 
         # 启动调度器
         self.start()

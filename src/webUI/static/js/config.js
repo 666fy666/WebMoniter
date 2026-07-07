@@ -18,7 +18,9 @@ let pushChannelTypes = {
     'webhook': { name: 'Webhook', fields: ['webhook_url', 'request_method'] },
     'pushplus': { name: 'PushPlus', fields: ['token', 'channel', 'topic', 'template', 'to'] },
     'email': { name: 'Email', fields: ['smtp_host', 'smtp_port', 'smtp_ssl', 'smtp_tls', 'sender_email', 'sender_password', 'receiver_email'] },
-    'wxpusher': { name: 'WxPusher', fields: ['app_token', 'uids', 'topic_ids', 'content_type'] }
+    'wxpusher': { name: 'WxPusher', fields: ['app_token', 'uids', 'topic_ids', 'content_type'] },
+    'demo': { name: 'Demo', fields: [] },
+    'qlapi': { name: '青龙 QLAPI', fields: [] }
 };
 let configMetadata = {
     sections: [],

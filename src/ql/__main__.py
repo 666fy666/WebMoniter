@@ -36,7 +36,7 @@ def _list_tasks() -> None:
         print(f"  {job.job_id:28}  {job.description}")
     print()
     print(f"共 {len([j for j in TASK_JOBS if j.job_id != 'demo_task'])} 个任务（不含 demo_task）")
-    print(f"模块列表见 src/jobs/registry.py TASK_MODULES（{len(TASK_MODULES)} 项）")
+    print(f"模块列表由 src/jobs/metadata.py 生成（兼容导出 {len(TASK_MODULES)} 项）")
 
 
 def main() -> None:

@@ -1,10 +1,12 @@
 """
-任务注册表 - 统一注册监控任务与定时任务，新增任务时只需在本模块的模块列表中追加并实现任务逻辑。
+任务注册表 - 统一注册监控任务与定时任务。
 
 新增监控/定时任务步骤：
 1. 在 src/monitors/ 或 src/tasks/ 下实现任务模块（见 docs/SECONDARY_DEVELOPMENT.md）
-2. 在 MONITOR_MODULES 或 TASK_MODULES 中追加模块路径
+2. 在 src/jobs/metadata.py 的 MONITOR_SPECS 或 TASK_SPECS 中添加 TaskSpec
 3. 在任务模块内调用 register_monitor() 或 register_task() 完成注册
+
+MONITOR_MODULES / TASK_MODULES 由 metadata 生成并在本模块兼容导出。
 """
 
 import functools

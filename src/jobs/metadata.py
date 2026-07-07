@@ -173,12 +173,7 @@ TASK_SPECS: tuple[TaskSpec, ...] = (
         default_time="08:30",
         push_field="rainyun_push_channels",
         ql_prefix="RAINYUN",
-        ql_extra_env={
-            "USERNAME": "rainyun_username",
-            "PASSWORD": "rainyun_password",
-            "API_KEY": "rainyun_api_key",
-            "TIME": "rainyun_time",
-        },
+        ql_extra_env={"TIME": "rainyun_time"},
     ),
     TaskSpec(
         "enshan_checkin",

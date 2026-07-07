@@ -479,7 +479,7 @@ app:
 # ==========================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
 # ==========================================================================
-# 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src.jobs.registry.TASK_MODULES 中移除 src.tasks.demo_task
+# 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src.jobs.metadata.TASK_SPECS 中移除对应 TaskSpec
 plugins:
   demo_task:
     enable: false
@@ -595,4 +595,3 @@ push_channel:
     uids:  # 用户ID列表，逗号分隔（可选，与topic_ids二选一）
     topic_ids:  # 主题ID列表，逗号分隔（可选，与uids二选一）
     content_type: 1  # 内容类型：1-文本，2-html，3-markdown，默认1
-

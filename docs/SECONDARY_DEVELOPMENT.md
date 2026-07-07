@@ -50,7 +50,7 @@ uv run pytest
 # 或指定目录：uv run pytest src/tests/ -q
 ```
 
-`src/tests/test_registry_integrity.py` 会在新增任务时校验 `TASK_MODULES`、`MONITOR_MODULES` 与 `enable_fields` 映射是否一致；漏配时测试失败。
+`src/tests/test_jobs_metadata.py` 与 `src/tests/test_registry_integrity.py` 会在新增任务时校验 `TaskSpec`、兼容模块清单与 enable 映射是否一致；漏配时测试失败。
 
 ---
 
@@ -66,7 +66,7 @@ uv run pytest
 1. **新增配置**：在 `config.yml` 中增加节点；若用顶层配置，还需在 `src/settings/config.py` 中补充字段与解析。
 2. **补充配置映射**：若用顶层配置，在 `src/settings/config.py` 中增加 `AppConfig` 字段，并在 `src/settings/loader_specs.py` 中补充 YAML 到扁平字段的映射规格。
 3. **实现任务逻辑**：一个无参的 async 入口函数（内部 `get_config(reload=True)`、业务逻辑、可选推送），返回 `TASK_SUCCESS` 或 `TASK_FAILED`（见 `src/jobs/task_outcome.py`）。
-4. **注册**：在任务模块末尾调用 `register_monitor` 或 `register_task`，并在 `src/jobs/registry.py` 的 `MONITOR_MODULES` / `TASK_MODULES` 中追加模块路径。
+4. **注册与元数据**：在任务模块末尾调用 `register_monitor` 或 `register_task`，并在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` / `TASK_SPECS` 中添加对应 `TaskSpec`。
 
 主入口 `main.py` 通过 `src.jobs.registry.discover_and_import()` 加载所有列出的模块并注册到调度器，**无需再改 main.py**。
 
@@ -250,22 +250,24 @@ register_task("always_run_task", run_task, _get_trigger_kwargs, skip_if_run_toda
 
 通过 Web 管理界面的「任务管理」页面手动触发任务时，会使用 `JobDescriptor.original_run_func`（原始执行函数），绕过"当天已运行则跳过"检查，确保任务被强制执行。这对于调试或需要立即重新执行的场景非常有用。
 
-### 2.4 注册表：src/jobs/registry.py
+### 2.4 任务元数据：src/jobs/metadata.py
 
-在 `TASK_MODULES` 中已包含该模块，主程序启动时会导入并执行上述 `register_task`：
+在 `TASK_SPECS` 中已包含该模块，主程序启动时会根据元数据生成兼容的 `TASK_MODULES`，再导入并执行上述 `register_task`：
 
 ```python
-TASK_MODULES: list[str] = [
-    "src.tasks.log_cleanup",
-    "src.tasks.ikuuu_checkin",  # iKuuu 签到
-    "src.tasks.tieba_checkin",
-    "src.tasks.weibo_chaohua_checkin",  # 微博超话签到
-    # ... 雨云、贴吧、阿里云盘等更多任务见 src/jobs/registry.py
-    "src.tasks.demo_task",  # 二次开发示例，不需要可移除此行
-]
+TaskSpec(
+    module="src.tasks.ikuuu_checkin",
+    job_id="ikuuu_checkin",
+    description="iKuuu 签到",
+    config_section="checkin",
+    enable_field="checkin_enable",
+    time_field="checkin_time",
+    push_field="checkin_push_channels",
+    ql_prefix="IKUUU",
+)
 ```
 
-小结：顶层定时任务 = **config.yml 节点 → AppConfig + loader_specs 映射 → 任务模块（run_xxx_once + 推送 + _get_xxx_trigger_kwargs）→ register_task → TASK_MODULES 一行**。
+小结：顶层定时任务 = **config.yml 节点 → AppConfig + loader_specs 映射 → 任务模块（run_xxx_once + 推送 + _get_xxx_trigger_kwargs）→ register_task → TaskSpec 一项**。
 
 ---
 
@@ -431,7 +433,7 @@ MONITOR_MODULES: list[str] = [
 
 **新增定时任务时**：只要在 `AppConfig` 中添加了对应字段，热重载即自动覆盖，无需额外操作。
 
-小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + loader_specs 映射 + get_xxx_config → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → MONITOR_MODULES 一行**。`enable: false` 时任务会被暂停，热重载生效。
+小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + loader_specs 映射 + get_xxx_config → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → TaskSpec 一项**。`enable: false` 时任务会被暂停，热重载生效。
 
 ---
 
@@ -549,11 +551,11 @@ await self.db.execute_insert(sql, data)
 
 | 类型     | 示例       | 配置文件 | 配置解析 | 任务/监控实现 | 注册 |
 |----------|------------|----------|----------|----------------|------|
-| 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("ikuuu_checkin", ...)`，`TASK_MODULES` 含 `src.tasks.ikuuu_checkin` |
-| 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `src/tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_MODULES` 含 `src.tasks.demo_task` |
-| 定时任务 | Freenom 续期 | `config.yml` → `freenom` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/freenom_checkin.py`（`run_freenom_checkin_once`、`_get_freenom_trigger_kwargs`） | `register_task("freenom_checkin", ...)`，`TASK_MODULES` 含 `src.tasks.freenom_checkin` |
-| 定时任务 | 天气推送   | `config.yml` → `weather` | `AppConfig` + `CONFIG_MAPPINGS` | `src/tasks/weather_push.py`（`run_weather_push_once`、`_get_weather_trigger_kwargs`） | `register_task("weather_push", ...)`，`TASK_MODULES` 含 `src.tasks.weather_push` |
-| 监控任务 | 虎牙监控   | `config.yml` → `huya`（含 `monitor_interval_seconds`） | `AppConfig`、`HuyaConfig`、`get_huya_config`、`CONFIG_MAPPINGS` | `src/monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_MODULES` 含 `src.monitors.huya_monitor` |
+| 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("ikuuu_checkin", ...)`，`TASK_SPECS` 含 `src.tasks.ikuuu_checkin` |
+| 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `src/tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_SPECS` 含 `src.tasks.demo_task` |
+| 定时任务 | Freenom 续期 | `config.yml` → `freenom` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/freenom_checkin.py`（`run_freenom_checkin_once`、`_get_freenom_trigger_kwargs`） | `register_task("freenom_checkin", ...)`，`TASK_SPECS` 含 `src.tasks.freenom_checkin` |
+| 定时任务 | 天气推送   | `config.yml` → `weather` | `AppConfig` + `CONFIG_MAPPINGS` | `src/tasks/weather_push.py`（`run_weather_push_once`、`_get_weather_trigger_kwargs`） | `register_task("weather_push", ...)`，`TASK_SPECS` 含 `src.tasks.weather_push` |
+| 监控任务 | 虎牙监控   | `config.yml` → `huya`（含 `monitor_interval_seconds`） | `AppConfig`、`HuyaConfig`、`get_huya_config`、`CONFIG_MAPPINGS` | `src/monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_SPECS` 含 `src.monitors.huya_monitor` |
 
 - **parse_checkin_time**：`src/settings/config.py`，将 `"HH:MM"` 解析为 `(hour, minute)` 字符串元组，供 Cron 使用。
 - **BaseMonitor**：`src/monitors/base.py`，提供 `config`、`db`、`push`、`initialize`、`close`，子类实现 `run`、`monitor_name`。
@@ -568,8 +570,8 @@ await self.db.execute_insert(sql, data)
 - [ ] 在模块末尾调用 `register_task("job_id", run_xxx_once, _get_xxx_trigger_kwargs)`。
   - 默认启用 `skip_if_run_today=True`，当天已运行则跳过
   - 若需每次触发都执行，设置 `skip_if_run_today=False`
-- [ ] 在 `src.jobs.registry.TASK_MODULES` 中追加 `"src.tasks.xxx"`。
-- [ ] 若该任务使用顶层 `enable` 开关：在 `src/jobs.enable_fields.TASK_JOB_ENABLE_FIELD_MAP` 中增加映射（`demo_task` 等 plugins 任务除外）。
+- [ ] 在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/time/push 字段；plugins 任务标记 `plugin_only=True`）。
+- [ ] 若该任务支持青龙环境变量：在同一个 `TaskSpec` 中配置 `ql_prefix` 与 `ql_env_fields`。
 
 ---
 
@@ -581,8 +583,7 @@ await self.db.execute_insert(sql, data)
 - [ ] 新建 `src/monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。
 - [ ] **若监控需要数据库**：在 `src/storage/database.py` 的 `_init_tables()` 中增加 `CREATE TABLE IF NOT EXISTS your_table (...)`；在监控类 `initialize()` 里加载旧数据，在 `run()` 里用 `self.db.execute_query` / `execute_update` / `execute_insert` 读写（参见 **五、监控任务需要数据库时该怎么办**）。
 - [ ] 在模块末尾调用 `register_monitor("job_id", run_xxx_monitor, _get_xxx_trigger_kwargs)`。
-- [ ] 在 `src.jobs.registry.MONITOR_MODULES` 中追加 `"src.monitors.xxx"`。
-- [ ] 若该监控支持 `enable` 开关：在 `src.jobs.enable_fields.MONITOR_JOB_ENABLE_FIELD_MAP` 中增加映射，如 `"xxx_monitor": "xxx_enable"`。
+- [ ] 在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/push 字段）。
 
 完成以上步骤后，新任务会被主程序自动加载、按配置调度，并在配置变更时通过 ConfigWatcher 热重载。
 
@@ -612,4 +613,4 @@ cd /path/to/WebMoniter && python -m src.ql <task_id>
 - 推送通过 **qlapi** 通道，调用青龙内置的 `QLAPI.systemNotify`
 - 与 `src/tasks/*`、`src/monitors/*` 主流程解耦，共用同一套业务逻辑（如签到、监控 API 调用）
 
-**新增青龙任务**：在 `src/tasks/` 实现任务并在 `registry.TASK_MODULES` 注册后，即可通过 `python -m src.ql <job_id>` 运行。详见 [青龙面板兼容指南](QINGLONG.md)。
+**新增青龙任务**：在 `src/tasks/` 实现任务并在 `src/jobs/metadata.py` 的 `TASK_SPECS` 添加 `TaskSpec` 后，即可通过 `python -m src.ql <job_id>` 运行。详见 [青龙面板兼容指南](QINGLONG.md)。

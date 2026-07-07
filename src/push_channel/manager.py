@@ -62,15 +62,23 @@ async def build_push_manager(
         if filter_names is not None and name not in filter_names:
             continue
 
+        channel = None
         try:
             channel = get_push_channel(channel_config, session)
-            push_channels.append(channel)
             # 对于需要初始化的通道（如 QQBot），执行初始化
             if hasattr(channel, "initialize"):
                 await channel.initialize()
+            push_channels.append(channel)
         except Exception as e:  # noqa: BLE001
             # 保持日志信息风格可由调用方通过前缀控制
             logger.warning("%s推送通道 %s 初始化失败: %s", init_fail_prefix, name or "未知", e)
+            if channel is not None:
+                try:
+                    await channel.close()
+                except Exception as close_exc:  # noqa: BLE001
+                    logger.debug(
+                        "关闭初始化失败的推送通道 %s 时出错: %s", name or "未知", close_exc
+                    )
 
     if not push_channels:
         return None
@@ -203,8 +211,13 @@ class UnifiedPushManager:
             base_extend_data.update(extend_data)
 
         for channel in self.push_channels:
-            channel_names.append(channel.name)
-            channel_description = description_func(channel) if description_func else description
+            channel_name = channel.name
+            try:
+                channel_description = description_func(channel) if description_func else description
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"{channel_name}: {e}")
+                continue
+            channel_names.append(channel_name)
             tasks.append(
                 self._send_one(
                     channel,

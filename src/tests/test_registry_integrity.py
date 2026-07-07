@@ -1,6 +1,6 @@
-"""注册表与 enable 映射一致性测试。
+"""任务元数据、注册表与 enable 映射一致性测试。
 
-新增监控/定时任务时，若漏配 MONITOR_MODULES、TASK_MODULES 或 enable 映射，
+新增监控/定时任务时，若漏配 src.jobs.metadata 中的任务规格或生成出的兼容映射，
 本模块中的测试应失败并提示不一致项。
 """
 

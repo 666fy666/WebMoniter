@@ -9,8 +9,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
+from collections.abc import Callable, Generator
 from typing import Any
 
 import uvicorn
@@ -34,6 +36,16 @@ DEFAULT_BIND_HOST = "0.0.0.0"
 ENV_PORT = "PORT"
 DEFAULT_PORT = 8866
 WEB_SHUTDOWN_WAIT_SEC = 5.0
+
+
+class BackgroundUvicornServer(uvicorn.Server):
+    """Uvicorn server used as a child task under WebMoniter's signal handling."""
+
+    @contextlib.contextmanager
+    def capture_signals(self) -> Generator[None, None, None]:
+        # The scheduler owns SIGINT/SIGTERM. Letting Uvicorn capture and replay
+        # signals from a background task causes noisy KeyboardInterrupt tracebacks.
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +92,7 @@ def build_uvicorn_server(
         log_level="info",
         access_log=False,
     )
-    return uvicorn.Server(cfg)
+    return BackgroundUvicornServer(cfg)
 
 
 def start_uvicorn_background(server: uvicorn.Server, log: logging.Logger) -> asyncio.Task[None]:
@@ -158,9 +170,15 @@ def _pause_tasks_disabled_in_config(scheduler: TaskScheduler, config: AppConfig)
             scheduler.pause_job(desc.job_id)
 
 
-async def _run_initial_pass(jobs: list[JobDescriptor]) -> None:
+async def _run_initial_pass(
+    jobs: list[JobDescriptor],
+    should_stop: Callable[[], bool] | None = None,
+) -> None:
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
     for desc in jobs:
+        if should_stop is not None and should_stop():
+            logger.info("收到停止信号，跳过剩余启动首轮任务")
+            break
         try:
             await desc.run_func()
         except Exception as e:  # noqa: BLE001
@@ -174,7 +192,7 @@ async def register_and_prime_jobs(scheduler: TaskScheduler, config: AppConfig) -
     _add_cron_jobs(scheduler, config)
     _pause_monitors_disabled_in_config(scheduler, config)
     _pause_tasks_disabled_in_config(scheduler, config)
-    await _run_initial_pass(MONITOR_JOBS + TASK_JOBS)
+    await _run_initial_pass(MONITOR_JOBS + TASK_JOBS, lambda: scheduler.shutdown_requested)
 
 
 def _format_reload_summary(updates: list[str]) -> str:
