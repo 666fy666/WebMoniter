@@ -436,6 +436,54 @@ document.addEventListener('DOMContentLoaded', function () {
         )}" data-thumbs="${escapeAttr(JSON.stringify(allThumbs))}">${items}${overflowItem}</div>`;
     }
 
+    function renderWeiboTextBlock(text, className) {
+        const content = (text || '').toString().trim();
+        if (!content) return '';
+        return `<div class="${escapeAttr(className)}">${content
+            .split('\n')
+            .map((line) => escapeHtml(line))
+            .join('<br>')}</div>`;
+    }
+
+    function renderWeiboRetweet(retweetedStatus) {
+        if (!retweetedStatus || typeof retweetedStatus !== 'object') return '';
+
+        const userName = (retweetedStatus.user_name || '未知用户').toString().trim();
+        const verified = (retweetedStatus.verified || '').toString().trim();
+        const createdAt = (retweetedStatus.created_at || '').toString().trim();
+        const mid = (retweetedStatus.mid || '').toString().trim();
+        const url =
+            (retweetedStatus.url || '').toString().trim() ||
+            (mid ? `https://m.weibo.cn/detail/${mid}` : '');
+        const text = (retweetedStatus.text || '').toString().trim();
+        const unavailable = Boolean(retweetedStatus.source_unavailable);
+        const mediaHtml = renderWeiboMedia(
+            retweetedStatus.images || [],
+            retweetedStatus.image_thumbs || [],
+        );
+        const textHtml =
+            renderWeiboTextBlock(
+                text || (unavailable ? '原微博已不可见' : '原微博暂无正文'),
+                'weibo-retweet-text',
+            ) || '';
+        const hrefAttr = url ? ` data-href="${escapeAttr(url)}"` : '';
+        const stateClass = unavailable ? ' weibo-retweet-unavailable' : '';
+
+        return `
+      <section class="weibo-retweet-block${stateClass}"${hrefAttr}>
+        <div class="weibo-retweet-header">
+          <span class="weibo-retweet-name">@${escapeHtml(userName)}</span>
+          ${verified ? `<span class="weibo-retweet-verify">${escapeHtml(verified)}</span>` : ''}
+          ${createdAt ? `<span class="weibo-retweet-time">${escapeHtml(createdAt)}</span>` : ''}
+        </div>
+        <div class="weibo-retweet-body">
+          ${textHtml}
+          ${mediaHtml}
+        </div>
+        ${url ? '<div class="weibo-retweet-hint">查看原微博</div>' : ''}
+      </section>`;
+    }
+
     function getListFromMediaGrid(grid, datasetName) {
         try {
             const values = JSON.parse(grid.dataset[datasetName] || '[]');
@@ -858,6 +906,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (target.closest('.data-card-drag-handle')) return;
         if (target.tagName === 'A' && target.href) return;
+        const retweetBlock = target.closest('.weibo-retweet-block');
+        if (retweetBlock && retweetBlock.dataset.href) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(retweetBlock.dataset.href, '_blank', 'noopener,noreferrer');
+            return;
+        }
         const card = target.closest('.data-card-link');
         if (!card || !dataTableContainer.contains(card)) return;
         const href = card.getAttribute('data-href');
@@ -938,13 +993,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     .replace(/\n?\s*\[图片\]\s*\*\s*\d+\s*\(详情请点击噢!\)/g, '')
                     .trim();
                 const mediaHtml = renderWeiboMedia(row.images, row.image_thumbs);
-                const contentDisplay = contentRaw || (mediaHtml ? '' : '暂无最新微博内容');
-                const textHtml = contentDisplay
-                    ? `<div class="weibo-feed-text">${contentDisplay
-                          .split('\n')
-                          .map((l) => escapeHtml(l))
-                          .join('<br>')}</div>`
-                    : '';
+                const retweetHtml = renderWeiboRetweet(row.retweeted_status);
+                const contentDisplay = contentRaw || (mediaHtml || retweetHtml ? '' : '暂无最新微博内容');
+                const textHtml = renderWeiboTextBlock(contentDisplay, 'weibo-feed-text');
 
                 html += `
 <article class="data-card weibo-feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
@@ -967,6 +1018,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
     <div class="weibo-feed-body">
       ${textHtml}
+      ${retweetHtml}
       ${mediaHtml}
     </div>
     <footer class="weibo-feed-footer">

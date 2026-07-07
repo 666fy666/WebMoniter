@@ -31,6 +31,42 @@ def _parse_weibo_images(raw: str | None) -> list[str]:
     return [item.strip() for item in images if isinstance(item, str) and item.strip()]
 
 
+def _parse_weibo_retweeted_status(raw: str | None) -> dict | None:
+    """解析 weibo.转发微博 JSON 字段，返回前端可直接渲染的结构。"""
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        repost = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(repost, dict) or not repost:
+        return None
+
+    images = repost.get("images")
+    if not isinstance(images, list):
+        images = []
+    clean_images = [item.strip() for item in images if isinstance(item, str) and item.strip()]
+
+    mid = str(repost.get("mid") or "").strip()
+    user_name = str(repost.get("user_name") or "").strip()
+    text = str(repost.get("text") or "").strip()
+    if not any([mid, user_name, text, clean_images, repost.get("source_unavailable")]):
+        return None
+
+    return {
+        "user_id": str(repost.get("user_id") or "").strip(),
+        "user_name": user_name or "未知用户",
+        "verified": str(repost.get("verified") or "").strip(),
+        "text": text,
+        "created_at": str(repost.get("created_at") or "").strip(),
+        "mid": mid,
+        "images": clean_images,
+        "image_thumbs": [_weibo_thumb_url(image) for image in clean_images],
+        "url": f"https://m.weibo.cn/detail/{mid}" if mid else "",
+        "source_unavailable": bool(repost.get("source_unavailable")),
+    }
+
+
 def _weibo_thumb_url(image_url: str) -> str:
     """按保存规则从原图 URL 推导缩略图 URL。"""
     if "/" not in image_url:
@@ -116,6 +152,7 @@ def _parse_weibo_created_at(text: str | None) -> datetime | None:
 def _weibo_row_to_item(row: tuple) -> dict:
     mid = row[7] if len(row) > 7 else ""
     images = _parse_weibo_images(row[8] if len(row) > 8 else None)
+    retweeted_status = _parse_weibo_retweeted_status(row[9] if len(row) > 9 else None)
     return {
         "UID": row[0],
         "用户名": row[1],
@@ -127,6 +164,7 @@ def _weibo_row_to_item(row: tuple) -> dict:
         "mid": mid,
         "images": images,
         "image_thumbs": [_weibo_thumb_url(image) for image in images],
+        "retweeted_status": retweeted_status,
         "url": f"https://m.weibo.cn/detail/{mid}" if mid else f"https://www.weibo.com/u/{row[0]}",
     }
 
@@ -144,6 +182,7 @@ def _huya_row_to_item(row: tuple) -> dict:
 
 def _weibo_row_to_status_item(row: tuple) -> dict:
     images = _parse_weibo_images(row[8] if len(row) > 8 else None)
+    retweeted_status = _parse_weibo_retweeted_status(row[9] if len(row) > 9 else None)
     return {
         "UID": row[0],
         "用户名": row[1],
@@ -155,6 +194,7 @@ def _weibo_row_to_status_item(row: tuple) -> dict:
         "mid": row[7],
         "images": images,
         "image_thumbs": [_weibo_thumb_url(image) for image in images],
+        "retweeted_status": retweeted_status,
     }
 
 
@@ -231,7 +271,7 @@ def _row_to_item(platform: str, row: tuple) -> dict:
 _PLATFORM_SELECT = {
     "weibo": (
         "weibo",
-        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo WHERE UID = :pk",
+        "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, 转发微博 FROM weibo WHERE UID = :pk",
     ),
     "huya": ("huya", "SELECT room, name, is_live FROM huya WHERE room = :pk"),
     "bilibili_live": (
@@ -251,7 +291,7 @@ _PLATFORM_SELECT = {
 }
 
 _PLATFORM_LIST_SQL = {
-    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo",
+    "weibo": "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, 转发微博 FROM weibo",
     "huya": "SELECT room, name, is_live, room_pic, avatar_url FROM huya",
     "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
     "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",

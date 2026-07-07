@@ -55,7 +55,7 @@ class _FakeWeiboDatabase:
 
 
 @pytest.mark.asyncio
-async def test_weibo_table_migration_adds_images_column(tmp_path):
+async def test_weibo_table_migration_adds_images_and_retweeted_columns(tmp_path):
     db_path = tmp_path / "old.db"
     async with aiosqlite.connect(db_path) as conn:
         await conn.execute(
@@ -80,6 +80,7 @@ async def test_weibo_table_migration_adds_images_column(tmp_path):
             columns = [row[1] for row in await cursor.fetchall()]
 
     assert "图片" in columns
+    assert "转发微博" in columns
 
 
 def test_weibo_row_to_item_parses_images_json():
@@ -99,6 +100,42 @@ def test_weibo_row_to_item_parses_images_json():
 
     assert item["images"] == ["/weibo_img/name/posts/123/01.jpg"]
     assert item["image_thumbs"] == ["/weibo_img/name/posts/123/01.thumb.jpg"]
+
+
+def test_weibo_row_to_item_parses_retweeted_status_json():
+    row = (
+        "1",
+        "name",
+        "verified",
+        "intro",
+        "10",
+        "20",
+        "text",
+        "123",
+        "[]",
+        json.dumps(
+            {
+                "user_id": "2",
+                "user_name": "source",
+                "verified": "source verified",
+                "text": "原微博正文",
+                "created_at": "Tue Jun 23 18:57:39 +0800 2026",
+                "mid": "456",
+                "images": ["/weibo_img/name/posts/123/retweeted/456/01.jpg"],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+    item = _weibo_row_to_item(row)
+
+    assert item["retweeted_status"]["user_name"] == "source"
+    assert item["retweeted_status"]["text"] == "原微博正文"
+    assert item["retweeted_status"]["url"] == "https://m.weibo.cn/detail/456"
+    assert item["retweeted_status"]["images"] == ["/weibo_img/name/posts/123/retweeted/456/01.jpg"]
+    assert item["retweeted_status"]["image_thumbs"] == [
+        "/weibo_img/name/posts/123/retweeted/456/01.thumb.jpg"
+    ]
 
 
 def test_weibo_row_to_item_handles_empty_or_invalid_images():
@@ -154,8 +191,13 @@ async def test_fetch_long_text_content_skips_string_false_status():
     session = _FakeWeiboSession({})
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
 
-    assert await monitor._fetch_long_text_content({"isLongText": "false", "mblogid": "R5tnnuAYY"}) is None
-    assert await monitor._fetch_long_text_content({"isLongText": "0", "mblogid": "R5tnnuAYY"}) is None
+    assert (
+        await monitor._fetch_long_text_content({"isLongText": "false", "mblogid": "R5tnnuAYY"})
+        is None
+    )
+    assert (
+        await monitor._fetch_long_text_content({"isLongText": "0", "mblogid": "R5tnnuAYY"}) is None
+    )
     assert session.requests == []
 
 
@@ -227,6 +269,84 @@ async def test_get_info_stores_full_long_text(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_get_info_stores_retweeted_status_with_long_text_and_images(monkeypatch):
+    session = _FakeWeiboSession(
+        {
+            "profile/info": {
+                "ok": 1,
+                "data": {
+                    "user": {
+                        "idstr": "1",
+                        "screen_name": "name",
+                        "verified_reason": "verified",
+                        "description": "intro",
+                        "followers_count_str": "10",
+                        "statuses_count": 20,
+                    }
+                },
+            },
+            "statuses/mymblog": {
+                "ok": 1,
+                "data": {
+                    "list": [
+                        {
+                            "isTop": 0,
+                            "isLongText": False,
+                            "mblogid": "self",
+                            "text_raw": "转发理由",
+                            "pic_ids": [],
+                            "pic_infos": {},
+                            "pics": [],
+                            "url_struct": [],
+                            "created_at": "Tue Jun 23 18:57:39 +0800 2026",
+                            "mid": "5313045657292004",
+                            "retweeted_status": {
+                                "isLongText": True,
+                                "mblogid": "source-long",
+                                "text_raw": "原微博截断...",
+                                "created_at": "Tue Jun 23 18:55:39 +0800 2026",
+                                "mid": "5313045657292000",
+                                "pic_ids": ["pic1"],
+                                "pic_infos": {
+                                    "pic1": {
+                                        "largest": {"url": "https://wx1.sinaimg.cn/large/pic1.jpg"}
+                                    }
+                                },
+                                "pics": [],
+                                "user": {
+                                    "idstr": "2",
+                                    "screen_name": "source",
+                                    "verified_reason": "source verified",
+                                },
+                            },
+                        }
+                    ]
+                },
+            },
+            "statuses/longtext": {
+                "ok": 1,
+                "data": {"longTextContent_raw": "原微博完整正文"},
+            },
+        }
+    )
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"), session=session)
+
+    async def skip_save_user_images(user_info):
+        return None
+
+    monkeypatch.setattr(monitor, "_save_user_images", skip_save_user_images)
+
+    data = await monitor.get_info("1")
+    retweeted = json.loads(data["转发微博"])
+
+    assert retweeted["user_name"] == "source"
+    assert retweeted["verified"] == "source verified"
+    assert retweeted["text"] == "原微博完整正文"
+    assert retweeted["mid"] == "5313045657292000"
+    assert data["_retweeted_pic_url_candidates"] == [["https://wx1.sinaimg.cn/large/pic1.jpg"]]
+
+
+@pytest.mark.asyncio
 async def test_process_user_pushes_long_text_backfill(monkeypatch):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     monitor.db = _FakeWeiboDatabase()
@@ -276,7 +396,10 @@ async def test_process_user_pushes_long_text_backfill(monkeypatch):
 
     assert len(monitor.db.update_calls) == 1
     _, params = monitor.db.update_calls[0]
-    assert params["文本"] == "          完整长微博正文\n          #网页链接#\n\nTue Jun 23 18:57:39 +0800 2026"
+    assert (
+        params["文本"]
+        == "          完整长微博正文\n          #网页链接#\n\nTue Jun 23 18:57:39 +0800 2026"
+    )
     assert params["图片"] == '["/weibo_img/name/posts/5313045657292004/01.jpg"]'
     assert monitor.old_data_dict["1"][6] == params["文本"]
     assert len(push_calls) == 1
@@ -389,6 +512,31 @@ async def test_process_user_updates_non_backfill_text_without_push(monkeypatch):
     assert push_calls == []
 
 
+def test_build_description_for_retweeted_status_includes_source_user_and_text():
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    data = {
+        "用户名": "name",
+        "认证信息": "verified",
+        "简介": "intro",
+        "文本": "          转发理由\n\nTue Jun 23 18:57:39 +0800 2026",
+        "转发微博": json.dumps(
+            {
+                "user_name": "source",
+                "text": "原微博正文",
+                "mid": "456",
+                "images": ["/weibo_img/name/posts/123/retweeted/456/01.jpg"],
+            },
+            ensure_ascii=False,
+        ),
+    }
+
+    description = monitor._build_description_for_channel(None, data)
+
+    assert "转发理由:👇\n转发理由" in description
+    assert "原微博 @source:\n原微博正文" in description
+    assert "[原微博图片] * 1" in description
+
+
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     image_path = tmp_path / "01.jpg"
@@ -495,7 +643,9 @@ async def test_save_post_images_keeps_existing_images_when_retry_fails(tmp_path,
     assert image_urls == [existing_url]
     assert json.loads(data["图片"]) == [existing_url]
     assert (post_dir / "01.jpg").read_bytes() == b"existing"
-    assert not any(path.name.startswith(".") for path in (root_dir / safe_username / "posts").iterdir())
+    assert not any(
+        path.name.startswith(".") for path in (root_dir / safe_username / "posts").iterdir()
+    )
 
 
 @pytest.mark.asyncio

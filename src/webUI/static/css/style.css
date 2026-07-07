@@ -1443,6 +1443,88 @@ input:focus + .slider {
     margin-bottom: 0.25em;
 }
 
+.weibo-retweet-block {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(113, 113, 122, 0.14);
+    border-radius: 8px;
+    background: rgba(113, 113, 122, 0.08);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.weibo-retweet-block:hover {
+    border-color: rgba(255, 127, 172, 0.24);
+    background: rgba(255, 255, 255, 0.48);
+}
+
+[data-theme="dark"] .weibo-retweet-block {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .weibo-retweet-block:hover {
+    border-color: rgba(244, 114, 182, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.weibo-retweet-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.weibo-retweet-name {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.weibo-retweet-verify {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border: 1px solid rgba(251, 191, 36, 0.42);
+    border-radius: 999px;
+    background: var(--warning-bg);
+    color: #b45309;
+    font-size: 11px;
+}
+
+.weibo-retweet-time {
+    color: var(--text-muted);
+}
+
+.weibo-retweet-text {
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.55;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.weibo-retweet-block .weibo-media-grid {
+    max-width: 456px;
+    margin-top: 10px;
+}
+
+.weibo-retweet-hint {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.weibo-retweet-block:hover .weibo-retweet-hint {
+    color: var(--primary-color);
+}
+
+.weibo-retweet-unavailable {
+    cursor: default;
+}
+
 .weibo-media-grid {
     display: grid;
     gap: 6px;
@@ -1756,6 +1838,10 @@ input:focus + .slider {
     .weibo-media-count-2,
     .weibo-media-count-4 {
         max-width: 100%;
+    }
+
+    .weibo-retweet-block {
+        padding: 10px 12px;
     }
 
     .weibo-lightbox {

@@ -65,7 +65,10 @@ class WeiboMonitor(BaseMonitor):
     async def load_old_info(self):
         """从数据库加载旧信息"""
         try:
-            sql = "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片 FROM weibo"
+            sql = (
+                "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, "
+                "转发微博 FROM weibo"
+            )
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
             # 检查是否是首次创建数据库（表为空）
@@ -220,6 +223,76 @@ class WeiboMonitor(BaseMonitor):
             return []
         return [item for item in values if isinstance(item, str) and item]
 
+    def _parse_retweeted_status(self, raw_status: object) -> dict:
+        """解析数据库或内存中的转发微博 JSON。"""
+        if isinstance(raw_status, dict):
+            status = raw_status
+        elif isinstance(raw_status, str) and raw_status.strip():
+            try:
+                status = json.loads(raw_status)
+            except json.JSONDecodeError:
+                return {}
+        else:
+            return {}
+
+        if not isinstance(status, dict):
+            return {}
+
+        images = status.get("images")
+        if not isinstance(images, list):
+            images = []
+        clean_images = [item.strip() for item in images if isinstance(item, str) and item.strip()]
+
+        parsed = {
+            "user_id": str(status.get("user_id") or "").strip(),
+            "user_name": str(status.get("user_name") or "").strip(),
+            "verified": str(status.get("verified") or "").strip(),
+            "text": str(status.get("text") or "").strip(),
+            "created_at": str(status.get("created_at") or "").strip(),
+            "mid": str(status.get("mid") or "").strip(),
+            "images": clean_images,
+            "source_unavailable": bool(status.get("source_unavailable")),
+        }
+        if not any(
+            [
+                parsed["user_id"],
+                parsed["user_name"],
+                parsed["text"],
+                parsed["created_at"],
+                parsed["mid"],
+                parsed["images"],
+                parsed["source_unavailable"],
+            ]
+        ):
+            return {}
+        if not parsed["user_name"]:
+            parsed["user_name"] = "未知用户"
+        return parsed
+
+    def _dump_retweeted_status(self, status: dict | None) -> str:
+        """将转发微博结构序列化为数据库字段。"""
+        parsed = self._parse_retweeted_status(status or {})
+        return json.dumps(parsed, ensure_ascii=False) if parsed else "{}"
+
+    def _retweeted_content_signature(self, raw_status: object) -> tuple:
+        """生成转发微博内容签名；图片本地路径不参与内容变化判断。"""
+        status = self._parse_retweeted_status(raw_status)
+        if not status:
+            return ()
+        return (
+            status.get("user_id", ""),
+            status.get("user_name", ""),
+            status.get("verified", ""),
+            self._normalize_weibo_text_for_compare(status.get("text", "")),
+            status.get("created_at", ""),
+            status.get("mid", ""),
+            bool(status.get("source_unavailable")),
+        )
+
+    def _retweeted_statuses_equivalent(self, left: object, right: object) -> bool:
+        """判断两个转发微博结构是否为同一份展示内容。"""
+        return self._retweeted_content_signature(left) == self._retweeted_content_signature(right)
+
     def _get_local_post_image_path(self, image_url: str) -> Path | None:
         """将 /weibo_img/... URL 转回本地路径，仅用于检查已保存图片是否存在。"""
         prefix = "/weibo_img/"
@@ -227,7 +300,9 @@ class WeiboMonitor(BaseMonitor):
             return None
 
         parts = [unquote(part) for part in image_url[len(prefix) :].split("/") if part]
-        if not parts or any(part in ("", ".", "..") or "\\" in part or "/" in part for part in parts):
+        if not parts or any(
+            part in ("", ".", "..") or "\\" in part or "/" in part for part in parts
+        ):
             return None
 
         root = self._get_weibo_data_dir().resolve()
@@ -254,8 +329,39 @@ class WeiboMonitor(BaseMonitor):
             return False
 
         old_images = self._parse_post_image_urls(old_info[8] if len(old_info) > 8 else "")
-        available_count = sum(1 for image_url in old_images if self._local_post_image_exists(image_url))
-        return len(old_images) < expected_count or available_count < min(len(old_images), expected_count)
+        available_count = sum(
+            1 for image_url in old_images if self._local_post_image_exists(image_url)
+        )
+        return len(old_images) < expected_count or available_count < min(
+            len(old_images), expected_count
+        )
+
+    def _needs_retweeted_image_retry(self, data: dict, old_info: tuple) -> bool:
+        """同一条微博未变化时，判断是否需要补偿下载被转发微博图片。"""
+        expected_count = len(data.get("_retweeted_pic_url_candidates") or [])
+        if expected_count <= 0:
+            return False
+
+        old_mid = str(old_info[7]) if len(old_info) > 7 else ""
+        if self._sanitize_path_part(old_mid) != self._sanitize_path_part(data.get("mid") or "0"):
+            return False
+
+        new_retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        old_retweeted = self._parse_retweeted_status(old_info[9] if len(old_info) > 9 else "")
+        if not new_retweeted or not old_retweeted:
+            return False
+        if self._sanitize_path_part(new_retweeted.get("mid") or "0") != self._sanitize_path_part(
+            old_retweeted.get("mid") or "0"
+        ):
+            return False
+
+        old_images = self._parse_post_image_urls(old_retweeted.get("images"))
+        available_count = sum(
+            1 for image_url in old_images if self._local_post_image_exists(image_url)
+        )
+        return len(old_images) < expected_count or available_count < min(
+            len(old_images), expected_count
+        )
 
     def _commit_post_image_dir(self, user_dir: Path, post_mid: str, temp_dir: Path | None) -> Path:
         """
@@ -414,6 +520,43 @@ class WeiboMonitor(BaseMonitor):
 
         return []
 
+    async def _refresh_retweeted_pic_url_candidates(
+        self, uid: str, mid: str, retweeted_mid: str
+    ) -> list[list[str]]:
+        """重新请求微博列表，刷新被转发微博图片的临时链接。"""
+        if not uid or not mid or mid == "0" or not retweeted_mid or retweeted_mid == "0":
+            return []
+
+        try:
+            session = await self._get_session()
+            url = f"https://www.weibo.com/ajax/statuses/mymblog?uid={uid}&page=1&feature=0"
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                result = await resp.json()
+
+            if result.get("ok") == -100:
+                self.logger.warning("刷新被转发微博图片链接失败：微博 Cookie 已失效")
+                return []
+
+            wb_list = result.get("data", {}).get("list", [])
+            for item in wb_list:
+                if str(item.get("mid") or "") != str(mid):
+                    continue
+                retweeted_status = item.get("retweeted_status")
+                if not isinstance(retweeted_status, dict):
+                    return []
+                if str(retweeted_status.get("mid") or "") != str(retweeted_mid):
+                    return []
+                return self._extract_pic_url_candidates(
+                    retweeted_status.get("pic_ids", []),
+                    retweeted_status.get("pic_infos", {}),
+                    retweeted_status.get("pics", []),
+                )
+        except Exception as e:
+            self.logger.debug("刷新被转发微博图片链接失败（已忽略）: %s", e)
+
+        return []
+
     def _get_weibo_xsrf_token(self) -> str:
         """从微博 Cookie 中提取 XSRF-TOKEN，用于部分 ajax 接口。"""
         match = re.search(r"(?:^|;\s*)XSRF-TOKEN=([^;]+)", self.weibo_config.cookie or "")
@@ -444,9 +587,9 @@ class WeiboMonitor(BaseMonitor):
 
     def _texts_equivalent(self, left: object, right: object) -> bool:
         """判断两段微博展示文本是否等价。"""
-        return self._normalize_weibo_text_for_compare(left) == self._normalize_weibo_text_for_compare(
-            right
-        )
+        return self._normalize_weibo_text_for_compare(
+            left
+        ) == self._normalize_weibo_text_for_compare(right)
 
     @staticmethod
     def _extract_status_body_from_display_text(text: object) -> str:
@@ -467,6 +610,63 @@ class WeiboMonitor(BaseMonitor):
     def _strip_long_text_marker(text: str) -> str:
         """去掉微博列表截断文本末尾的省略/展开标记。"""
         return re.sub(r"(?:\.{3}|…|全文|展开全文)+$", "", text).strip()
+
+    @staticmethod
+    def _clean_weibo_html_text(text: object) -> str:
+        """将微博接口里的 HTML 文本降级为纯文本。"""
+        value = html.unescape(str(text or ""))
+        value = re.sub(r"<br\s*/?>", "\n", value, flags=re.IGNORECASE)
+        value = re.sub(r"</p\s*>", "\n", value, flags=re.IGNORECASE)
+        value = re.sub(r"<[^>]+>", "", value)
+        value = re.sub(r"\n{3,}", "\n\n", value)
+        return value.strip()
+
+    async def _extract_retweeted_status(self, status: dict) -> tuple[dict, list[list[str]]]:
+        """从微博列表项中解析被转发微博信息和图片候选 URL。"""
+        retweeted_status = status.get("retweeted_status")
+        if not isinstance(retweeted_status, dict) or not retweeted_status:
+            return {}, []
+
+        user = retweeted_status.get("user")
+        if not isinstance(user, dict):
+            user = {}
+
+        mid = str(retweeted_status.get("mid") or "").strip()
+        user_name = str(
+            user.get("screen_name") or retweeted_status.get("screen_name") or ""
+        ).strip()
+        text_raw = str(retweeted_status.get("text_raw") or "").strip()
+        if not text_raw:
+            text_raw = self._clean_weibo_html_text(retweeted_status.get("text"))
+
+        source_unavailable = bool(
+            retweeted_status.get("deleted")
+            or retweeted_status.get("state") == "deleted"
+            or (not mid and not text_raw and not user_name)
+        )
+        if source_unavailable and not text_raw:
+            text_raw = "原微博已不可见"
+
+        long_text_content = await self._fetch_long_text_content(retweeted_status)
+        if long_text_content:
+            text_raw = long_text_content
+
+        pic_ids = retweeted_status.get("pic_ids", [])
+        pic_infos = retweeted_status.get("pic_infos", {})
+        pics = retweeted_status.get("pics", [])
+        candidates = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
+
+        retweeted = {
+            "user_id": str(user.get("idstr") or user.get("id") or "").strip(),
+            "user_name": user_name or "未知用户",
+            "verified": str(user.get("verified_reason") or "").strip(),
+            "text": text_raw,
+            "created_at": str(retweeted_status.get("created_at") or "").strip(),
+            "mid": mid,
+            "images": [],
+            "source_unavailable": source_unavailable,
+        }
+        return self._parse_retweeted_status(retweeted), candidates
 
     def _is_long_text_backfill(self, new_data: dict, old_info: tuple) -> bool:
         """判断本次文本变化是否为同一条微博从截断正文补成完整长文本。"""
@@ -494,7 +694,11 @@ class WeiboMonitor(BaseMonitor):
         list_has_marker = bool(list_body and list_prefix and list_prefix != list_body)
         old_matches_list_text = bool(
             list_body
-            and (old_body == list_body or old_body.startswith(list_body) or list_body.startswith(old_prefix))
+            and (
+                old_body == list_body
+                or old_body.startswith(list_body)
+                or list_body.startswith(old_prefix)
+            )
         )
         if list_has_marker and old_matches_list_text:
             prefixes.append(list_prefix)
@@ -546,14 +750,12 @@ class WeiboMonitor(BaseMonitor):
 
         return None
 
-    async def _download_post_images_to_temp(
+    async def _download_image_indices_to_temp(
         self,
         candidates_by_pic: list[list[str]],
         temp_dir: Path,
-        safe_username: str,
-        post_mid: str,
-    ) -> list[str]:
-        """下载一批正文图片到临时目录，并按图片序号返回已落盘的本地 URL。"""
+    ) -> list[int]:
+        """下载一批微博图片到临时目录，并返回已落盘的图片序号。"""
         saved_indices: list[int] = []
         for index, candidates in enumerate(candidates_by_pic, start=1):
             save_path = temp_dir / f"{index:02d}.jpg"
@@ -565,10 +767,48 @@ class WeiboMonitor(BaseMonitor):
                 self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
                 saved_indices.append(index)
 
+        return saved_indices
+
+    async def _download_post_images_to_temp(
+        self,
+        candidates_by_pic: list[list[str]],
+        temp_dir: Path,
+        safe_username: str,
+        post_mid: str,
+    ) -> list[str]:
+        """下载一批正文图片到临时目录，并按图片序号返回已落盘的本地 URL。"""
+        saved_indices = await self._download_image_indices_to_temp(candidates_by_pic, temp_dir)
         return [
             self._build_weibo_img_url(safe_username, "posts", post_mid, f"{index:02d}.jpg")
             for index in saved_indices
         ]
+
+    def _commit_retweeted_image_dir(
+        self,
+        user_dir: Path,
+        post_mid: str,
+        retweeted_mid: str,
+        temp_dir: Path | None,
+    ) -> Path:
+        """将被转发微博图片临时目录切换到 posts/<mid>/retweeted/<retweeted_mid>。"""
+        retweeted_root = user_dir / "posts" / self._sanitize_path_part(post_mid) / "retweeted"
+        retweeted_root.mkdir(parents=True, exist_ok=True)
+        target_dir = retweeted_root / self._sanitize_path_part(retweeted_mid)
+        keep_names = {target_dir.name}
+        if temp_dir is not None:
+            keep_names.add(temp_dir.name)
+
+        for child in retweeted_root.iterdir():
+            if child.name in keep_names:
+                continue
+            self._remove_path(child)
+
+        if temp_dir is not None:
+            if target_dir.exists():
+                self._remove_path(target_dir)
+            shutil.move(str(temp_dir), str(target_dir))
+
+        return target_dir
 
     async def _save_post_images(self, data: dict, keep_existing: bool = False) -> list[str]:
         """
@@ -651,6 +891,114 @@ class WeiboMonitor(BaseMonitor):
             self.logger.warning("保存微博正文图片时发生异常（已忽略）: %s", e)
 
         data["图片"] = json.dumps(image_urls, ensure_ascii=False)
+        return image_urls
+
+    async def _save_retweeted_images(self, data: dict, keep_existing: bool = False) -> list[str]:
+        """
+        保存被转发微博图片到 data/weibo/<用户名>/posts/<mid>/retweeted/<retweeted_mid>/。
+
+        转发内容跟随当前监控用户的最新微博目录，便于同一条微博被替换时整体清理。
+        """
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        if not retweeted:
+            data["转发微博"] = "{}"
+            return []
+
+        username = data.get("用户名") or "unknown_user"
+        safe_username = self._sanitize_username(username)
+        post_mid = self._sanitize_path_part(data.get("mid") or "0")
+        retweeted_mid = self._sanitize_path_part(retweeted.get("mid") or "0")
+        user_dir = self._get_weibo_data_dir() / safe_username
+        candidates_by_pic = data.get("_retweeted_pic_url_candidates") or []
+        existing_urls = self._parse_post_image_urls(retweeted.get("images"))
+        existing_available_count = sum(
+            1 for image_url in existing_urls if self._local_post_image_exists(image_url)
+        )
+        image_urls: list[str] = []
+
+        if not candidates_by_pic or post_mid == "0" or retweeted_mid == "0":
+            if keep_existing:
+                image_urls = existing_urls
+            else:
+                self._commit_retweeted_image_dir(user_dir, post_mid, retweeted_mid, None)
+            retweeted["images"] = image_urls
+            data["转发微博"] = self._dump_retweeted_status(retweeted)
+            return image_urls
+
+        expected_count = len(candidates_by_pic)
+        retweeted_root = user_dir / "posts" / post_mid / "retweeted"
+        temp_dir = retweeted_root / f".{retweeted_mid}.{uuid.uuid4().hex}.tmp"
+        temp_dir.mkdir(parents=True, exist_ok=False)
+
+        try:
+            saved_indices = await self._download_image_indices_to_temp(candidates_by_pic, temp_dir)
+            image_urls = [
+                self._build_weibo_img_url(
+                    safe_username,
+                    "posts",
+                    post_mid,
+                    "retweeted",
+                    retweeted_mid,
+                    f"{index:02d}.jpg",
+                )
+                for index in saved_indices
+            ]
+
+            if len(image_urls) < expected_count:
+                refreshed_candidates = await self._refresh_retweeted_pic_url_candidates(
+                    str(data.get("UID") or ""),
+                    str(data.get("mid") or ""),
+                    str(retweeted.get("mid") or ""),
+                )
+                if refreshed_candidates:
+                    expected_count = max(expected_count, len(refreshed_candidates))
+                    data["_retweeted_pic_url_candidates"] = refreshed_candidates
+                    saved_indices = await self._download_image_indices_to_temp(
+                        refreshed_candidates,
+                        temp_dir,
+                    )
+                    image_urls = [
+                        self._build_weibo_img_url(
+                            safe_username,
+                            "posts",
+                            post_mid,
+                            "retweeted",
+                            retweeted_mid,
+                            f"{index:02d}.jpg",
+                        )
+                        for index in saved_indices
+                    ]
+
+            if (
+                keep_existing
+                and existing_urls
+                and len(image_urls) <= existing_available_count
+                and len(image_urls) < expected_count
+            ):
+                self._remove_path(temp_dir)
+                retweeted["images"] = existing_urls
+                data["转发微博"] = self._dump_retweeted_status(retweeted)
+                self.logger.warning(
+                    "%s 被转发微博图片补偿下载未改善，保留已有本地图片 %s/%s 张",
+                    username,
+                    existing_available_count,
+                    expected_count,
+                )
+                return existing_urls
+
+            if image_urls:
+                self._commit_retweeted_image_dir(user_dir, post_mid, retweeted_mid, temp_dir)
+            else:
+                self._remove_path(temp_dir)
+                if not keep_existing:
+                    self._commit_retweeted_image_dir(user_dir, post_mid, retweeted_mid, None)
+        except Exception as e:
+            self._remove_path(temp_dir)
+            image_urls = existing_urls if keep_existing else []
+            self.logger.warning("保存被转发微博图片时发生异常（已忽略）: %s", e)
+
+        retweeted["images"] = image_urls
+        data["转发微博"] = self._dump_retweeted_status(retweeted)
         return image_urls
 
     def _resize_cover_for_wecom(self, cover_path: Path, wecom_path: Path) -> bool:
@@ -778,6 +1126,7 @@ class WeiboMonitor(BaseMonitor):
             data["文本"] = "无内容"
             data["mid"] = "0"
             data["图片"] = "[]"
+            data["转发微博"] = "{}"
             return data
 
         # 找到第一个非置顶微博
@@ -800,6 +1149,7 @@ class WeiboMonitor(BaseMonitor):
         pics = target_wb.get("pics", [])
         url_struct = target_wb.get("url_struct", [])
         created_at = target_wb["created_at"]
+        retweeted_status, retweeted_pic_candidates = await self._extract_retweeted_status(target_wb)
 
         spacing = "\n          "
         prefix = "          "
@@ -820,12 +1170,14 @@ class WeiboMonitor(BaseMonitor):
         data["文本"] = text
         data["mid"] = str(target_wb["mid"])
         data["图片"] = "[]"
+        data["转发微博"] = self._dump_retweeted_status(retweeted_status)
         # 保存原始数据，用于推送时动态处理
         data["_text_raw"] = text_raw
         data["_list_text_raw"] = list_text_raw
         data["_long_text_fetched"] = bool(long_text_content)
         data["_pic_ids"] = pic_ids
         data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
+        data["_retweeted_pic_url_candidates"] = retweeted_pic_candidates
         data["_url_struct"] = url_struct
         data["_created_at"] = created_at
 
@@ -863,20 +1215,42 @@ class WeiboMonitor(BaseMonitor):
             self.logger.error(f"获取用户 {uid} 数据失败: {e}")
             return
 
+        new_data.setdefault("转发微博", "{}")
+        new_data.setdefault("_retweeted_pic_url_candidates", [])
+
         if uid in self.old_data_dict:
             old_info = self.old_data_dict[uid]
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
+                old_retweeted_status = old_info[9] if len(old_info) > 9 else "{}"
                 text_changed = not self._texts_equivalent(
                     new_data["文本"], old_info[6] if len(old_info) > 6 else ""
+                )
+                retweeted_changed = not self._retweeted_statuses_equivalent(
+                    new_data.get("转发微博"),
+                    old_retweeted_status,
                 )
                 should_push_long_text = text_changed and self._is_long_text_backfill(
                     new_data, old_info
                 )
-                should_update_db = text_changed
+                should_update_db = text_changed or retweeted_changed
                 if len(old_info) > 8:
                     new_data["图片"] = old_info[8]
+                if retweeted_changed:
+                    new_retweeted = self._parse_retweeted_status(new_data.get("转发微博"))
+                    old_retweeted = self._parse_retweeted_status(old_retweeted_status)
+                    if (
+                        new_retweeted
+                        and old_retweeted
+                        and self._sanitize_path_part(new_retweeted.get("mid") or "0")
+                        == self._sanitize_path_part(old_retweeted.get("mid") or "0")
+                    ):
+                        new_retweeted["images"] = old_retweeted.get("images") or []
+                        new_data["转发微博"] = self._dump_retweeted_status(new_retweeted)
+                    await self._save_retweeted_images(new_data, keep_existing=True)
+                else:
+                    new_data["转发微博"] = old_retweeted_status
 
                 if self._needs_post_image_retry(new_data, old_info):
                     image_urls = await self._save_post_images(new_data, keep_existing=True)
@@ -888,11 +1262,21 @@ class WeiboMonitor(BaseMonitor):
                         len(new_data.get("_pic_url_candidates") or []),
                     )
 
+                if self._needs_retweeted_image_retry(new_data, old_info):
+                    image_urls = await self._save_retweeted_images(new_data, keep_existing=True)
+                    should_update_db = True
+                    self.logger.info(
+                        "%s 被转发微博图片已补偿下载 %s/%s 张",
+                        new_data["用户名"],
+                        len(image_urls),
+                        len(new_data.get("_retweeted_pic_url_candidates") or []),
+                    )
+
                 if should_update_db:
                     sql = (
                         "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                         "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
-                        "图片=%(图片)s WHERE UID=%(UID)s"
+                        "图片=%(图片)s, 转发微博=%(转发微博)s WHERE UID=%(UID)s"
                     )
                     updated = await self.db.execute_update(sql, new_data)
                     if not updated:
@@ -908,6 +1292,7 @@ class WeiboMonitor(BaseMonitor):
                             new_data["文本"],
                             new_data["mid"],
                             new_data["图片"],
+                            new_data["转发微博"],
                         )
                         if should_push_long_text:
                             self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
@@ -915,12 +1300,13 @@ class WeiboMonitor(BaseMonitor):
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 await self._save_post_images(new_data)
+                await self._save_retweeted_images(new_data)
 
                 # 更新数据
                 sql = (
                     "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                     "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
-                    "图片=%(图片)s WHERE UID=%(UID)s"
+                    "图片=%(图片)s, 转发微博=%(转发微博)s WHERE UID=%(UID)s"
                 )
                 updated = await self.db.execute_update(sql, new_data)
                 if not updated:
@@ -935,12 +1321,13 @@ class WeiboMonitor(BaseMonitor):
                 await self.push_notification(new_data, diff)
         else:
             await self._save_post_images(new_data)
+            await self._save_retweeted_images(new_data)
 
             # 新用户插入
             sql = (
-                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片) "
+                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, 转发微博) "
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, "
-                "%(微博数)s, %(文本)s, %(mid)s, %(图片)s)"
+                "%(微博数)s, %(文本)s, %(mid)s, %(图片)s, %(转发微博)s)"
             )
             inserted = await self.db.execute_insert(sql, new_data)
             if not inserted:
@@ -955,6 +1342,24 @@ class WeiboMonitor(BaseMonitor):
 
     def _build_description_for_channel(self, channel, data: dict) -> str:
         """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一截断处理。"""
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        if retweeted:
+            repost_body = self._normalize_weibo_text_for_compare(
+                self._extract_status_body_from_display_text(data.get("文本", ""))
+            )
+            original_text = self._normalize_weibo_text_for_compare(retweeted.get("text", ""))
+            image_count = len(retweeted.get("images") or [])
+            image_hint = f"\n[原微博图片] * {image_count}" if image_count else ""
+            return (
+                f"转发理由:👇\n{repost_body or '（无转发语）'}\n"
+                f"{'=' * 20}\n"
+                f"原微博 @{retweeted.get('user_name') or '未知用户'}:\n"
+                f"{original_text or '原微博暂无正文'}{image_hint}\n"
+                f"{'=' * 20}\n"
+                f"认证:{data['认证信息']}\n\n"
+                f"简介:{data['简介']}"
+            )
+
         return (
             f"Ta说:👇\n{data['文本']}\n"
             f"{'=' * 20}\n"
@@ -979,6 +1384,8 @@ class WeiboMonitor(BaseMonitor):
 
         action = "发布" if diff > 0 else "删除"
         count = abs(diff)
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        title_action = "转发" if diff > 0 and retweeted else action
 
         # 为方案一/方案二准备封面图信息：
         # - 方案一：如果配置了 base_url，则优先构造对外可访问的封面图 URL 供大部分通道使用；
@@ -1036,7 +1443,7 @@ class WeiboMonitor(BaseMonitor):
 
             # 使用 description_func 为各通道生成描述，超限时由 UnifiedPushManager 统一截断
             await self.send_push_news(
-                title=f"{data['用户名']} {action}了{count}条weibo",
+                title=f"{data['用户名']} {title_action}了{count}条weibo",
                 description="",  # 这个值会被 description_func 覆盖
                 description_func=lambda channel: self._build_description_for_channel(channel, data),
                 # 方案一：如果有封面图 URL 则优先使用；否则仍然使用原先的固定 Bing 图
@@ -1054,6 +1461,8 @@ class WeiboMonitor(BaseMonitor):
                     "mid": data.get("mid"),
                     "action": action,
                     "count": count,
+                    "is_repost": bool(retweeted),
+                    "retweeted_status": retweeted or None,
                 },
             )
         except Exception as e:

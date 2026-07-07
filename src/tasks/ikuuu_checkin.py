@@ -11,13 +11,16 @@ from __future__ import annotations
 import asyncio
 import base64
 import html
+import json
 import logging
 import os
 import re
 import shutil
 import socket
+import subprocess
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from time import perf_counter
 from typing import Any
 from urllib.parse import urlparse
@@ -25,6 +28,7 @@ from urllib.parse import urlparse
 import aiohttp
 from bs4 import BeautifulSoup
 
+from src.core.paths import DATA_DIR
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
@@ -48,15 +52,44 @@ _IKUUU_USER_AGENT = (
 )
 _IKUUU_MAX_RETRIES = 5
 _IKUUU_RETRY_DELAY_SECONDS = 2
-_IKUUU_RECENT_DOMAINS = (
+_IKUUU_PRIMARY_DOMAIN = "ikuuu.win"
+_IKUUU_DOMAIN_CACHE_FILE = DATA_DIR / "ikuuu_domain_cache.json"
+_IKUUU_DOMAIN_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
+# 当前登录页白名单里出现的实际域名；非白名单域名会被前端跳转到 ikuuu.win。
+_IKUUU_LOGIN_PAGE_DOMAINS = (
     "ikuuu.win",
+    "ikuuu.co",
+    "ikuuu.ltd",
+    "ikuuu.org",
+    "ikuuu.live",
+    "ikuuu.one",
+    "ikuuu.dev",
+    "ikuuu.eu",
+    "ikuuu.uk",
+    "ikuuu.art",
+    "ikuuu.boo",
+    "ikuuu.fyi",
+    "ikuuu.me",
+    "ikuuu.pw",
+    "ikuuu.top",
+    "ikuuu.de",
+    "ikuuu.nl",
+    "ikuuu.ch",
+)
+_IKUUU_LEGACY_DOMAINS = (
+    "ikuuu.pro",
+    "ikuuu.com",
+    "ikuuu.cc",
+)
+_IKUUU_RECENT_DOMAINS = tuple(dict.fromkeys((*_IKUUU_LOGIN_PAGE_DOMAINS, *_IKUUU_LEGACY_DOMAINS)))
+_IKUUU_FAST_FALLBACK_DOMAINS = (
     "ikuuu.eu",
     "ikuuu.de",
-    "ikuuu.pro",
-    "ikuuu.pw",
-    "ikuuu.com",
+    "ikuuu.fyi",
+    "ikuuu.nl",
     "ikuuu.org",
-    "ikuuu.cc",
+    "ikuuu.pw",
 )
 
 # ikuuu 历史使用过的 TLD，按首字母分组
@@ -119,6 +152,40 @@ def _add_domain_candidate(
     logger.debug("ikuuu签到：域名候选 %s 来源=%s 分数=%d", domain, source, score)
 
 
+def _load_cached_ikuuu_domain() -> str | None:
+    try:
+        raw = json.loads(_IKUUU_DOMAIN_CACHE_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    domain = _normalize_ikuuu_domain(str(raw.get("domain", "")))
+    updated_at = float(raw.get("updated_at", 0) or 0)
+    if not domain:
+        return None
+    if time.time() - updated_at > _IKUUU_DOMAIN_CACHE_MAX_AGE_SECONDS:
+        logger.debug("ikuuu签到：缓存域名 %s 已过期", domain)
+        return None
+    return domain
+
+
+def _save_cached_ikuuu_domain(domain: str, source: str) -> None:
+    normalized = _normalize_ikuuu_domain(domain)
+    if not normalized:
+        return
+    try:
+        _IKUUU_DOMAIN_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _IKUUU_DOMAIN_CACHE_FILE.write_text(
+            json.dumps(
+                {"domain": normalized, "source": source, "updated_at": time.time()},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.debug("ikuuu签到：写入域名缓存失败：%s", exc)
+
+
 async def _ikuuu_host_resolves(host: str, port: int) -> bool:
     """在 aiohttp 请求前先解析域名，避免不可达域名产生 shielded future 噪声。"""
     try:
@@ -157,6 +224,19 @@ def _extract_literal_joined_chunks(text: str) -> list[str]:
     return chunks
 
 
+def _extract_origin_body_variants(text: str) -> list[str]:
+    """部分 ikuuu 页面把真实 HTML 放在 originBody 的 base64 字符串里。"""
+    variants: list[str] = []
+    for match in re.finditer(r"""originBody\s*=\s*["']([A-Za-z0-9+/=]+)["']""", text):
+        try:
+            decoded = base64.b64decode(match.group(1)).decode("utf-8")
+        except Exception:
+            continue
+        if decoded:
+            variants.append(decoded)
+    return variants
+
+
 def _extract_domain_candidates_from_text(
     text: str, candidates: dict[str, int], *, source: str, base_score: int
 ) -> set[str]:
@@ -167,6 +247,7 @@ def _extract_domain_candidates_from_text(
     partial_chars: set[str] = set()
     variants = [text, html.unescape(text)]
     variants.extend(_extract_literal_joined_chunks(text))
+    variants.extend(_extract_origin_body_variants(text))
 
     for idx, content in enumerate(variants):
         variant_score = max(base_score - idx, 1)
@@ -241,16 +322,19 @@ async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> _DomainP
         ) as resp:
             text = await resp.text(errors="ignore")
             elapsed_ms = int((perf_counter() - started) * 1000)
-            body = text.lower()
+            body_variants = [text, *_extract_origin_body_variants(text)]
+            bodies = [variant.lower() for variant in body_variants if variant]
             final_domain = _normalize_ikuuu_domain(str(resp.url))
 
             if resp.status >= 500:
                 return None
 
-            has_login_form = (
-                'id="email"' in body or 'name="email"' in body or "email" in body
-            ) and ('id="password"' in body or 'name="password"' in body or "password" in body)
-            is_domain_notice = "ikuuuvpn" in body and "2019-2026" in body
+            has_login_form = any(
+                ('id="email"' in body or 'name="email"' in body or "email" in body)
+                and ('id="password"' in body or 'name="password"' in body or "password" in body)
+                for body in bodies
+            )
+            is_domain_notice = any("ikuuuvpn" in body and "2019-2026" in body for body in bodies)
 
             if has_login_form:
                 return _DomainProbeResult(domain, 100, elapsed_ms, "login-form")
@@ -296,6 +380,34 @@ async def _probe_domains(
     return valid_results
 
 
+async def _probe_recent_domains(session: aiohttp.ClientSession) -> str | None:
+    """优先验证最近可用域名，成功时避免依赖公告页。"""
+    primary_result = await _probe_domain(session, _IKUUU_PRIMARY_DOMAIN)
+    if primary_result:
+        logger.info(
+            "ikuuu签到：使用主域名 %s（已验证，耗时 %dms）",
+            primary_result.domain,
+            primary_result.elapsed_ms,
+        )
+        return primary_result.domain
+
+    fast_candidates = {
+        domain: max(35 - idx, 1) for idx, domain in enumerate(_IKUUU_FAST_FALLBACK_DOMAINS)
+    }
+    probe_results = await _probe_domains(session, fast_candidates)
+    if not probe_results:
+        return None
+
+    selected = probe_results[0].domain
+    logger.info(
+        "ikuuu签到：使用近期可用域名 %s（已验证，候选 %d 个，耗时 %dms）",
+        selected,
+        len(fast_candidates),
+        probe_results[0].elapsed_ms,
+    )
+    return selected
+
+
 async def _extract_ikuuu_domain() -> str | None:
     """从 ikuuu.club 自动提取可用域名（如 ikuuu.nl、ikuuu.fyi 等）
 
@@ -319,6 +431,24 @@ async def _extract_ikuuu_domain() -> str | None:
         ) as session:
             scored_candidates: dict[str, int] = {}
             partial_chars: set[str] = set()
+
+            cached_domain = _load_cached_ikuuu_domain()
+            if cached_domain:
+                cached_result = await _probe_domain(session, cached_domain)
+                if cached_result:
+                    logger.info(
+                        "ikuuu签到：使用缓存域名 %s（已验证，耗时 %dms）",
+                        cached_result.domain,
+                        cached_result.elapsed_ms,
+                    )
+                    _save_cached_ikuuu_domain(cached_result.domain, "cache-verified")
+                    return cached_result.domain
+                logger.debug("ikuuu签到：缓存域名 %s 当前验证失败，将继续自动发现", cached_domain)
+
+            recent_domain = await _probe_recent_domains(session)
+            if recent_domain:
+                _save_cached_ikuuu_domain(recent_domain, "recent")
+                return recent_domain
 
             fetched_pages = await asyncio.gather(
                 *(_fetch_discovery_page(session, url) for url in _IKUUU_DISCOVERY_URLS)
@@ -373,6 +503,7 @@ async def _extract_ikuuu_domain() -> str | None:
                     len(scored_candidates),
                     probe_results[0].elapsed_ms,
                 )
+                _save_cached_ikuuu_domain(selected, "discovery")
                 return selected
 
             extracted_domains = [
@@ -389,7 +520,7 @@ async def _extract_ikuuu_domain() -> str | None:
                 )
                 return selected
 
-        logger.warning("ikuuu签到：未能从 %s 提取或验证到可用域名", _IKUUU_DISCOVERY_URL)
+        logger.debug("ikuuu签到：本轮未能从 %s 提取或验证到可用域名", _IKUUU_DISCOVERY_URL)
         return None
 
     except Exception as exc:  # noqa: BLE001
@@ -410,7 +541,7 @@ async def _extract_ikuuu_domain_with_retry() -> str | None:
             return domain
 
         if attempt < _IKUUU_MAX_RETRIES:
-            logger.warning(
+            logger.info(
                 "ikuuu签到：第 %d/%d 次域名发现失败，%d 秒后重试",
                 attempt,
                 _IKUUU_MAX_RETRIES,
@@ -527,6 +658,121 @@ def _mask_email(email: str) -> str:
     return f"{masked_name}@{domain}"
 
 
+class _IkuuuBrowserUnavailableError(RuntimeError):
+    """浏览器或 WebDriver 环境缺失，重试域名无法恢复。"""
+
+
+def _binary_version(path: str) -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, str(exc)
+
+    output = "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+    if result.returncode != 0:
+        return False, output or f"exit code {result.returncode}"
+    return True, output
+
+
+def _major_version_from_text(text: str) -> int | None:
+    match = re.search(r"\b(\d+)\.", text)
+    return int(match.group(1)) if match else None
+
+
+def _binary_major_version(path: str | None) -> int | None:
+    if not path:
+        return None
+    ok, detail = _binary_version(path)
+    if not ok:
+        return None
+    return _major_version_from_text(detail)
+
+
+def _log_unusable_browser_binary(kind: str, path: str, detail: str, *, warning: bool) -> None:
+    if warning:
+        logger.warning("ikuuu签到：忽略不可用 %s: %s (%s)", kind, path, detail)
+    else:
+        logger.debug("ikuuu签到：忽略不可用 %s: %s (%s)", kind, path, detail)
+
+
+def _is_usable_browser_binary(path: str, *, warning: bool = False) -> bool:
+    ok, detail = _binary_version(path)
+    if not ok:
+        _log_unusable_browser_binary("Chrome/Chromium", path, detail, warning=warning)
+        return False
+    logger.debug("ikuuu签到：检测到 Chrome/Chromium: %s (%s)", path, detail.splitlines()[0])
+    return True
+
+
+def _is_usable_chromedriver(
+    path: str, *, browser_major: int | None = None, warning: bool = False
+) -> bool:
+    ok, detail = _binary_version(path)
+    if not ok:
+        _log_unusable_browser_binary("chromedriver", path, detail, warning=warning)
+        return False
+
+    driver_major = _major_version_from_text(detail)
+    if browser_major and driver_major and driver_major != browser_major:
+        message = f"{detail.splitlines()[0]}，与浏览器主版本 {browser_major} 不匹配"
+        _log_unusable_browser_binary("chromedriver", path, message, warning=warning)
+        return False
+
+    logger.debug("ikuuu签到：检测到 chromedriver: %s (%s)", path, detail.splitlines()[0])
+    return True
+
+
+def _is_chromedriver_version_mismatch(exc: BaseException) -> bool:
+    msg = str(exc)
+    return "only supports Chrome version" in msg and "Current browser version" in msg
+
+
+def _is_webdriver_environment_error(exc: BaseException) -> bool:
+    msg = str(exc)
+    markers = (
+        "unexpectedly exited",
+        "Unable to obtain driver",
+        "cannot find Chrome binary",
+        "requires the chromium snap",
+        "snap install chromium",
+    )
+    return any(marker in msg for marker in markers)
+
+
+def _clear_chromedriver_cache() -> None:
+    cache = Path.home() / ".cache" / "selenium" / "chromedriver"
+    if cache.is_dir():
+        shutil.rmtree(cache, ignore_errors=True)
+        logger.info("ikuuu签到：已清除 Selenium chromedriver 缓存: %s", cache)
+
+
+def _resolve_chromedriver_via_manager(chrome_bin: str | None) -> str | None:
+    """通过 Selenium Manager 获取与当前 Chrome 主版本匹配的 chromedriver。"""
+    try:
+        from selenium.webdriver.common.selenium_manager import SeleniumManager
+    except ModuleNotFoundError:
+        return None
+
+    args = ["--browser", "chrome"]
+    if chrome_bin:
+        args.extend(["--browser-path", chrome_bin])
+    try:
+        output = SeleniumManager().binary_paths(args)
+        path = output.get("driver_path", "")
+        if path and os.path.isfile(path):
+            logger.debug("ikuuu签到：Selenium Manager 选用 chromedriver: %s", path)
+            return path
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ikuuu签到：Selenium Manager 获取 chromedriver 失败: %s", exc)
+    return None
+
+
 def _default_chrome_binary() -> str | None:
     candidates = [
         os.environ.get("CHROME_BIN", "").strip(),
@@ -538,24 +784,88 @@ def _default_chrome_binary() -> str | None:
         "/usr/bin/chromium-browser",
     ]
     for path in candidates:
-        if path and os.path.exists(path):
+        if path and os.path.isfile(path) and _is_usable_browser_binary(path):
             return path
     return None
 
 
-def _default_chromedriver_path() -> str | None:
-    candidates = [
-        os.environ.get("CHROMEDRIVER_PATH", "").strip(),
+def _default_chromedriver_path(
+    browser_bin: str | None = None,
+    *,
+    include_auto_candidates: bool = True,
+) -> str | None:
+    browser_major = _binary_major_version(browser_bin)
+    configured = os.environ.get("CHROMEDRIVER_PATH", "").strip()
+    if configured:
+        if os.path.exists(configured) and _is_usable_chromedriver(
+            configured,
+            browser_major=browser_major,
+            warning=True,
+        ):
+            return configured
+        logger.warning("ikuuu签到：配置的 CHROMEDRIVER_PATH 不可用，将尝试 Selenium Manager: %s", configured)
+
+    if not include_auto_candidates:
+        return None
+
+    candidates = (
         shutil.which("chromedriver") or "",
         "/usr/bin/chromedriver",
         "/usr/local/bin/chromedriver",
         "/usr/lib/chromium/chromedriver",
         "/usr/lib/chromium-browser/chromedriver",
-    ]
+    )
+    seen: set[str] = set()
     for path in candidates:
-        if path and os.path.exists(path):
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        if os.path.exists(path) and _is_usable_chromedriver(
+            path,
+            browser_major=browser_major,
+            warning=False,
+        ):
             return path
     return None
+
+
+def _create_ikuuu_webdriver(webdriver, service_cls, options, chrome_bin: str | None):
+    driver_path = _default_chromedriver_path(chrome_bin, include_auto_candidates=False)
+    if driver_path:
+        try:
+            return webdriver.Chrome(service=service_cls(driver_path), options=options)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "ikuuu签到：chromedriver %s 启动失败，将尝试 Selenium Manager: %s",
+                driver_path,
+                exc,
+            )
+            if _is_chromedriver_version_mismatch(exc):
+                _clear_chromedriver_cache()
+
+    for attempt in range(2):
+        resolved = _resolve_chromedriver_via_manager(chrome_bin)
+        try:
+            if resolved:
+                return webdriver.Chrome(service=service_cls(resolved), options=options)
+            return webdriver.Chrome(options=options)
+        except Exception as exc:  # noqa: BLE001
+            if attempt == 0 and _is_chromedriver_version_mismatch(exc):
+                logger.warning("ikuuu签到：chromedriver 与 Chrome 版本不匹配，清除缓存后重试: %s", exc)
+                _clear_chromedriver_cache()
+                continue
+            if _is_webdriver_environment_error(exc):
+                raise _IkuuuBrowserUnavailableError(f"Chrome WebDriver 初始化失败: {exc}") from exc
+            raise
+
+    driver_path = _default_chromedriver_path(chrome_bin, include_auto_candidates=True)
+    if driver_path:
+        try:
+            return webdriver.Chrome(service=service_cls(driver_path), options=options)
+        except Exception as exc:  # noqa: BLE001
+            raise _IkuuuBrowserUnavailableError(f"Chrome WebDriver 初始化失败: {exc}") from exc
+
+    raise _IkuuuBrowserUnavailableError("无法初始化 Chrome WebDriver")
 
 
 def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
@@ -590,15 +900,15 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
     chrome_bin = _default_chrome_binary()
     if chrome_bin:
         options.binary_location = chrome_bin
+    else:
+        raise _IkuuuBrowserUnavailableError(
+            "未找到 Chrome/Chromium 浏览器，请安装 google-chrome-stable 或 chromium 后重试"
+        )
 
     driver = None
-    driver_path = _default_chromedriver_path()
 
     try:
-        if driver_path:
-            driver = webdriver.Chrome(service=Service(driver_path), options=options)
-        else:
-            driver = webdriver.Chrome(options=options)
+        driver = _create_ikuuu_webdriver(webdriver, Service, options, chrome_bin)
 
         driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
@@ -654,6 +964,8 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
         logger.debug("ikuuu签到：浏览器登录完成，已获取 Cookie")
         return cookie_string
 
+    except _IkuuuBrowserUnavailableError:
+        raise
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：登录过程中发生错误：%s", exc, exc_info=True)
         return None
@@ -680,7 +992,16 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
                 cfg.domain,
             )
 
-        cookie = await asyncio.to_thread(_login_and_get_cookie_sync, cfg)
+        try:
+            cookie = await asyncio.to_thread(_login_and_get_cookie_sync, cfg)
+        except _IkuuuBrowserUnavailableError as exc:
+            logger.error(
+                "ikuuu签到：账号 %s 浏览器环境不可用，跳过后续登录重试：%s",
+                masked_email,
+                exc,
+            )
+            return None
+
         if cookie:
             if attempt > 1:
                 logger.info("ikuuu签到：账号 %s 登录重试成功", masked_email)
@@ -865,6 +1186,7 @@ async def run_checkin_once() -> bool:
                 )
                 continue
 
+            _save_cached_ikuuu_domain(cfg_one.domain, "login")
             ok, checkin_msg = await _checkin(session, cfg_one, cookie)
             if ok:
                 success_count += 1
