@@ -20,6 +20,11 @@ let pushChannelTypes = {
     'email': { name: 'Email', fields: ['smtp_host', 'smtp_port', 'smtp_ssl', 'smtp_tls', 'sender_email', 'sender_password', 'receiver_email'] },
     'wxpusher': { name: 'WxPusher', fields: ['app_token', 'uids', 'topic_ids', 'content_type'] }
 };
+let configMetadata = {
+    sections: [],
+    tasks: [],
+    push_channel_types: {}
+};
 
 document.addEventListener('DOMContentLoaded', async function() {
     const configMessage = document.getElementById('configMessage');
@@ -385,93 +390,84 @@ document.addEventListener('DOMContentLoaded', async function() {
         saveYamlBtn.addEventListener('click', saveYamlConfig);
     }
 
-    // 免打扰时段开关事件
-    quietHoursEnable.addEventListener('change', function() {
-        quietHoursEnableLabel.textContent = this.checked ? '开启' : '关闭';
-    });
+    const FALLBACK_CONFIG_SECTIONS = [
+        'weibo', 'weibo_chaohua', 'huya', 'bilibili', 'douyin', 'douyu', 'xhs',
+        'checkin', 'rainyun', 'tieba', 'enshan', 'tyyun', 'aliyun', 'smzdm',
+        'zdm_draw', 'fg', 'miui', 'iqiyi', 'lenovo', 'lbly', 'pinzan', 'dml',
+        'xiaomao', 'ydwx', 'xingkong', 'qtw', 'freenom', 'weather', 'kuake',
+        'kjwj', 'fr', 'nine_nine_nine', 'zgfc', 'ssq_500w', 'log_cleanup',
+        'app', 'quiet_hours', 'push_channel', 'plugins'
+    ];
+    const FALLBACK_SWITCH_IDS = [
+        'quiet_hours_enable', 'rainyun_auto_renew', 'weibo_enable',
+        'weibo_chaohua_enable', 'huya_enable', 'bilibili_enable',
+        'douyin_enable', 'douyu_enable', 'xhs_enable', 'checkin_enable',
+        'rainyun_enable', 'tieba_enable', 'enshan_enable', 'tyyun_enable',
+        'aliyun_enable', 'smzdm_enable', 'zdm_draw_enable', 'fg_enable',
+        'miui_enable', 'iqiyi_enable', 'lenovo_enable', 'lbly_enable',
+        'pinzan_enable', 'dml_enable', 'xiaomao_enable', 'ydwx_enable',
+        'xingkong_enable', 'qtw_enable', 'freenom_enable', 'weather_enable',
+        'kuake_enable', 'kjwj_enable', 'fr_enable', 'nine_nine_nine_enable',
+        'zgfc_enable', 'ssq_500w_enable', 'log_cleanup_enable'
+    ];
 
-    // 每日签到开关事件
-    if (checkinEnable && checkinEnableLabel) {
-        checkinEnable.addEventListener('change', function() {
-            checkinEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
+    function getConfigSectionOrder() {
+        return Array.isArray(configMetadata.sections) && configMetadata.sections.length > 0
+            ? configMetadata.sections
+            : FALLBACK_CONFIG_SECTIONS;
     }
 
-    // 贴吧签到开关事件
-    if (tiebaEnable && tiebaEnableLabel) {
-        tiebaEnable.addEventListener('change', function() {
-            tiebaEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
+    function getTaskMetadata() {
+        return Array.isArray(configMetadata.tasks) ? configMetadata.tasks : [];
     }
 
-    // 微博超话签到开关事件
-    if (weiboChaohuaEnable && weiboChaohuaEnableLabel) {
-        weiboChaohuaEnable.addEventListener('change', function() {
-            weiboChaohuaEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
+    async function loadConfigMetadata() {
+        try {
+            const response = await fetch('/api/config/metadata');
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || '加载配置元数据失败');
+            }
+
+            configMetadata = {
+                sections: Array.isArray(data.sections) ? data.sections : [],
+                tasks: Array.isArray(data.tasks) ? data.tasks : [],
+                push_channel_types: data.push_channel_types || {}
+            };
+            if (Object.keys(configMetadata.push_channel_types).length > 0) {
+                pushChannelTypes = configMetadata.push_channel_types;
+            }
+        } catch (error) {
+            console.warn('加载配置元数据失败，使用内置兼容列表:', error);
+        }
     }
 
-    // 雨云签到开关事件
-    if (rainyunEnable && rainyunEnableLabel) {
-        rainyunEnable.addEventListener('change', function() {
-            rainyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
+    function getSwitchIdsFromMetadata() {
+        const switchIds = new Set(['quiet_hours_enable', 'rainyun_auto_renew']);
+        getTaskMetadata().forEach(task => {
+            if (task.enable_field) {
+                switchIds.add(task.enable_field);
+            }
         });
-    }
-    const rainyunAutoRenew = document.getElementById('rainyun_auto_renew');
-    const rainyunAutoRenewLabel = document.getElementById('rainyun_auto_renew_label');
-    if (rainyunAutoRenew && rainyunAutoRenewLabel) {
-        rainyunAutoRenew.addEventListener('change', function() {
-            rainyunAutoRenewLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (enshanEnable && enshanEnableLabel) {
-        enshanEnable.addEventListener('change', function() {
-            enshanEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (tyyunEnable && tyyunEnableLabel) {
-        tyyunEnable.addEventListener('change', function() {
-            tyyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (aliyunEnable && aliyunEnableLabel) {
-        aliyunEnable.addEventListener('change', function() {
-            aliyunEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (smzdmEnable && smzdmEnableLabel) {
-        smzdmEnable.addEventListener('change', function() {
-            smzdmEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (zdmDrawEnable && zdmDrawEnableLabel) {
-        zdmDrawEnable.addEventListener('change', function() {
-            zdmDrawEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (fgEnable && fgEnableLabel) {
-        fgEnable.addEventListener('change', function() {
-            fgEnableLabel.textContent = this.checked ? '开启' : '关闭';
-        });
-    }
-    if (miuiEnable && miuiEnableLabel) miuiEnable.addEventListener('change', function() { miuiEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (iqiyiEnable && iqiyiEnableLabel) iqiyiEnable.addEventListener('change', function() { iqiyiEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (lenovoEnable && lenovoEnableLabel) lenovoEnable.addEventListener('change', function() { lenovoEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (lblyEnable && lblyEnableLabel) lblyEnable.addEventListener('change', function() { lblyEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (pinzanEnable && pinzanEnableLabel) pinzanEnable.addEventListener('change', function() { pinzanEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (dmlEnable && dmlEnableLabel) dmlEnable.addEventListener('change', function() { dmlEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (xiaomaoEnable && xiaomaoEnableLabel) xiaomaoEnable.addEventListener('change', function() { xiaomaoEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (ydwxEnable && ydwxEnableLabel) ydwxEnable.addEventListener('change', function() { ydwxEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (xingkongEnable && xingkongEnableLabel) xingkongEnable.addEventListener('change', function() { xingkongEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (qtwEnable && qtwEnableLabel) qtwEnable.addEventListener('change', function() { qtwEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
 
-    // 监控任务开关事件
-    if (weiboEnable && weiboEnableLabel) weiboEnable.addEventListener('change', function() { weiboEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (huyaEnable && huyaEnableLabel) huyaEnable.addEventListener('change', function() { huyaEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (bilibiliEnable && bilibiliEnableLabel) bilibiliEnable.addEventListener('change', function() { bilibiliEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (douyinEnable && douyinEnableLabel) douyinEnable.addEventListener('change', function() { douyinEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (douyuEnable && douyuEnableLabel) douyuEnable.addEventListener('change', function() { douyuEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
-    if (xhsEnable && xhsEnableLabel) xhsEnable.addEventListener('change', function() { xhsEnableLabel.textContent = this.checked ? '开启' : '关闭'; });
+        return switchIds.size > 2 ? Array.from(switchIds) : FALLBACK_SWITCH_IDS;
+    }
+
+    function bindSwitchLabel(inputId) {
+        const input = document.getElementById(inputId);
+        const label = document.getElementById(`${inputId}_label`);
+        if (!input || !label) return;
+
+        const updateLabel = () => {
+            label.textContent = input.checked ? '开启' : '关闭';
+        };
+        input.addEventListener('change', updateLabel);
+        updateLabel();
+    }
+
+    function bindSwitchLabelsFromMetadata() {
+        getSwitchIdsFromMetadata().forEach(bindSwitchLabel);
+    }
 
     // 加载配置
     async function loadConfig() {
@@ -487,46 +483,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const config = data.config;
             originalConfig = JSON.parse(JSON.stringify(config)); // 深拷贝
 
-            // 填充所有配置（微博监控与超话放前）
-            loadSectionConfig('weibo', config);
-            loadSectionConfig('weibo_chaohua', config);
-            loadSectionConfig('huya', config);
-            loadSectionConfig('bilibili', config);
-            loadSectionConfig('douyin', config);
-            loadSectionConfig('douyu', config);
-            loadSectionConfig('xhs', config);
-            loadSectionConfig('checkin', config);
-            loadSectionConfig('rainyun', config);
-            loadSectionConfig('tieba', config);
-            loadSectionConfig('enshan', config);
-            loadSectionConfig('tyyun', config);
-            loadSectionConfig('aliyun', config);
-            loadSectionConfig('smzdm', config);
-            loadSectionConfig('zdm_draw', config);
-            loadSectionConfig('fg', config);
-            loadSectionConfig('miui', config);
-            loadSectionConfig('iqiyi', config);
-            loadSectionConfig('lenovo', config);
-            loadSectionConfig('lbly', config);
-            loadSectionConfig('pinzan', config);
-            loadSectionConfig('dml', config);
-            loadSectionConfig('xiaomao', config);
-            loadSectionConfig('ydwx', config);
-            loadSectionConfig('xingkong', config);
-            loadSectionConfig('qtw', config);
-            loadSectionConfig('freenom', config);
-            loadSectionConfig('weather', config);
-            loadSectionConfig('kuake', config);
-            loadSectionConfig('kjwj', config);
-            loadSectionConfig('fr', config);
-            loadSectionConfig('nine_nine_nine', config);
-            loadSectionConfig('zgfc', config);
-            loadSectionConfig('ssq_500w', config);
-            loadSectionConfig('log_cleanup', config);
-            loadSectionConfig('app', config);
-            loadSectionConfig('quiet_hours', config);
-            loadSectionConfig('push_channel', config);
-            loadSectionConfig('plugins', config);
+            getConfigSectionOrder().forEach(section => {
+                loadSectionConfig(section, config);
+            });
 
             showMessage('configMessage', '配置加载成功', 'success');
         } catch (error) {
@@ -611,45 +570,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 渲染所有任务的推送通道选择
     function renderAllTaskPushChannelSelects() {
-        const taskPushChannelConfigs = {
-            'weibo_push_channels': originalConfig?.weibo?.push_channels || [],
-            'weibo_chaohua_push_channels': originalConfig?.weibo_chaohua?.push_channels || [],
-            'huya_push_channels': originalConfig?.huya?.push_channels || [],
-            'bilibili_push_channels': originalConfig?.bilibili?.push_channels || [],
-            'douyin_push_channels': originalConfig?.douyin?.push_channels || [],
-            'douyu_push_channels': originalConfig?.douyu?.push_channels || [],
-            'xhs_push_channels': originalConfig?.xhs?.push_channels || [],
-            'checkin_push_channels': originalConfig?.checkin?.push_channels || [],
-            'rainyun_push_channels': originalConfig?.rainyun?.push_channels || [],
-            'tieba_push_channels': originalConfig?.tieba?.push_channels || [],
-            'enshan_push_channels': originalConfig?.enshan?.push_channels || [],
-            'tyyun_push_channels': originalConfig?.tyyun?.push_channels || [],
-            'aliyun_push_channels': originalConfig?.aliyun?.push_channels || [],
-            'smzdm_push_channels': originalConfig?.smzdm?.push_channels || [],
-            'zdm_draw_push_channels': originalConfig?.zdm_draw?.push_channels || [],
-            'fg_push_channels': originalConfig?.fg?.push_channels || [],
-            'miui_push_channels': originalConfig?.miui?.push_channels || [],
-            'iqiyi_push_channels': originalConfig?.iqiyi?.push_channels || [],
-            'lenovo_push_channels': originalConfig?.lenovo?.push_channels || [],
-            'lbly_push_channels': originalConfig?.lbly?.push_channels || [],
-            'pinzan_push_channels': originalConfig?.pinzan?.push_channels || [],
-            'dml_push_channels': originalConfig?.dml?.push_channels || [],
-            'xiaomao_push_channels': originalConfig?.xiaomao?.push_channels || [],
-            'ydwx_push_channels': originalConfig?.ydwx?.push_channels || [],
-            'xingkong_push_channels': originalConfig?.xingkong?.push_channels || [],
-            'qtw_push_channels': originalConfig?.qtw?.push_channels || [],
-            'freenom_push_channels': originalConfig?.freenom?.push_channels || [],
-            'weather_push_channels': originalConfig?.weather?.push_channels || [],
-            'kuake_push_channels': originalConfig?.kuake?.push_channels || [],
-            'kjwj_push_channels': originalConfig?.kjwj?.push_channels || [],
-            'fr_push_channels': originalConfig?.fr?.push_channels || [],
-            'nine_nine_nine_push_channels': originalConfig?.nine_nine_nine?.push_channels || [],
-            'zgfc_push_channels': originalConfig?.zgfc?.push_channels || [],
-            'ssq_500w_push_channels': originalConfig?.ssq_500w?.push_channels || []
-        };
+        const tasksWithPush = getTaskMetadata().filter(task => task.push_field && task.config_section);
+        const sections = tasksWithPush.length > 0
+            ? tasksWithPush.map(task => task.config_section)
+            : FALLBACK_CONFIG_SECTIONS.filter(section => (
+                section !== 'app' && section !== 'quiet_hours' &&
+                section !== 'push_channel' && section !== 'plugins' &&
+                section !== 'log_cleanup'
+            ));
 
-        Object.keys(taskPushChannelConfigs).forEach(containerId => {
-            renderTaskPushChannelSelect(containerId, taskPushChannelConfigs[containerId]);
+        sections.forEach(section => {
+            const containerId = `${section}_push_channels`;
+            renderTaskPushChannelSelect(
+                containerId,
+                originalConfig?.[section]?.push_channels || []
+            );
         });
     }
 
@@ -2426,158 +2361,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 收集配置数据
     function collectConfig() {
         const config = {};
-
-        // 微博监控配置
-        config.weibo = {
-            enable: weiboEnable ? weiboEnable.checked : true,
-            cookie: document.getElementById('weibo_cookie').value.trim(),
-            uids: document.getElementById('weibo_uids').value.trim(),
-            concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
-            monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds')?.value) || 300,
-            push_channels: getTaskPushChannels('weibo_push_channels')
-        };
-
-        // 微博超话签到配置（含多 Cookie）
-        const weiboChaohuaCookies = [];
-        document.querySelectorAll('#weibo_chaohua_cookies_list .multi-cookie-row').forEach(row => {
-            const val = (row.querySelector('.weibo-chaohua-cookie-value')?.value || '').trim();
-            if (val) weiboChaohuaCookies.push(val);
+        getConfigSectionOrder().forEach(section => {
+            Object.assign(config, collectSectionConfig(section));
         });
-        const singleWeiboChaohuaCookie = (document.getElementById('weibo_chaohua_cookie')?.value || '').trim();
-        config.weibo_chaohua = {
-            enable: weiboChaohuaEnable ? weiboChaohuaEnable.checked : false,
-            cookie: weiboChaohuaCookies.length > 0 ? weiboChaohuaCookies[0] : singleWeiboChaohuaCookie,
-            time: (document.getElementById('weibo_chaohua_time')?.value || '').trim() || '23:45',
-            push_channels: getTaskPushChannels('weibo_chaohua_push_channels')
-        };
-        if (weiboChaohuaCookies.length > 0) config.weibo_chaohua.cookies = weiboChaohuaCookies;
-
-        // 虎牙配置
-        config.huya = {
-            enable: huyaEnable ? huyaEnable.checked : true,
-            rooms: document.getElementById('huya_rooms').value.trim(),
-            concurrency: parseInt(document.getElementById('huya_concurrency').value) || 7,
-            monitor_interval_seconds: parseInt(document.getElementById('huya_monitor_interval_seconds')?.value) || 65,
-            push_channels: getTaskPushChannels('huya_push_channels')
-        };
-
-        // 哔哩哔哩 / 抖音 / 斗鱼 / 小红书配置
-        config.bilibili = collectSectionConfig('bilibili').bilibili;
-        config.douyin = collectSectionConfig('douyin').douyin;
-        config.douyu = collectSectionConfig('douyu').douyu;
-        config.xhs = collectSectionConfig('xhs').xhs;
-
-        // 雨云签到配置（含多账号、自动续费）
-        const rainyunAccounts = [];
-        document.querySelectorAll('#rainyun_accounts_list .multi-account-row').forEach(row => {
-            const username = (row.querySelector('.rainyun-account-username')?.value || '').trim();
-            const password = (row.querySelector('.rainyun-account-password')?.value || '').trim();
-            const api_key = (row.querySelector('.rainyun-account-api-key')?.value || '').trim();
-            if (username || password) rainyunAccounts.push({ username, password, api_key });
-        });
-        const rainyunRenewIdsRaw = (document.getElementById('rainyun_renew_product_ids')?.value || '').trim();
-        const rainyunRenewIds = rainyunRenewIdsRaw ? rainyunRenewIdsRaw.split(/[,\s]+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n)) : [];
-        config.rainyun = {
-            enable: rainyunEnable ? rainyunEnable.checked : false,
-            accounts: rainyunAccounts,
-            time: (document.getElementById('rainyun_time')?.value || '').trim() || '08:30',
-            push_channels: getTaskPushChannels('rainyun_push_channels'),
-            auto_renew: (document.getElementById('rainyun_auto_renew')?.checked ?? true),
-            renew_threshold_days: parseInt(document.getElementById('rainyun_renew_threshold_days')?.value || '7', 10) || 7,
-            renew_product_ids: rainyunRenewIds.length > 0 ? rainyunRenewIds : []
-        };
-
-        // 恩山 / 天翼云盘 / 阿里云盘 / 什么值得买 / 值得买抽奖 / 富贵论坛（由 collectSectionConfig 合并到 config）
-        config.enshan = collectSectionConfig('enshan').enshan;
-        config.tyyun = collectSectionConfig('tyyun').tyyun;
-        config.aliyun = collectSectionConfig('aliyun').aliyun;
-        config.smzdm = collectSectionConfig('smzdm').smzdm;
-        config.zdm_draw = collectSectionConfig('zdm_draw').zdm_draw;
-        config.fg = collectSectionConfig('fg').fg;
-        config.miui = collectSectionConfig('miui').miui;
-        config.iqiyi = collectSectionConfig('iqiyi').iqiyi;
-        config.lenovo = collectSectionConfig('lenovo').lenovo;
-        config.lbly = collectSectionConfig('lbly').lbly;
-        config.pinzan = collectSectionConfig('pinzan').pinzan;
-        config.dml = collectSectionConfig('dml').dml;
-        config.xiaomao = collectSectionConfig('xiaomao').xiaomao;
-        config.ydwx = collectSectionConfig('ydwx').ydwx;
-        config.xingkong = collectSectionConfig('xingkong').xingkong;
-        config.qtw = collectSectionConfig('qtw').qtw;
-        config.freenom = collectSectionConfig('freenom').freenom;
-        config.weather = collectSectionConfig('weather').weather;
-        config.kuake = collectSectionConfig('kuake').kuake;
-        config.kjwj = collectSectionConfig('kjwj').kjwj;
-        config.fr = collectSectionConfig('fr').fr;
-        config.nine_nine_nine = collectSectionConfig('nine_nine_nine').nine_nine_nine;
-        config.zgfc = collectSectionConfig('zgfc').zgfc;
-        config.ssq_500w = collectSectionConfig('ssq_500w').ssq_500w;
-
-        // 免打扰时段配置
-        config.quiet_hours = {
-            enable: quietHoursEnable.checked,
-            start: document.getElementById('quiet_hours_start').value || '22:00',
-            end: document.getElementById('quiet_hours_end').value || '08:00'
-        };
-
-        // 应用基础配置（Base URL）
-        config.app = collectSectionConfig('app').app;
-
-        // 日志清理配置
-        config.log_cleanup = collectSectionConfig('log_cleanup').log_cleanup;
-
-        // 每日签到配置（含多账号）：多账号区仅收集非空行；单账号用单账号输入框
-        const checkinAccounts = [];
-        document.querySelectorAll('#checkin_accounts_list .multi-account-row').forEach(row => {
-            const email = (row.querySelector('.checkin-account-email')?.value || '').trim();
-            const password = (row.querySelector('.checkin-account-password')?.value || '').trim();
-            if (email || password) checkinAccounts.push({ email, password });
-        });
-        const singleCheckinEmail = (document.getElementById('checkin_email')?.value || '').trim();
-        const singleCheckinPassword = (document.getElementById('checkin_password')?.value || '').trim();
-        const firstCheckin = checkinAccounts[0] || { email: singleCheckinEmail, password: singleCheckinPassword };
-        config.checkin = {
-            enable: checkinEnable ? checkinEnable.checked : false,
-            email: firstCheckin.email,
-            password: firstCheckin.password,
-            time: (document.getElementById('checkin_time')?.value || '').trim() || '08:00',
-            push_channels: getTaskPushChannels('checkin_push_channels')
-        };
-        if (checkinAccounts.length > 0) config.checkin.accounts = checkinAccounts;
-
-        // 贴吧签到配置（含多 Cookie）：多 Cookie 区仅收集非空行
-        const tiebaCookies = [];
-        document.querySelectorAll('#tieba_cookies_list .multi-cookie-row').forEach(row => {
-            const val = (row.querySelector('.tieba-cookie-value')?.value || '').trim();
-            if (val) tiebaCookies.push(val);
-        });
-        const singleTiebaCookie = (document.getElementById('tieba_cookie')?.value || '').trim();
-        config.tieba = {
-            enable: tiebaEnable ? tiebaEnable.checked : false,
-            cookie: tiebaCookies.length > 0 ? tiebaCookies[0] : singleTiebaCookie,
-            time: (document.getElementById('tieba_time')?.value || '').trim() || '08:10',
-            push_channels: getTaskPushChannels('tieba_push_channels')
-        };
-        if (tiebaCookies.length > 0) config.tieba.cookies = tiebaCookies;
-
-        // 推送通道配置
-        config.push_channel = [];
-        document.querySelectorAll('.push-channel-item').forEach(item => {
-            config.push_channel.push(collectPushChannelFromElement(item));
-        });
-
-        // 插件/扩展配置
-        try {
-            const pluginsJson = document.getElementById('plugins_json');
-            if (pluginsJson && pluginsJson.value.trim()) {
-                config.plugins = JSON.parse(pluginsJson.value.trim());
-            } else {
-                config.plugins = {};
-            }
-        } catch (e) {
-            config.plugins = {};
-        }
-
         return config;
     }
 
@@ -3252,6 +3038,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // 初始加载配置
+    await loadConfigMetadata();
+    bindSwitchLabelsFromMetadata();
     await loadConfig();
 
     // 监听 config-saved 事件，刷新配置表单以反映最新状态

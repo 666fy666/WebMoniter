@@ -60,9 +60,7 @@ def test_session_renews_when_close_to_expiration(monkeypatch):
             {
                 "version": 1,
                 "sessions": {
-                    "session-1": {
-                        "expires_at": now + auth.WEB_SESSION_RENEW_WITHIN_SECONDS - 1
-                    },
+                    "session-1": {"expires_at": now + auth.WEB_SESSION_RENEW_WITHIN_SECONDS - 1},
                 },
             }
         ),

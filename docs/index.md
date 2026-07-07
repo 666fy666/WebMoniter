@@ -92,7 +92,7 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 
 ## 技术栈
 
-- **运行环境**: Python 3.10+
+- **运行环境**: Python 3.11
 - **调度**: APScheduler
 - **Web**: FastAPI + Uvicorn
 - **数据**: SQLite (aiosqlite)

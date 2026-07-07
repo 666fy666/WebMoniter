@@ -15,8 +15,14 @@ import requests
 
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
-from src.push_channel.manager import UnifiedPushManager, build_push_manager
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.settings.config import AppConfig, get_config
+from src.tasks.common import (
+    cron_kwargs_from_config,
+    normalized_string_items,
+    push_manager_context,
+    send_news_if_allowed,
+    task_push_channels,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,29 +115,22 @@ async def run_aliyun_checkin_once() -> bool:
 
         @classmethod
         def from_app_config(cls, config: AppConfig) -> AliyunConfig:
-            tokens: list[str] = getattr(config, "aliyun_refresh_tokens", None) or []
             single = (getattr(config, "aliyun_refresh_token", None) or "").strip()
-            if not tokens and single:
-                tokens = [single]
-            push: list[str] = getattr(config, "aliyun_push_channels", None) or []
             return cls(
                 enable=getattr(config, "aliyun_enable", False),
                 refresh_token=single,
-                refresh_tokens=tokens,
+                refresh_tokens=normalized_string_items(
+                    getattr(config, "aliyun_refresh_tokens", None), single
+                ),
                 time=(getattr(config, "aliyun_time", None) or "05:30").strip() or "05:30",
-                push_channels=push,
+                push_channels=task_push_channels(config, "aliyun_push_channels"),
             )
 
         def validate(self) -> bool:
             if not self.enable:
                 logger.debug("阿里云盘签到未启用，跳过")
                 return False
-            effective = (
-                self.refresh_tokens
-                if self.refresh_tokens
-                else ([self.refresh_token] if self.refresh_token else [])
-            )
-            if not effective or not any(t.strip() for t in effective):
+            if not self.refresh_tokens:
                 logger.error("阿里云盘签到配置不完整，缺少 refresh_token 或 refresh_tokens")
                 return False
             return True
@@ -141,23 +140,17 @@ async def run_aliyun_checkin_once() -> bool:
     if not cfg.validate():
         return TASK_FAILED
 
-    effective = [t.strip() for t in cfg.refresh_tokens if t.strip()]
-    if not effective and cfg.refresh_token:
-        effective = [cfg.refresh_token.strip()]
+    effective = cfg.refresh_tokens
     any_success = False
     logger.info("阿里云盘签到：开始执行（共 %d 个账号）", len(effective))
 
-    import aiohttp
-
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
-        push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list,
-            session,
-            logger,
-            init_fail_prefix="阿里云盘签到：",
-            channel_names=cfg.push_channels if cfg.push_channels else None,
-        )
-
+    async with push_manager_context(
+        app_config,
+        logger,
+        push_channels=cfg.push_channels,
+        init_fail_prefix="阿里云盘签到：",
+        timeout_seconds=20,
+    ) as push_manager:
         for idx, token in enumerate(effective):
             try:
                 ok, msg = await asyncio.to_thread(_run_aliyun_sync, token)
@@ -167,31 +160,28 @@ async def run_aliyun_checkin_once() -> bool:
 
             if ok:
                 any_success = True
-            if push_manager and not is_in_quiet_hours(app_config):
-                masked = token[:8] + "***" + token[-4:] if len(token) > 12 else "***"
-                title = "阿里云盘签到成功" if ok else "阿里云盘签到失败"
-                body = f"{'✅' if ok else '❌'} 账号: {masked}\n{msg}\n\n执行时间配置: {cfg.time}"
-                try:
-                    await push_manager.send_news(
-                        title=title,
-                        description=body,
-                        to_url="https://www.aliyundrive.com",
-                        picurl="",
-                        btntxt="打开云盘",
-                    )
-                except Exception as exc:
-                    logger.error("阿里云盘签到：推送失败 %s", exc)
-
-        if push_manager:
-            await push_manager.close()
+            masked = token[:8] + "***" + token[-4:] if len(token) > 12 else "***"
+            title = "阿里云盘签到成功" if ok else "阿里云盘签到失败"
+            body = f"{'✅' if ok else '❌'} 账号: {masked}\n{msg}\n\n执行时间配置: {cfg.time}"
+            await send_news_if_allowed(
+                push_manager,
+                app_config,
+                logger,
+                quiet_log="阿里云盘签到：免打扰时段，不发送推送",
+                error_log="阿里云盘签到：推送失败 %s",
+                title=title,
+                description=body,
+                to_url="https://www.aliyundrive.com",
+                picurl="",
+                btntxt="打开云盘",
+            )
 
     logger.info("阿里云盘签到：结束（共处理 %d 个账号）", len(effective))
     return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_aliyun_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(getattr(config, "aliyun_time", "05:30") or "05:30")
-    return {"minute": minute, "hour": hour}
+    return cron_kwargs_from_config(config, "aliyun_time", "05:30")
 
 
 register_task(

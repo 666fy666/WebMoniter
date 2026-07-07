@@ -9,8 +9,14 @@ import requests
 
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
-from src.push_channel.manager import UnifiedPushManager, build_push_manager
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.settings.config import AppConfig, get_config
+from src.tasks.common import (
+    cron_kwargs_from_config,
+    normalized_string_items,
+    push_manager_context,
+    send_news_if_allowed,
+    task_push_channels,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,24 +52,21 @@ async def run_lbly_checkin_once() -> bool:
 
         @classmethod
         def from_app_config(cls, config: AppConfig) -> LblyConfig:
-            bodies: list[str] = getattr(config, "lbly_request_bodies", None) or []
             single = (getattr(config, "lbly_request_body", None) or "").strip()
-            if not bodies and single:
-                bodies = [single]
-            push: list[str] = getattr(config, "lbly_push_channels", None) or []
             return cls(
                 enable=getattr(config, "lbly_enable", False),
                 request_body=single,
-                request_bodies=bodies,
+                request_bodies=normalized_string_items(
+                    getattr(config, "lbly_request_bodies", None), single
+                ),
                 time=(getattr(config, "lbly_time", None) or "05:30").strip() or "05:30",
-                push_channels=push,
+                push_channels=task_push_channels(config, "lbly_push_channels"),
             )
 
         def validate(self) -> bool:
             if not self.enable:
                 return False
-            effective = self.request_bodies or ([self.request_body] if self.request_body else [])
-            if not effective or not any(b.strip() for b in effective):
+            if not self.request_bodies:
                 logger.error("丽宝乐园签到配置不完整")
                 return False
             return True
@@ -73,22 +76,17 @@ async def run_lbly_checkin_once() -> bool:
     if not cfg.validate():
         return TASK_FAILED
 
-    effective = [b.strip() for b in cfg.request_bodies if b.strip()]
-    if not effective and cfg.request_body:
-        effective = [cfg.request_body.strip()]
+    effective = cfg.request_bodies
     any_success = False
     logger.info("丽宝乐园签到：开始执行（共 %d 个账号）", len(effective))
 
-    import aiohttp
-
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
-        push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list,
-            session,
-            logger,
-            init_fail_prefix="丽宝乐园签到：",
-            channel_names=cfg.push_channels or None,
-        )
+    async with push_manager_context(
+        app_config,
+        logger,
+        push_channels=cfg.push_channels,
+        init_fail_prefix="丽宝乐园签到：",
+        timeout_seconds=30,
+    ) as push_manager:
         for idx, body in enumerate(effective):
             try:
                 ok, msg = await asyncio.to_thread(_run_lbly_sync, body)
@@ -97,27 +95,25 @@ async def run_lbly_checkin_once() -> bool:
                 ok, msg = False, str(e)
             if ok:
                 any_success = True
-            if push_manager and not is_in_quiet_hours(app_config):
-                title = "丽宝乐园签到成功" if ok else "丽宝乐园签到失败"
-                try:
-                    await push_manager.send_news(
-                        title=title,
-                        description=msg,
-                        to_url="https://m.mallcoo.cn",
-                        picurl="",
-                        btntxt="打开",
-                    )
-                except Exception as exc:
-                    logger.error("丽宝乐园签到：推送失败 %s", exc)
-        if push_manager:
-            await push_manager.close()
+            title = "丽宝乐园签到成功" if ok else "丽宝乐园签到失败"
+            await send_news_if_allowed(
+                push_manager,
+                app_config,
+                logger,
+                quiet_log="丽宝乐园签到：免打扰时段，不发送推送",
+                error_log="丽宝乐园签到：推送失败 %s",
+                title=title,
+                description=msg,
+                to_url="https://m.mallcoo.cn",
+                picurl="",
+                btntxt="打开",
+            )
     logger.info("丽宝乐园签到：结束（共 %d 个账号）", len(effective))
     return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_lbly_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(getattr(config, "lbly_time", "05:30") or "05:30")
-    return {"minute": minute, "hour": hour}
+    return cron_kwargs_from_config(config, "lbly_time", "05:30")
 
 
 register_task(

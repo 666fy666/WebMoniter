@@ -134,3 +134,22 @@ def test_matching_chromedriver_candidate_is_used(monkeypatch):
     assert result == "/opt/chromedriver"
     assert issues == []
     assert "ChromeDriver 150" in notes[0]
+
+
+def test_browser_smoke_is_skipped_by_default(monkeypatch):
+    issues = []
+    notes = []
+
+    monkeypatch.delenv(preflight.BROWSER_SMOKE_ENV, raising=False)
+
+    preflight._check_browser_smoke(
+        issues,
+        notes,
+        "/opt/chrome",
+        None,
+        "Google Chrome 150.0.0.0",
+    )
+
+    assert issues == []
+    assert "已跳过" in notes[0]
+    assert preflight.BROWSER_SMOKE_ENV in notes[0]

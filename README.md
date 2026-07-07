@@ -6,7 +6,7 @@
 
 <sub>监控 · 签到 · 开播提醒 · 推送 · 定时任务 · 配置热重载</sub>
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
@@ -207,7 +207,7 @@ cp config/config.yml.sample config.yml
 uv run python main.py
 ```
 
-源码启动会先执行环境预检：检查 uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome WebDriver 可用性；未通过时不会启动 Web 服务，并会打印对应修复方案。
+源码启动会先执行环境预检：检查 uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome/本地 chromedriver 状态；未通过时不会启动 Web 服务，并会打印对应修复方案。若需要启动前实际拉起 WebDriver 做烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。
 
 不使用浏览器签到时也可以只安装核心与开发依赖：
 

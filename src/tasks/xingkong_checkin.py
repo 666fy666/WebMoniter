@@ -9,8 +9,14 @@ import requests
 
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
-from src.push_channel.manager import build_push_manager
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.settings.config import AppConfig, get_config
+from src.tasks.common import (
+    cron_kwargs_from_config,
+    normalized_accounts,
+    push_manager_context,
+    send_news_if_allowed,
+    task_push_channels,
+)
 
 logger = logging.getLogger(__name__)
 LOGIN_URL = "https://www.xkdaili.com/tools/submit_ajax.ashx?action=user_login&site_id=1"
@@ -58,18 +64,20 @@ async def run_xingkong_checkin_once() -> bool:
 
         @classmethod
         def from_app_config(cls, config: AppConfig) -> XingkongConfig:
-            accounts = getattr(config, "xingkong_accounts", None) or []
             u = (getattr(config, "xingkong_username", None) or "").strip()
             p = (getattr(config, "xingkong_password", None) or "").strip()
-            if not accounts and (u or p):
-                accounts = [{"username": u, "password": p}]
             return cls(
                 enable=getattr(config, "xingkong_enable", False),
                 username=u,
                 password=p,
-                accounts=accounts,
+                accounts=normalized_accounts(
+                    getattr(config, "xingkong_accounts", None),
+                    ("username",),
+                    single_account={"username": u, "password": p},
+                    optional_fields=("password",),
+                ),
                 time=(getattr(config, "xingkong_time", None) or "07:30").strip() or "07:30",
-                push_channels=getattr(config, "xingkong_push_channels", None) or [],
+                push_channels=task_push_channels(config, "xingkong_push_channels"),
             )
 
         def validate(self) -> bool:
@@ -87,16 +95,14 @@ async def run_xingkong_checkin_once() -> bool:
     effective = [a for a in cfg.accounts if a.get("username")]
     any_success = False
     logger.info("星空代理签到：开始执行（共 %d 个账号）", len(effective))
-    import aiohttp
 
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
-        push_manager = await build_push_manager(
-            app_config.push_channel_list,
-            session,
-            logger,
-            init_fail_prefix="星空代理：",
-            channel_names=cfg.push_channels or None,
-        )
+    async with push_manager_context(
+        app_config,
+        logger,
+        push_channels=cfg.push_channels,
+        init_fail_prefix="星空代理：",
+        timeout_seconds=30,
+    ) as push_manager:
         for idx, acc in enumerate(effective):
             u, p = acc.get("username", ""), acc.get("password", "")
             try:
@@ -105,19 +111,18 @@ async def run_xingkong_checkin_once() -> bool:
                 ok, msg = False, str(e)
             if ok:
                 any_success = True
-            if push_manager and not is_in_quiet_hours(app_config):
-                try:
-                    await push_manager.send_news(
-                        title="星空代理签到成功" if ok else "星空代理签到失败",
-                        description=f"账号{idx + 1}: {msg}",
-                        to_url="https://www.xkdaili.com",
-                        picurl="",
-                        btntxt="打开",
-                    )
-                except Exception:
-                    pass
-        if push_manager:
-            await push_manager.close()
+            await send_news_if_allowed(
+                push_manager,
+                app_config,
+                logger,
+                quiet_log="星空代理：免打扰时段，不发送推送",
+                error_log="星空代理：推送失败 %s",
+                title="星空代理签到成功" if ok else "星空代理签到失败",
+                description=f"账号{idx + 1}: {msg}",
+                to_url="https://www.xkdaili.com",
+                picurl="",
+                btntxt="打开",
+            )
     logger.info("星空代理签到：结束（共 %d 个账号）", len(effective))
     return TASK_SUCCESS if any_success else TASK_FAILED
 
@@ -125,9 +130,6 @@ async def run_xingkong_checkin_once() -> bool:
 register_task(
     "xingkong_checkin",
     run_xingkong_checkin_once,
-    lambda c: {
-        "minute": parse_checkin_time(getattr(c, "xingkong_time", "07:30") or "07:30")[1],
-        "hour": parse_checkin_time(getattr(c, "xingkong_time", "07:30") or "07:30")[0],
-    },
+    lambda c: cron_kwargs_from_config(c, "xingkong_time", "07:30"),
     description="星空代理签到",
 )

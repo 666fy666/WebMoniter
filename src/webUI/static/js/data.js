@@ -18,6 +18,9 @@ const LAZY_IMAGE_ROOT_MARGIN = '150px 0px';
 const LIGHTBOX_MIN_ZOOM = 1;
 const LIGHTBOX_MAX_ZOOM = 5;
 const LIGHTBOX_ZOOM_STEP = 0.25;
+const LIGHTBOX_SWIPE_MIN_DISTANCE = 48;
+const LIGHTBOX_SWIPE_MAX_DURATION_MS = 900;
+const LIGHTBOX_SWIPE_VERTICAL_TOLERANCE = 0.75;
 
 function getPageSize() {
     return currentTable === 'weibo' ? WEIBO_PAGE_SIZE : DEFAULT_PAGE_SIZE;
@@ -51,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let lightboxPointers = new Map();
     let lightboxDragState = null;
     let lightboxPinchState = null;
+    let lightboxSwipeState = null;
     let lazyImageObserver = null;
     let lazyImageQueue = [];
     let lazyImageQueueScheduled = false;
@@ -573,6 +577,7 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxPointers.clear();
         lightboxDragState = null;
         lightboxPinchState = null;
+        lightboxSwipeState = null;
         if (lightboxImageEl) {
             lightboxImageEl.classList.remove('is-dragging');
         }
@@ -653,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (lightboxPointers.size === 1 && lightboxZoom > LIGHTBOX_MIN_ZOOM) {
+            lightboxSwipeState = null;
             lightboxDragState = {
                 pointerId: e.pointerId,
                 startX: e.clientX,
@@ -661,6 +667,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 panY: lightboxPanY,
             };
             lightboxImageEl.classList.add('is-dragging');
+        } else if (lightboxPointers.size === 1 && lightboxImages.length > 1) {
+            lightboxSwipeState = {
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                lastX: e.clientX,
+                lastY: e.clientY,
+                startTime: performance.now(),
+            };
         } else if (lightboxPointers.size === 2) {
             const points = Array.from(lightboxPointers.values());
             lightboxPinchState = {
@@ -669,6 +684,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 center: getPointerCenter(points),
             };
             lightboxDragState = null;
+            lightboxSwipeState = null;
             lightboxImageEl.classList.remove('is-dragging');
         }
     }
@@ -696,10 +712,30 @@ document.addEventListener('DOMContentLoaded', function () {
             lightboxPanX = lightboxDragState.panX + e.clientX - lightboxDragState.startX;
             lightboxPanY = lightboxDragState.panY + e.clientY - lightboxDragState.startY;
             applyLightboxTransform();
+            return;
+        }
+
+        if (
+            lightboxSwipeState &&
+            lightboxSwipeState.pointerId === e.pointerId &&
+            lightboxZoom <= LIGHTBOX_MIN_ZOOM
+        ) {
+            lightboxSwipeState.lastX = e.clientX;
+            lightboxSwipeState.lastY = e.clientY;
+            const deltaX = e.clientX - lightboxSwipeState.startX;
+            const deltaY = e.clientY - lightboxSwipeState.startY;
+            if (Math.abs(deltaX) > 12 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                e.preventDefault();
+            }
         }
     }
 
     function handleLightboxPointerEnd(e) {
+        const swipeState =
+            lightboxSwipeState && lightboxSwipeState.pointerId === e.pointerId
+                ? { ...lightboxSwipeState, endTime: performance.now() }
+                : null;
+
         lightboxPointers.delete(e.pointerId);
         if (lightboxImageEl && lightboxImageEl.hasPointerCapture(e.pointerId)) {
             lightboxImageEl.releasePointerCapture(e.pointerId);
@@ -713,6 +749,30 @@ document.addEventListener('DOMContentLoaded', function () {
             if (lightboxImageEl) {
                 lightboxImageEl.classList.remove('is-dragging');
             }
+        }
+
+        if (
+            swipeState &&
+            e.type !== 'pointercancel' &&
+            !lightboxPinchState &&
+            lightboxZoom <= LIGHTBOX_MIN_ZOOM &&
+            lightboxImages.length > 1
+        ) {
+            const deltaX = swipeState.lastX - swipeState.startX;
+            const deltaY = swipeState.lastY - swipeState.startY;
+            const elapsed = swipeState.endTime - swipeState.startTime;
+            const isHorizontalSwipe =
+                Math.abs(deltaX) >= LIGHTBOX_SWIPE_MIN_DISTANCE &&
+                Math.abs(deltaY) <= Math.abs(deltaX) * LIGHTBOX_SWIPE_VERTICAL_TOLERANCE &&
+                elapsed <= LIGHTBOX_SWIPE_MAX_DURATION_MS;
+
+            if (isHorizontalSwipe) {
+                showLightboxImage(lightboxIndex + (deltaX < 0 ? 1 : -1));
+            }
+        }
+
+        if (swipeState || lightboxPointers.size === 0) {
+            lightboxSwipeState = null;
         }
     }
 

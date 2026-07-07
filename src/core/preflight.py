@@ -170,7 +170,9 @@ def _check_python(issues: list[PreflightIssue], notes: list[str]) -> None:
 
 
 def _check_virtualenv(issues: list[PreflightIssue], notes: list[str]) -> None:
-    in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix) or bool(os.environ.get("VIRTUAL_ENV"))
+    in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix) or bool(
+        os.environ.get("VIRTUAL_ENV")
+    )
     if not in_venv:
         issues.append(
             PreflightIssue(
@@ -257,9 +259,8 @@ def _configured_or_common_browser(config: Any | None) -> tuple[str | None, str]:
 
 
 def _configured_driver(config: Any | None) -> str:
-    return (
-        os.environ.get("CHROMEDRIVER_PATH", "").strip()
-        or (str(getattr(config, "rainyun_chromedriver_path", "") or "").strip() if config else "")
+    return os.environ.get("CHROMEDRIVER_PATH", "").strip() or (
+        str(getattr(config, "rainyun_chromedriver_path", "") or "").strip() if config else ""
     )
 
 
@@ -315,7 +316,7 @@ def _resolve_local_chromedriver(
     if ignored:
         notes.append("chromedriver: 未找到本地匹配驱动，已忽略 " + "；".join(ignored[:3]))
     else:
-        notes.append("chromedriver: 未找到本地驱动，将使用 Selenium Manager")
+        notes.append("chromedriver: 未找到本地驱动，浏览器任务运行时将尝试 Selenium Manager")
     return None
 
 
@@ -326,8 +327,11 @@ def _check_browser_smoke(
     driver_path: str | None,
     browser_detail: str,
 ) -> None:
-    if _is_falsey(os.environ.get(BROWSER_SMOKE_ENV)):
-        notes.append("浏览器自动化 smoke test: 已跳过")
+    if not _is_truthy(os.environ.get(BROWSER_SMOKE_ENV)):
+        notes.append(
+            "浏览器自动化 smoke test: 已跳过；如需启动前验证 WebDriver，"
+            f"设置 {BROWSER_SMOKE_ENV}=1"
+        )
         return
     try:
         from selenium import webdriver
@@ -404,7 +408,11 @@ def check_preflight() -> PreflightReport:
     if source_run:
         _check_imports(issues, DEV_IMPORTS, name="开发依赖", solution=dependency_solution)
 
-    config = None if any(issue.name in {"核心依赖"} for issue in issues) else _load_config_for_preflight(issues)
+    config = (
+        None
+        if any(issue.name in {"核心依赖"} for issue in issues)
+        else _load_config_for_preflight(issues)
+    )
     browser_needed, browser_tasks = _browser_required(config)
     if browser_needed:
         browser_imports = IKUUU_BROWSER_IMPORTS

@@ -302,9 +302,7 @@ class BrowserSession:
                 raise
             except WebDriverException as e:
                 if _is_webdriver_environment_error(e):
-                    raise RainyunBrowserUnavailableError(
-                        f"Chrome WebDriver 初始化失败: {e}"
-                    ) from e
+                    raise RainyunBrowserUnavailableError(f"Chrome WebDriver 初始化失败: {e}") from e
                 raise
 
         driver_path = _get_chromedriver_path(
@@ -316,9 +314,7 @@ class BrowserSession:
             try:
                 return webdriver.Chrome(service=Service(driver_path), options=ops)
             except WebDriverException as e:
-                raise RainyunBrowserUnavailableError(
-                    f"Chrome WebDriver 初始化失败: {e}"
-                ) from e
+                raise RainyunBrowserUnavailableError(f"Chrome WebDriver 初始化失败: {e}") from e
         raise RuntimeError("无法初始化 Chrome WebDriver")
 
     def _apply_stealth(self, driver: WebDriver) -> None:

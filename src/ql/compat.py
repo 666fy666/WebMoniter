@@ -16,6 +16,7 @@ import logging
 import os
 
 from src.jobs.enable_fields import TASK_JOB_ENABLE_FIELD_MAP
+from src.jobs.metadata import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_ENV_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -49,42 +50,10 @@ def load_config_from_env(task_id: str | None = None) -> dict:
     Returns:
         扁平化的配置字典，可直接用于 AppConfig(**config_dict)
     """
-    # 默认值：与 config/config.yml.sample 保持一致
+    # 青龙单任务模式默认关闭 WebMoniter 内置监控/定时任务，只按目标环境变量显式启用。
     cfg: dict = {
-        "weibo_enable": False,
-        "huya_enable": False,
-        "bilibili_enable": False,
-        "douyin_enable": False,
-        "douyu_enable": False,
-        "xhs_enable": False,
-        "checkin_enable": False,
-        "tieba_enable": False,
-        "weibo_chaohua_enable": False,
-        "rainyun_enable": False,
-        "enshan_enable": False,
-        "tyyun_enable": False,
-        "aliyun_enable": False,
-        "smzdm_enable": False,
-        "zdm_draw_enable": False,
-        "fg_enable": False,
-        "miui_enable": False,
-        "iqiyi_enable": False,
-        "lenovo_enable": False,
-        "lbly_enable": False,
-        "pinzan_enable": False,
-        "dml_enable": False,
-        "xiaomao_enable": False,
-        "ydwx_enable": False,
-        "xingkong_enable": False,
-        "freenom_enable": False,
-        "weather_enable": False,
-        "qtw_enable": False,
-        "kuake_enable": False,
-        "kjwj_enable": False,
-        "fr_enable": False,
-        "nine_nine_nine_enable": False,
-        "zgfc_enable": False,
-        "ssq_500w_enable": False,
+        **{field: False for field in MONITOR_JOB_ENABLE_FIELD_MAP.values()},
+        **{field: False for field in TASK_JOB_ENABLE_FIELD_MAP.values()},
         "log_cleanup_enable": True,
         "push_channel_list": [],
         "quiet_hours_enable": False,
@@ -104,88 +73,14 @@ def load_config_from_env(task_id: str | None = None) -> dict:
                 if val:
                     cfg[config_key] = val
 
-    # 按任务映射环境变量
-    task_env_map: dict[str, tuple[str, dict | None]] = {
-        "ikuuu_checkin": (
-            "CHECKIN",
-            {"EMAIL": "checkin_email", "PASSWORD": "checkin_password", "TIME": "checkin_time"},
-        ),
-        "tieba_checkin": ("TIEBA", {"COOKIE": "tieba_cookie", "TIME": "tieba_time"}),
-        "weibo_chaohua_checkin": (
-            "WEIBO_CHAOHUA",
-            {"COOKIE": "weibo_chaohua_cookie", "TIME": "weibo_chaohua_time"},
-        ),
-        "rainyun_checkin": (
-            "RAINYUN",
-            {
-                "USERNAME": "rainyun_username",
-                "PASSWORD": "rainyun_password",
-                "API_KEY": "rainyun_api_key",
-                "TIME": "rainyun_time",
-            },
-        ),
-        "enshan_checkin": ("ENSHAN", {"COOKIE": "enshan_cookie", "TIME": "enshan_time"}),
-        "tyyun_checkin": (
-            "TYYUN",
-            {"USERNAME": "tyyun_username", "PASSWORD": "tyyun_password", "TIME": "tyyun_time"},
-        ),
-        "aliyun_checkin": (
-            "ALIYUN",
-            {"REFRESH_TOKEN": "aliyun_refresh_token", "TIME": "aliyun_time"},
-        ),
-        "smzdm_checkin": ("SMZDM", {"COOKIE": "smzdm_cookie", "TIME": "smzdm_time"}),
-        "zdm_draw": ("ZDM_DRAW", {"COOKIE": "zdm_draw_cookie", "TIME": "zdm_draw_time"}),
-        "fg_checkin": ("FG", {"COOKIE": "fg_cookie", "TIME": "fg_time"}),
-        "miui_checkin": (
-            "MIUI",
-            {"ACCOUNT": "miui_account", "PASSWORD": "miui_password", "TIME": "miui_time"},
-        ),
-        "iqiyi_checkin": ("IQIYI", {"COOKIE": "iqiyi_cookie", "TIME": "iqiyi_time"}),
-        "lenovo_checkin": (
-            "LENOVO",
-            {"ACCESS_TOKEN": "lenovo_access_token", "TIME": "lenovo_time"},
-        ),
-        "lbly_checkin": ("LBLY", {"REQUEST_BODY": "lbly_request_body", "TIME": "lbly_time"}),
-        "pinzan_checkin": (
-            "PINZAN",
-            {"ACCOUNT": "pinzan_account", "PASSWORD": "pinzan_password", "TIME": "pinzan_time"},
-        ),
-        "dml_checkin": ("DML", {"OPENID": "dml_openid", "TIME": "dml_time"}),
-        "xiaomao_checkin": (
-            "XIAOMAO",
-            {"TOKEN": "xiaomao_token", "MT_VERSION": "xiaomao_mt_version", "TIME": "xiaomao_time"},
-        ),
-        "ydwx_checkin": (
-            "YDWX",
-            {"DEVICE_PARAMS": "ydwx_device_params", "TOKEN": "ydwx_token", "TIME": "ydwx_time"},
-        ),
-        "xingkong_checkin": (
-            "XINGKONG",
-            {
-                "USERNAME": "xingkong_username",
-                "PASSWORD": "xingkong_password",
-                "TIME": "xingkong_time",
-            },
-        ),
-        "freenom_checkin": ("FREENOM", {"TIME": "freenom_time"}),
-        "weather_push": ("WEATHER", {"CITY_CODE": "weather_city_code", "TIME": "weather_time"}),
-        "qtw_checkin": ("QTW", {"COOKIE": "qtw_cookie", "TIME": "qtw_time"}),
-        "kuake_checkin": ("KUAKE", {"COOKIE": "kuake_cookie", "TIME": "kuake_time"}),
-        "kjwj_checkin": ("KJWJ", {"TIME": "kjwj_time"}),
-        "fr_checkin": ("FR", {"COOKIE": "fr_cookie", "TIME": "fr_time"}),
-        "nine_nine_nine_task": ("NINE_NINE_NINE", {"TIME": "nine_nine_nine_time"}),
-        "zgfc_draw": ("ZGFC", {"TIME": "zgfc_time"}),
-        "ssq_500w_notice": ("SSQ_500W", {"TIME": "ssq_500w_time"}),
-    }
-
-    if task_id and task_id in task_env_map:
-        prefix, extra = task_env_map[task_id]
+    if task_id and task_id in TASK_ENV_MAP:
+        prefix, extra = TASK_ENV_MAP[task_id]
         enable_key = TASK_JOB_ENABLE_FIELD_MAP.get(task_id, "")
         if enable_key:
             _apply_task_env(prefix, enable_key, extra)
     else:
         # 加载所有任务的环境变量
-        for tid, (prefix, extra) in task_env_map.items():
+        for tid, (prefix, extra) in TASK_ENV_MAP.items():
             enable_key = TASK_JOB_ENABLE_FIELD_MAP.get(tid, "")
             if enable_key:
                 _apply_task_env(prefix, enable_key, extra)

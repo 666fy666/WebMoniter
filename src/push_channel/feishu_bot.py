@@ -1,10 +1,7 @@
 import base64
 import hashlib
 import hmac
-import json
 import time
-
-from aiohttp import ClientResponseError
 
 from . import PushChannel
 
@@ -86,23 +83,11 @@ class FeishuBot(PushChannel):
             body["timestamp"] = timestamp
             body["sign"] = sign
 
-        try:
-            session = await self._get_session()
-            async with session.post(
-                push_url, headers=headers, data=json.dumps(body).encode("utf-8")
-            ) as response:
-                response.raise_for_status()
-                result = await response.json()
-
-                if result.get("code") != 0:
-                    error_msg = result.get("msg", "未知错误")
-                    raise Exception(f"推送失败: {error_msg}")
-
-                self.logger.debug(f"【推送_{self.name}】成功")
-                return {"status": "success"}
-        except ClientResponseError as e:
-            self._log_push_error(f"请求失败: {e}")
-            raise
-        except Exception as e:
-            self._log_push_error(f"推送失败: {e}")
-            raise
+        await self._post_json(
+            push_url,
+            body,
+            headers=headers,
+            code_key="code",
+            message_key="msg",
+        )
+        return {"status": "success"}

@@ -803,7 +803,9 @@ def _default_chromedriver_path(
             warning=True,
         ):
             return configured
-        logger.warning("ikuuu签到：配置的 CHROMEDRIVER_PATH 不可用，将尝试 Selenium Manager: %s", configured)
+        logger.warning(
+            "ikuuu签到：配置的 CHROMEDRIVER_PATH 不可用，将尝试 Selenium Manager: %s", configured
+        )
 
     if not include_auto_candidates:
         return None
@@ -851,7 +853,9 @@ def _create_ikuuu_webdriver(webdriver, service_cls, options, chrome_bin: str | N
             return webdriver.Chrome(options=options)
         except Exception as exc:  # noqa: BLE001
             if attempt == 0 and _is_chromedriver_version_mismatch(exc):
-                logger.warning("ikuuu签到：chromedriver 与 Chrome 版本不匹配，清除缓存后重试: %s", exc)
+                logger.warning(
+                    "ikuuu签到：chromedriver 与 Chrome 版本不匹配，清除缓存后重试: %s", exc
+                )
                 _clear_chromedriver_cache()
                 continue
             if _is_webdriver_environment_error(exc):

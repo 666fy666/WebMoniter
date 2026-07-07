@@ -7,7 +7,7 @@ from datetime import datetime, time
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.core.paths import CONFIG_YAML_FILE
 from src.settings.loader_specs import (
@@ -79,13 +79,17 @@ class AppConfig(BaseModel):
     weibo_cookie: str = ""
     weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
-    weibo_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    weibo_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
 
     # 虎牙
     huya_enable: bool = True  # 是否启用虎牙监控
     huya_rooms: str = ""  # 逗号分隔的房间号列表
     huya_concurrency: int = 7  # 虎牙监控并发数，建议5-10（相对宽松）
-    huya_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    huya_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
 
     # 哔哩哔哩
     bilibili_enable: bool = True  # 是否启用哔哩哔哩监控
@@ -94,63 +98,77 @@ class AppConfig(BaseModel):
     bilibili_uids: str = ""
     bilibili_skip_forward: bool = True
     bilibili_concurrency: int = 2
-    bilibili_push_channels: list[str] = []
+    bilibili_push_channels: list[str] = Field(default_factory=list)
 
     # 抖音
     douyin_enable: bool = True  # 是否启用抖音直播监控
     douyin_douyin_ids: str = ""
     douyin_concurrency: int = 2
-    douyin_push_channels: list[str] = []
+    douyin_push_channels: list[str] = Field(default_factory=list)
 
     # 斗鱼
     douyu_enable: bool = True  # 是否启用斗鱼直播监控
     douyu_rooms: str = ""
     douyu_concurrency: int = 2
-    douyu_push_channels: list[str] = []
+    douyu_push_channels: list[str] = Field(default_factory=list)
 
     # 小红书
     xhs_enable: bool = True  # 是否启用小红书动态监控
     xhs_cookie: str = ""
     xhs_profile_ids: str = ""
     xhs_concurrency: int = 2
-    xhs_push_channels: list[str] = []
+    xhs_push_channels: list[str] = Field(default_factory=list)
 
     # 每日签到配置（域名自动从 ikuuu.club 发现，无需手动配置 URL）
     checkin_enable: bool = False  # 是否启用每日签到
     checkin_email: str = ""  # 单账号：登录账号（与 checkin_password 搭配）
     checkin_password: str = ""  # 单账号：登录密码
-    checkin_accounts: list[dict] = (
-        []
+    checkin_accounts: list[dict] = Field(
+        default_factory=list
     )  # 多账号：[{"email": str, "password": str}, ...]，非空时优先于单账号
     checkin_time: str = "08:00"  # 签到时间（默认每天早上 8 点，格式：HH:MM）
-    checkin_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    checkin_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
 
     # 百度贴吧签到配置（使用 Cookie）
     tieba_enable: bool = False  # 是否启用贴吧签到
     tieba_cookie: str = ""  # 单 Cookie（与 tieba_cookies 二选一，须包含 BDUSS）
-    tieba_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 tieba_cookie
+    tieba_cookies: list[str] = Field(
+        default_factory=list
+    )  # 多 Cookie 列表，非空时优先于 tieba_cookie
     tieba_time: str = "08:10"  # 贴吧签到时间（格式：HH:MM），默认 08:10
-    tieba_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    tieba_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
 
     # 微博超话签到配置（使用 Cookie）
     weibo_chaohua_enable: bool = False  # 是否启用微博超话签到
     weibo_chaohua_cookie: str = (
         ""  # 单 Cookie（与 weibo_chaohua_cookies 二选一，须包含 XSRF-TOKEN）
     )
-    weibo_chaohua_cookies: list[str] = []  # 多 Cookie 列表，非空时优先于 weibo_chaohua_cookie
+    weibo_chaohua_cookies: list[str] = Field(
+        default_factory=list
+    )  # 多 Cookie 列表，非空时优先于 weibo_chaohua_cookie
     weibo_chaohua_time: str = "23:45"  # 微博超话签到时间（格式：HH:MM），默认 23:45
-    weibo_chaohua_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    weibo_chaohua_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
 
     # 雨云签到配置（参考 Rainyun-Qiandao：Selenium + 账号密码 + ddddocr）
     rainyun_enable: bool = False  # 是否启用雨云签到
-    rainyun_accounts: list[dict] = []  # [{"username": str, "password": str, "api_key": str?}, ...]
+    rainyun_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"username": str, "password": str, "api_key": str?}, ...]
     rainyun_time: str = "08:30"  # 雨云签到时间（格式：HH:MM），默认 08:30
-    rainyun_push_channels: list[str] = []  # 推送通道名称列表，为空时使用全部通道
+    rainyun_push_channels: list[str] = Field(
+        default_factory=list
+    )  # 推送通道名称列表，为空时使用全部通道
     # 雨云自动续费配置（参考 Jielumoon/Rainyun-Qiandao）
     rainyun_auto_renew: bool = True  # 是否启用服务器到期自动续费
     rainyun_renew_threshold_days: int = 7  # 剩余多少天内触发续费，默认 7 天
-    rainyun_renew_product_ids: list[int] = (
-        []
+    rainyun_renew_product_ids: list[int] = Field(
+        default_factory=list
     )  # 续费白名单（产品 ID 列表），为空则续费所有即将到期的服务器
     rainyun_chrome_bin: str = ""  # Chrome/Chromium 可执行路径，Docker 下通常用环境变量 CHROME_BIN
     rainyun_chromedriver_path: str = (
@@ -160,169 +178,183 @@ class AppConfig(BaseModel):
     # 恩山论坛签到配置（Cookie）
     enshan_enable: bool = False
     enshan_cookie: str = ""
-    enshan_cookies: list[str] = []
+    enshan_cookies: list[str] = Field(default_factory=list)
     enshan_time: str = "02:00"
-    enshan_push_channels: list[str] = []
+    enshan_push_channels: list[str] = Field(default_factory=list)
 
     # 天翼云盘签到配置（账号密码，多账号）
     tyyun_enable: bool = False
     tyyun_username: str = ""
     tyyun_password: str = ""
-    tyyun_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    tyyun_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"username": str, "password": str}, ...]
     tyyun_time: str = "04:30"
-    tyyun_push_channels: list[str] = []
+    tyyun_push_channels: list[str] = Field(default_factory=list)
 
     # 阿里云盘签到配置（refresh_token，多账号）
     aliyun_enable: bool = False
     aliyun_refresh_token: str = ""
-    aliyun_refresh_tokens: list[str] = []
+    aliyun_refresh_tokens: list[str] = Field(default_factory=list)
     aliyun_time: str = "05:30"
-    aliyun_push_channels: list[str] = []
+    aliyun_push_channels: list[str] = Field(default_factory=list)
 
     # 什么值得买签到配置（Cookie，多账号）
     smzdm_enable: bool = False
     smzdm_cookie: str = ""
-    smzdm_cookies: list[str] = []
+    smzdm_cookies: list[str] = Field(default_factory=list)
     smzdm_time: str = "00:30"
-    smzdm_push_channels: list[str] = []
+    smzdm_push_channels: list[str] = Field(default_factory=list)
 
     # 值得买每日抽奖配置（与 smzdm 共用 Cookie）
     zdm_draw_enable: bool = False
     zdm_draw_cookie: str = ""
-    zdm_draw_cookies: list[str] = []
+    zdm_draw_cookies: list[str] = Field(default_factory=list)
     zdm_draw_time: str = "07:30"
-    zdm_draw_push_channels: list[str] = []
+    zdm_draw_push_channels: list[str] = Field(default_factory=list)
 
     # 富贵论坛签到配置（Cookie，多账号）
     fg_enable: bool = False
     fg_cookie: str = ""
-    fg_cookies: list[str] = []
+    fg_cookies: list[str] = Field(default_factory=list)
     fg_time: str = "00:01"
-    fg_push_channels: list[str] = []
+    fg_push_channels: list[str] = Field(default_factory=list)
 
     # 小米社区签到配置（账号+密码，多账号；需 pycryptodome，有封号风险）
     miui_enable: bool = False
     miui_account: str = ""
     miui_password: str = ""
-    miui_accounts: list[dict] = []  # [{"account": str, "password": str}, ...]
+    miui_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"account": str, "password": str}, ...]
     miui_time: str = "08:30"
-    miui_push_channels: list[str] = []
+    miui_push_channels: list[str] = Field(default_factory=list)
 
     # 爱奇艺签到配置（Cookie 须含 P00001/P00003/QC005/__dfp，多 Cookie）
     iqiyi_enable: bool = False
     iqiyi_cookie: str = ""
-    iqiyi_cookies: list[str] = []
+    iqiyi_cookies: list[str] = Field(default_factory=list)
     iqiyi_time: str = "06:00"
-    iqiyi_push_channels: list[str] = []
+    iqiyi_push_channels: list[str] = Field(default_factory=list)
 
     # 联想乐豆签到配置（access_token，多账号）
     lenovo_enable: bool = False
     lenovo_access_token: str = ""
-    lenovo_access_tokens: list[str] = []
+    lenovo_access_tokens: list[str] = Field(default_factory=list)
     lenovo_time: str = "05:30"
-    lenovo_push_channels: list[str] = []
+    lenovo_push_channels: list[str] = Field(default_factory=list)
 
     # 丽宝乐园小程序签到配置（请求体 JSON 字符串，多账号）
     lbly_enable: bool = False
     lbly_request_body: str = ""
-    lbly_request_bodies: list[str] = []
+    lbly_request_bodies: list[str] = Field(default_factory=list)
     lbly_time: str = "05:30"
-    lbly_push_channels: list[str] = []
+    lbly_push_channels: list[str] = Field(default_factory=list)
 
     # 品赞代理签到配置（账号#密码，多账号）
     pinzan_enable: bool = False
     pinzan_account: str = ""
     pinzan_password: str = ""
-    pinzan_accounts: list[dict] = []  # [{"account": str, "password": str}, ...]
+    pinzan_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"account": str, "password": str}, ...]
     pinzan_time: str = "08:00"
-    pinzan_push_channels: list[str] = []
+    pinzan_push_channels: list[str] = Field(default_factory=list)
 
     # 达美乐任务配置（openid，多账号 dmlck 格式 openid 或 openid,xxx）
     dml_enable: bool = False
     dml_openid: str = ""
-    dml_openids: list[str] = []  # 多账号 openid 列表
+    dml_openids: list[str] = Field(default_factory=list)  # 多账号 openid 列表
     dml_time: str = "06:00"
-    dml_push_channels: list[str] = []
+    dml_push_channels: list[str] = Field(default_factory=list)
 
     # 小茅预约（i茅台）配置，参考 only_for_happly/backup/imaotai.py；需 pycryptodome
     # 每条 token 格式：省份,城市,经度,纬度,设备id,token,MT-Token-Wap（小茅运领奖励，不需要可留空）
     xiaomao_enable: bool = False
     xiaomao_token: str = ""  # 单条，与 xiaomao_tokens 二选一
-    xiaomao_tokens: list[str] = []  # 多账号，每条格式同上
+    xiaomao_tokens: list[str] = Field(default_factory=list)  # 多账号，每条格式同上
     xiaomao_mt_version: str = ""  # 可选，不填则尝试从 App Store 页获取
     xiaomao_time: str = "09:00"  # 建议 9:00/9:30 等开放时段
-    xiaomao_push_channels: list[str] = []
+    xiaomao_push_channels: list[str] = Field(default_factory=list)
 
     # 一点万象签到（deviceParams + token，多账号，参考 only_for_happly/ydwx.py）
     ydwx_enable: bool = False
     ydwx_device_params: str = ""
     ydwx_token: str = ""
-    ydwx_accounts: list[dict] = []  # [{"device_params": str, "token": str}, ...]
+    ydwx_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"device_params": str, "token": str}, ...]
     ydwx_time: str = "06:00"
-    ydwx_push_channels: list[str] = []
+    ydwx_push_channels: list[str] = Field(default_factory=list)
 
     # 星空代理签到（用户名+密码，多账号，参考 only_for_happly/xingkong.py）
     xingkong_enable: bool = False
     xingkong_username: str = ""
     xingkong_password: str = ""
-    xingkong_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    xingkong_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"username": str, "password": str}, ...]
     xingkong_time: str = "07:30"
-    xingkong_push_channels: list[str] = []
+    xingkong_push_channels: list[str] = Field(default_factory=list)
 
     # Freenom 免费域名续期（多账号）
     freenom_enable: bool = False
-    freenom_accounts: list[dict] = []  # [{"email": str, "password": str}, ...]
+    freenom_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"email": str, "password": str}, ...]
     freenom_time: str = "07:33"
-    freenom_push_channels: list[str] = []
+    freenom_push_channels: list[str] = Field(default_factory=list)
 
     # 天气推送（城市代码 + 7 日预报）
     weather_enable: bool = False
     weather_city_code: str = ""
     weather_time: str = "07:30"
-    weather_push_channels: list[str] = []
+    weather_push_channels: list[str] = Field(default_factory=list)
 
     # 千图网签到（Cookie，多账号，参考 only_for_happly/qtw.py）
     qtw_enable: bool = False
     qtw_cookie: str = ""
-    qtw_cookies: list[str] = []
+    qtw_cookies: list[str] = Field(default_factory=list)
     qtw_time: str = "01:30"
-    qtw_push_channels: list[str] = []
+    qtw_push_channels: list[str] = Field(default_factory=list)
 
     # 夸克网盘签到（Cookie，多账号，参考 only_for_happly/kuake.py）
     kuake_enable: bool = False
     kuake_cookie: str = ""
-    kuake_cookies: list[str] = []
+    kuake_cookies: list[str] = Field(default_factory=list)
     kuake_time: str = "02:00"
-    kuake_push_channels: list[str] = []
+    kuake_push_channels: list[str] = Field(default_factory=list)
 
     # 科技玩家签到（账号+密码，多账号，参考 only_for_happly/kjwj.py）
     kjwj_enable: bool = False
-    kjwj_accounts: list[dict] = []  # [{"username": str, "password": str}, ...]
+    kjwj_accounts: list[dict] = Field(
+        default_factory=list
+    )  # [{"username": str, "password": str}, ...]
     kjwj_time: str = "07:30"
-    kjwj_push_channels: list[str] = []
+    kjwj_push_channels: list[str] = Field(default_factory=list)
 
     # 帆软社区签到 + 摇摇乐（Cookie）
     fr_enable: bool = False
     fr_cookie: str = ""
     fr_time: str = "06:30"
-    fr_push_channels: list[str] = []
+    fr_push_channels: list[str] = Field(default_factory=list)
 
     # 999 会员中心健康打卡任务（Authorization，多账号）
     nine_nine_nine_enable: bool = False
-    nine_nine_nine_tokens: list[str] = []
+    nine_nine_nine_tokens: list[str] = Field(default_factory=list)
     nine_nine_nine_time: str = "15:15"
-    nine_nine_nine_push_channels: list[str] = []
+    nine_nine_nine_push_channels: list[str] = Field(default_factory=list)
 
     # 中国福彩抽奖活动（Authorization，多账号）
     zgfc_enable: bool = False
-    zgfc_tokens: list[str] = []
+    zgfc_tokens: list[str] = Field(default_factory=list)
     zgfc_time: str = "08:00"
-    zgfc_push_channels: list[str] = []
+    zgfc_push_channels: list[str] = Field(default_factory=list)
 
     # 双色球开奖监控 + 守号检测 + 冷号机选
     ssq_500w_enable: bool = False
     ssq_500w_time: str = "21:30"
-    ssq_500w_push_channels: list[str] = []
+    ssq_500w_push_channels: list[str] = Field(default_factory=list)
 
     # 监控任务间隔配置
     huya_monitor_interval_seconds: int = 65  # 虎牙监控间隔（秒），默认65秒
@@ -338,7 +370,7 @@ class AppConfig(BaseModel):
     retention_days: int = 3  # 日志保留天数，默认3天
 
     # 推送通道配置
-    push_channel_list: list[dict] = []
+    push_channel_list: list[dict] = Field(default_factory=list)
 
     # 免打扰时段配置
     quiet_hours_enable: bool = False  # 是否启用免打扰时段
@@ -346,7 +378,7 @@ class AppConfig(BaseModel):
     quiet_hours_end: str = "08:00"  # 免打扰时段结束时间（格式：HH:MM）
 
     # 插件/扩展任务配置（供二次开发使用，key 为任务名，value 为任意配置 dict）
-    plugins: dict = {}
+    plugins: dict = Field(default_factory=dict)
 
     def get_weibo_config(self) -> WeiboConfig:
         """获取微博配置"""

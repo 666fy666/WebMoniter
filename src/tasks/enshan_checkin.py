@@ -16,8 +16,14 @@ import requests
 from src.core.utils import mask_cookie_for_log
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
-from src.push_channel.manager import UnifiedPushManager, build_push_manager
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.settings.config import AppConfig, get_config
+from src.tasks.common import (
+    cron_kwargs_from_config,
+    normalized_string_items,
+    push_manager_context,
+    send_news_if_allowed,
+    task_push_channels,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,25 +78,20 @@ async def run_enshan_checkin_once() -> bool:
 
         @classmethod
         def from_app_config(cls, config: AppConfig) -> EnshanConfig:
-            cookies: list[str] = getattr(config, "enshan_cookies", None) or []
             single = (getattr(config, "enshan_cookie", None) or "").strip()
-            if not cookies and single:
-                cookies = [single]
-            push: list[str] = getattr(config, "enshan_push_channels", None) or []
             return cls(
                 enable=getattr(config, "enshan_enable", False),
                 cookie=single,
-                cookies=cookies,
+                cookies=normalized_string_items(getattr(config, "enshan_cookies", None), single),
                 time=(getattr(config, "enshan_time", None) or "02:00").strip() or "02:00",
-                push_channels=push,
+                push_channels=task_push_channels(config, "enshan_push_channels"),
             )
 
         def validate(self) -> bool:
             if not self.enable:
                 logger.debug("恩山签到未启用，跳过")
                 return False
-            effective = self.cookies if self.cookies else ([self.cookie] if self.cookie else [])
-            if not effective or not any(c.strip() for c in effective):
+            if not self.cookies:
                 logger.error("恩山签到配置不完整，缺少 cookie 或 cookies")
                 return False
             return True
@@ -100,23 +101,17 @@ async def run_enshan_checkin_once() -> bool:
     if not cfg.validate():
         return TASK_FAILED
 
-    effective = [c.strip() for c in cfg.cookies if c.strip()]
-    if not effective and cfg.cookie:
-        effective = [cfg.cookie.strip()]
+    effective = cfg.cookies
     any_success = False
     logger.info("恩山签到：开始执行（共 %d 个 Cookie）", len(effective))
 
-    import aiohttp
-
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
-        push_manager: UnifiedPushManager | None = await build_push_manager(
-            app_config.push_channel_list,
-            session,
-            logger,
-            init_fail_prefix="恩山签到：",
-            channel_names=cfg.push_channels if cfg.push_channels else None,
-        )
-
+    async with push_manager_context(
+        app_config,
+        logger,
+        push_channels=cfg.push_channels,
+        init_fail_prefix="恩山签到：",
+        timeout_seconds=20,
+    ) as push_manager:
         for idx, cookie_str in enumerate(effective):
             try:
                 ok, msg, detail = await asyncio.to_thread(_run_enshan_sync, cookie_str)
@@ -126,31 +121,28 @@ async def run_enshan_checkin_once() -> bool:
 
             if ok:
                 any_success = True
-            if push_manager and not is_in_quiet_hours(app_config):
-                masked = mask_cookie_for_log(cookie_str)
-                title = "恩山签到成功" if ok else "恩山签到失败"
-                body = f"{'✅' if ok else '❌'} Cookie: {masked}\n{detail or msg}\n\n执行时间配置: {cfg.time}"
-                try:
-                    await push_manager.send_news(
-                        title=title,
-                        description=body,
-                        to_url="https://www.right.com.cn/FORUM/",
-                        picurl="",
-                        btntxt="打开恩山",
-                    )
-                except Exception as exc:
-                    logger.error("恩山签到：推送失败 %s", exc)
-
-        if push_manager:
-            await push_manager.close()
+            masked = mask_cookie_for_log(cookie_str)
+            title = "恩山签到成功" if ok else "恩山签到失败"
+            body = f"{'✅' if ok else '❌'} Cookie: {masked}\n{detail or msg}\n\n执行时间配置: {cfg.time}"
+            await send_news_if_allowed(
+                push_manager,
+                app_config,
+                logger,
+                quiet_log="恩山签到：免打扰时段，不发送推送",
+                error_log="恩山签到：推送失败 %s",
+                title=title,
+                description=body,
+                to_url="https://www.right.com.cn/FORUM/",
+                picurl="",
+                btntxt="打开恩山",
+            )
 
     logger.info("恩山签到：结束（共处理 %d 个账号）", len(effective))
     return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_enshan_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(getattr(config, "enshan_time", "02:00") or "02:00")
-    return {"minute": minute, "hour": hour}
+    return cron_kwargs_from_config(config, "enshan_time", "02:00")
 
 
 register_task(

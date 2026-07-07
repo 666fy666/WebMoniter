@@ -17,6 +17,7 @@ from typing import Any
 
 from src.jobs.enable_fields import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_JOB_ENABLE_FIELD_MAP
 from src.jobs.log_manager import LogManager, TaskLogFilter, _current_job_id
+from src.jobs.metadata import MONITOR_MODULES, TASK_MODULES
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS, TaskOutcome
 from src.settings.config import AppConfig, get_config
 
@@ -35,50 +36,6 @@ class JobDescriptor:
     # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
     original_run_func: Callable[[], Awaitable[TaskOutcome]] | None = field(default=None)
 
-
-# 监控任务（间隔执行）模块列表，新增监控时在此追加模块路径即可
-MONITOR_MODULES: list[str] = [
-    "src.monitors.huya_monitor",
-    "src.monitors.weibo_monitor",
-    "src.monitors.bilibili_monitor",
-    "src.monitors.douyin_monitor",
-    "src.monitors.douyu_monitor",
-    "src.monitors.xhs_monitor",
-]
-
-# 定时任务（Cron 执行）模块列表，新增定时任务时在此追加模块路径即可
-TASK_MODULES: list[str] = [
-    "src.tasks.log_cleanup",
-    "src.tasks.ikuuu_checkin",
-    "src.tasks.tieba_checkin",
-    "src.tasks.weibo_chaohua_checkin",
-    "src.tasks.rainyun_checkin",  # 雨云签到
-    "src.tasks.enshan_checkin",  # 恩山论坛签到
-    "src.tasks.fg_checkin",  # 富贵论坛签到
-    "src.tasks.aliyun_checkin",  # 阿里云盘签到
-    "src.tasks.smzdm_checkin",  # 什么值得买签到
-    "src.tasks.zdm_draw",  # 值得买每日抽奖
-    "src.tasks.tyyun_checkin",  # 天翼云盘签到
-    "src.tasks.miui_checkin",  # 小米社区签到
-    "src.tasks.iqiyi_checkin",  # 爱奇艺签到
-    "src.tasks.lenovo_checkin",  # 联想乐豆签到
-    "src.tasks.lbly_checkin",  # 丽宝乐园签到
-    "src.tasks.pinzan_checkin",  # 品赞代理签到
-    "src.tasks.dml_checkin",  # 达美乐任务
-    "src.tasks.xiaomao_checkin",  # 小茅预约（i茅台）
-    "src.tasks.ydwx_checkin",  # 一点万象签到
-    "src.tasks.xingkong_checkin",  # 星空代理签到
-    "src.tasks.qtw_checkin",  # 千图网签到
-    "src.tasks.freenom_checkin",  # Freenom 免费域名续期
-    "src.tasks.weather_push",  # 天气每日推送
-    "src.tasks.kuake_checkin",  # 夸克网盘签到
-    "src.tasks.kjwj_checkin",  # 科技玩家签到
-    "src.tasks.fr_checkin",  # 帆软社区签到 + 摇摇乐
-    "src.tasks.nine_nine_nine_task",  # 999 会员中心健康打卡
-    "src.tasks.zgfc_draw",  # 中国福彩抽奖活动
-    "src.tasks.ssq_500w_notice",  # 双色球开奖通知（守号+冷号机选）
-    "src.tasks.demo_task",  # 二次开发示例，不需要可移除此行
-]
 
 MONITOR_JOBS: list[JobDescriptor] = []
 TASK_JOBS: list[JobDescriptor] = []

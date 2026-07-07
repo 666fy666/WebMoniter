@@ -3643,8 +3643,9 @@ body.page-logs .logs-container {
 /* Toast 响应式 */
 @media (max-width: 480px) {
     .toast-container {
-        top: 10px;
+        top: auto;
         right: 10px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
         left: 10px;
     }
 
@@ -5739,14 +5740,6 @@ select.form-input {
     grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
 }
 
-.weibo-media-grid,
-.weibo-retweet-block .weibo-media-grid,
-.weibo-media-count-1,
-.weibo-media-count-2,
-.weibo-media-count-4 {
-    max-width: 100%;
-}
-
 body.has-update-banner .page-topbar {
     top: calc(var(--update-banner-height) + 8px);
 }
@@ -5798,6 +5791,13 @@ body.login-body.has-update-banner .theme-toggle-fab {
 }
 
 @media (max-width: 768px) {
+    .toast-container {
+        top: auto;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        left: 12px;
+    }
+
     body.has-update-banner .page-topbar {
         top: calc(var(--update-banner-height) + 8px + env(safe-area-inset-top));
     }
@@ -5807,7 +5807,8 @@ body.login-body.has-update-banner .theme-toggle-fab {
     }
 
     body.has-update-banner .toast-container {
-        top: calc(var(--update-banner-height) + 10px + env(safe-area-inset-top));
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom));
     }
 
     body.login-body.has-update-banner {
@@ -6035,6 +6036,52 @@ body.login-body.has-update-banner .theme-toggle-fab {
 
     .toast-container {
         right: 8px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
         left: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .weibo-feed-inner {
+        padding-left: 0;
+    }
+
+    .weibo-feed-header {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .weibo-feed-avatar {
+        position: static;
+        flex: 0 0 42px;
+        width: 42px;
+        height: 42px;
+        margin-top: 2px;
+    }
+
+    .weibo-feed-user {
+        min-width: 0;
+    }
+
+    .weibo-feed-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 8px;
+    }
+
+    .weibo-feed-time {
+        margin-right: 0;
+    }
+
+    .weibo-feed-source {
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 480px) {
+    .weibo-feed-avatar {
+        flex-basis: 40px;
+        width: 40px;
+        height: 40px;
     }
 }

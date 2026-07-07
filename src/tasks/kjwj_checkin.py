@@ -19,8 +19,14 @@ import requests
 
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
-from src.push_channel.manager import UnifiedPushManager, build_push_manager
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.settings.config import AppConfig, get_config
+from src.tasks.common import (
+    cron_kwargs_from_config,
+    normalized_accounts,
+    push_manager_context,
+    send_news_if_allowed,
+    task_push_channels,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +46,18 @@ class KjwjConfig:
 
     @classmethod
     def from_app_config(cls, config: AppConfig) -> KjwjConfig:
-        raw = getattr(config, "kjwj_accounts", None) or []
-        accounts: list[KjwjAccount] = []
-        for a in raw:
-            if not isinstance(a, dict):
-                continue
-            u = str(a.get("username", "")).strip()
-            p = str(a.get("password", "")).strip()
-            if u and p:
-                accounts.append(KjwjAccount(username=u, password=p))
+        accounts = [
+            KjwjAccount(username=item["username"], password=item["password"])
+            for item in normalized_accounts(
+                getattr(config, "kjwj_accounts", None),
+                ("username", "password"),
+            )
+        ]
         return cls(
             enable=getattr(config, "kjwj_enable", False),
             accounts=accounts,
             time=(getattr(config, "kjwj_time", None) or "07:30").strip() or "07:30",
-            push_channels=getattr(config, "kjwj_push_channels", None) or [],
+            push_channels=task_push_channels(config, "kjwj_push_channels"),
         )
 
     def validate(self) -> bool:
@@ -132,36 +136,31 @@ async def run_kjwj_checkin_once() -> bool:
     if not lines:
         return TASK_FAILED
 
-    import aiohttp
-
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
-        push: UnifiedPushManager | None = await build_push_manager(
-            app_cfg.push_channel_list,
-            session,
+    async with push_manager_context(
+        app_cfg,
+        logger,
+        push_channels=cfg.push_channels,
+        init_fail_prefix="科技玩家签到：",
+        timeout_seconds=20,
+    ) as push:
+        await send_news_if_allowed(
+            push,
+            app_cfg,
             logger,
-            init_fail_prefix="科技玩家签到：",
-            channel_names=cfg.push_channels or None,
+            quiet_log="科技玩家签到：免打扰时段，不发送推送",
+            error_log="科技玩家签到：推送失败：%s",
+            title="科技玩家签到结果",
+            description="\n".join(lines),
+            to_url="https://www.kejiwanjia.net/",
+            picurl="",
+            btntxt="打开科技玩家",
         )
-        if push and not is_in_quiet_hours(app_cfg):
-            try:
-                await push.send_news(
-                    title="科技玩家签到结果",
-                    description="\n".join(lines),
-                    to_url="https://www.kejiwanjia.net/",
-                    picurl="",
-                    btntxt="打开科技玩家",
-                )
-            except Exception as exc:  # pragma: no cover
-                logger.error("科技玩家签到：推送失败：%s", exc, exc_info=True)
-            finally:
-                await push.close()
 
     return TASK_SUCCESS if any_success else TASK_FAILED
 
 
 def _get_kjwj_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(getattr(config, "kjwj_time", "07:30") or "07:30")
-    return {"minute": minute, "hour": hour}
+    return cron_kwargs_from_config(config, "kjwj_time", "07:30")
 
 
 register_task(

@@ -8,6 +8,12 @@ import yaml
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
+from src.jobs.metadata import (
+    CONFIG_SECTION_ORDER,
+    MONITOR_SPECS,
+    PUSH_CHANNEL_SPECS,
+    TASK_SPECS,
+)
 from src.web.auth import check_login
 from src.web.config_io import _validate_and_save_config, merge_config_to_yaml
 
@@ -25,6 +31,43 @@ def _validate_yaml_content(yaml_content: str) -> JSONResponse | None:
     except yaml.YAMLError as e:
         return JSONResponse({"error": f"YAML格式错误: {str(e)}"}, status_code=400)
     return None
+
+
+@router.get("/api/config/metadata")
+async def get_config_metadata_api(request: Request):
+    """获取配置页所需的只读元数据。"""
+    session_id = request.session.get("session_id")
+    if not check_login(session_id):
+        return _unauthorized_response()
+
+    def _task_to_json(spec):
+        return {
+            "job_id": spec.job_id,
+            "kind": spec.kind,
+            "module_path": spec.module,
+            "description": spec.description,
+            "config_section": spec.config_section,
+            "enable_field": spec.enable_field,
+            "time_field": spec.time_field,
+            "default_time": spec.default_time,
+            "interval_field": spec.interval_field,
+            "push_field": spec.push_field,
+            "push_container_id": spec.push_container_id,
+            "env_prefix": spec.ql_prefix,
+            "env_extra_fields": dict(spec.ql_extra_env),
+            "plugin_only": spec.plugin_only,
+        }
+
+    return JSONResponse(
+        {
+            "sections": list(CONFIG_SECTION_ORDER),
+            "tasks": [_task_to_json(spec) for spec in (*MONITOR_SPECS, *TASK_SPECS)],
+            "push_channel_types": {
+                spec.type: {"name": spec.name, "fields": list(spec.fields)}
+                for spec in PUSH_CHANNEL_SPECS
+            },
+        }
+    )
 
 
 @router.get("/api/config")

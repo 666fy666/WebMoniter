@@ -118,11 +118,7 @@ def _load_session_records_locked(*, persist_purge: bool = True) -> dict[str, dic
         return {}
 
     records = _normalize_session_records(raw_data, now)
-    raw_sessions = (
-        raw_data.get("sessions", raw_data)
-        if isinstance(raw_data, dict)
-        else None
-    )
+    raw_sessions = raw_data.get("sessions", raw_data) if isinstance(raw_data, dict) else None
     raw_count = len(raw_sessions) if isinstance(raw_sessions, dict) else len(records)
     if persist_purge and raw_count != len(records):
         try:

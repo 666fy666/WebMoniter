@@ -1,7 +1,8 @@
+import json
 import logging
 from abc import ABC, abstractmethod
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 
 
 class PushChannel(ABC):
@@ -41,6 +42,40 @@ class PushChannel(ABC):
         if self._own_session and self.session:
             await self.session.close()
             self.session = None
+
+    async def _post_json(
+        self,
+        url: str,
+        body: dict,
+        *,
+        headers: dict | None = None,
+        params: dict | None = None,
+        code_key: str | None = None,
+        success_code=0,
+        message_key: str = "errmsg",
+    ) -> dict:
+        """发送 JSON POST，并按渠道业务码做统一错误处理。"""
+        try:
+            session = await self._get_session()
+            async with session.post(
+                url,
+                headers=headers or {"Content-Type": "application/json"},
+                params=params,
+                data=json.dumps(body).encode("utf-8"),
+            ) as response:
+                response.raise_for_status()
+                result = await response.json()
+                if code_key is not None and result.get(code_key) != success_code:
+                    error_msg = result.get(message_key, "未知错误")
+                    raise Exception(f"推送失败: {error_msg}")
+                self.logger.debug("【推送_%s】成功", self.name)
+                return result
+        except ClientResponseError as e:
+            self._log_push_error(f"请求失败: {e}")
+            raise
+        except Exception as e:
+            self._log_push_error(f"推送失败: {e}")
+            raise
 
     @abstractmethod
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):
