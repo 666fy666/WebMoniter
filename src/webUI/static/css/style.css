@@ -5647,3 +5647,394 @@ table td {
         padding-right: 12px;
     }
 }
+
+/* =======================================
+   UI/UX guardrails v20
+   ======================================= */
+:root {
+    --update-banner-height: 0px;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+.main-content,
+.content-body,
+.card,
+.card-body,
+.task-info,
+.feed-card-user,
+.live-card-title,
+.weibo-feed-user,
+.weibo-card-user,
+.modal-content {
+    min-width: 0;
+}
+
+.form-input,
+.form-textarea,
+.form-group input,
+.form-group textarea,
+select.form-input {
+    max-width: 100%;
+}
+
+.btn,
+.tab-btn,
+.config-module-tab,
+.task-count-badge,
+.platform-badge,
+.task-type-badge,
+.live-status-badge,
+.push-channel-checkbox {
+    max-width: 100%;
+}
+
+.btn {
+    text-align: center;
+}
+
+.card-header h2,
+.task-title,
+.task-id,
+.feed-card-name,
+.feed-card-sub,
+.live-anchor-name,
+.live-room-value,
+.weibo-feed-name,
+.weibo-feed-meta,
+.weibo-card-name,
+.toast-message {
+    overflow-wrap: anywhere;
+}
+
+.tabs,
+.config-module-tabs {
+    min-width: 0;
+}
+
+.data-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+}
+
+.feed-card-grid,
+.weibo-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+
+.weibo-media-grid,
+.weibo-retweet-block .weibo-media-grid,
+.weibo-media-count-1,
+.weibo-media-count-2,
+.weibo-media-count-4 {
+    max-width: 100%;
+}
+
+body.has-update-banner .page-topbar {
+    top: calc(var(--update-banner-height) + 8px);
+}
+
+body.has-update-banner .config-module-nav {
+    top: calc(var(--update-banner-height) + var(--topbar-height) + 22px);
+}
+
+body.has-update-banner .toast-container {
+    top: calc(var(--update-banner-height) + 16px);
+}
+
+body.login-body.has-update-banner {
+    padding-top: calc(24px + var(--update-banner-height));
+}
+
+body.login-body.has-update-banner .theme-toggle-fab {
+    top: calc(18px + var(--update-banner-height));
+}
+
+.modal.show {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    overflow: hidden;
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 24px);
+}
+
+.modal-header,
+.modal-footer {
+    flex-shrink: 0;
+}
+
+.modal-body {
+    min-height: 0;
+    overflow: auto;
+}
+
+.modal-body.modal-body-scroll {
+    min-height: 0;
+}
+
+.modal-body.modal-body-scroll .logs-container {
+    min-height: min(360px, 50dvh);
+}
+
+@media (max-width: 768px) {
+    body.has-update-banner .page-topbar {
+        top: calc(var(--update-banner-height) + 8px + env(safe-area-inset-top));
+    }
+
+    body.has-update-banner .config-module-nav {
+        top: calc(var(--update-banner-height) + var(--topbar-height) + 20px + env(safe-area-inset-top));
+    }
+
+    body.has-update-banner .toast-container {
+        top: calc(var(--update-banner-height) + 10px + env(safe-area-inset-top));
+    }
+
+    body.login-body.has-update-banner {
+        padding-top: calc(16px + var(--update-banner-height));
+    }
+
+    body.login-body.has-update-banner .theme-toggle-fab {
+        top: calc(12px + var(--update-banner-height));
+    }
+
+    .update-banner {
+        position: sticky;
+        align-items: flex-start;
+        padding: 10px 44px 10px 12px;
+    }
+
+    .update-banner-content {
+        min-width: 0;
+    }
+
+    .update-banner-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .update-banner-close {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
+    }
+
+    .login-update-banner {
+        min-height: 44px;
+        padding: 10px 44px 10px 12px;
+    }
+
+    .login-update-banner .update-banner-content {
+        justify-content: flex-start;
+    }
+
+    .page-topbar,
+    .content-body,
+    .card,
+    .table-container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .page-title-group {
+        flex: 1;
+    }
+
+    .card-header h2 {
+        min-width: 0;
+        padding-right: 0;
+    }
+
+    .config-section .card-header h2 {
+        padding-right: 24px;
+    }
+
+    .card-actions,
+    .collapse-all-actions,
+    .task-actions,
+    .logs-toolbar,
+    .task-toolbar {
+        align-items: stretch;
+    }
+
+    .card-actions .btn,
+    .collapse-all-actions .btn,
+    .logs-toolbar .btn,
+    .task-actions .btn {
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .config-module-nav {
+        max-height: calc(100dvh - var(--topbar-height) - 36px - env(safe-area-inset-top));
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    .config-module-tabs,
+    .tabs-scroll-wrap .tabs {
+        scrollbar-width: none;
+    }
+
+    .config-module-tabs::-webkit-scrollbar,
+    .tabs-scroll-wrap .tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .config-table tr,
+    .push-channel-table tr {
+        padding: 14px 0;
+    }
+
+    .config-table tr:hover,
+    .push-channel-table tr:hover {
+        background: transparent;
+    }
+
+    .push-channels-select {
+        align-items: stretch;
+    }
+
+    .push-channel-checkbox {
+        flex: 1 1 calc(50% - 6px);
+        justify-content: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .multi-account-row .row-remove,
+    .multi-cookie-row .row-remove {
+        width: 100%;
+    }
+
+    .task-item {
+        padding: 14px;
+    }
+
+    .task-actions .btn {
+        flex: 1 1 160px;
+    }
+
+    body.page-logs .card-header {
+        max-height: 46dvh;
+        overflow-y: auto;
+    }
+
+    body.page-logs .card-body {
+        padding: 12px;
+    }
+
+    body.page-logs .logs-container {
+        min-height: 180px;
+    }
+
+    .logs-toolbar-label {
+        white-space: normal;
+    }
+
+    .logs-toolbar-label select.form-input {
+        width: 100%;
+    }
+
+    .logs-toolbar-checkbox {
+        flex: 1 1 140px;
+    }
+
+    .data-card-drag-handle,
+    .weibo-feed-card .data-card-drag-handle {
+        left: auto;
+        right: 8px;
+    }
+
+    .feed-card-header {
+        padding-left: 0;
+        padding-right: 36px;
+    }
+
+    .weibo-feed-footer {
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .weibo-feed-link-hint {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .weibo-lightbox {
+        padding: 64px 16px 88px;
+    }
+
+    .weibo-lightbox-image {
+        max-height: calc(100dvh - 152px);
+    }
+
+    .modal-content,
+    .modal-content.modal-wide {
+        max-width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+        margin: 0;
+    }
+
+    .back-to-top {
+        right: 14px;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+    }
+}
+
+@media (max-width: 480px) {
+    .card-actions .btn,
+    .collapse-all-actions .btn,
+    .logs-toolbar .btn,
+    .task-actions .btn,
+    .push-channel-checkbox {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .pagination .page-info {
+        order: -1;
+        width: 100%;
+        text-align: center;
+    }
+
+    .weibo-feed-card {
+        padding-right: 14px;
+    }
+
+    .weibo-lightbox-toolbar {
+        justify-content: flex-start;
+    }
+
+    .modal-header h3 {
+        font-size: 16px;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .toast-container {
+        right: 8px;
+        left: 8px;
+    }
+}

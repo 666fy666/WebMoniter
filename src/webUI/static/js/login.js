@@ -72,7 +72,11 @@ async function checkVersionUpdateOnLogin() {
                 releasesLinkEl.href = tagsUrl;
             }
             
-            updateBanner.style.display = 'flex';
+            if (typeof setUpdateBannerVisible === 'function') {
+                setUpdateBannerVisible(true);
+            } else {
+                updateBanner.style.display = 'flex';
+            }
         }
     } catch (error) {
         console.log('版本检查失败:', error.message);
@@ -84,7 +88,11 @@ async function checkVersionUpdateOnLogin() {
 function dismissUpdateBanner() {
     const updateBanner = document.getElementById('updateBanner');
     if (updateBanner) {
-        updateBanner.style.display = 'none';
+        if (typeof setUpdateBannerVisible === 'function') {
+            setUpdateBannerVisible(false);
+        } else {
+            updateBanner.style.display = 'none';
+        }
         // 记录到 sessionStorage，本次会话不再提示
         sessionStorage.setItem('updateBannerDismissed', 'true');
     }

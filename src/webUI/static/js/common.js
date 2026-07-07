@@ -144,6 +144,24 @@ function formatDateTime(dateString) {
     return date.toLocaleString('zh-CN');
 }
 
+function setUpdateBannerVisible(visible) {
+    const updateBanner = document.getElementById('updateBanner');
+    if (!updateBanner) return;
+
+    updateBanner.style.display = visible ? 'flex' : 'none';
+    document.body.classList.toggle('has-update-banner', visible);
+
+    if (visible) {
+        requestAnimationFrame(() => {
+            const height = Math.ceil(updateBanner.getBoundingClientRect().height);
+            document.documentElement.style.setProperty('--update-banner-height', `${height}px`);
+        });
+        return;
+    }
+
+    document.documentElement.style.removeProperty('--update-banner-height');
+}
+
 function initMobileMenu() {
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
@@ -433,7 +451,7 @@ async function checkVersionUpdate() {
                 releasesLinkEl.href = tagsUrl;
             }
             
-            updateBanner.style.display = 'flex';
+            setUpdateBannerVisible(true);
         }
     } catch (error) {
         console.log('版本检查失败:', error.message);
@@ -442,12 +460,9 @@ async function checkVersionUpdate() {
 
 // 关闭更新提示
 function dismissUpdateBanner() {
-    const updateBanner = document.getElementById('updateBanner');
-    if (updateBanner) {
-        updateBanner.style.display = 'none';
-        // 记录到 sessionStorage，本次会话不再提示
-        sessionStorage.setItem('updateBannerDismissed', 'true');
-    }
+    setUpdateBannerVisible(false);
+    // 记录到 sessionStorage，本次会话不再提示
+    sessionStorage.setItem('updateBannerDismissed', 'true');
 }
 
 // 登录页可能由 / 或 /login 渲染，不能仅靠 pathname 判断
@@ -501,6 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dismissBtn) {
         dismissBtn.addEventListener('click', dismissUpdateBanner);
     }
+
+    window.addEventListener('resize', () => {
+        const updateBanner = document.getElementById('updateBanner');
+        if (updateBanner && window.getComputedStyle(updateBanner).display !== 'none') {
+            setUpdateBannerVisible(true);
+        }
+    }, { passive: true });
 
     // 返回顶部按钮
     const backToTopBtn = document.getElementById('backToTopBtn');
