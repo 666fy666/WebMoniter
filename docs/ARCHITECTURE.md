@@ -988,7 +988,8 @@ WebMoniter/
 │   ├── data.db             # SQLite（监控数据 + task_run_history）
 │   ├── cookie_cache.json
 │   ├── auth.json           # Web 登录凭据
-│   └── session_secret      # Web Session 密钥（持久化，避免重启掉线）
+│   ├── session_secret      # Web Session 密钥（持久化，避免重启掉线）
+│   └── web_sessions.json   # Web 登录会话（默认一年有效）
 │
 └── logs/                   # 运行时日志（gitignore）
     ├── main_YYYYMMDD.log
@@ -1208,7 +1209,7 @@ class PushChannel(ABC):
 
 - **Session认证**：基于 `SessionMiddleware`
 - **登录验证**：用户名密码验证（默认 `admin/123`）
-- **会话管理**：`active_sessions` 集合管理活跃会话
+- **会话管理**：`data/web_sessions.json` 持久化活跃会话，Cookie 与服务端会话默认一年有效
 
 ### API设计
 

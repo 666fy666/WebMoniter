@@ -8,10 +8,12 @@ from fastapi import APIRouter, Form, Request, status
 from fastapi.responses import JSONResponse
 
 from src.web.auth import (
-    active_sessions,
     check_login,
     hash_password,
     load_auth,
+    register_session,
+    replace_sessions_with,
+    revoke_session,
     save_auth,
     verify_password,
 )
@@ -29,7 +31,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     ):
         session_id = secrets.token_urlsafe(32)
         request.session["session_id"] = session_id
-        active_sessions.add(session_id)
+        register_session(session_id)
         return JSONResponse({"success": True, "message": "登录成功"})
     return JSONResponse(
         {"success": False, "message": "用户名或密码错误"}, status_code=status.HTTP_401_UNAUTHORIZED
@@ -41,7 +43,7 @@ async def logout(request: Request):
     """登出接口"""
     session_id = request.session.get("session_id")
     if session_id:
-        active_sessions.discard(session_id)
+        revoke_session(session_id)
         request.session.clear()
     return JSONResponse({"success": True, "message": "已登出"})
 
@@ -76,6 +78,7 @@ async def change_password(
 
     auth_data["password_hash"] = hash_password(new_password)
     if await asyncio.to_thread(save_auth, auth_data):
+        replace_sessions_with(session_id)
         logger.info("密码已成功修改")
         return JSONResponse({"success": True, "message": "密码修改成功"})
     return JSONResponse({"success": False, "message": "保存密码失败，请重试"}, status_code=500)

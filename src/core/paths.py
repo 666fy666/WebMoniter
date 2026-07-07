@@ -31,6 +31,7 @@ DB_PATH = (DATA_DIR / "data.db").resolve()
 AUTH_FILE = (DATA_DIR / "auth.json").resolve()
 COOKIE_CACHE_FILE = (DATA_DIR / "cookie_cache.json").resolve()
 SESSION_SECRET_FILE = (DATA_DIR / "session_secret").resolve()
+WEB_SESSION_FILE = (DATA_DIR / "web_sessions.json").resolve()
 WEIBO_IMG_DIR = DATA_DIR / "weibo"
 
 
