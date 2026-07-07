@@ -238,7 +238,7 @@ uv run python main.py &
 
 ```
 
-源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome/本地 chromedriver 状态。若不满足，终端会直接给出修复命令。默认不会启动 WebDriver 或触发 Selenium Manager 下载；如需启动前实际烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。
+源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome/本地 chromedriver 状态。若不满足，终端会直接给出修复命令。默认不会启动 WebDriver 或触发 Selenium Manager 下载；如需启动前实际烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。Docker full 镜像默认启用该烟测，便于提前发现容器内 Chrome/Chromium 崩溃问题。
 
 !!! tip "停止程序"
     在终端按 `Ctrl+C` 会触发优雅关闭：停止调度器、关闭 Web 服务、配置监控器和数据库连接。项目会为同步网络请求、浏览器任务等阻塞场景设置兜底，通常会在数秒内退出；如果仍在等待，再按一次 `Ctrl+C` 会立即强制退出。

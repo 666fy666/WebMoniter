@@ -1083,7 +1083,84 @@ class WeiboMonitor(BaseMonitor):
             # 防御性处理，避免头像下载影响监控主流程
             self.logger.warning("保存微博头像时发生异常（已忽略）: %s", e)
 
-    async def get_info(self, uid: str) -> dict:
+    def _get_timeline_statuses(self, wb_list: list) -> list[dict]:
+        """获取用于监控的微博列表，优先跳过置顶微博。"""
+        statuses = [
+            item
+            for item in wb_list
+            if isinstance(item, dict) and item.get("isTop", 0) != 1
+        ]
+        if statuses:
+            return statuses
+        return [item for item in wb_list if isinstance(item, dict)]
+
+    def _collect_candidate_new_statuses(
+        self, statuses: list[dict], old_mid: str | None
+    ) -> tuple[list[dict], bool]:
+        """收集旧 mid 之前的新微博候选，返回顺序为最新到最旧。"""
+        if not old_mid or self._sanitize_path_part(old_mid) == "0":
+            return [], False
+
+        candidate_statuses: list[dict] = []
+        for status in statuses:
+            if self._same_mid(status.get("mid"), old_mid):
+                return candidate_statuses, True
+            candidate_statuses.append(status)
+        return candidate_statuses, False
+
+    async def _build_status_data(self, base_data: dict, target_wb: dict) -> dict:
+        """将微博列表中的单条微博解析成数据库/推送共用结构。"""
+        data = dict(base_data)
+        text_raw = str(target_wb.get("text_raw") or "").strip()
+        if not text_raw:
+            text_raw = self._clean_weibo_html_text(target_wb.get("text"))
+        list_text_raw = text_raw
+        long_text_content = await self._fetch_long_text_content(target_wb)
+        if long_text_content:
+            text_raw = long_text_content
+
+        pic_ids = target_wb.get("pic_ids", [])
+        if not isinstance(pic_ids, list):
+            pic_ids = []
+        pic_infos = target_wb.get("pic_infos", {})
+        pics = target_wb.get("pics", [])
+        url_struct = target_wb.get("url_struct", [])
+        if not isinstance(url_struct, list):
+            url_struct = []
+        created_at = str(target_wb.get("created_at") or "")
+        retweeted_status, retweeted_pic_candidates = await self._extract_retweeted_status(target_wb)
+
+        spacing = "\n          "
+        prefix = "          "
+
+        text = prefix + text_raw
+
+        if pic_ids:
+            text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
+
+        if url_struct and isinstance(url_struct[0], dict):
+            url_title = str(url_struct[0].get("url_title") or "").strip()
+            if url_title:
+                text += f"{spacing}#{url_title}#"
+
+        text += f"\n\n{created_at}"
+
+        data["文本"] = text
+        data["mid"] = str(target_wb.get("mid") or "0")
+        data["图片"] = "[]"
+        data["转发微博"] = self._dump_retweeted_status(retweeted_status)
+        data["_text_raw"] = text_raw
+        data["_list_text_raw"] = list_text_raw
+        data["_long_text_fetched"] = bool(long_text_content)
+        data["_pic_ids"] = pic_ids
+        data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
+        data["_retweeted_pic_url_candidates"] = retweeted_pic_candidates
+        data["_url_struct"] = url_struct
+        data["_created_at"] = created_at
+
+        return data
+
+    async def get_info(self, uid: str, old_mid: str | None = None) -> dict:
         """获取微博信息"""
         session = await self._get_session()
         info_url = f"https://www.weibo.com/ajax/profile/info?uid={uid}"
@@ -1127,61 +1204,37 @@ class WeiboMonitor(BaseMonitor):
             data["mid"] = "0"
             data["图片"] = "[]"
             data["转发微博"] = "{}"
+            data["_candidate_new_posts"] = []
+            data["_old_mid_found"] = False
             return data
 
-        # 找到第一个非置顶微博
-        target_idx = 0
-        for idx, item in enumerate(wb_list):
-            if item.get("isTop", 0) == 1:
-                continue
-            else:
-                target_idx = idx
-                break
+        statuses = self._get_timeline_statuses(wb_list)
+        if not statuses:
+            data["文本"] = "无内容"
+            data["mid"] = "0"
+            data["图片"] = "[]"
+            data["转发微博"] = "{}"
+            data["_candidate_new_posts"] = []
+            data["_old_mid_found"] = False
+            return data
 
-        target_wb = wb_list[target_idx]
-        text_raw = target_wb.get("text_raw") or ""
-        list_text_raw = text_raw
-        long_text_content = await self._fetch_long_text_content(target_wb)
-        if long_text_content:
-            text_raw = long_text_content
-        pic_ids = target_wb.get("pic_ids", [])
-        pic_infos = target_wb.get("pic_infos", {})
-        pics = target_wb.get("pics", [])
-        url_struct = target_wb.get("url_struct", [])
-        created_at = target_wb["created_at"]
-        retweeted_status, retweeted_pic_candidates = await self._extract_retweeted_status(target_wb)
+        candidate_statuses, old_mid_found = self._collect_candidate_new_statuses(
+            statuses, old_mid
+        )
+        parsed_by_mid: dict[str, dict] = {}
 
-        spacing = "\n          "
-        prefix = "          "
+        async def parse_status(status: dict) -> dict:
+            cache_key = str(status.get("mid") or id(status))
+            if cache_key not in parsed_by_mid:
+                parsed_by_mid[cache_key] = await self._build_status_data(data, status)
+            return parsed_by_mid[cache_key]
 
-        # 保留完整的正文，不进行截断（截断逻辑移到推送时处理）
-        text = prefix + text_raw
+        latest_data = await parse_status(statuses[0])
+        candidate_posts = [await parse_status(status) for status in candidate_statuses]
+        latest_data["_candidate_new_posts"] = candidate_posts
+        latest_data["_old_mid_found"] = old_mid_found
 
-        # 图片处理
-        if pic_ids:
-            text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
-
-        # URL 结构处理
-        if url_struct:
-            text += f"{spacing}#{url_struct[0]['url_title']}#"
-
-        text += f"\n\n{created_at}"
-
-        data["文本"] = text
-        data["mid"] = str(target_wb["mid"])
-        data["图片"] = "[]"
-        data["转发微博"] = self._dump_retweeted_status(retweeted_status)
-        # 保存原始数据，用于推送时动态处理
-        data["_text_raw"] = text_raw
-        data["_list_text_raw"] = list_text_raw
-        data["_long_text_fetched"] = bool(long_text_content)
-        data["_pic_ids"] = pic_ids
-        data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
-        data["_retweeted_pic_url_candidates"] = retweeted_pic_candidates
-        data["_url_struct"] = url_struct
-        data["_created_at"] = created_at
-
-        return data
+        return latest_data
 
     def check_info(self, data: dict, old_info: tuple) -> int:
         """
@@ -1191,20 +1244,76 @@ class WeiboMonitor(BaseMonitor):
         if len(old_info) < 7:
             return 1  # 数据不完整，默认有变化
 
+        old_mid = old_info[7] if len(old_info) > 7 else ""
+        new_mid = data.get("mid", "")
+        mid_changed = self._sanitize_path_part(old_mid) != self._sanitize_path_part(new_mid)
         old_text = old_info[6] if len(old_info) > 6 else ""
         if not self._texts_equivalent(data["文本"], old_text):
             try:
                 old_count = int(old_info[5]) if len(old_info) > 5 else 0
                 new_count = int(data["微博数"])
-                return new_count - old_count
+                diff = new_count - old_count
+                if diff == 0 and mid_changed:
+                    return 1
+                return diff
             except (ValueError, TypeError):
                 return 1  # 无法计算时默认有变化
+        if mid_changed:
+            try:
+                old_count = int(old_info[5]) if len(old_info) > 5 else 0
+                new_count = int(data["微博数"])
+                diff = new_count - old_count
+                return diff if diff != 0 else 1
+            except (ValueError, TypeError):
+                return 1
         return 0
+
+    async def _get_info_for_process(self, uid: str, old_mid: str | None = None) -> dict:
+        """获取用户信息；兼容测试或扩展中旧签名的 get_info monkeypatch。"""
+        if not old_mid:
+            return await self.get_info(uid)
+        try:
+            return await self.get_info(uid, old_mid=old_mid)
+        except TypeError as e:
+            if "old_mid" not in str(e) or "unexpected keyword" not in str(e):
+                raise
+            return await self.get_info(uid)
+
+    def _data_to_old_info_tuple(self, data: dict) -> tuple:
+        """将当前微博数据转换为 old_data_dict 使用的行结构。"""
+        return (
+            data["UID"],
+            data["用户名"],
+            data["认证信息"],
+            data["简介"],
+            data["粉丝数"],
+            data["微博数"],
+            data["文本"],
+            data["mid"],
+            data["图片"],
+            data["转发微博"],
+        )
+
+    def _get_posts_to_push(self, data: dict, diff: int) -> list[dict]:
+        """根据接口候选与差值生成逐条推送列表，返回顺序为旧到新。"""
+        candidates = [
+            post for post in data.get("_candidate_new_posts", []) if isinstance(post, dict)
+        ]
+        if diff <= 0 or not candidates:
+            return [data]
+
+        if data.get("_old_mid_found"):
+            selected = candidates
+        else:
+            selected = candidates[:diff]
+        return list(reversed(selected)) or [data]
 
     async def process_user(self, uid: str):
         """处理单个用户"""
+        old_info = self.old_data_dict.get(uid)
+        old_mid = str(old_info[7]) if old_info and len(old_info) > 7 else None
         try:
-            new_data = await self.get_info(uid)
+            new_data = await self._get_info_for_process(uid, old_mid)
             # 成功获取数据，如果之前被标记为过期，现在标记为有效
             await self.mark_cookie_valid()
         except CookieExpiredError as e:
@@ -1218,8 +1327,7 @@ class WeiboMonitor(BaseMonitor):
         new_data.setdefault("转发微博", "{}")
         new_data.setdefault("_retweeted_pic_url_candidates", [])
 
-        if uid in self.old_data_dict:
-            old_info = self.old_data_dict[uid]
+        if old_info:
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
@@ -1282,18 +1390,7 @@ class WeiboMonitor(BaseMonitor):
                     if not updated:
                         self.logger.error("%s 微博数据补偿写入数据库失败", new_data["用户名"])
                     else:
-                        self.old_data_dict[uid] = (
-                            new_data["UID"],
-                            new_data["用户名"],
-                            new_data["认证信息"],
-                            new_data["简介"],
-                            new_data["粉丝数"],
-                            new_data["微博数"],
-                            new_data["文本"],
-                            new_data["mid"],
-                            new_data["图片"],
-                            new_data["转发微博"],
-                        )
+                        self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
                         if should_push_long_text:
                             self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
                             await self.push_notification(new_data, 1)
@@ -1318,7 +1415,20 @@ class WeiboMonitor(BaseMonitor):
                 else:
                     self.logger.info(f"{new_data['用户名']} 删除了{abs(diff)}条微博😞")
 
-                await self.push_notification(new_data, diff)
+                self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
+
+                if diff > 0:
+                    posts_to_push = self._get_posts_to_push(new_data, diff)
+                    if len(posts_to_push) > 1:
+                        self.logger.info(
+                            "%s 本次检测到 %d 条新微博，将逐条推送",
+                            new_data["用户名"],
+                            len(posts_to_push),
+                        )
+                    for post_data in posts_to_push:
+                        await self.push_notification(post_data, 1)
+                else:
+                    await self.push_notification(new_data, diff)
         else:
             await self._save_post_images(new_data)
             await self._save_retweeted_images(new_data)
@@ -1339,6 +1449,8 @@ class WeiboMonitor(BaseMonitor):
             else:
                 self.logger.info(f"{new_data['用户名']} 发布了新微博😍 (新收录)")
                 await self.push_notification(new_data, 1)
+
+            self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
 
     def _build_description_for_channel(self, channel, data: dict) -> str:
         """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一截断处理。"""

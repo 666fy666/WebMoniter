@@ -25,6 +25,7 @@ services:
       - PYTHONNOUSERSITE=1
       - CHROME_BIN=/usr/bin/chromium
       - CHROMEDRIVER_PATH=/usr/bin/chromedriver
+      - WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1
     healthcheck:
       test:
         [

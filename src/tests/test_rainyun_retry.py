@@ -165,3 +165,10 @@ def test_rainyun_browser_session_falls_back_when_system_chromedriver_exits(monke
 
     assert driver is expected_driver
     assert len(calls) == 2
+
+
+def test_rainyun_chrome_instance_exited_is_browser_environment_error():
+    session, _ = _import_rainyun_session()
+    exc = RuntimeError("session not created: Chrome instance exited")
+
+    assert session._is_webdriver_environment_error(exc)

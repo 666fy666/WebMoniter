@@ -193,3 +193,9 @@ def test_ikuuu_webdriver_uses_selenium_manager_before_auto_candidates(monkeypatc
 
     assert driver is expected_driver
     assert [service.path for service in used_services] == ["/tmp/managed-driver"]
+
+
+def test_ikuuu_chrome_instance_exited_is_browser_environment_error():
+    exc = RuntimeError("session not created: Chrome instance exited")
+
+    assert ikuuu_checkin._is_webdriver_environment_error(exc)

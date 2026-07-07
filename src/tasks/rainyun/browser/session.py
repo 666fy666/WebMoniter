@@ -147,6 +147,10 @@ def _is_webdriver_environment_error(exc: BaseException) -> bool:
     msg = str(exc)
     markers = (
         "unexpectedly exited",
+        "Chrome instance exited",
+        "DevToolsActivePort file doesn't exist",
+        "Trace/breakpoint trap",
+        "core dumped",
         "Unable to obtain driver",
         "cannot find Chrome binary",
         "requires the chromium snap",

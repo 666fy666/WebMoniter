@@ -16,6 +16,10 @@ REQUIRED_SOURCE_PYTHON = (3, 11)
 SKIP_ENV = "WEBMONITER_SKIP_PREFLIGHT"
 BROWSER_SMOKE_ENV = "WEBMONITER_PREFLIGHT_BROWSER_SMOKE"
 VERBOSE_ENV = "WEBMONITER_PREFLIGHT_VERBOSE"
+SMOKE_TEST_COMMAND = (
+    "chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage "
+    "--dump-dom about:blank"
+)
 
 CORE_IMPORTS: tuple[tuple[str, str], ...] = (
     ("aiohttp", "aiohttp"),
@@ -359,8 +363,12 @@ def _check_browser_smoke(
             PreflightIssue(
                 "浏览器自动化",
                 f"Chrome WebDriver 启动失败：{exc}",
-                "若是源码运行，先执行 uv sync --extra rainyun；当前浏览器为 "
-                f"{browser_detail.splitlines()[0]}。若 Selenium Manager 无法下载驱动，"
+                "当前浏览器为 "
+                f"{browser_detail.splitlines()[0]}。可先在同一运行环境执行 "
+                f"`{SMOKE_TEST_COMMAND}`；若出现 Trace/breakpoint trap、core dumped "
+                "或 132/133 退出码，说明 Chrome/Chromium 自身在该容器/宿主上崩溃，"
+                "请更换或重建 full 镜像中的 Chrome/Chromium。若是源码运行，先执行 "
+                "uv sync --extra rainyun；若 Selenium Manager 无法下载驱动，"
                 "请安装同主版本 chromedriver，并配置 CHROMEDRIVER_PATH/rainyun.chromedriver_path；"
                 "不要使用 Ubuntu snap 的 /usr/bin/chromedriver stub。",
             )

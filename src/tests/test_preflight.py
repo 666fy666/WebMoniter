@@ -153,3 +153,55 @@ def test_browser_smoke_is_skipped_by_default(monkeypatch):
     assert issues == []
     assert "已跳过" in notes[0]
     assert preflight.BROWSER_SMOKE_ENV in notes[0]
+
+
+def test_browser_smoke_failure_points_to_direct_chromium_probe(monkeypatch):
+    issues = []
+    notes = []
+
+    monkeypatch.setenv(preflight.BROWSER_SMOKE_ENV, "1")
+    monkeypatch.setattr(preflight, "_is_truthy", lambda value: value == "1")
+
+    class FailingWebDriver:
+        @staticmethod
+        def Chrome(*args, **kwargs):
+            raise RuntimeError("Chrome instance exited")
+
+    class DummyOptions:
+        def __init__(self):
+            self.binary_location = ""
+            self.arguments = []
+
+        def add_argument(self, argument):
+            self.arguments.append(argument)
+
+    class DummyService:
+        def __init__(self, path):
+            self.path = path
+
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "selenium":
+            return SimpleNamespace(webdriver=FailingWebDriver)
+        if name == "selenium.webdriver.chrome.options":
+            return SimpleNamespace(Options=DummyOptions)
+        if name == "selenium.webdriver.chrome.service":
+            return SimpleNamespace(Service=DummyService)
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    preflight._check_browser_smoke(
+        issues,
+        notes,
+        "/usr/bin/chromium",
+        "/usr/bin/chromedriver",
+        "Chromium 150.0.7871.46",
+    )
+
+    assert len(issues) == 1
+    assert preflight.SMOKE_TEST_COMMAND in issues[0].solution
+    assert "132/133" in issues[0].solution

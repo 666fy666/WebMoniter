@@ -9,7 +9,7 @@
 | 精简镜像 | `fengyu666/webmoniter:latest` | `docker/Dockerfile` | `docker/docker-compose.yml` | 默认推荐，适合监控、推送和大多数 HTTP 类签到 |
 | 完整镜像 | `fengyu666/webmoniter:full` | `docker/Dockerfile.full` | `docker/docker-compose.full.yml` | 需要 iKuuu、雨云等浏览器签到时使用 |
 
-完整镜像包含 Chromium/Chromedriver 和浏览器签到依赖，镜像体积更大。两个 Compose 文件的默认容器名都是 `webmoniter`，请二选一运行。
+完整镜像包含浏览器和浏览器签到依赖，镜像体积更大。amd64 架构使用 Google Chrome 稳定版 + Chrome for Testing 同版本 chromedriver（Debian bookworm 的 chromium 150.0.7871.46 包在容器内启动即 SIGTRAP 崩溃，导致 "Chrome instance exited"，故弃用）；arm64 架构仍使用 Debian Chromium。容器内浏览器路径保持 `/usr/bin/chromium`（符号链接）与 `/usr/bin/chromedriver` 不变。两个 Compose 文件的默认容器名都是 `webmoniter`，请二选一运行。
 
 ## 初始化
 

@@ -1,4 +1,8 @@
-# 完整镜像（Docker Hub 标签 :full、*-full）：Chromium + 浏览器签到依赖（Selenium、ddddocr、OpenCV）
+# 完整镜像（Docker Hub 标签 :full、*-full）：浏览器 + 浏览器签到依赖（Selenium、ddddocr、OpenCV）
+# amd64 使用 Google Chrome 稳定版 + Chrome for Testing 同版本 chromedriver；
+# arm64 使用 Debian Chromium（Google Chrome 不提供 linux/arm64 包）。
+# 注意：Debian bookworm 的 chromium 150.0.7871.46-1~deb12u1 在容器内启动即 SIGTRAP 崩溃
+# （"Chrome instance exited" / Trace/breakpoint trap），因此 amd64 不再使用 Debian Chromium。
 # 精简构建见 docker/Dockerfile；从仓库根目录构建：docker build -f docker/Dockerfile.full .
 FROM python:3.11-slim AS builder
 
@@ -25,12 +29,13 @@ RUN uv sync --frozen --no-dev --no-install-project --extra rainyun && \
 
 FROM python:3.11-slim
 
+ARG TARGETARCH
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone && \
     apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
     ca-certificates \
-    chromium \
-    chromium-driver \
+    wget \
+    unzip \
     libglib2.0-0 \
     libnss3 \
     libfontconfig1 \
@@ -50,6 +55,23 @@ RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shangh
     libgl1 \
     libgbm1 \
     libasound2 \
+    && if [ "${TARGETARCH:-amd64}" = "amd64" ]; then \
+    # amd64：Google Chrome 稳定版 + Chrome for Testing 同版本 chromedriver
+    wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get install -y --no-install-recommends --no-install-suggests /tmp/chrome.deb \
+    && rm -f /tmp/chrome.deb \
+    && ln -sf /usr/bin/google-chrome-stable /usr/bin/chromium \
+    && CHROME_VERSION="$(/usr/bin/google-chrome-stable --version | sed 's/[^0-9.]//g')" \
+    && wget -q -O /tmp/chromedriver.zip \
+    "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" \
+    && unzip -q /tmp/chromedriver.zip -d /tmp \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/bin/chromedriver \
+    && chmod 755 /usr/bin/chromedriver \
+    && rm -rf /tmp/chromedriver.zip /tmp/chromedriver-linux64; \
+    else \
+    # arm64：Google Chrome 无 arm64 包，沿用 Debian Chromium
+    apt-get install -y --no-install-recommends --no-install-suggests chromium chromium-driver; \
+    fi \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /usr/share/info
 
 WORKDIR /app
@@ -68,7 +90,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH" \
     CHROME_BIN=/usr/bin/chromium \
-    CHROMEDRIVER_PATH=/usr/bin/chromedriver
+    CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+    WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1
 
 EXPOSE 8866
 
