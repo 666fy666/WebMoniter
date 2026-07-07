@@ -32,6 +32,7 @@ ENV/
 .idea/
 .cursor/
 .agents/
+.codex/
 *.swp
 *.swo
 *~
@@ -48,11 +49,14 @@ config.yml
 .ruff_cache/
 .mypy_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .hypothesis/
 .uv/
 .uv-cache/
+node_modules/
 
 # 日志
 *.log

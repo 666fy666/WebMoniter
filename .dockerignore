@@ -26,6 +26,8 @@ wheels/
 *.egg
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .hypothesis/
@@ -36,12 +38,14 @@ env/
 ENV/
 .venv/
 .uv/
+.uv-cache/
 
 # IDE
 .vscode/
 .idea/
 .cursor/
 .agents/
+.codex/
 *.swp
 *.swo
 *~
