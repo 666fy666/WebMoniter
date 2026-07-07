@@ -200,15 +200,19 @@ Windows PowerShell 如遇挂载路径问题，可把 `$(pwd)` 改成当前目录
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-uv sync --locked
+uv python install 3.11
+uv venv --python 3.11
+uv sync --locked --extra dev --extra rainyun
 cp config/config.yml.sample config.yml
 uv run python main.py
 ```
 
-需要 iKuuu、雨云等浏览器签到时安装可选依赖：
+源码启动会先执行环境预检：检查 uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome WebDriver 可用性；未通过时不会启动 Web 服务，并会打印对应修复方案。
+
+不使用浏览器签到时也可以只安装核心与开发依赖：
 
 ```bash
-uv sync --locked --extra rainyun
+uv sync --locked --extra dev
 ```
 
 停止服务：在终端按 `Ctrl+C`。程序会关闭 Web、配置监控和数据库连接；如同步任务阻塞，最多约 12 秒后强制退出，再按一次 `Ctrl+C` 会立即强制退出。
@@ -260,7 +264,7 @@ cp config/config.yml.sample config.yml
 <summary><strong>开发说明</strong></summary>
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q

@@ -101,7 +101,7 @@ async def get_logs(request: Request, lines: int = 100, task: str | None = None):
                 asyncio.to_thread(_read_log_file_sync, log_file, lines),
                 timeout=10.0,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("读取日志文件超时: %s", log_file)
             return JSONResponse({"error": "读取日志超时，请稍后重试"}, status_code=504)
 

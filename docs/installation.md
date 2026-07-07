@@ -219,9 +219,10 @@ docker image rm fengyu666/webmoniter:full
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
-# 2. 安装依赖（需要 iKuuu、雨云等浏览器签到时追加 --extra rainyun）
-uv sync --locked
-# uv sync --locked --extra rainyun
+# 2. 固定源码运行 Python 版本并安装依赖
+uv python install 3.11
+uv venv --python 3.11
+uv sync --locked --extra dev --extra rainyun
 
 # 3. 复制配置文件
 cp config/config.yml.sample config.yml
@@ -236,6 +237,8 @@ uv run python main.py &
 # uv run python main.py > webmoniter.log 2>&1 &
 
 ```
+
+源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome WebDriver 都通过后才会启动 Web 服务。若不满足，终端会直接给出修复命令。
 
 !!! tip "停止程序"
     在终端按 `Ctrl+C` 会触发优雅关闭：停止调度器、关闭 Web 服务、配置监控器和数据库连接。项目会为同步网络请求、浏览器任务等阻塞场景设置兜底，通常会在数秒内退出；如果仍在等待，再按一次 `Ctrl+C` 会立即强制退出。

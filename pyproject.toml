@@ -2,7 +2,7 @@
 name = "web-monitor"
 version = "2.4.2"
 description = "Web任务系统"
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.12"
 dependencies = [
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
@@ -52,7 +52,7 @@ packages = ["src"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 exclude = [".git", ".venv"]
 
 [tool.ruff.lint]
@@ -69,7 +69,7 @@ ignore = ["E501"]
 
 [tool.black]
 line-length = 100
-target-version = ["py310"]
+target-version = ["py311"]
 
 [[tool.uv.index]]
 name = "aliyun"

@@ -195,7 +195,7 @@ async def _ikuuu_host_resolves(host: str, port: int) -> bool:
             timeout=3,
         )
         return True
-    except (asyncio.TimeoutError, OSError) as exc:
+    except (TimeoutError, OSError) as exc:
         logger.debug("ikuuu签到：域名 %s DNS 解析失败或超时：%s", host, exc)
         return False
 

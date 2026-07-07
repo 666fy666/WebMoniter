@@ -105,7 +105,7 @@ async def shutdown_web_server(server: uvicorn.Server, web_task: asyncio.Task[Any
             return
         try:
             await asyncio.wait_for(web_task, timeout=WEB_SHUTDOWN_WAIT_SEC)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.debug("Web服务器关闭超时，强制取消")
             web_task.cancel()
             try:

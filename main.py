@@ -10,29 +10,12 @@ import asyncio
 import logging
 import sys
 
-from src.core.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+from src.core.preflight import run_startup_preflight
 from src.core.runtime import run_async_app
-from src.jobs.lifecycle import (
-    attach_uvicorn_noise_filter,
-    build_uvicorn_server,
-    on_scheduler_config_changed,
-    register_and_prime_jobs,
-    setup_logging,
-    setup_main_file_logging,
-    shutdown_web_server,
-    start_uvicorn_background,
-)
-from src.jobs.scheduler import TaskScheduler
-from src.settings.config import AppConfig, get_config
-from src.settings.watcher import ConfigWatcher
-from src.storage.cookie_cache import get_cookie_cache
-from src.storage.database import close_shared_connection
 
-CONFIG_FILE = CONFIG_YAML_FILE.as_posix()
+CONFIG_FILE = "config.yml"
 CONFIG_POLL_INTERVAL_SEC = 5
 SHUTDOWN_STEP_TIMEOUT_SEC = 5.0
-
-cookie_cache = get_cookie_cache()
 
 
 async def _shutdown_step(name: str, awaitable, logger: logging.Logger) -> None:
@@ -45,7 +28,7 @@ async def _shutdown_step(name: str, awaitable, logger: logging.Logger) -> None:
 
 
 async def _stop_config_watcher(
-    watcher: ConfigWatcher | None,
+    watcher,
     logger: logging.Logger,
 ) -> None:
     """停止配置热重载监控；未创建或未启动时无操作。"""
@@ -56,9 +39,38 @@ async def _stop_config_watcher(
 
 async def main() -> None:
     """启动顺序：日志 → Web → 业务配置与调度 → 配置热监视 → 阻塞至收到退出信号。"""
+    from src.core.paths import CONFIG_YAML_FILE, resolve_config_sample_path
+    from src.jobs.lifecycle import (
+        attach_uvicorn_noise_filter,
+        build_uvicorn_server,
+        on_scheduler_config_changed,
+        register_and_prime_jobs,
+        setup_logging,
+        setup_main_file_logging,
+        shutdown_web_server,
+        start_uvicorn_background,
+    )
+    from src.jobs.scheduler import TaskScheduler
+    from src.settings.config import AppConfig, get_config
+    from src.settings.watcher import ConfigWatcher
+    from src.storage.cookie_cache import get_cookie_cache
+    from src.storage.database import close_shared_connection
+
     is_background = not sys.stdout.isatty()
     setup_logging(log_level="INFO", console_output=not is_background)
     logger = logging.getLogger(__name__)
+    cookie_cache = get_cookie_cache()
+
+    try:
+        config = get_config()
+    except Exception as e:
+        logger.error("配置加载失败: %s", e)
+        logger.error(
+            "请确保已在当前目录创建 %s 并配置必要项，可参考 %s",
+            CONFIG_YAML_FILE.as_posix(),
+            resolve_config_sample_path().as_posix(),
+        )
+        sys.exit(1)
 
     # Web 延后 import，避免在未使用 Web 的测试/脚本场景里提前加载 FastAPI 栈
     from src.web.app import create_web_app
@@ -70,18 +82,6 @@ async def main() -> None:
     logger.info("Web: http://%s:%s", server.config.host, server.config.port)
 
     setup_main_file_logging()
-
-    try:
-        config = get_config()
-    except Exception as e:
-        logger.error("配置加载失败: %s", e)
-        logger.error(
-            "请确保已在当前目录创建 %s 并配置必要项，可参考 %s",
-            CONFIG_YAML_FILE.as_posix(),
-            resolve_config_sample_path().as_posix(),
-        )
-        await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)
-        sys.exit(1)
 
     config_watcher: ConfigWatcher | None = None
     try:
@@ -125,4 +125,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    run_startup_preflight()
     run_async_app(main())

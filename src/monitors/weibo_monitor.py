@@ -473,7 +473,7 @@ class WeiboMonitor(BaseMonitor):
                     temp_path.replace(save_path)
                     self.logger.debug("已保存微博正文图片到: %s (URL: %s)", save_path, candidate)
                     return True
-            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            except (aiohttp.ClientError, TimeoutError, OSError) as e:
                 self._remove_path(temp_path)
                 last_error = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
                 self.logger.debug(
