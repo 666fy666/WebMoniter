@@ -15,10 +15,12 @@ import logging
 import os
 import re
 import shutil
+import socket
 import time
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
+from urllib.parse import urlparse
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -117,6 +119,29 @@ def _add_domain_candidate(
     logger.debug("ikuuu签到：域名候选 %s 来源=%s 分数=%d", domain, source, score)
 
 
+async def _ikuuu_host_resolves(host: str, port: int) -> bool:
+    """在 aiohttp 请求前先解析域名，避免不可达域名产生 shielded future 噪声。"""
+    try:
+        loop = asyncio.get_running_loop()
+        await asyncio.wait_for(
+            loop.getaddrinfo(host, port, type=socket.SOCK_STREAM),
+            timeout=3,
+        )
+        return True
+    except (asyncio.TimeoutError, OSError) as exc:
+        logger.debug("ikuuu签到：域名 %s DNS 解析失败或超时：%s", host, exc)
+        return False
+
+
+async def _ikuuu_url_resolves(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host:
+        return False
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    return await _ikuuu_host_resolves(host, port)
+
+
 def _extract_literal_joined_chunks(text: str) -> list[str]:
     """粗略还原 JS 中连续字符串字面量拼接出来的片段。"""
     chunks: list[str] = []
@@ -174,6 +199,9 @@ async def _fetch_discovery_page(
     session: aiohttp.ClientSession, url: str
 ) -> tuple[str, str, str] | None:
     """获取域名公告页，返回原始 URL、最终 URL、HTML。"""
+    if not await _ikuuu_url_resolves(url):
+        return None
+
     try:
         async with session.get(
             url,
@@ -198,6 +226,9 @@ async def _probe_domain(session: aiohttp.ClientSession, domain: str) -> _DomainP
     """验证候选域名是否像真实 iKuuu 登录站点。"""
     started = perf_counter()
     login_url = f"https://{domain}/auth/login"
+    if not await _ikuuu_host_resolves(domain, 443):
+        return None
+
     try:
         async with session.get(
             login_url,

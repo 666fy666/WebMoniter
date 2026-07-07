@@ -30,6 +30,20 @@ _CHECKIN_RETRY_COUNT = 5
 _CHECKIN_RETRY_DELAY = 60
 
 
+def _is_non_retryable_rainyun_error(message: str) -> bool:
+    """识别环境类错误，避免无意义地重复启动 Selenium。"""
+    markers = (
+        "不可重试",
+        "未找到 Chrome/Chromium 浏览器",
+        "Chrome/Chromium 路径不存在",
+        "Chrome WebDriver 初始化失败",
+        "cannot find Chrome binary",
+        "chromedriver unexpectedly exited",
+        "requires the chromium snap",
+    )
+    return any(marker in (message or "") for marker in markers)
+
+
 def _build_accounts_from_config(config: AppConfig) -> list[RainyunAccountConfig]:
     """从 AppConfig 构建 RainyunAccountConfig 列表"""
     accounts: list[RainyunAccountConfig] = []
@@ -120,6 +134,13 @@ async def _run_single_account_with_retry(
             max_attempts,
             msg,
         )
+        if _is_non_retryable_rainyun_error(msg):
+            logger.error(
+                "雨云签到：账号 %s 遇到不可重试错误，跳过后续重试：%s",
+                account.username,
+                msg,
+            )
+            return False, f"{msg}\n（不可重试，已跳过后续重试）"
 
     suffix = f"（已重试 {retry_count} 次，签到失败）" if retry_count > 0 else "（签到失败）"
     return False, f"{last_msg}\n{suffix}"

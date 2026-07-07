@@ -9,7 +9,11 @@ import ddddocr
 from src.tasks.rainyun.api_client import RainyunAPI
 from src.tasks.rainyun.browser.cookies import load_cookies
 from src.tasks.rainyun.browser.pages import LoginPage, RewardPage
-from src.tasks.rainyun.browser.session import BrowserSession, RuntimeContext
+from src.tasks.rainyun.browser.session import (
+    BrowserSession,
+    RainyunBrowserUnavailableError,
+    RuntimeContext,
+)
 from src.tasks.rainyun.captcha import process_captcha
 from src.tasks.rainyun.config_adapter import RainyunAccountConfig, RainyunRunConfig
 from src.tasks.rainyun.server_manager import check_and_renew, generate_report
@@ -146,6 +150,11 @@ def run_single_account(account: RainyunAccountConfig, **config_overrides) -> tup
 
         log_parts.append(msg)
         logger.info("%s任务执行成功", prefix)
+
+    except RainyunBrowserUnavailableError as e:
+        logger.error("%s浏览器环境不可用: %s", prefix, e)
+        log_parts.append(f"{prefix}不可重试：{e}")
+        return False, "\n".join(log_parts)
 
     except Exception as e:
         logger.error("%s脚本异常: %s", prefix, e, exc_info=True)
