@@ -15,6 +15,9 @@ const WEIBO_PAGE_SIZE = 25;
 const STORAGE_KEY_PREFIX = 'data-card-order-';
 const MAX_LAZY_IMAGE_LOADS = 3;
 const LAZY_IMAGE_ROOT_MARGIN = '150px 0px';
+const LIGHTBOX_MIN_ZOOM = 1;
+const LIGHTBOX_MAX_ZOOM = 5;
+const LIGHTBOX_ZOOM_STEP = 0.25;
 
 function getPageSize() {
     return currentTable === 'weibo' ? WEIBO_PAGE_SIZE : DEFAULT_PAGE_SIZE;
@@ -32,8 +35,22 @@ document.addEventListener('DOMContentLoaded', function () {
     let lightboxCounterEl = null;
     let lightboxPrevBtn = null;
     let lightboxNextBtn = null;
+    let lightboxThumbsEl = null;
+    let lightboxDownloadLink = null;
+    let lightboxSaveAllBtn = null;
+    let lightboxZoomInBtn = null;
+    let lightboxZoomOutBtn = null;
+    let lightboxZoomResetBtn = null;
+    let lightboxZoomLevelEl = null;
     let lightboxImages = [];
+    let lightboxThumbs = [];
     let lightboxIndex = 0;
+    let lightboxZoom = 1;
+    let lightboxPanX = 0;
+    let lightboxPanY = 0;
+    let lightboxPointers = new Map();
+    let lightboxDragState = null;
+    let lightboxPinchState = null;
     let lazyImageObserver = null;
     let lazyImageQueue = [];
     let lazyImageQueueScheduled = false;
@@ -373,46 +390,282 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderWeiboMedia(images, thumbs) {
-        const visibleImages = Array.isArray(images)
-            ? images.filter((src) => typeof src === 'string' && src.trim()).slice(0, 9)
+        const allImages = Array.isArray(images)
+            ? images.filter((src) => typeof src === 'string' && src.trim()).map((src) => src.trim())
             : [];
-        if (visibleImages.length === 0) return '';
+        if (allImages.length === 0) return '';
 
-        const visibleThumbs = visibleImages.map((src, index) => {
+        const allThumbs = allImages.map((src, index) => {
             const thumb = Array.isArray(thumbs) ? thumbs[index] : '';
             return typeof thumb === 'string' && thumb.trim() ? thumb.trim() : src.trim();
         });
-        const mediaClass = getWeiboMediaClass(visibleImages.length);
-        const items = visibleImages
+        const hasOverflow = allImages.length > 9;
+        const previewImages = hasOverflow ? allImages.slice(0, 8) : allImages.slice(0, 9);
+        const previewCount = previewImages.length + (hasOverflow ? 1 : 0);
+        const mediaClass = getWeiboMediaClass(previewCount);
+        const items = previewImages
             .map(
                 (src, index) => `
         <button type="button" class="weibo-media-item" data-image-index="${index}" aria-label="查看第 ${index + 1} 张微博图片">
           <img class="weibo-media-img" data-src="${escapeAttr(
-              visibleThumbs[index],
+              allThumbs[index],
           )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" decoding="async" fetchpriority="low">
         </button>`,
             )
             .join('');
 
+        const overflowItem = hasOverflow
+            ? `
+        <button type="button" class="weibo-media-item weibo-media-item-more" data-image-index="${previewImages.length}" aria-label="查看全部 ${allImages.length} 张微博图片">
+          <img class="weibo-media-img" data-src="${escapeAttr(
+              allThumbs[previewImages.length],
+          )}" data-full-src="${escapeAttr(
+                  allImages[previewImages.length],
+              )}" alt="微博图片 ${previewImages.length + 1}" decoding="async" fetchpriority="low">
+          <span class="weibo-media-more-mask" aria-hidden="true">
+            <span class="weibo-media-more-label">+${allImages.length - previewImages.length}</span>
+            <span class="weibo-media-more-sub">查看全部</span>
+          </span>
+        </button>`
+            : '';
+
         return `<div class="weibo-media-grid ${mediaClass}" data-count="${
-            visibleImages.length
-        }" data-images="${escapeAttr(JSON.stringify(visibleImages))}">${items}</div>`;
+            allImages.length
+        }" data-preview-count="${previewCount}" data-images="${escapeAttr(
+            JSON.stringify(allImages),
+        )}" data-thumbs="${escapeAttr(JSON.stringify(allThumbs))}">${items}${overflowItem}</div>`;
     }
 
-    function getImagesFromMediaGrid(grid) {
+    function getListFromMediaGrid(grid, datasetName) {
         try {
-            const images = JSON.parse(grid.dataset.images || '[]');
-            return Array.isArray(images)
-                ? images.filter((src) => typeof src === 'string' && src.trim())
+            const values = JSON.parse(grid.dataset[datasetName] || '[]');
+            return Array.isArray(values)
+                ? values.filter((src) => typeof src === 'string' && src.trim()).map((src) => src.trim())
                 : [];
         } catch {
             return [];
         }
     }
 
+    function getWeiboMediaPayload(grid) {
+        const images = getListFromMediaGrid(grid, 'images');
+        const thumbs = getListFromMediaGrid(grid, 'thumbs');
+        return {
+            images,
+            thumbs: images.map((src, index) => {
+                const thumb = thumbs[index];
+                return typeof thumb === 'string' && thumb.trim() ? thumb.trim() : src;
+            }),
+        };
+    }
+
     function getEventElement(event) {
         if (event.target instanceof Element) return event.target;
         return event.target && event.target.parentElement ? event.target.parentElement : null;
+    }
+
+    function getImageDownloadName(src, index) {
+        let mid = 'image';
+        let extension = '.jpg';
+        try {
+            const url = new URL(src, window.location.href);
+            const parts = url.pathname
+                .split('/')
+                .filter(Boolean)
+                .map((part) => decodeURIComponent(part));
+            const postsIndex = parts.indexOf('posts');
+            if (postsIndex >= 0 && parts[postsIndex + 1]) {
+                mid = parts[postsIndex + 1];
+            }
+            const filename = parts[parts.length - 1] || '';
+            const match = filename.match(/\.([a-z0-9]{2,5})$/i);
+            if (match) {
+                extension = `.${match[1].toLowerCase()}`;
+            }
+        } catch {
+            // 使用默认文件名。
+        }
+        const safeMid = String(mid).replace(/[^\w.-]+/g, '_') || 'image';
+        return `weibo-${safeMid}-${String(index + 1).padStart(2, '0')}${extension}`;
+    }
+
+    function updateLightboxDownloadLink() {
+        if (!lightboxDownloadLink || !lightboxImages.length) return;
+        const src = lightboxImages[lightboxIndex];
+        lightboxDownloadLink.href = src;
+        lightboxDownloadLink.download = getImageDownloadName(src, lightboxIndex);
+        if (lightboxSaveAllBtn) {
+            lightboxSaveAllBtn.hidden = lightboxImages.length < 2;
+        }
+    }
+
+    function downloadImage(src, index) {
+        if (!src) return;
+        const link = document.createElement('a');
+        link.href = src;
+        link.download = getImageDownloadName(src, index);
+        link.rel = 'noopener';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
+    function saveAllLightboxImages() {
+        lightboxImages.forEach((src, index) => {
+            window.setTimeout(() => downloadImage(src, index), index * 160);
+        });
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    function resetLightboxGestureState() {
+        lightboxPointers.clear();
+        lightboxDragState = null;
+        lightboxPinchState = null;
+        if (lightboxImageEl) {
+            lightboxImageEl.classList.remove('is-dragging');
+        }
+    }
+
+    function applyLightboxTransform() {
+        if (!lightboxImageEl) return;
+        if (lightboxZoom <= LIGHTBOX_MIN_ZOOM) {
+            lightboxPanX = 0;
+            lightboxPanY = 0;
+        }
+
+        lightboxImageEl.style.transform = `translate3d(${lightboxPanX}px, ${lightboxPanY}px, 0) scale(${lightboxZoom})`;
+        lightboxImageEl.classList.toggle('is-zoomed', lightboxZoom > LIGHTBOX_MIN_ZOOM);
+
+        if (lightboxZoomLevelEl) {
+            lightboxZoomLevelEl.textContent = `${Math.round(lightboxZoom * 100)}%`;
+        }
+        if (lightboxZoomOutBtn) {
+            lightboxZoomOutBtn.disabled = lightboxZoom <= LIGHTBOX_MIN_ZOOM;
+        }
+        if (lightboxZoomInBtn) {
+            lightboxZoomInBtn.disabled = lightboxZoom >= LIGHTBOX_MAX_ZOOM;
+        }
+        if (lightboxZoomResetBtn) {
+            lightboxZoomResetBtn.disabled =
+                lightboxZoom <= LIGHTBOX_MIN_ZOOM && lightboxPanX === 0 && lightboxPanY === 0;
+        }
+    }
+
+    function setLightboxZoom(nextZoom, options = {}) {
+        const previousZoom = lightboxZoom;
+        lightboxZoom = clamp(nextZoom, LIGHTBOX_MIN_ZOOM, LIGHTBOX_MAX_ZOOM);
+
+        if (lightboxZoom <= LIGHTBOX_MIN_ZOOM) {
+            lightboxPanX = 0;
+            lightboxPanY = 0;
+        } else if (options.clientX != null && options.clientY != null && previousZoom > 0) {
+            const rect = lightboxImageEl.getBoundingClientRect();
+            const dx = options.clientX - (rect.left + rect.width / 2);
+            const dy = options.clientY - (rect.top + rect.height / 2);
+            const ratio = lightboxZoom / previousZoom;
+            lightboxPanX += dx * (1 - ratio);
+            lightboxPanY += dy * (1 - ratio);
+        }
+
+        applyLightboxTransform();
+    }
+
+    function resetLightboxZoom() {
+        lightboxZoom = LIGHTBOX_MIN_ZOOM;
+        lightboxPanX = 0;
+        lightboxPanY = 0;
+        resetLightboxGestureState();
+        applyLightboxTransform();
+    }
+
+    function zoomLightboxBy(delta, options = {}) {
+        setLightboxZoom(lightboxZoom + delta, options);
+    }
+
+    function getPointerDistance(points) {
+        const [first, second] = points;
+        return Math.hypot(second.x - first.x, second.y - first.y);
+    }
+
+    function getPointerCenter(points) {
+        const [first, second] = points;
+        return {
+            x: (first.x + second.x) / 2,
+            y: (first.y + second.y) / 2,
+        };
+    }
+
+    function handleLightboxPointerDown(e) {
+        if (!lightboxImageEl || e.button > 0) return;
+        lightboxImageEl.setPointerCapture(e.pointerId);
+        lightboxPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (lightboxPointers.size === 1 && lightboxZoom > LIGHTBOX_MIN_ZOOM) {
+            lightboxDragState = {
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                panX: lightboxPanX,
+                panY: lightboxPanY,
+            };
+            lightboxImageEl.classList.add('is-dragging');
+        } else if (lightboxPointers.size === 2) {
+            const points = Array.from(lightboxPointers.values());
+            lightboxPinchState = {
+                distance: getPointerDistance(points),
+                zoom: lightboxZoom,
+                center: getPointerCenter(points),
+            };
+            lightboxDragState = null;
+            lightboxImageEl.classList.remove('is-dragging');
+        }
+    }
+
+    function handleLightboxPointerMove(e) {
+        if (!lightboxPointers.has(e.pointerId)) return;
+        lightboxPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (lightboxPointers.size >= 2 && lightboxPinchState) {
+            e.preventDefault();
+            const points = Array.from(lightboxPointers.values()).slice(0, 2);
+            const distance = getPointerDistance(points);
+            const center = getPointerCenter(points);
+            if (lightboxPinchState.distance > 0) {
+                setLightboxZoom((lightboxPinchState.zoom * distance) / lightboxPinchState.distance, {
+                    clientX: center.x,
+                    clientY: center.y,
+                });
+            }
+            return;
+        }
+
+        if (lightboxDragState && lightboxDragState.pointerId === e.pointerId) {
+            e.preventDefault();
+            lightboxPanX = lightboxDragState.panX + e.clientX - lightboxDragState.startX;
+            lightboxPanY = lightboxDragState.panY + e.clientY - lightboxDragState.startY;
+            applyLightboxTransform();
+        }
+    }
+
+    function handleLightboxPointerEnd(e) {
+        lightboxPointers.delete(e.pointerId);
+        if (lightboxImageEl && lightboxImageEl.hasPointerCapture(e.pointerId)) {
+            lightboxImageEl.releasePointerCapture(e.pointerId);
+        }
+
+        if (lightboxPointers.size < 2) {
+            lightboxPinchState = null;
+        }
+        if (lightboxDragState && lightboxDragState.pointerId === e.pointerId) {
+            lightboxDragState = null;
+            if (lightboxImageEl) {
+                lightboxImageEl.classList.remove('is-dragging');
+            }
+        }
     }
 
     function ensureWeiboLightbox() {
@@ -422,12 +675,21 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxEl.className = 'weibo-lightbox';
         lightboxEl.setAttribute('aria-hidden', 'true');
         lightboxEl.innerHTML = `
-<button type="button" class="weibo-lightbox-close" aria-label="关闭大图">×</button>
+<div class="weibo-lightbox-toolbar">
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-out" aria-label="缩小图片" title="缩小图片">−</button>
+  <span class="weibo-lightbox-zoom-level" aria-live="polite">100%</span>
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-in" aria-label="放大图片" title="放大图片">+</button>
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-reset" aria-label="重置缩放" title="重置缩放">1:1</button>
+  <a class="weibo-lightbox-tool weibo-lightbox-download" aria-label="下载当前图片" title="下载当前图片" href="#" download>↓</a>
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-save-all" aria-label="保存全部图片" title="保存全部图片">⇩</button>
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-close" aria-label="关闭大图" title="关闭">×</button>
+</div>
 <button type="button" class="weibo-lightbox-nav weibo-lightbox-prev" aria-label="上一张">‹</button>
 <figure class="weibo-lightbox-figure">
   <img class="weibo-lightbox-image" alt="微博大图" decoding="async">
   <figcaption class="weibo-lightbox-counter"></figcaption>
 </figure>
+<div class="weibo-lightbox-thumbs" role="listbox" aria-label="微博图片缩略图"></div>
 <button type="button" class="weibo-lightbox-nav weibo-lightbox-next" aria-label="下一张">›</button>`;
         document.body.appendChild(lightboxEl);
 
@@ -435,22 +697,96 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxCounterEl = lightboxEl.querySelector('.weibo-lightbox-counter');
         lightboxPrevBtn = lightboxEl.querySelector('.weibo-lightbox-prev');
         lightboxNextBtn = lightboxEl.querySelector('.weibo-lightbox-next');
+        lightboxThumbsEl = lightboxEl.querySelector('.weibo-lightbox-thumbs');
+        lightboxDownloadLink = lightboxEl.querySelector('.weibo-lightbox-download');
+        lightboxSaveAllBtn = lightboxEl.querySelector('.weibo-lightbox-save-all');
+        lightboxZoomInBtn = lightboxEl.querySelector('.weibo-lightbox-zoom-in');
+        lightboxZoomOutBtn = lightboxEl.querySelector('.weibo-lightbox-zoom-out');
+        lightboxZoomResetBtn = lightboxEl.querySelector('.weibo-lightbox-zoom-reset');
+        lightboxZoomLevelEl = lightboxEl.querySelector('.weibo-lightbox-zoom-level');
 
         lightboxEl.querySelector('.weibo-lightbox-close').addEventListener('click', closeLightbox);
+        lightboxSaveAllBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveAllLightboxImages();
+        });
+        lightboxZoomInBtn.addEventListener('click', () => zoomLightboxBy(LIGHTBOX_ZOOM_STEP));
+        lightboxZoomOutBtn.addEventListener('click', () => zoomLightboxBy(-LIGHTBOX_ZOOM_STEP));
+        lightboxZoomResetBtn.addEventListener('click', resetLightboxZoom);
         lightboxPrevBtn.addEventListener('click', () => showLightboxImage(lightboxIndex - 1));
         lightboxNextBtn.addEventListener('click', () => showLightboxImage(lightboxIndex + 1));
+        lightboxImageEl.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoomLightboxBy(e.deltaY < 0 ? LIGHTBOX_ZOOM_STEP : -LIGHTBOX_ZOOM_STEP, {
+                clientX: e.clientX,
+                clientY: e.clientY,
+            });
+        });
+        lightboxImageEl.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            if (lightboxZoom > LIGHTBOX_MIN_ZOOM) {
+                resetLightboxZoom();
+                return;
+            }
+            setLightboxZoom(2, { clientX: e.clientX, clientY: e.clientY });
+        });
+        lightboxImageEl.addEventListener('pointerdown', handleLightboxPointerDown);
+        lightboxImageEl.addEventListener('pointermove', handleLightboxPointerMove);
+        lightboxImageEl.addEventListener('pointerup', handleLightboxPointerEnd);
+        lightboxImageEl.addEventListener('pointercancel', handleLightboxPointerEnd);
         lightboxEl.addEventListener('click', (e) => {
             const target = getEventElement(e);
             if (!target) return;
             if (
                 target.closest(
-                    '.weibo-lightbox-image, .weibo-lightbox-close, .weibo-lightbox-nav',
+                    '.weibo-lightbox-image, .weibo-lightbox-tool, .weibo-lightbox-nav, .weibo-lightbox-thumbs',
                 )
             ) {
                 return;
             }
             closeLightbox();
         });
+    }
+
+    function renderLightboxThumbs() {
+        if (!lightboxThumbsEl) return;
+        lightboxThumbsEl.innerHTML = '';
+        if (lightboxImages.length < 2) {
+            lightboxThumbsEl.hidden = true;
+            return;
+        }
+
+        lightboxThumbsEl.hidden = false;
+        lightboxImages.forEach((src, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'weibo-lightbox-thumb';
+            button.dataset.index = String(index);
+            button.setAttribute('role', 'option');
+            button.setAttribute('aria-label', `查看第 ${index + 1} 张图片`);
+            button.addEventListener('click', () => showLightboxImage(index));
+
+            const img = document.createElement('img');
+            img.src = lightboxThumbs[index] || src;
+            img.alt = '';
+            img.decoding = 'async';
+            button.appendChild(img);
+            lightboxThumbsEl.appendChild(button);
+        });
+    }
+
+    function syncLightboxThumbs() {
+        if (!lightboxThumbsEl || lightboxThumbsEl.hidden) return;
+        const buttons = lightboxThumbsEl.querySelectorAll('.weibo-lightbox-thumb');
+        buttons.forEach((button) => {
+            const isActive = Number.parseInt(button.dataset.index || '0', 10) === lightboxIndex;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        const activeThumb = lightboxThumbsEl.querySelector('.weibo-lightbox-thumb.active');
+        if (activeThumb) {
+            activeThumb.scrollIntoView({ block: 'nearest', inline: 'center' });
+        }
     }
 
     function prefetchLightboxNeighbor(index) {
@@ -468,18 +804,26 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!lightboxImages.length) return;
         lightboxIndex = (index + lightboxImages.length) % lightboxImages.length;
         lightboxImageEl.src = lightboxImages[lightboxIndex];
+        resetLightboxZoom();
         lightboxCounterEl.textContent =
             lightboxImages.length > 1 ? `${lightboxIndex + 1} / ${lightboxImages.length}` : '';
         const hasMultiple = lightboxImages.length > 1;
         lightboxPrevBtn.hidden = !hasMultiple;
         lightboxNextBtn.hidden = !hasMultiple;
+        updateLightboxDownloadLink();
+        syncLightboxThumbs();
         prefetchLightboxNeighbor(lightboxIndex);
     }
 
-    function openWeiboLightbox(images, index) {
+    function openWeiboLightbox(images, index, thumbs = []) {
         if (!images.length) return;
         ensureWeiboLightbox();
         lightboxImages = images;
+        lightboxThumbs = images.map((src, imageIndex) => {
+            const thumb = thumbs[imageIndex];
+            return typeof thumb === 'string' && thumb.trim() ? thumb.trim() : src;
+        });
+        renderLightboxThumbs();
         lightboxEl.classList.add('show');
         lightboxEl.setAttribute('aria-hidden', 'false');
         document.body.classList.add('weibo-lightbox-open');
@@ -494,6 +838,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (lightboxImageEl) {
             lightboxImageEl.removeAttribute('src');
         }
+        resetLightboxZoom();
     }
 
     dataTableContainer.addEventListener('click', function (e) {
@@ -505,9 +850,9 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             e.stopPropagation();
             const grid = mediaButton.closest('.weibo-media-grid');
-            const images = grid ? getImagesFromMediaGrid(grid) : [];
+            const payload = grid ? getWeiboMediaPayload(grid) : { images: [], thumbs: [] };
             const index = Number.parseInt(mediaButton.dataset.imageIndex || '0', 10) || 0;
-            openWeiboLightbox(images, index);
+            openWeiboLightbox(payload.images, index, payload.thumbs);
             return;
         }
 
@@ -549,9 +894,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('keydown', function (e) {
         if (!lightboxEl || !lightboxEl.classList.contains('show')) return;
+        if (['Escape', 'ArrowLeft', 'ArrowRight', '+', '=', '-', '_', '0'].includes(e.key)) {
+            e.preventDefault();
+        }
         if (e.key === 'Escape') closeLightbox();
         if (e.key === 'ArrowLeft') showLightboxImage(lightboxIndex - 1);
         if (e.key === 'ArrowRight') showLightboxImage(lightboxIndex + 1);
+        if (e.key === '+' || e.key === '=') zoomLightboxBy(LIGHTBOX_ZOOM_STEP);
+        if (e.key === '-' || e.key === '_') zoomLightboxBy(-LIGHTBOX_ZOOM_STEP);
+        if (e.key === '0') resetLightboxZoom();
     });
 
     // 渲染不同平台的卡片

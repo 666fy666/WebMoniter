@@ -59,6 +59,16 @@ def _exit_if_signal_shutdown_completed() -> None:
 class DaemonThreadPoolExecutor(ThreadPoolExecutor):
     """ThreadPoolExecutor variant whose workers do not keep the process alive."""
 
+    def _worker_args(self, executor_ref: weakref.ReferenceType) -> tuple:
+        if hasattr(self, "_create_worker_context"):
+            return (executor_ref, self._create_worker_context(), self._work_queue)
+        return (
+            executor_ref,
+            self._work_queue,
+            getattr(self, "_initializer", None),
+            getattr(self, "_initargs", ()),
+        )
+
     def _adjust_thread_count(self) -> None:
         if self._idle_semaphore.acquire(timeout=0):
             return
@@ -72,12 +82,7 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
             thread = threading.Thread(
                 name=thread_name,
                 target=_worker,
-                args=(
-                    weakref.ref(self, weakref_cb),
-                    self._work_queue,
-                    self._initializer,
-                    self._initargs,
-                ),
+                args=self._worker_args(weakref.ref(self, weakref_cb)),
             )
             thread.daemon = True
             thread.start()

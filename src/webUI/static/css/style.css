@@ -1497,6 +1497,32 @@ input:focus + .slider {
     transform: scale(1.02);
 }
 
+.weibo-media-more-mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.64);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.weibo-media-more-label {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.weibo-media-more-sub {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
 @media (hover: none), (pointer: coarse) {
     .weibo-feed-grid .data-card:hover,
     .weibo-media-item:hover img {
@@ -1515,8 +1541,9 @@ input:focus + .slider {
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 72px 72px 52px;
+    padding: 72px 72px 112px;
     background: rgba(0, 0, 0, 0.86);
+    box-sizing: border-box;
 }
 
 .weibo-lightbox.show {
@@ -1531,15 +1558,31 @@ input:focus + .slider {
     width: 100%;
     height: 100%;
     margin: 0;
+    overflow: hidden;
 }
 
 .weibo-lightbox-image {
     display: block;
     max-width: 100%;
-    max-height: calc(100vh - 140px);
+    max-height: calc(100vh - 200px);
     object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.38);
+    cursor: zoom-in;
+    touch-action: none;
+    user-select: none;
+    transform-origin: center center;
+    transition: transform var(--transition-fast);
+    will-change: transform;
+}
+
+.weibo-lightbox-image.is-zoomed {
+    cursor: grab;
+}
+
+.weibo-lightbox-image.is-dragging {
+    cursor: grabbing;
+    transition: none;
 }
 
 .weibo-lightbox-counter {
@@ -1549,9 +1592,25 @@ input:focus + .slider {
     font-size: 14px;
 }
 
-.weibo-lightbox-close,
-.weibo-lightbox-nav {
+.weibo-lightbox-toolbar {
     position: fixed;
+    top: 22px;
+    right: 24px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 48px);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.weibo-lightbox-toolbar::-webkit-scrollbar {
+    display: none;
+}
+
+.weibo-lightbox-tool,
+.weibo-lightbox-nav {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1560,24 +1619,56 @@ input:focus + .slider {
     color: #fff;
     background: rgba(255, 255, 255, 0.16);
     cursor: pointer;
+    text-decoration: none;
     transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.weibo-lightbox-close:hover,
+.weibo-lightbox-tool:hover,
 .weibo-lightbox-nav:hover {
     background: rgba(255, 255, 255, 0.28);
 }
 
-.weibo-lightbox-close {
-    top: 22px;
-    right: 24px;
+.weibo-lightbox-tool {
+    flex: 0 0 auto;
     width: 44px;
     height: 44px;
-    font-size: 30px;
+    font-size: 22px;
     line-height: 1;
 }
 
+.weibo-lightbox-tool:disabled {
+    cursor: default;
+    opacity: 0.42;
+}
+
+.weibo-lightbox-zoom-level {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 58px;
+    height: 44px;
+    padding: 0 10px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+}
+
+.weibo-lightbox-zoom-reset {
+    width: 52px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.weibo-lightbox-close {
+    font-size: 30px;
+}
+
 .weibo-lightbox-nav {
+    position: fixed;
     top: 50%;
     width: 52px;
     height: 52px;
@@ -1602,6 +1693,63 @@ input:focus + .slider {
     display: none;
 }
 
+.weibo-lightbox-tool[hidden] {
+    display: none;
+}
+
+.weibo-lightbox-thumbs {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+    max-width: min(760px, calc(100vw - 48px));
+    padding: 8px;
+    overflow-x: auto;
+    background: rgba(15, 23, 42, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    transform: translateX(-50%);
+    scrollbar-width: thin;
+}
+
+.weibo-lightbox-thumbs[hidden] {
+    display: none;
+}
+
+.weibo-lightbox-thumb {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+    opacity: 0.74;
+    transition: border-color var(--transition-fast), opacity var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.weibo-lightbox-thumb.active {
+    border-color: rgba(255, 255, 255, 0.92);
+    opacity: 1;
+}
+
+.weibo-lightbox-thumb:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.weibo-lightbox-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 @media (max-width: 480px) {
     .weibo-media-grid,
     .weibo-media-count-1,
@@ -1611,18 +1759,38 @@ input:focus + .slider {
     }
 
     .weibo-lightbox {
-        padding: 60px 12px 44px;
+        padding: 62px 12px 92px;
     }
 
     .weibo-lightbox-image {
-        max-height: calc(100vh - 118px);
+        max-height: calc(100vh - 164px);
     }
 
-    .weibo-lightbox-close {
+    .weibo-lightbox-toolbar {
         top: 14px;
+        left: 14px;
         right: 14px;
+        gap: 5px;
+        max-width: calc(100vw - 28px);
+        justify-content: flex-end;
+    }
+
+    .weibo-lightbox-tool {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    .weibo-lightbox-zoom-level {
+        min-width: 44px;
+        height: 36px;
+        padding: 0 6px;
+        font-size: 12px;
+    }
+
+    .weibo-lightbox-zoom-reset {
         width: 40px;
-        height: 40px;
+        font-size: 12px;
     }
 
     .weibo-lightbox-nav {
@@ -1638,6 +1806,17 @@ input:focus + .slider {
 
     .weibo-lightbox-next {
         right: 10px;
+    }
+
+    .weibo-lightbox-thumbs {
+        bottom: 12px;
+        max-width: calc(100vw - 24px);
+        padding: 6px;
+    }
+
+    .weibo-lightbox-thumb {
+        width: 46px;
+        height: 46px;
     }
 }
 
