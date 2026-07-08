@@ -7,7 +7,7 @@ import logging
 import re
 import shutil
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote, unquote
 
@@ -590,6 +590,128 @@ class WeiboMonitor(BaseMonitor):
         return self._normalize_weibo_text_for_compare(
             left
         ) == self._normalize_weibo_text_for_compare(right)
+
+    @staticmethod
+    def _parse_created_at_value(value: object) -> datetime | None:
+        """解析微博接口或数据库文本里的 created_at，用于判断微博新旧。"""
+        if isinstance(value, datetime):
+            return value
+
+        raw = str(value or "").strip()
+        if not raw:
+            return None
+
+        normalized = raw.replace("\r\n", "\n").replace("\r", "\n")
+        if "\n\n" in normalized:
+            raw = normalized.rsplit("\n\n", 1)[-1].strip()
+
+        formats = (
+            "%a %b %d %H:%M:%S %z %Y",
+            "%b %d %H:%M:%S %z %Y",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+        )
+        for fmt in formats:
+            try:
+                return datetime.strptime(raw, fmt)
+            except (ValueError, TypeError):
+                continue
+
+        match = re.match(
+            r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+"
+            r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+"
+            r"(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+([+-]\d{4})\s+(\d{4})$",
+            raw,
+        )
+        if not match:
+            return None
+
+        months = {
+            "Jan": 1,
+            "Feb": 2,
+            "Mar": 3,
+            "Apr": 4,
+            "May": 5,
+            "Jun": 6,
+            "Jul": 7,
+            "Aug": 8,
+            "Sep": 9,
+            "Oct": 10,
+            "Nov": 11,
+            "Dec": 12,
+        }
+        try:
+            month, day, hour, minute, second, tz, year = match.groups()
+            sign = 1 if tz.startswith("+") else -1
+            offset_hours = int(tz[1:3])
+            offset_minutes = int(tz[3:5])
+            offset = timezone(sign * timedelta(hours=offset_hours, minutes=offset_minutes))
+            return datetime(
+                int(year),
+                months[month],
+                int(day),
+                int(hour),
+                int(minute),
+                int(second),
+                tzinfo=offset,
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _as_naive_utc(value: datetime) -> datetime:
+        """统一 datetime 可比较性；无时区值按原值比较。"""
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value
+        return value.astimezone(UTC).replace(tzinfo=None)
+
+    def _created_at_relation_to_old(self, data: dict, old_info: tuple) -> int | None:
+        """比较新旧微博发布时间：1 新于旧，0 相同，-1 早于旧，None 表示无法判断。"""
+        new_created_at = self._parse_created_at_value(
+            data.get("_created_at") or data.get("文本")
+        )
+        old_created_at = self._parse_created_at_value(old_info[6] if len(old_info) > 6 else "")
+        if not new_created_at or not old_created_at:
+            return None
+
+        new_value = self._as_naive_utc(new_created_at)
+        old_value = self._as_naive_utc(old_created_at)
+        if new_value > old_value:
+            return 1
+        if new_value < old_value:
+            return -1
+        return 0
+
+    def _mid_relation_to_old(self, data: dict, old_info: tuple) -> int | None:
+        """比较微博 mid：1 新于旧，0 相同，-1 早于旧，None 表示无法判断。"""
+        old_mid = self._sanitize_path_part(old_info[7] if len(old_info) > 7 else "")
+        new_mid = self._sanitize_path_part(data.get("mid", ""))
+        if not old_mid.isdigit() or not new_mid.isdigit():
+            return None
+
+        old_value = int(old_mid)
+        new_value = int(new_mid)
+        if new_value > old_value:
+            return 1
+        if new_value < old_value:
+            return -1
+        return 0
+
+    def _is_stale_status_snapshot(self, data: dict, old_info: tuple) -> bool:
+        """判断接口返回的最新微博是否并不比数据库中已记录的微博更新。"""
+        old_mid = old_info[7] if len(old_info) > 7 else ""
+        new_mid = data.get("mid", "")
+        if self._same_mid(old_mid, new_mid):
+            return False
+        relation = self._created_at_relation_to_old(data, old_info)
+        if relation is None:
+            return False
+        if relation < 0:
+            return True
+        if relation > 0:
+            return False
+        mid_relation = self._mid_relation_to_old(data, old_info)
+        return mid_relation is None or mid_relation <= 0
 
     @staticmethod
     def _extract_status_body_from_display_text(text: object) -> str:
@@ -1247,25 +1369,23 @@ class WeiboMonitor(BaseMonitor):
         old_mid = old_info[7] if len(old_info) > 7 else ""
         new_mid = data.get("mid", "")
         mid_changed = self._sanitize_path_part(old_mid) != self._sanitize_path_part(new_mid)
-        old_text = old_info[6] if len(old_info) > 6 else ""
-        if not self._texts_equivalent(data["文本"], old_text):
-            try:
-                old_count = int(old_info[5]) if len(old_info) > 5 else 0
-                new_count = int(data["微博数"])
-                diff = new_count - old_count
-                if diff == 0 and mid_changed:
-                    return 1
-                return diff
-            except (ValueError, TypeError):
-                return 1  # 无法计算时默认有变化
+
         if mid_changed:
+            relation = self._created_at_relation_to_old(data, old_info)
             try:
                 old_count = int(old_info[5]) if len(old_info) > 5 else 0
                 new_count = int(data["微博数"])
                 diff = new_count - old_count
-                return diff if diff != 0 else 1
             except (ValueError, TypeError):
-                return 1
+                diff = 1
+
+            if relation is not None:
+                mid_relation = self._mid_relation_to_old(data, old_info)
+                if relation > 0 or (relation == 0 and mid_relation == 1):
+                    return diff if diff > 0 else 1
+                return diff if diff < 0 else 0
+            return diff if diff != 0 else 1
+
         return 0
 
     async def _get_info_for_process(self, uid: str, old_mid: str | None = None) -> dict:
@@ -1331,6 +1451,13 @@ class WeiboMonitor(BaseMonitor):
             diff = self.check_info(new_data, old_info)
 
             if diff == 0:
+                if self._is_stale_status_snapshot(new_data, old_info):
+                    self.logger.info(
+                        "%s 本次接口返回的微博时间未晚于已记录微博，跳过推送和最新微博覆盖",
+                        new_data["用户名"],
+                    )
+                    return
+
                 old_retweeted_status = old_info[9] if len(old_info) > 9 else "{}"
                 text_changed = not self._texts_equivalent(
                     new_data["文本"], old_info[6] if len(old_info) > 6 else ""
@@ -1410,15 +1537,25 @@ class WeiboMonitor(BaseMonitor):
                     self.logger.error("更新 %s 微博数据失败，跳过推送", new_data["用户名"])
                     return
 
+                posts_to_push: list[dict] = []
                 if diff > 0:
-                    self.logger.info(f"{new_data['用户名']} 发布了{diff}条微博😍")
+                    posts_to_push = self._get_posts_to_push(new_data, diff)
+                    push_count = len(posts_to_push)
+                    if push_count == diff:
+                        self.logger.info(f"{new_data['用户名']} 发布了{push_count}条微博😍")
+                    else:
+                        self.logger.info(
+                            "%s 微博数增加 %d，本次识别到 %d 条新微博",
+                            new_data["用户名"],
+                            diff,
+                            push_count,
+                        )
                 else:
                     self.logger.info(f"{new_data['用户名']} 删除了{abs(diff)}条微博😞")
 
                 self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
 
                 if diff > 0:
-                    posts_to_push = self._get_posts_to_push(new_data, diff)
                     if len(posts_to_push) > 1:
                         self.logger.info(
                             "%s 本次检测到 %d 条新微博，将逐条推送",

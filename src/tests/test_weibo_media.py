@@ -1,6 +1,7 @@
 """Tests for Weibo post image persistence and API shape."""
 
 import json
+import logging
 
 import aiosqlite
 import pytest
@@ -563,6 +564,86 @@ async def test_process_user_pushes_each_new_post_and_keeps_latest(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_process_user_logs_count_delta_and_detected_count_when_mismatch(
+    monkeypatch, caplog
+):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    monitor.db = _FakeWeiboDatabase()
+    monitor.old_data_dict = {
+        "1": (
+            "1",
+            "name",
+            "verified",
+            "intro",
+            "10",
+            "20",
+            "          旧微博\n\nTue Jun 23 18:57:39 +0800 2026",
+            "101",
+            "[]",
+            "{}",
+        )
+    }
+
+    older_post = {
+        "UID": "1",
+        "用户名": "name",
+        "认证信息": "verified",
+        "简介": "intro",
+        "粉丝数": "10",
+        "微博数": "23",
+        "文本": "          第二条\n\nTue Jun 23 19:02:39 +0800 2026",
+        "mid": "102",
+        "图片": "[]",
+        "转发微博": "{}",
+        "_created_at": "Tue Jun 23 19:02:39 +0800 2026",
+        "_pic_url_candidates": [],
+        "_retweeted_pic_url_candidates": [],
+    }
+    latest_post = {
+        "UID": "1",
+        "用户名": "name",
+        "认证信息": "verified",
+        "简介": "intro",
+        "粉丝数": "10",
+        "微博数": "23",
+        "文本": "          第三条\n\nTue Jun 23 19:03:39 +0800 2026",
+        "mid": "103",
+        "图片": "[]",
+        "转发微博": "{}",
+        "_created_at": "Tue Jun 23 19:03:39 +0800 2026",
+        "_pic_url_candidates": [],
+        "_retweeted_pic_url_candidates": [],
+    }
+    latest_post["_candidate_new_posts"] = [latest_post, older_post]
+    latest_post["_old_mid_found"] = False
+
+    async def fake_get_info(uid, old_mid=None):
+        assert uid == "1"
+        assert old_mid == "101"
+        return latest_post
+
+    async def mark_cookie_valid():
+        return None
+
+    async def skip_save_images(data, keep_existing=False):
+        return []
+
+    async def record_push(data, diff):
+        return None
+
+    monkeypatch.setattr(monitor, "get_info", fake_get_info)
+    monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
+    monkeypatch.setattr(monitor, "_save_post_images", skip_save_images)
+    monkeypatch.setattr(monitor, "_save_retweeted_images", skip_save_images)
+    monkeypatch.setattr(monitor, "push_notification", record_push)
+    caplog.set_level(logging.INFO, logger="WeiboMonitor")
+
+    await monitor.process_user("1")
+
+    assert "name 微博数增加 3，本次识别到 2 条新微博" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_process_user_skips_equivalent_long_text_backfill(monkeypatch):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     monitor.db = _FakeWeiboDatabase()
@@ -717,6 +798,123 @@ def test_check_info_treats_mid_change_with_same_count_as_new_post():
     }
 
     assert monitor.check_info(data, old_info) == 1
+
+
+def test_check_info_ignores_older_mid_even_when_count_increases():
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    old_info = (
+        "1",
+        "name",
+        "verified",
+        "intro",
+        "10",
+        "20",
+        "          较新的微博\n\nTue Jun 23 19:03:39 +0800 2026",
+        "103",
+        "[]",
+        "{}",
+    )
+    data = {
+        "UID": "1",
+        "用户名": "name",
+        "认证信息": "verified",
+        "简介": "intro",
+        "粉丝数": "10",
+        "微博数": "21",
+        "文本": "          更早的微博\n\nTue Jun 23 18:57:39 +0800 2026",
+        "mid": "102",
+        "_created_at": "Tue Jun 23 18:57:39 +0800 2026",
+    }
+
+    assert monitor.check_info(data, old_info) == 0
+
+
+def test_check_info_treats_same_second_higher_mid_as_new_post():
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    old_info = (
+        "1",
+        "name",
+        "verified",
+        "intro",
+        "10",
+        "20",
+        "          旧微博\n\nTue Jun 23 19:03:39 +0800 2026",
+        "102",
+        "[]",
+        "{}",
+    )
+    data = {
+        "UID": "1",
+        "用户名": "name",
+        "认证信息": "verified",
+        "简介": "intro",
+        "粉丝数": "10",
+        "微博数": "20",
+        "文本": "          同秒新微博\n\nTue Jun 23 19:03:39 +0800 2026",
+        "mid": "103",
+        "_created_at": "Tue Jun 23 19:03:39 +0800 2026",
+    }
+
+    assert monitor.check_info(data, old_info) == 1
+
+
+@pytest.mark.asyncio
+async def test_process_user_skips_older_mid_without_overwriting_snapshot(monkeypatch):
+    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
+    monitor.db = _FakeWeiboDatabase()
+    monitor.old_data_dict = {
+        "1": (
+            "1",
+            "name",
+            "verified",
+            "intro",
+            "10",
+            "20",
+            "          较新的微博\n\nTue Jun 23 19:03:39 +0800 2026",
+            "103",
+            "[]",
+            "{}",
+        )
+    }
+
+    async def fake_get_info(uid, old_mid=None):
+        assert uid == "1"
+        assert old_mid == "103"
+        return {
+            "UID": "1",
+            "用户名": "name",
+            "认证信息": "verified",
+            "简介": "intro",
+            "粉丝数": "10",
+            "微博数": "21",
+            "文本": "          更早的微博\n\nTue Jun 23 18:57:39 +0800 2026",
+            "mid": "102",
+            "图片": "[]",
+            "转发微博": "{}",
+            "_created_at": "Tue Jun 23 18:57:39 +0800 2026",
+            "_candidate_new_posts": [],
+            "_old_mid_found": False,
+            "_pic_url_candidates": [],
+            "_retweeted_pic_url_candidates": [],
+        }
+
+    async def mark_cookie_valid():
+        return None
+
+    push_calls = []
+
+    async def record_push(data, diff):
+        push_calls.append((dict(data), diff))
+
+    monkeypatch.setattr(monitor, "get_info", fake_get_info)
+    monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
+    monkeypatch.setattr(monitor, "push_notification", record_push)
+
+    await monitor.process_user("1")
+
+    assert monitor.db.update_calls == []
+    assert monitor.old_data_dict["1"][7] == "103"
+    assert push_calls == []
 
 
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):
