@@ -34,8 +34,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const dataTableContainer = document.getElementById('dataTableContainer');
     const pagination = document.getElementById('pagination');
     let lightboxEl = null;
+    let lightboxStageEl = null;
     let lightboxImageEl = null;
     let lightboxCounterEl = null;
+    let lightboxDimensionsEl = null;
+    let lightboxErrorEl = null;
     let lightboxPrevBtn = null;
     let lightboxNextBtn = null;
     let lightboxThumbsEl = null;
@@ -45,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let lightboxZoomOutBtn = null;
     let lightboxZoomResetBtn = null;
     let lightboxZoomLevelEl = null;
+    let lightboxCloseBtn = null;
+    let lightboxRetryBtn = null;
+    let lightboxLastFocusedEl = null;
     let lightboxImages = [];
     let lightboxThumbs = [];
     let lightboxIndex = 0;
@@ -249,19 +255,43 @@ document.addEventListener('DOMContentLoaded', function () {
         window.setTimeout(() => callback({ timeRemaining: () => 12 }), 16);
     }
 
+    function updateWeiboMediaPresentation(img) {
+        const item = img.closest('.weibo-media-item');
+        if (!item) return;
+
+        item.classList.add('is-loaded');
+        const grid = item.closest('.weibo-media-grid');
+        if (
+            !grid ||
+            !grid.classList.contains('weibo-media-count-1') ||
+            !img.naturalWidth ||
+            !img.naturalHeight
+        ) {
+            return;
+        }
+
+        // 单图根据实际构图调整舞台比例，极端长图/宽图仍限制在舒适浏览范围内。
+        const naturalRatio = img.naturalWidth / img.naturalHeight;
+        const displayRatio = Math.min(16 / 9, Math.max(3 / 4, naturalRatio));
+        item.style.setProperty('--weibo-media-aspect', displayRatio.toFixed(4));
+    }
+
     function markLazyImageLoaded(img, finish) {
         if (typeof img.decode === 'function') {
             img.decode()
                 .then(() => {
+                    updateWeiboMediaPresentation(img);
                     img.classList.add('image-loaded');
                     finish();
                 })
                 .catch(() => {
+                    updateWeiboMediaPresentation(img);
                     img.classList.add('image-loaded');
                     finish();
                 });
             return;
         }
+        updateWeiboMediaPresentation(img);
         img.classList.add('image-loaded');
         finish();
     }
@@ -410,22 +440,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const items = previewImages
             .map(
                 (src, index) => `
-        <button type="button" class="weibo-media-item" data-image-index="${index}" aria-label="查看第 ${index + 1} 张微博图片">
+        <button type="button" class="weibo-media-item" data-image-index="${index}" aria-label="打开第 ${index + 1} 张微博原图，完整尺寸预览" title="查看完整原图">
           <img class="weibo-media-img" data-src="${escapeAttr(
               allThumbs[index],
-          )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" decoding="async" fetchpriority="low">
+          )}" data-full-src="${escapeAttr(src.trim())}" alt="微博图片 ${index + 1}" decoding="async" fetchpriority="low" draggable="false">
         </button>`,
             )
             .join('');
 
         const overflowItem = hasOverflow
             ? `
-        <button type="button" class="weibo-media-item weibo-media-item-more" data-image-index="${previewImages.length}" aria-label="查看全部 ${allImages.length} 张微博图片">
+        <button type="button" class="weibo-media-item weibo-media-item-more" data-image-index="${previewImages.length}" aria-label="打开图片预览，共 ${allImages.length} 张微博原图" title="查看全部原图">
           <img class="weibo-media-img" data-src="${escapeAttr(
               allThumbs[previewImages.length],
           )}" data-full-src="${escapeAttr(
                   allImages[previewImages.length],
-              )}" alt="微博图片 ${previewImages.length + 1}" decoding="async" fetchpriority="low">
+              )}" alt="微博图片 ${previewImages.length + 1}" decoding="async" fetchpriority="low" draggable="false">
           <span class="weibo-media-more-mask" aria-hidden="true">
             <span class="weibo-media-more-label">+${allImages.length - previewImages.length}</span>
             <span class="weibo-media-more-sub">查看全部</span>
@@ -776,33 +806,91 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function setLightboxLoadState(state) {
+        if (!lightboxEl || !lightboxStageEl) return;
+        const isLoading = state === 'loading';
+        const hasError = state === 'error';
+        lightboxEl.classList.toggle('is-loading', isLoading);
+        lightboxEl.classList.toggle('is-ready', state === 'ready');
+        lightboxEl.classList.toggle('has-error', hasError);
+        lightboxStageEl.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+        if (lightboxErrorEl) lightboxErrorEl.hidden = !hasError;
+    }
+
+    function loadCurrentLightboxImage(forceReload = false) {
+        if (!lightboxImageEl || !lightboxImages.length) return;
+        const expectedIndex = lightboxIndex;
+        const src = lightboxImages[expectedIndex];
+        setLightboxLoadState('loading');
+        if (lightboxDimensionsEl) lightboxDimensionsEl.textContent = '正在读取原图';
+
+        const assignSource = () => {
+            if (
+                !lightboxEl?.classList.contains('show') ||
+                lightboxIndex !== expectedIndex ||
+                lightboxImages[expectedIndex] !== src
+            ) {
+                return;
+            }
+            lightboxImageEl.src = src;
+        };
+
+        if (forceReload) {
+            lightboxImageEl.removeAttribute('src');
+            requestAnimationFrame(assignSource);
+            return;
+        }
+        assignSource();
+    }
+
     function ensureWeiboLightbox() {
         if (lightboxEl) return;
 
         lightboxEl = document.createElement('div');
         lightboxEl.className = 'weibo-lightbox';
         lightboxEl.setAttribute('aria-hidden', 'true');
+        lightboxEl.setAttribute('aria-label', '微博原图预览');
+        lightboxEl.setAttribute('aria-modal', 'true');
+        lightboxEl.setAttribute('role', 'dialog');
+        lightboxEl.tabIndex = -1;
         lightboxEl.innerHTML = `
-<div class="weibo-lightbox-toolbar">
+<div class="weibo-lightbox-toolbar" role="toolbar" aria-label="图片浏览工具">
   <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-out" aria-label="缩小图片" title="缩小图片">−</button>
   <span class="weibo-lightbox-zoom-level" aria-live="polite">100%</span>
   <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-in" aria-label="放大图片" title="放大图片">+</button>
-  <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-reset" aria-label="重置缩放" title="重置缩放">1:1</button>
+  <button type="button" class="weibo-lightbox-tool weibo-lightbox-zoom-reset" aria-label="适应窗口" title="适应窗口">适应</button>
   <a class="weibo-lightbox-tool weibo-lightbox-download" aria-label="下载当前图片" title="下载当前图片" href="#" download>↓</a>
   <button type="button" class="weibo-lightbox-tool weibo-lightbox-save-all" aria-label="保存全部图片" title="保存全部图片">⇩</button>
   <button type="button" class="weibo-lightbox-tool weibo-lightbox-close" aria-label="关闭大图" title="关闭">×</button>
 </div>
 <button type="button" class="weibo-lightbox-nav weibo-lightbox-prev" aria-label="上一张">‹</button>
 <figure class="weibo-lightbox-figure">
-  <img class="weibo-lightbox-image" alt="微博大图" decoding="async">
-  <figcaption class="weibo-lightbox-counter"></figcaption>
+  <div class="weibo-lightbox-stage" aria-busy="true">
+    <div class="weibo-lightbox-loading" role="status" aria-live="polite">
+      <span class="weibo-lightbox-spinner" aria-hidden="true"></span>
+      <span>正在加载原图</span>
+    </div>
+    <img class="weibo-lightbox-image" alt="微博原图" decoding="async" draggable="false">
+    <div class="weibo-lightbox-error" role="alert" hidden>
+      <span>原图加载失败</span>
+      <button type="button" class="weibo-lightbox-retry">重新加载</button>
+    </div>
+  </div>
+  <figcaption class="weibo-lightbox-caption">
+    <span class="weibo-lightbox-counter" aria-live="polite"></span>
+    <span class="weibo-lightbox-dimensions"></span>
+    <span class="weibo-lightbox-hint">双击或滚轮缩放 · 拖动查看细节</span>
+  </figcaption>
 </figure>
 <div class="weibo-lightbox-thumbs" role="listbox" aria-label="微博图片缩略图"></div>
 <button type="button" class="weibo-lightbox-nav weibo-lightbox-next" aria-label="下一张">›</button>`;
         document.body.appendChild(lightboxEl);
 
+        lightboxStageEl = lightboxEl.querySelector('.weibo-lightbox-stage');
         lightboxImageEl = lightboxEl.querySelector('.weibo-lightbox-image');
         lightboxCounterEl = lightboxEl.querySelector('.weibo-lightbox-counter');
+        lightboxDimensionsEl = lightboxEl.querySelector('.weibo-lightbox-dimensions');
+        lightboxErrorEl = lightboxEl.querySelector('.weibo-lightbox-error');
         lightboxPrevBtn = lightboxEl.querySelector('.weibo-lightbox-prev');
         lightboxNextBtn = lightboxEl.querySelector('.weibo-lightbox-next');
         lightboxThumbsEl = lightboxEl.querySelector('.weibo-lightbox-thumbs');
@@ -812,8 +900,11 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxZoomOutBtn = lightboxEl.querySelector('.weibo-lightbox-zoom-out');
         lightboxZoomResetBtn = lightboxEl.querySelector('.weibo-lightbox-zoom-reset');
         lightboxZoomLevelEl = lightboxEl.querySelector('.weibo-lightbox-zoom-level');
+        lightboxCloseBtn = lightboxEl.querySelector('.weibo-lightbox-close');
+        lightboxRetryBtn = lightboxEl.querySelector('.weibo-lightbox-retry');
 
-        lightboxEl.querySelector('.weibo-lightbox-close').addEventListener('click', closeLightbox);
+        lightboxCloseBtn.addEventListener('click', closeLightbox);
+        lightboxRetryBtn.addEventListener('click', () => loadCurrentLightboxImage(true));
         lightboxSaveAllBtn.addEventListener('click', (e) => {
             e.preventDefault();
             saveAllLightboxImages();
@@ -842,12 +933,23 @@ document.addEventListener('DOMContentLoaded', function () {
         lightboxImageEl.addEventListener('pointermove', handleLightboxPointerMove);
         lightboxImageEl.addEventListener('pointerup', handleLightboxPointerEnd);
         lightboxImageEl.addEventListener('pointercancel', handleLightboxPointerEnd);
+        lightboxImageEl.addEventListener('load', () => {
+            setLightboxLoadState('ready');
+            if (lightboxDimensionsEl) {
+                lightboxDimensionsEl.textContent = `${lightboxImageEl.naturalWidth} × ${lightboxImageEl.naturalHeight} px`;
+            }
+        });
+        lightboxImageEl.addEventListener('error', () => {
+            if (!lightboxImageEl.getAttribute('src')) return;
+            setLightboxLoadState('error');
+            if (lightboxDimensionsEl) lightboxDimensionsEl.textContent = '原图暂时无法显示';
+        });
         lightboxEl.addEventListener('click', (e) => {
             const target = getEventElement(e);
             if (!target) return;
             if (
                 target.closest(
-                    '.weibo-lightbox-image, .weibo-lightbox-tool, .weibo-lightbox-nav, .weibo-lightbox-thumbs',
+                    '.weibo-lightbox-image, .weibo-lightbox-tool, .weibo-lightbox-nav, .weibo-lightbox-thumbs, .weibo-lightbox-error',
                 )
             ) {
                 return;
@@ -878,6 +980,8 @@ document.addEventListener('DOMContentLoaded', function () {
             img.src = lightboxThumbs[index] || src;
             img.alt = '';
             img.decoding = 'async';
+            img.loading = 'lazy';
+            img.draggable = false;
             button.appendChild(img);
             lightboxThumbsEl.appendChild(button);
         });
@@ -911,42 +1015,50 @@ document.addEventListener('DOMContentLoaded', function () {
     function showLightboxImage(index) {
         if (!lightboxImages.length) return;
         lightboxIndex = (index + lightboxImages.length) % lightboxImages.length;
-        lightboxImageEl.src = lightboxImages[lightboxIndex];
         resetLightboxZoom();
-        lightboxCounterEl.textContent =
-            lightboxImages.length > 1 ? `${lightboxIndex + 1} / ${lightboxImages.length}` : '';
+        lightboxImageEl.alt = `微博原图，第 ${lightboxIndex + 1} 张，共 ${lightboxImages.length} 张`;
+        lightboxCounterEl.textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
         const hasMultiple = lightboxImages.length > 1;
         lightboxPrevBtn.hidden = !hasMultiple;
         lightboxNextBtn.hidden = !hasMultiple;
         updateLightboxDownloadLink();
         syncLightboxThumbs();
         prefetchLightboxNeighbor(lightboxIndex);
+        loadCurrentLightboxImage();
     }
 
-    function openWeiboLightbox(images, index, thumbs = []) {
+    function openWeiboLightbox(images, index, thumbs = [], trigger = null) {
         if (!images.length) return;
         ensureWeiboLightbox();
+        lightboxLastFocusedEl = trigger || document.activeElement;
         lightboxImages = images;
         lightboxThumbs = images.map((src, imageIndex) => {
             const thumb = thumbs[imageIndex];
             return typeof thumb === 'string' && thumb.trim() ? thumb.trim() : src;
         });
         renderLightboxThumbs();
+        lightboxEl.classList.toggle('has-thumbs', images.length > 1);
         lightboxEl.classList.add('show');
         lightboxEl.setAttribute('aria-hidden', 'false');
         document.body.classList.add('weibo-lightbox-open');
         showLightboxImage(index);
+        requestAnimationFrame(() => lightboxCloseBtn?.focus());
     }
 
     function closeLightbox() {
         if (!lightboxEl || !lightboxEl.classList.contains('show')) return;
-        lightboxEl.classList.remove('show');
+        lightboxEl.classList.remove('show', 'is-loading', 'is-ready', 'has-error', 'has-thumbs');
         lightboxEl.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('weibo-lightbox-open');
         if (lightboxImageEl) {
             lightboxImageEl.removeAttribute('src');
         }
         resetLightboxZoom();
+        const restoreTarget = lightboxLastFocusedEl;
+        lightboxLastFocusedEl = null;
+        if (restoreTarget instanceof HTMLElement && restoreTarget.isConnected) {
+            restoreTarget.focus();
+        }
     }
 
     dataTableContainer.addEventListener('click', function (e) {
@@ -960,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const grid = mediaButton.closest('.weibo-media-grid');
             const payload = grid ? getWeiboMediaPayload(grid) : { images: [], thumbs: [] };
             const index = Number.parseInt(mediaButton.dataset.imageIndex || '0', 10) || 0;
-            openWeiboLightbox(payload.images, index, payload.thumbs);
+            openWeiboLightbox(payload.images, index, payload.thumbs, mediaButton);
             return;
         }
 
@@ -1009,6 +1121,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('keydown', function (e) {
         if (!lightboxEl || !lightboxEl.classList.contains('show')) return;
+        if (e.key === 'Tab') {
+            const focusable = Array.from(
+                lightboxEl.querySelectorAll('button:not([disabled]), a[href]'),
+            ).filter((element) => !element.hidden && element.offsetParent !== null);
+            if (focusable.length > 0) {
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (
+                    e.shiftKey &&
+                    (document.activeElement === first ||
+                        !lightboxEl.contains(document.activeElement))
+                ) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+            return;
+        }
         if (['Escape', 'ArrowLeft', 'ArrowRight', '+', '=', '-', '_', '0'].includes(e.key)) {
             e.preventDefault();
         }
