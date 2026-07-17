@@ -6,6 +6,8 @@ import logging
 from aiohttp import ClientSession
 
 from src.push_channel import get_push_channel
+from src.push_channel.cute_copy import style_push_description, style_push_title
+from src.push_channel.rich_text import RichText
 
 
 def _truncate_content_to_bytes(content: str, max_bytes: int) -> str:
@@ -126,7 +128,7 @@ class UnifiedPushManager:
         self,
         channel,
         title: str,
-        channel_description: str,
+        channel_description,
         to_url: str,
         picurl: str,
         btntxt: str,
@@ -134,11 +136,30 @@ class UnifiedPushManager:
         extend_data: dict | None,
     ):
         """单渠道发送：先按渠道限制压缩/截断内容，再推送。"""
-        final_description = self._ensure_content_within_limit(
-            channel, channel_description, extend_data
-        )
+        channel_extend_data = dict(extend_data or {})
+        if isinstance(channel_description, RichText):
+            output_format = getattr(channel, "rich_text_format", "plain")
+            if output_format not in {"plain", "markdown", "html"}:
+                output_format = "plain"
+            max_bytes = getattr(channel, "max_content_bytes", None)
+            if channel_extend_data.get("plain_text"):
+                output_format = "plain"
+                max_bytes = getattr(channel, "plain_text_max_content_bytes", max_bytes)
+            final_description = channel_description.render(output_format, max_bytes=max_bytes)
+            channel_extend_data["_rich_text_format"] = output_format
+        else:
+            final_description = self._ensure_content_within_limit(
+                channel, str(channel_description), channel_extend_data
+            )
         return await self._send_with_error_handling(
-            channel, title, final_description, to_url, picurl, btntxt, author, extend_data
+            channel,
+            title,
+            final_description,
+            to_url,
+            picurl,
+            btntxt,
+            author,
+            channel_extend_data,
         )
 
     async def send_text(
@@ -170,7 +191,7 @@ class UnifiedPushManager:
     async def send_news(
         self,
         title: str,
-        description: str,
+        description: str | RichText,
         to_url: str,
         picurl: str = "",
         btntxt: str = "阅读全文",
@@ -197,6 +218,7 @@ class UnifiedPushManager:
         """
         results = {}
         errors = []
+        styled_title = style_push_title(title)
 
         if not self.push_channels:
             self.logger.warning("未配置任何推送渠道")
@@ -214,6 +236,7 @@ class UnifiedPushManager:
             channel_name = channel.name
             try:
                 channel_description = description_func(channel) if description_func else description
+                channel_description = style_push_description(title, channel_description)
             except Exception as e:  # noqa: BLE001
                 errors.append(f"{channel_name}: {e}")
                 continue
@@ -221,7 +244,7 @@ class UnifiedPushManager:
             tasks.append(
                 self._send_one(
                     channel,
-                    title,
+                    styled_title,
                     channel_description,
                     to_url,
                     picurl,

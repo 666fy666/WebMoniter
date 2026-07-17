@@ -13,9 +13,12 @@ class WxPusher(PushChannel):
         self.app_token = str(config.get("app_token", ""))
         self.uids = config.get("uids", "")  # 用户ID列表，逗号分隔（可选）
         self.topic_ids = config.get("topic_ids", "")  # 主题ID列表，逗号分隔（可选）
-        self.content_type = config.get(
-            "content_type", 1
-        )  # 内容类型：1-文本，2-html，3-markdown，默认1
+        try:
+            self.content_type = int(config.get("content_type", 1))
+        except (TypeError, ValueError):
+            self.content_type = 1
+        # 内容类型：1-文本，2-html，3-markdown，默认1
+        self.rich_text_format = {2: "html", 3: "markdown"}.get(self.content_type, "plain")
         if self.app_token == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
 
@@ -37,7 +40,12 @@ class WxPusher(PushChannel):
                 message_content += f"\n\n[阅读全文]({jump_url})"
         else:  # 文本格式（默认）
             message_content = f"{title}\n\n{content}"
-            if jump_url:
+            hide_visible_jump_url = bool(
+                extend_data
+                and isinstance(extend_data, dict)
+                and extend_data.get("hide_visible_jump_url")
+            )
+            if jump_url and not hide_visible_jump_url:
                 message_content += f"\n\n链接：{jump_url}"
 
         payload = {

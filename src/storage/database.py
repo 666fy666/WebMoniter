@@ -95,11 +95,15 @@ class AsyncDatabase:
                 文本 TEXT,
                 mid TEXT,
                 图片 TEXT DEFAULT '[]',
-                转发微博 TEXT DEFAULT '{}'
+                转发微博 TEXT DEFAULT '{}',
+                正文结构 TEXT DEFAULT '[]',
+                标签 TEXT DEFAULT '[]',
+                内容类型 TEXT DEFAULT 'text',
+                视频封面 TEXT DEFAULT ''
             )
         """
         )
-        # 兼容旧版本：为 weibo 表增加 图片 / 转发微博 字段（若不存在）
+        # 兼容旧版本：为 weibo 表补齐新增展示字段（若不存在）
         try:
             async with conn.execute("PRAGMA table_info(weibo)") as cursor:
                 columns = [row[1] for row in await cursor.fetchall()]
@@ -107,8 +111,16 @@ class AsyncDatabase:
                 await conn.execute("ALTER TABLE weibo ADD COLUMN 图片 TEXT DEFAULT '[]'")
             if "转发微博" not in columns:
                 await conn.execute("ALTER TABLE weibo ADD COLUMN 转发微博 TEXT DEFAULT '{}'")
+            if "正文结构" not in columns:
+                await conn.execute("ALTER TABLE weibo ADD COLUMN 正文结构 TEXT DEFAULT '[]'")
+            if "标签" not in columns:
+                await conn.execute("ALTER TABLE weibo ADD COLUMN 标签 TEXT DEFAULT '[]'")
+            if "内容类型" not in columns:
+                await conn.execute("ALTER TABLE weibo ADD COLUMN 内容类型 TEXT DEFAULT 'text'")
+            if "视频封面" not in columns:
+                await conn.execute("ALTER TABLE weibo ADD COLUMN 视频封面 TEXT DEFAULT ''")
         except Exception as e:
-            _logger.warning("为 weibo 表添加图片/转发微博字段失败（不影响主流程）: %s", e)
+            _logger.warning("为 weibo 表添加展示字段失败（不影响主流程）: %s", e)
 
         # 创建 huya 表（基础字段）
         await conn.execute(

@@ -9,6 +9,8 @@ from . import PushChannel
 class Email(PushChannel):
     """邮件推送通道"""
 
+    rich_text_format = "html"
+
     def __init__(self, config, session=None):
         super().__init__(config, session)
         self.smtp_host = str(config.get("smtp_host", ""))

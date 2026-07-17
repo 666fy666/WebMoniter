@@ -256,6 +256,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateWeiboMediaPresentation(img) {
+        const videoCover = img.closest('.weibo-video-cover');
+        if (videoCover && img.naturalWidth && img.naturalHeight) {
+            const naturalRatio = img.naturalWidth / img.naturalHeight;
+            const isPortrait = naturalRatio < 0.9;
+            const displayRatio = isPortrait
+                ? 3 / 4
+                : Math.min(16 / 9, Math.max(1, naturalRatio));
+            videoCover.classList.toggle('is-portrait', isPortrait);
+            videoCover.style.setProperty('--weibo-video-aspect', displayRatio.toFixed(4));
+            return;
+        }
+
         const item = img.closest('.weibo-media-item');
         if (!item) return;
 
@@ -479,6 +491,108 @@ document.addEventListener('DOMContentLoaded', function () {
             .join('<br>')}</div>`;
     }
 
+    function getSafeHttpUrl(value) {
+        const raw = (value || '').toString().trim();
+        if (!raw) return '';
+        try {
+            const parsed = new URL(raw, window.location.origin);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? raw : '';
+        } catch {
+            return '';
+        }
+    }
+
+    function renderSegmentText(value) {
+        return escapeHtml((value || '').toString()).replace(/\n/g, '<br>');
+    }
+
+    function escapeRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function stripWeiboTagsFromText(value, tags) {
+        let content = (value || '').toString();
+        if (!Array.isArray(tags) || tags.length === 0) return content;
+        tags
+            .map((tag) => (tag || '').toString().trim())
+            .filter(Boolean)
+            .forEach((tag) => {
+                content = content.replace(new RegExp(`#${escapeRegExp(tag)}#`, 'g'), '');
+            });
+        return content
+            .replace(/[ \t]{2,}/g, ' ')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n[ \t]+/g, '\n')
+            .replace(/\n{3,}/g, '\n\n');
+    }
+
+    function renderWeiboContentSegments(segments, fallbackText, className, tags) {
+        const fallbackContent = stripWeiboTagsFromText(fallbackText, tags);
+        if (!Array.isArray(segments) || segments.length === 0) {
+            return renderWeiboTextBlock(fallbackContent, className);
+        }
+        let visibleText = '';
+        const content = segments
+            .map((segment) => {
+                if (!segment || typeof segment !== 'object') return '';
+                let label = stripWeiboTagsFromText(segment.text, tags);
+                if (!label) return '';
+                label = label.replace(/(?:https?:)?\/\/[^\s<>"'\]\[）)]+/gi, '网页链接');
+                visibleText += label;
+                const renderedLabel = renderSegmentText(label);
+                const url = segment.type === 'link' ? getSafeHttpUrl(segment.url) : '';
+                if (!url) return renderedLabel;
+                return `<a class="weibo-content-link" href="${escapeAttr(
+                    url,
+                )}" target="_blank" rel="noopener noreferrer">${renderedLabel}</a>`;
+            })
+            .join('')
+            .trim();
+        return content && visibleText.trim()
+            ? `<div class="${escapeAttr(className)}">${content}</div>`
+            : renderWeiboTextBlock(fallbackContent, className);
+    }
+
+    function renderWeiboContentType(contentType) {
+        const typeMap = {
+            repost: ['转发', 'repost'],
+            video: ['视频', 'video'],
+            image: ['图文', 'image'],
+            text: ['文字', 'text'],
+        };
+        const item = typeMap[(contentType || '').toString().toLowerCase()] || typeMap.text;
+        return `<span class="weibo-content-type weibo-content-type-${item[1]}">${item[0]}</span>`;
+    }
+
+    function renderWeiboTags(tags) {
+        if (!Array.isArray(tags)) return '';
+        const values = tags
+            .map((tag) => (tag || '').toString().trim())
+            .filter(Boolean);
+        if (values.length === 0) return '';
+        return `<div class="weibo-tag-list" aria-label="微博话题">${values
+            .map((tag) => `<span class="weibo-tag">#${escapeHtml(tag)}#</span>`)
+            .join('')}</div>`;
+    }
+
+    function renderWeiboVideoCover(cover, thumb, detailUrl) {
+        const originalSrc = getSafeHttpUrl(cover);
+        const previewSrc = getSafeHttpUrl(thumb) || originalSrc;
+        if (!previewSrc) return '';
+        const url = getSafeHttpUrl(detailUrl);
+        const tagName = url ? 'a' : 'div';
+        const href = url
+            ? ` href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer"`
+            : '';
+        return `<${tagName} class="weibo-video-cover"${href} aria-label="打开微博视频详情">
+          <img class="weibo-video-cover-img" data-src="${escapeAttr(
+              previewSrc,
+          )}" data-fallback-src="${escapeAttr(originalSrc)}" alt="微博视频封面" decoding="async" fetchpriority="low">
+          <span class="weibo-video-play" aria-hidden="true">▶</span>
+          <span class="weibo-video-label">点开微博看视频</span>
+        </${tagName}>`;
+    }
+
     function renderWeiboRetweet(retweetedStatus) {
         if (!retweetedStatus || typeof retweetedStatus !== 'object') return '';
 
@@ -491,15 +605,24 @@ document.addEventListener('DOMContentLoaded', function () {
             (mid ? `https://m.weibo.cn/detail/${mid}` : '');
         const text = (retweetedStatus.text || '').toString().trim();
         const unavailable = Boolean(retweetedStatus.source_unavailable);
+        const videoHtml = renderWeiboVideoCover(
+            retweetedStatus.video_cover,
+            retweetedStatus.video_cover_thumb,
+            url,
+        );
         const mediaHtml = renderWeiboMedia(
             retweetedStatus.images || [],
             retweetedStatus.image_thumbs || [],
         );
         const textHtml =
-            renderWeiboTextBlock(
+            renderWeiboContentSegments(
+                retweetedStatus.content_segments,
                 text || (unavailable ? '原微博已不可见' : '原微博暂无正文'),
                 'weibo-retweet-text',
+                retweetedStatus.tags,
             ) || '';
+        const tagHtml = renderWeiboTags(retweetedStatus.tags);
+        const typeHtml = renderWeiboContentType(retweetedStatus.content_type);
         const hrefAttr = url ? ` data-href="${escapeAttr(url)}"` : '';
         const stateClass = unavailable ? ' weibo-retweet-unavailable' : '';
 
@@ -507,11 +630,14 @@ document.addEventListener('DOMContentLoaded', function () {
       <section class="weibo-retweet-block${stateClass}"${hrefAttr}>
         <div class="weibo-retweet-header">
           <span class="weibo-retweet-name">@${escapeHtml(userName)}</span>
+          ${typeHtml}
           ${verified ? `<span class="weibo-retweet-verify">${escapeHtml(verified)}</span>` : ''}
           ${createdAt ? `<span class="weibo-retweet-time">${escapeHtml(createdAt)}</span>` : ''}
         </div>
         <div class="weibo-retweet-body">
           ${textHtml}
+          ${tagHtml}
+          ${videoHtml}
           ${mediaHtml}
         </div>
         ${url ? '<div class="weibo-retweet-hint">查看原微博</div>' : ''}
@@ -1077,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (target.closest('.data-card-drag-handle')) return;
-        if (target.tagName === 'A' && target.href) return;
+        if (target.closest('a[href]')) return;
         const retweetBlock = target.closest('.weibo-retweet-block');
         if (retweetBlock && retweetBlock.dataset.href) {
             e.preventDefault();
@@ -1104,9 +1230,21 @@ document.addEventListener('DOMContentLoaded', function () {
         'error',
         function (e) {
             const img = e.target;
-            if (!(img instanceof HTMLImageElement) || !img.classList.contains('weibo-media-img')) {
+            if (!(img instanceof HTMLImageElement)) {
                 return;
             }
+            if (img.classList.contains('weibo-video-cover-img')) {
+                const fallbackSrc = img.dataset.fallbackSrc || '';
+                if (fallbackSrc && img.src !== new URL(fallbackSrc, window.location.href).href) {
+                    img.src = fallbackSrc;
+                    img.dataset.fallbackSrc = '';
+                    return;
+                }
+                const cover = img.closest('.weibo-video-cover');
+                if (cover) cover.style.display = 'none';
+                return;
+            }
+            if (!img.classList.contains('weibo-media-img')) return;
             const fullSrc = img.dataset.fullSrc || '';
             if (fullSrc && img.src !== new URL(fullSrc, window.location.href).href) {
                 img.src = fullSrc;
@@ -1187,8 +1325,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     .trim();
                 const mediaHtml = renderWeiboMedia(row.images, row.image_thumbs);
                 const retweetHtml = renderWeiboRetweet(row.retweeted_status);
-                const contentDisplay = contentRaw || (mediaHtml || retweetHtml ? '' : '暂无最新微博内容');
-                const textHtml = renderWeiboTextBlock(contentDisplay, 'weibo-feed-text');
+                const videoHtml = renderWeiboVideoCover(
+                    row.video_cover,
+                    row.video_cover_thumb,
+                    url,
+                );
+                const tagHtml = renderWeiboTags(row.tags);
+                const typeHtml = renderWeiboContentType(row.content_type);
+                const contentDisplay =
+                    contentRaw || (mediaHtml || retweetHtml || videoHtml ? '' : '暂无最新微博内容');
+                const textHtml = renderWeiboContentSegments(
+                    row.content_segments,
+                    contentDisplay,
+                    'weibo-feed-text',
+                    row.tags,
+                );
 
                 html += `
 <article class="data-card weibo-feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
@@ -1201,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="weibo-feed-user">
         <div class="weibo-feed-name-row">
           <span class="weibo-feed-name">${escapeHtml(row.用户名)}</span>
+          ${typeHtml}
           ${row.认证信息 ? `<span class="weibo-feed-verify">${escapeHtml(row.认证信息)}</span>` : ''}
         </div>
         <div class="weibo-feed-meta">
@@ -1211,7 +1363,9 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
     <div class="weibo-feed-body">
       ${textHtml}
+      ${tagHtml}
       ${retweetHtml}
+      ${videoHtml}
       ${mediaHtml}
     </div>
     <footer class="weibo-feed-footer">

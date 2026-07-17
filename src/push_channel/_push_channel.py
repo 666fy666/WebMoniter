@@ -11,6 +11,8 @@ class PushChannel(ABC):
     # 推送内容（content/description）的最大字节数，None 表示不限制。超限时由 UnifiedPushManager 截断。
     # 各子类按官方文档设置，如企业微信应用 500、Telegram 约 4096 字符等。
     max_content_bytes: int | None = None
+    # RichText 的原生渲染格式；普通通道默认接收不带实际 URL 的纯文本。
+    rich_text_format: str = "plain"
 
     def __init__(self, config, session: ClientSession | None = None):
         """

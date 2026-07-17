@@ -11,6 +11,7 @@ from src.push_channel.manager import (
     _truncate_content_to_bytes,
     build_push_manager,
 )
+from src.push_channel.rich_text import RichTextBuilder
 
 
 class _FakeChannel:
@@ -130,3 +131,73 @@ async def test_description_func_error_does_not_block_other_channels() -> None:
     assert result["errors"] == ["broken: bad description"]
     assert broken.sent == []
     assert good.sent[0]["content"] == "ok content"
+
+
+@pytest.mark.asyncio
+async def test_manager_applies_cute_copy_to_task_notifications() -> None:
+    channel = _RecordingChannel("recording")
+    push_manager = UnifiedPushManager([channel])
+
+    result = await push_manager.send_news(
+        title="品赞签到成功",
+        description="获得 10 积分",
+        to_url="",
+    )
+
+    assert result["errors"] == []
+    assert channel.sent[0]["title"] == "🎉 品赞签到成功啦～"
+    assert channel.sent[0]["content"] == ("🎁 好耶，今天的任务顺利完成啦～\n\n获得 10 积分")
+
+
+@pytest.mark.asyncio
+async def test_rich_text_is_rendered_per_channel_without_visible_url() -> None:
+    plain = _RecordingChannel("plain")
+    markdown = _RecordingChannel("markdown")
+    html = _RecordingChannel("html")
+    plain.rich_text_format = "plain"
+    markdown.rich_text_format = "markdown"
+    html.rich_text_format = "html"
+    push_manager = UnifiedPushManager([plain, markdown, html])
+    description = (
+        RichTextBuilder()
+        .text("正文里的 ")
+        .link("网页链接", "https://example.com/hidden-target")
+        .text(" 可以点开")
+        .build()
+    )
+
+    result = await push_manager.send_news(
+        title="title",
+        description=description,
+        to_url="https://example.com/detail",
+    )
+
+    assert result["errors"] == []
+    assert plain.sent[0]["content"] == "正文里的 网页链接 可以点开"
+    assert "http://" not in plain.sent[0]["content"]
+    assert "https://" not in plain.sent[0]["content"]
+    assert "[网页链接](https://example.com/hidden-target)" in markdown.sent[0]["content"]
+    assert '<a href="https://example.com/hidden-target">网页链接</a>' in html.sent[0]["content"]
+    assert plain.sent[0]["extend_data"]["_rich_text_format"] == "plain"
+    assert markdown.sent[0]["extend_data"]["_rich_text_format"] == "markdown"
+    assert html.sent[0]["extend_data"]["_rich_text_format"] == "html"
+
+
+def test_rich_text_rejects_unsafe_url_and_truncates_without_broken_markup() -> None:
+    description = (
+        RichTextBuilder()
+        .text("开头")
+        .link("坏链接", "javascript:alert(1)")
+        .link("网页链接", "https://example.com/a")
+        .text("结尾")
+        .build()
+    )
+
+    assert description.plain_text() == "开头坏链接网页链接结尾"
+    assert "javascript:" not in description.render("html")
+    truncated_html = description.render("html", max_bytes=36)
+    truncated_markdown = description.render("markdown", max_bytes=36)
+    assert len(truncated_html.encode("utf-8")) <= 36
+    assert len(truncated_markdown.encode("utf-8")) <= 36
+    assert truncated_html.count("<a ") == truncated_html.count("</a>")
+    assert truncated_markdown.count("[") == truncated_markdown.count("](")

@@ -33,7 +33,12 @@ class NapCatQQ(PushChannel):
         #     message.append({"type": "text", "data": {"text": "\n\n"}})
         #     message.append({"type": "image", "data": {"file": pic_url}})
 
-        if jump_url:
+        hide_visible_jump_url = bool(
+            extend_data
+            and isinstance(extend_data, dict)
+            and extend_data.get("hide_visible_jump_url")
+        )
+        if jump_url and not hide_visible_jump_url:
             message.append({"type": "text", "data": {"text": f"\n\n原文: {jump_url}"}})
 
         if self.at_qq:

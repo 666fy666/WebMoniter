@@ -6,6 +6,8 @@ from . import PushChannel
 class Gotify(PushChannel):
     """Gotify 推送通道"""
 
+    rich_text_format = "markdown"
+
     def __init__(self, config, session=None):
         super().__init__(config, session)
         self.web_server_url = str(config.get("web_server_url", ""))

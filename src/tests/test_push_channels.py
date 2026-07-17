@@ -9,6 +9,7 @@ from aiohttp import ClientResponseError
 from src.push_channel import _channel_type_to_class, get_push_channel
 from src.push_channel._push_channel import PushChannel
 from src.push_channel.dingtalk_bot import DingtalkBot
+from src.push_channel.wxpusher import WxPusher
 
 
 def test_push_channel_types_count() -> None:
@@ -119,3 +120,44 @@ async def test_post_json_raises_for_http_error() -> None:
 
     with pytest.raises(ClientResponseError):
         await channel._post_json("https://example.test", {"hello": "world"})
+
+
+@pytest.mark.asyncio
+async def test_wxpusher_plain_mode_can_hide_visible_jump_url() -> None:
+    session = _FakeSession(_FakeResponse({"success": True}))
+    channel = WxPusher(
+        {
+            "name": "wx",
+            "type": "wxpusher",
+            "app_token": "token",
+            "uids": "uid",
+            "content_type": "1",
+        },
+        session=session,
+    )
+
+    await channel.push(
+        "标题",
+        "正文只有网页链接标题",
+        jump_url="https://example.com/detail",
+        extend_data={"hide_visible_jump_url": True},
+    )
+
+    payload = session.calls[0][1]["json"]
+    assert "https://" not in payload["content"]
+    assert payload["url"] == "https://example.com/detail"
+
+
+def test_wxpusher_accepts_string_markdown_content_type() -> None:
+    channel = WxPusher(
+        {
+            "name": "wx",
+            "type": "wxpusher",
+            "app_token": "token",
+            "uids": "uid",
+            "content_type": "3",
+        }
+    )
+
+    assert channel.content_type == 3
+    assert channel.rich_text_format == "markdown"

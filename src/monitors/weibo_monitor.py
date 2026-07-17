@@ -9,15 +9,17 @@ import shutil
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
+from bs4 import BeautifulSoup, NavigableString, Tag
 from PIL import Image, ImageOps
 
 from src.core.http import create_certifi_connector
 from src.core.paths import DATA_DIR
 from src.monitors.base import BaseMonitor, CookieExpiredError
+from src.push_channel.rich_text import RichText, RichTextBuilder, RichTextSegment
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
 
 POST_IMAGE_TIMEOUT = ClientTimeout(total=180, sock_connect=20, sock_read=90)
@@ -25,6 +27,12 @@ POST_IMAGE_HEADERS = {
     "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     "Referer": "https://weibo.com/",
 }
+
+WEIBO_CONTENT_TYPES = {"repost", "video", "image", "text"}
+WEIBO_CONTENT_SEGMENTS_INDEX = 10
+WEIBO_TAGS_INDEX = 11
+WEIBO_CONTENT_TYPE_INDEX = 12
+WEIBO_VIDEO_COVER_INDEX = 13
 
 
 class WeiboMonitor(BaseMonitor):
@@ -67,7 +75,7 @@ class WeiboMonitor(BaseMonitor):
         try:
             sql = (
                 "SELECT UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, "
-                "转发微博 FROM weibo"
+                "转发微博, 正文结构, 标签, 内容类型, 视频封面 FROM weibo"
             )
             results = await self.db.execute_query(sql)
             self.old_data_dict = {row[0]: row for row in results}
@@ -169,11 +177,86 @@ class WeiboMonitor(BaseMonitor):
 
         return candidates
 
+    @staticmethod
+    def _looks_like_video_payload(payload: object) -> bool:
+        """识别微博普通视频和混合媒体中的视频数据。"""
+        if not isinstance(payload, dict):
+            return False
+
+        markers = (
+            payload.get("type"),
+            payload.get("object_type"),
+            payload.get("media_type"),
+        )
+        if any(str(marker or "").strip().lower() == "video" for marker in markers):
+            return True
+
+        media_info = payload.get("media_info")
+        return isinstance(media_info, dict) and any(
+            key in media_info
+            for key in (
+                "stream_url",
+                "stream_url_hd",
+                "mp4_hd_url",
+                "mp4_sd_url",
+                "playback_list",
+            )
+        )
+
+    def _iter_video_payloads(self, status: dict) -> list[dict]:
+        """返回一条微博中所有可用于提取封面的独立视频数据。"""
+        if not isinstance(status, dict):
+            return []
+
+        payloads: list[dict] = []
+        seen: set[int] = set()
+
+        def append(payload: object, *, force: bool = False) -> None:
+            if not isinstance(payload, dict):
+                return
+            marker = id(payload)
+            if marker in seen or (not force and not self._looks_like_video_payload(payload)):
+                return
+            seen.add(marker)
+            payloads.append(payload)
+
+        append(status.get("page_info"))
+        if isinstance(status.get("media_info"), dict):
+            append(status)
+
+        mix_media_info = status.get("mix_media_info")
+        if isinstance(mix_media_info, dict):
+            items = mix_media_info.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    data = item.get("data")
+                    is_video = str(item.get("type") or "").strip().lower() == "video"
+                    append(data if isinstance(data, dict) else item, force=is_video)
+
+        pic_infos = status.get("pic_infos")
+        if isinstance(pic_infos, dict):
+            for info in pic_infos.values():
+                append(info)
+
+        pics = status.get("pics")
+        if isinstance(pics, list):
+            for item in pics:
+                if not isinstance(item, dict):
+                    continue
+                data = item.get("data")
+                is_video = str(item.get("type") or "").strip().lower() == "video"
+                append(data if isinstance(data, dict) else item, force=is_video)
+
+        return payloads
+
     def _extract_pic_url_candidates(
         self,
         pic_ids: list | None,
         pic_infos: dict | None,
         pics: list | None = None,
+        mix_media_info: dict | None = None,
     ) -> list[list[str]]:
         """按微博图片顺序提取每张图的下载候选 URL；视频不参与处理。"""
         result: list[list[str]] = []
@@ -184,19 +267,38 @@ class WeiboMonitor(BaseMonitor):
 
         for pic_id in ordered_ids:
             info = safe_pic_infos.get(pic_id)
+            if self._looks_like_video_payload(info):
+                continue
             candidates = self._collect_pic_candidates_from_info(info)
             if candidates:
                 result.append(candidates)
 
-        if result or not isinstance(pics, list):
+        if result:
             return result
 
-        for pic in pics:
-            if not isinstance(pic, dict):
+        if isinstance(pics, list):
+            for pic in pics:
+                if not isinstance(pic, dict) or self._looks_like_video_payload(pic):
+                    continue
+                candidates = self._collect_pic_candidates_from_info(pic)
+                if candidates:
+                    result.append(candidates)
+
+        if result or not isinstance(mix_media_info, dict):
+            return result
+
+        items = mix_media_info.get("items")
+        if not isinstance(items, list):
+            return result
+        for item in items:
+            if not isinstance(item, dict):
                 continue
-            if str(pic.get("type") or "").lower() == "video":
+            if str(item.get("type") or "").strip().lower() == "video":
                 continue
-            candidates = self._collect_pic_candidates_from_info(pic)
+            data = item.get("data")
+            if not isinstance(data, dict) or self._looks_like_video_payload(data):
+                continue
+            candidates = self._collect_pic_candidates_from_info(data)
             if candidates:
                 result.append(candidates)
         return result
@@ -223,6 +325,56 @@ class WeiboMonitor(BaseMonitor):
             return []
         return [item for item in values if isinstance(item, str) and item]
 
+    @staticmethod
+    def _parse_rich_text_segments(raw_segments: object) -> RichText:
+        """解析数据库或内存中的结构化正文。"""
+        if isinstance(raw_segments, RichText):
+            return raw_segments
+        if isinstance(raw_segments, list):
+            values = raw_segments
+        elif isinstance(raw_segments, str) and raw_segments.strip():
+            try:
+                values = json.loads(raw_segments)
+            except json.JSONDecodeError:
+                return RichText()
+        else:
+            return RichText()
+        return RichText.from_dicts(values)
+
+    @staticmethod
+    def _dump_rich_text_segments(content: RichText | object) -> str:
+        if isinstance(content, RichText):
+            rich = content
+        elif isinstance(content, str) and content.strip():
+            try:
+                rich = RichText.from_dicts(json.loads(content))
+            except json.JSONDecodeError:
+                rich = RichText()
+        else:
+            rich = RichText.from_dicts(content)
+        return json.dumps(rich.to_dicts(), ensure_ascii=False)
+
+    @staticmethod
+    def _parse_weibo_tags(raw_tags: object) -> list[str]:
+        if isinstance(raw_tags, list):
+            values = raw_tags
+        elif isinstance(raw_tags, str) and raw_tags.strip():
+            try:
+                values = json.loads(raw_tags)
+            except json.JSONDecodeError:
+                return []
+        else:
+            return []
+        result: list[str] = []
+        for value in values:
+            tag = str(value or "").strip()
+            if tag and tag not in result:
+                result.append(tag)
+        return result
+
+    def _dump_weibo_tags(self, raw_tags: object) -> str:
+        return json.dumps(self._parse_weibo_tags(raw_tags), ensure_ascii=False)
+
     def _parse_retweeted_status(self, raw_status: object) -> dict:
         """解析数据库或内存中的转发微博 JSON。"""
         if isinstance(raw_status, dict):
@@ -243,14 +395,30 @@ class WeiboMonitor(BaseMonitor):
             images = []
         clean_images = [item.strip() for item in images if isinstance(item, str) and item.strip()]
 
+        content = self._parse_rich_text_segments(status.get("content_segments"))
+        text = str(status.get("text") or "").strip()
+        if not content and text:
+            content = RichText.text(text)
+        elif content:
+            text = content.plain_text().strip()
+        tags = self._parse_weibo_tags(status.get("tags"))
+        video_cover = str(status.get("video_cover") or "").strip()
+        content_type = str(status.get("content_type") or "").strip().lower()
+        if content_type not in WEIBO_CONTENT_TYPES:
+            content_type = "video" if video_cover else ("image" if clean_images else "text")
+
         parsed = {
             "user_id": str(status.get("user_id") or "").strip(),
             "user_name": str(status.get("user_name") or "").strip(),
             "verified": str(status.get("verified") or "").strip(),
-            "text": str(status.get("text") or "").strip(),
+            "text": text,
+            "content_segments": content.to_dicts(),
+            "tags": tags,
+            "content_type": content_type,
             "created_at": str(status.get("created_at") or "").strip(),
             "mid": str(status.get("mid") or "").strip(),
             "images": clean_images,
+            "video_cover": video_cover,
             "source_unavailable": bool(status.get("source_unavailable")),
         }
         if not any(
@@ -261,6 +429,7 @@ class WeiboMonitor(BaseMonitor):
                 parsed["created_at"],
                 parsed["mid"],
                 parsed["images"],
+                parsed["video_cover"],
                 parsed["source_unavailable"],
             ]
         ):
@@ -284,6 +453,9 @@ class WeiboMonitor(BaseMonitor):
             status.get("user_name", ""),
             status.get("verified", ""),
             self._normalize_weibo_text_for_compare(status.get("text", "")),
+            json.dumps(status.get("content_segments") or [], ensure_ascii=False, sort_keys=True),
+            tuple(status.get("tags") or []),
+            status.get("content_type", "text"),
             status.get("created_at", ""),
             status.get("mid", ""),
             bool(status.get("source_unavailable")),
@@ -363,6 +535,35 @@ class WeiboMonitor(BaseMonitor):
             len(old_images), expected_count
         )
 
+    def _needs_video_cover_retry(self, data: dict, old_info: tuple) -> bool:
+        """同一条视频微博封面缺失时，在后续轮询补偿下载。"""
+        if not data.get("_video_cover_url_candidates"):
+            return False
+        old_mid = str(old_info[7]) if len(old_info) > 7 else ""
+        if not self._same_mid(old_mid, data.get("mid")):
+            return False
+        old_cover = (
+            str(old_info[WEIBO_VIDEO_COVER_INDEX] or "")
+            if len(old_info) > WEIBO_VIDEO_COVER_INDEX
+            else ""
+        )
+        return not old_cover or not self._local_post_image_exists(old_cover)
+
+    def _needs_retweeted_video_cover_retry(self, data: dict, old_info: tuple) -> bool:
+        """同一条被转发视频的封面缺失时补偿下载。"""
+        if not data.get("_retweeted_video_cover_url_candidates"):
+            return False
+        if not self._same_mid(old_info[7] if len(old_info) > 7 else "", data.get("mid")):
+            return False
+        new_retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        old_retweeted = self._parse_retweeted_status(old_info[9] if len(old_info) > 9 else "")
+        if not new_retweeted or not old_retweeted:
+            return False
+        if not self._same_mid(new_retweeted.get("mid"), old_retweeted.get("mid")):
+            return False
+        old_cover = str(old_retweeted.get("video_cover") or "")
+        return not old_cover or not self._local_post_image_exists(old_cover)
+
     def _commit_post_image_dir(self, user_dir: Path, post_mid: str, temp_dir: Path | None) -> Path:
         """
         将临时图片目录切换为 posts/<mid>，并移除同一用户其他旧微博图片目录。
@@ -383,6 +584,17 @@ class WeiboMonitor(BaseMonitor):
 
         if temp_dir is not None:
             if target_dir.exists():
+                # 正文图片补偿替换目录时，保留与图片灯箱无关的视频封面和原微博媒体。
+                for name in (
+                    "video_cover.jpg",
+                    "video_cover.thumb.jpg",
+                    "video_cover_wecom.jpg",
+                    "retweeted",
+                ):
+                    source = target_dir / name
+                    destination = temp_dir / name
+                    if source.exists() and not destination.exists():
+                        shutil.move(str(source), str(destination))
                 self._remove_path(target_dir)
             shutil.move(str(temp_dir), str(target_dir))
 
@@ -514,6 +726,7 @@ class WeiboMonitor(BaseMonitor):
                     item.get("pic_ids", []),
                     item.get("pic_infos", {}),
                     item.get("pics", []),
+                    item.get("mix_media_info", {}),
                 )
         except Exception as e:
             self.logger.debug("刷新微博正文图片链接失败（已忽略）: %s", e)
@@ -551,6 +764,7 @@ class WeiboMonitor(BaseMonitor):
                     retweeted_status.get("pic_ids", []),
                     retweeted_status.get("pic_infos", {}),
                     retweeted_status.get("pics", []),
+                    retweeted_status.get("mix_media_info", {}),
                 )
         except Exception as e:
             self.logger.debug("刷新被转发微博图片链接失败（已忽略）: %s", e)
@@ -564,15 +778,21 @@ class WeiboMonitor(BaseMonitor):
 
     @staticmethod
     def _is_long_text_status(status: dict) -> bool:
-        """判断微博列表项是否明确标记为长文本。"""
+        """长文本标记或超过九图时，详情接口可能包含更完整正文。"""
         value = status.get("isLongText")
+        is_long = False
         if isinstance(value, bool):
-            return value
-        if isinstance(value, int):
-            return value == 1
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "true"}
-        return False
+            is_long = value
+        elif isinstance(value, int):
+            is_long = value == 1
+        elif isinstance(value, str):
+            is_long = value.strip().lower() in {"1", "true"}
+        if is_long:
+            return True
+        try:
+            return int(status.get("pic_num") or 0) > 9
+        except (TypeError, ValueError):
+            return False
 
     @staticmethod
     def _normalize_weibo_text_for_compare(text: object) -> str:
@@ -667,9 +887,7 @@ class WeiboMonitor(BaseMonitor):
 
     def _created_at_relation_to_old(self, data: dict, old_info: tuple) -> int | None:
         """比较新旧微博发布时间：1 新于旧，0 相同，-1 早于旧，None 表示无法判断。"""
-        new_created_at = self._parse_created_at_value(
-            data.get("_created_at") or data.get("文本")
-        )
+        new_created_at = self._parse_created_at_value(data.get("_created_at") or data.get("文本"))
         old_created_at = self._parse_created_at_value(old_info[6] if len(old_info) > 6 else "")
         if not new_created_at or not old_created_at:
             return None
@@ -734,8 +952,284 @@ class WeiboMonitor(BaseMonitor):
         return re.sub(r"(?:\.{3}|…|全文|展开全文)+$", "", text).strip()
 
     @staticmethod
+    def _safe_weibo_link_url(value: object) -> str:
+        """规范化微博正文链接，仅允许 HTTP(S)，不发起额外网络请求。"""
+        raw = html.unescape(str(value or "")).strip()
+        if raw.startswith("//"):
+            raw = f"https:{raw}"
+        if re.search(r"[\x00-\x20\x7f]", raw):
+            return ""
+        try:
+            parsed = urlsplit(raw)
+            _ = parsed.port
+        except ValueError:
+            return ""
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            return ""
+
+        if (
+            parsed.hostname in {"weibo.cn", "www.weibo.cn"}
+            and parsed.path.rstrip("/") == "/sinaurl"
+        ):
+            target = parse_qs(parsed.query).get("u", [""])[0]
+            if target:
+                try:
+                    target_parsed = urlsplit(target)
+                    _ = target_parsed.port
+                except ValueError:
+                    target_parsed = None
+                if (
+                    target_parsed
+                    and target_parsed.scheme.lower() in {"http", "https"}
+                    and target_parsed.hostname
+                    and not re.search(r"[\x00-\x20\x7f]", target)
+                ):
+                    return target
+        return raw
+
+    @staticmethod
+    def _normalize_rich_text(value: RichText) -> RichText:
+        """清理微博 HTML 产生的多余空白，同时保持链接片段边界。"""
+        cleaned: list[RichTextSegment] = []
+        for segment in value.segments:
+            text = segment.text.replace("\r\n", "\n").replace("\r", "\n")
+            text = text.replace("\xa0", " ")
+            text = re.sub(r"[ \t]+\n", "\n", text)
+            text = re.sub(r"\n[ \t]+", "\n", text)
+            text = re.sub(r"\n{3,}", "\n\n", text)
+            if text:
+                cleaned.append(RichTextSegment(text, segment.url))
+
+        if not cleaned:
+            return RichText()
+        first = cleaned[0]
+        cleaned[0] = RichTextSegment(first.text.lstrip(), first.url)
+        last = cleaned[-1]
+        cleaned[-1] = RichTextSegment(last.text.rstrip(), last.url)
+        return RichText(cleaned)
+
+    def _parse_weibo_html_rich_text(self, value: object) -> RichText:
+        """将微博 HTML 解析为安全的文本/链接片段。"""
+        raw = str(value or "")
+        if not raw:
+            return RichText()
+        soup = BeautifulSoup(raw, "html.parser")
+
+        def parse_nodes(nodes) -> RichText:
+            builder = RichTextBuilder()
+            for node in nodes:
+                if isinstance(node, NavigableString):
+                    builder.text(str(node))
+                    continue
+                if not isinstance(node, Tag):
+                    continue
+
+                name = (node.name or "").lower()
+                if name == "br":
+                    builder.text("\n")
+                    continue
+                if name == "img":
+                    builder.text(node.get("alt") or "")
+                    continue
+                if name in {"script", "style"}:
+                    continue
+                if name == "a":
+                    label_rich = parse_nodes(node.children)
+                    label = label_rich.plain_text().strip() or "网页链接"
+                    href = self._safe_weibo_link_url(node.get("href"))
+                    is_topic = label.startswith("#") and label.endswith("#")
+                    is_mention = label.startswith("@")
+                    if href and not is_topic and not is_mention:
+                        label = self._without_visible_urls(label)
+                        builder.link(label, href)
+                    else:
+                        builder.rich(label_rich if label_rich else RichText.text(label))
+                    continue
+
+                child_rich = parse_nodes(node.children)
+                builder.rich(child_rich)
+                if name in {"p", "div"} and not child_rich.plain_text().endswith("\n"):
+                    builder.text("\n")
+            return builder.build()
+
+        return self._normalize_rich_text(parse_nodes(soup.contents))
+
+    def _apply_url_struct_fallback(self, content: RichText, url_struct: object) -> RichText:
+        """用接口元数据还原链接，并确保正文中不留下可见网址。"""
+        link_metadata: list[tuple[str, str, str]] = []
+        if isinstance(url_struct, list):
+            for raw_item in url_struct:
+                if not isinstance(raw_item, dict):
+                    continue
+                short_url = self._safe_weibo_link_url(raw_item.get("short_url"))
+                target_url = self._safe_weibo_link_url(
+                    raw_item.get("long_url") or raw_item.get("ori_url") or short_url
+                )
+                if not short_url or not target_url:
+                    continue
+                label = str(raw_item.get("url_title") or "网页链接").strip() or "网页链接"
+                label = self._without_visible_urls(label)
+                link_metadata.append((short_url, target_url, label))
+
+        # HTML 中已经存在的链接仍使用 url_struct 的 long_url 和标题回填。
+        enriched: list[RichTextSegment] = []
+        for segment in content.segments:
+            if not segment.is_link:
+                enriched.append(segment)
+                continue
+            target_url = segment.url
+            label = self._without_visible_urls(segment.text.strip() or "网页链接")
+            for short_url, long_url, metadata_label in link_metadata:
+                if target_url in {short_url, long_url}:
+                    target_url = long_url
+                    if label == "网页链接":
+                        label = metadata_label
+                    break
+            enriched.append(RichTextSegment(label, target_url))
+
+        # HTML 只有纯文本短链时，按原位置替换，不把链接标题额外拼到正文中。
+        segments = enriched
+        for short_url, target_url, label in link_metadata:
+            replaced: list[RichTextSegment] = []
+            for segment in segments:
+                if segment.is_link or short_url not in segment.text:
+                    replaced.append(segment)
+                    continue
+                parts = segment.text.split(short_url)
+                for index, part in enumerate(parts):
+                    if part:
+                        replaced.append(RichTextSegment(part))
+                    if index < len(parts) - 1:
+                        replaced.append(RichTextSegment(label, target_url))
+            segments = replaced
+
+        # 兼容没有 url_struct 的裸地址：保留点击目标，但可见文字统一为“网页链接”。
+        visible_url_pattern = re.compile(r"https?://[^\s<>'\"\]\[）)]+", re.IGNORECASE)
+        hidden_urls: list[RichTextSegment] = []
+        for segment in segments:
+            if segment.is_link:
+                hidden_urls.append(segment)
+                continue
+            cursor = 0
+            for match in visible_url_pattern.finditer(segment.text):
+                if match.start() > cursor:
+                    hidden_urls.append(RichTextSegment(segment.text[cursor : match.start()]))
+                safe_url = self._safe_weibo_link_url(match.group(0))
+                hidden_urls.append(RichTextSegment("网页链接", safe_url))
+                cursor = match.end()
+            if cursor < len(segment.text):
+                hidden_urls.append(RichTextSegment(segment.text[cursor:]))
+        return RichText(hidden_urls)
+
+    def _get_status_rich_text(self, status: dict) -> RichText:
+        """读取列表微博正文，优先使用带链接信息的 HTML。"""
+        html_text = status.get("text")
+        if isinstance(html_text, str) and html_text.strip():
+            content = self._parse_weibo_html_rich_text(html_text)
+        else:
+            content = RichText.text(str(status.get("text_raw") or "").strip())
+        if not content:
+            content = RichText.text(str(status.get("text_raw") or "").strip())
+        return self._apply_url_struct_fallback(content, status.get("url_struct"))
+
+    @staticmethod
+    def _extract_weibo_tags(text: object) -> list[str]:
+        """从可见正文中提取有序、去重的话题标签。"""
+        tags: list[str] = []
+        seen: set[str] = set()
+        for match in re.finditer(r"#([^#\n]{1,100})#", str(text or "")):
+            tag = match.group(1).strip()
+            if tag and tag not in seen:
+                seen.add(tag)
+                tags.append(tag)
+        return tags
+
+    def _get_weibo_content_type(self, status: dict) -> str:
+        """按转发、视频、图文、文字的优先级识别微博类型。"""
+        if isinstance(status.get("retweeted_status"), dict) and status.get("retweeted_status"):
+            return "repost"
+        if self._iter_video_payloads(status):
+            return "video"
+        if status.get("pic_ids") or status.get("pics"):
+            return "image"
+        mix_media_info = status.get("mix_media_info")
+        if isinstance(mix_media_info, dict) and mix_media_info.get("items"):
+            return "image"
+        return "text"
+
+    def _extract_video_cover_candidates(self, status: dict) -> list[str]:
+        """提取普通视频或混合媒体视频的封面候选。"""
+        candidates: list[str] = []
+        seen_objects: set[int] = set()
+
+        def append_cover(value: object, depth: int = 0) -> None:
+            if depth > 4:
+                return
+            if isinstance(value, str):
+                self._add_pic_url(candidates, self._safe_weibo_link_url(value))
+                return
+            if not isinstance(value, dict):
+                return
+
+            marker = id(value)
+            if marker in seen_objects:
+                return
+            seen_objects.add(marker)
+
+            raw_url = value.get("url") or value.get("src") or value.get("pic_url")
+            safe_url = self._safe_weibo_link_url(raw_url)
+            pid = str(value.get("pid") or value.get("pic_id") or "").strip()
+            if safe_url and pid:
+                parsed = urlsplit(safe_url)
+                self._add_pic_url(
+                    candidates,
+                    f"{parsed.scheme}://{parsed.netloc}/large/{pid}",
+                )
+            self._add_pic_url(candidates, safe_url)
+
+            for candidate in self._collect_pic_candidates_from_info(value):
+                self._add_pic_url(
+                    candidates,
+                    self._safe_weibo_link_url(candidate),
+                )
+
+            for key in (
+                "page_pic",
+                "pic_info",
+                "big_pic_info",
+                "pic_big",
+                "pic_middle",
+                "pic_small",
+                "poster",
+                "poster_url",
+                "cover",
+                "cover_url",
+                "cover_image",
+                "cover_image_url",
+                "thumbnail",
+            ):
+                append_cover(value.get(key), depth + 1)
+
+        for payload in self._iter_video_payloads(status):
+            append_cover(payload.get("page_pic"))
+            append_cover(payload.get("pic_info"))
+            media_info = payload.get("media_info")
+            if isinstance(media_info, dict):
+                append_cover(media_info.get("big_pic_info"))
+                for key in (
+                    "poster",
+                    "poster_url",
+                    "cover",
+                    "cover_url",
+                    "cover_image",
+                    "cover_image_url",
+                ):
+                    append_cover(media_info.get(key))
+        return candidates
+
+    @staticmethod
     def _clean_weibo_html_text(text: object) -> str:
-        """将微博接口里的 HTML 文本降级为纯文本。"""
+        """兼容旧调用：将微博 HTML 降级为不含链接目标的纯文本。"""
         value = html.unescape(str(text or ""))
         value = re.sub(r"<br\s*/?>", "\n", value, flags=re.IGNORECASE)
         value = re.sub(r"</p\s*>", "\n", value, flags=re.IGNORECASE)
@@ -743,11 +1237,13 @@ class WeiboMonitor(BaseMonitor):
         value = re.sub(r"\n{3,}", "\n\n", value)
         return value.strip()
 
-    async def _extract_retweeted_status(self, status: dict) -> tuple[dict, list[list[str]]]:
-        """从微博列表项中解析被转发微博信息和图片候选 URL。"""
+    async def _extract_retweeted_status(
+        self, status: dict
+    ) -> tuple[dict, list[list[str]], list[str], bool]:
+        """解析被转发微博、正文图片候选和视频封面候选。"""
         retweeted_status = status.get("retweeted_status")
         if not isinstance(retweeted_status, dict) or not retweeted_status:
-            return {}, []
+            return {}, [], [], False
 
         user = retweeted_status.get("user")
         if not isinstance(user, dict):
@@ -757,9 +1253,8 @@ class WeiboMonitor(BaseMonitor):
         user_name = str(
             user.get("screen_name") or retweeted_status.get("screen_name") or ""
         ).strip()
-        text_raw = str(retweeted_status.get("text_raw") or "").strip()
-        if not text_raw:
-            text_raw = self._clean_weibo_html_text(retweeted_status.get("text"))
+        content = self._get_status_rich_text(retweeted_status)
+        text_raw = content.plain_text().strip()
 
         source_unavailable = bool(
             retweeted_status.get("deleted")
@@ -768,27 +1263,45 @@ class WeiboMonitor(BaseMonitor):
         )
         if source_unavailable and not text_raw:
             text_raw = "原微博已不可见"
+            content = RichText.text(text_raw)
 
-        long_text_content = await self._fetch_long_text_content(retweeted_status)
+        long_text_content = await self._fetch_long_text_rich(retweeted_status)
         if long_text_content:
-            text_raw = long_text_content
+            content = long_text_content
+            text_raw = content.plain_text().strip()
 
         pic_ids = retweeted_status.get("pic_ids", [])
         pic_infos = retweeted_status.get("pic_infos", {})
         pics = retweeted_status.get("pics", [])
-        candidates = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
+        candidates = self._extract_pic_url_candidates(
+            pic_ids,
+            pic_infos,
+            pics,
+            retweeted_status.get("mix_media_info", {}),
+        )
+        video_cover_candidates = self._extract_video_cover_candidates(retweeted_status)
+        content_type = self._get_weibo_content_type(retweeted_status)
 
         retweeted = {
             "user_id": str(user.get("idstr") or user.get("id") or "").strip(),
             "user_name": user_name or "未知用户",
             "verified": str(user.get("verified_reason") or "").strip(),
             "text": text_raw,
+            "content_segments": content.to_dicts(),
+            "tags": self._extract_weibo_tags(text_raw),
+            "content_type": content_type,
             "created_at": str(retweeted_status.get("created_at") or "").strip(),
             "mid": mid,
             "images": [],
+            "video_cover": "",
             "source_unavailable": source_unavailable,
         }
-        return self._parse_retweeted_status(retweeted), candidates
+        return (
+            self._parse_retweeted_status(retweeted),
+            candidates,
+            video_cover_candidates,
+            bool(long_text_content),
+        )
 
     def _is_long_text_backfill(self, new_data: dict, old_info: tuple) -> bool:
         """判断本次文本变化是否为同一条微博从截断正文补成完整长文本。"""
@@ -830,47 +1343,114 @@ class WeiboMonitor(BaseMonitor):
             for prefix in prefixes
         )
 
-    async def _fetch_long_text_content(self, status: dict) -> str | None:
-        """微博列表接口会截断长微博；需要额外请求 longtext 接口获取完整正文。"""
-        if not self._is_long_text_status(status):
-            return None
+    def _is_retweeted_long_text_backfill(self, new_data: dict, old_status: object) -> bool:
+        """判断被转发原微博是否从同一条截断正文补成完整长文。"""
+        if not new_data.get("_retweeted_long_text_fetched"):
+            return False
+        current = self._parse_retweeted_status(new_data.get("转发微博"))
+        previous = self._parse_retweeted_status(old_status)
+        if (
+            not current
+            or not previous
+            or not self._same_mid(current.get("mid"), previous.get("mid"))
+        ):
+            return False
 
-        long_text_id = status.get("mblogid")
-        if not long_text_id:
-            self.logger.debug("微博列表项标记为长文本但缺少 mblogid，跳过 longtext 接口")
-            return None
+        old_text = self._normalize_weibo_text_for_compare(previous.get("text"))
+        new_text = self._normalize_weibo_text_for_compare(current.get("text"))
+        old_prefix = self._strip_long_text_marker(old_text)
+        return bool(
+            old_prefix
+            and old_prefix != old_text
+            and len(new_text) > len(old_prefix)
+            and new_text.startswith(old_prefix)
+        )
 
+    def _rich_text_from_long_text_data(self, data: object) -> RichText:
+        """从桌面或移动详情响应中解析完整正文。"""
+        if not isinstance(data, dict):
+            return RichText()
+        html_content = data.get("longTextContent")
+        if isinstance(html_content, str) and html_content.strip():
+            content = self._parse_weibo_html_rich_text(html_content)
+        else:
+            content = RichText.text(str(data.get("longTextContent_raw") or "").strip())
+        return self._apply_url_struct_fallback(content, data.get("url_struct"))
+
+    async def _fetch_mobile_long_text_rich(self, status: dict) -> RichText | None:
+        """使用移动端详情接口作为桌面 longtext 的非鉴权降级。"""
+        status_id = status.get("mid") or status.get("id")
+        if not status_id:
+            self.logger.debug("微博长文本缺少 mid/id，无法使用移动端详情降级")
+            return None
         try:
             session = await self._get_session()
-            headers: dict[str, str] = {}
-            xsrf_token = self._get_weibo_xsrf_token()
-            if xsrf_token:
-                headers["X-XSRF-TOKEN"] = xsrf_token
-
             async with session.get(
-                "https://www.weibo.com/ajax/statuses/longtext",
-                params={"id": str(long_text_id)},
-                headers=headers or None,
+                "https://m.weibo.cn/statuses/extend",
+                params={"id": str(status_id)},
+                headers={
+                    "Referer": f"https://m.weibo.cn/detail/{status_id}",
+                    "MWeibo-Pwa": "1",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
             ) as resp:
                 resp.raise_for_status()
                 result = await resp.json()
 
             if result.get("ok") == -100:
                 raise CookieExpiredError("微博Cookie已失效，需要重新登录")
-
-            data = result.get("data") or {}
-            for key in ("longTextContent_raw", "longTextContent"):
-                content = data.get(key)
-                if isinstance(content, str) and content:
-                    return content
-
-            self.logger.debug("微博长文本接口未返回正文: %s", long_text_id)
+            if result.get("ok") != 1:
+                self.logger.debug("微博移动端长文本接口未成功: %s", status_id)
+                return None
+            content = self._rich_text_from_long_text_data(result.get("data"))
+            return content or None
         except CookieExpiredError:
             raise
         except Exception as e:
-            self.logger.debug("获取微博长文本失败，使用列表文本（id=%s）: %s", long_text_id, e)
+            self.logger.debug("微博移动端长文本降级失败（id=%s）: %s", status_id, e)
+            return None
 
-        return None
+    async def _fetch_long_text_rich(self, status: dict) -> RichText | None:
+        """补取完整正文；桌面端优先，移动端用于非鉴权降级。"""
+        if not self._is_long_text_status(status):
+            return None
+
+        long_text_id = status.get("mblogid")
+        if long_text_id:
+            try:
+                session = await self._get_session()
+                headers: dict[str, str] = {}
+                xsrf_token = self._get_weibo_xsrf_token()
+                if xsrf_token:
+                    headers["X-XSRF-TOKEN"] = xsrf_token
+
+                async with session.get(
+                    "https://www.weibo.com/ajax/statuses/longtext",
+                    params={"id": str(long_text_id)},
+                    headers=headers or None,
+                ) as resp:
+                    resp.raise_for_status()
+                    result = await resp.json()
+
+                if result.get("ok") == -100:
+                    raise CookieExpiredError("微博Cookie已失效，需要重新登录")
+                content = self._rich_text_from_long_text_data(result.get("data"))
+                if content:
+                    return content
+                self.logger.debug("微博桌面长文本接口未返回正文: %s", long_text_id)
+            except CookieExpiredError:
+                raise
+            except Exception as e:
+                self.logger.debug("微博桌面长文本接口失败（id=%s）: %s", long_text_id, e)
+        else:
+            self.logger.debug("微博列表项标记为长文本但缺少 mblogid，尝试移动端详情")
+
+        return await self._fetch_mobile_long_text_rich(status)
+
+    async def _fetch_long_text_content(self, status: dict) -> str | None:
+        """兼容旧调用，返回不显示实际 URL 的完整正文纯文本。"""
+        content = await self._fetch_long_text_rich(status)
+        return content.plain_text() if content else None
 
     async def _download_image_indices_to_temp(
         self,
@@ -927,6 +1507,16 @@ class WeiboMonitor(BaseMonitor):
 
         if temp_dir is not None:
             if target_dir.exists():
+                # 被转发微博图片补偿时，视频封面应继续独立保留。
+                for name in (
+                    "video_cover.jpg",
+                    "video_cover.thumb.jpg",
+                    "video_cover_wecom.jpg",
+                ):
+                    source = target_dir / name
+                    destination = temp_dir / name
+                    if source.exists() and not destination.exists():
+                        shutil.move(str(source), str(destination))
                 self._remove_path(target_dir)
             shutil.move(str(temp_dir), str(target_dir))
 
@@ -1123,6 +1713,92 @@ class WeiboMonitor(BaseMonitor):
         data["转发微博"] = self._dump_retweeted_status(retweeted)
         return image_urls
 
+    async def _save_video_cover(self, data: dict, keep_existing: bool = False) -> str:
+        """保存主微博视频封面，字段为空时不影响普通图片。"""
+        candidates = data.get("_video_cover_url_candidates") or []
+        existing_url = str(data.get("视频封面") or "").strip()
+        if keep_existing and existing_url and self._local_post_image_exists(existing_url):
+            existing_path = self._get_local_post_image_path(existing_url)
+            if existing_path:
+                thumb = self._get_post_thumbnail_path(existing_path)
+                if not thumb.exists():
+                    self._make_post_thumbnail(existing_path, thumb)
+            return existing_url
+
+        post_mid = self._sanitize_path_part(data.get("mid") or "0")
+        if not candidates or post_mid == "0":
+            data["视频封面"] = existing_url if keep_existing else ""
+            return str(data["视频封面"])
+
+        safe_username = self._sanitize_username(data.get("用户名") or "unknown_user")
+        save_path = (
+            self._get_weibo_data_dir() / safe_username / "posts" / post_mid / "video_cover.jpg"
+        )
+        local_url = self._build_weibo_img_url(safe_username, "posts", post_mid, "video_cover.jpg")
+        try:
+            if await self._download_post_image(candidates, save_path):
+                self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
+                data["视频封面"] = local_url
+                return local_url
+        except Exception as e:
+            self.logger.warning("保存微博视频封面失败（已忽略）: %s", e)
+
+        data["视频封面"] = existing_url if keep_existing else ""
+        return str(data["视频封面"])
+
+    async def _save_retweeted_video_cover(self, data: dict, keep_existing: bool = False) -> str:
+        """保存被转发微博的视频封面。"""
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        if not retweeted:
+            return ""
+        candidates = data.get("_retweeted_video_cover_url_candidates") or []
+        existing_url = str(retweeted.get("video_cover") or "").strip()
+        if keep_existing and existing_url and self._local_post_image_exists(existing_url):
+            existing_path = self._get_local_post_image_path(existing_url)
+            if existing_path:
+                thumb = self._get_post_thumbnail_path(existing_path)
+                if not thumb.exists():
+                    self._make_post_thumbnail(existing_path, thumb)
+            return existing_url
+
+        post_mid = self._sanitize_path_part(data.get("mid") or "0")
+        retweeted_mid = self._sanitize_path_part(retweeted.get("mid") or "0")
+        if not candidates or post_mid == "0" or retweeted_mid == "0":
+            retweeted["video_cover"] = existing_url if keep_existing else ""
+            data["转发微博"] = self._dump_retweeted_status(retweeted)
+            return str(retweeted["video_cover"])
+
+        safe_username = self._sanitize_username(data.get("用户名") or "unknown_user")
+        save_path = (
+            self._get_weibo_data_dir()
+            / safe_username
+            / "posts"
+            / post_mid
+            / "retweeted"
+            / retweeted_mid
+            / "video_cover.jpg"
+        )
+        local_url = self._build_weibo_img_url(
+            safe_username,
+            "posts",
+            post_mid,
+            "retweeted",
+            retweeted_mid,
+            "video_cover.jpg",
+        )
+        try:
+            if await self._download_post_image(candidates, save_path):
+                self._make_post_thumbnail(save_path, self._get_post_thumbnail_path(save_path))
+                retweeted["video_cover"] = local_url
+                data["转发微博"] = self._dump_retweeted_status(retweeted)
+                return local_url
+        except Exception as e:
+            self.logger.warning("保存被转发微博视频封面失败（已忽略）: %s", e)
+
+        retweeted["video_cover"] = existing_url if keep_existing else ""
+        data["转发微博"] = self._dump_retweeted_status(retweeted)
+        return str(retweeted["video_cover"])
+
     def _resize_cover_for_wecom(self, cover_path: Path, wecom_path: Path) -> bool:
         """
         将微博封面图 resize 为企业微信图文消息推荐尺寸 1068×455，并保存为 JPG。
@@ -1208,9 +1884,7 @@ class WeiboMonitor(BaseMonitor):
     def _get_timeline_statuses(self, wb_list: list) -> list[dict]:
         """获取用于监控的微博列表，优先跳过置顶微博。"""
         statuses = [
-            item
-            for item in wb_list
-            if isinstance(item, dict) and item.get("isTop", 0) != 1
+            item for item in wb_list if isinstance(item, dict) and item.get("isTop", 0) != 1
         ]
         if statuses:
             return statuses
@@ -1233,13 +1907,12 @@ class WeiboMonitor(BaseMonitor):
     async def _build_status_data(self, base_data: dict, target_wb: dict) -> dict:
         """将微博列表中的单条微博解析成数据库/推送共用结构。"""
         data = dict(base_data)
-        text_raw = str(target_wb.get("text_raw") or "").strip()
-        if not text_raw:
-            text_raw = self._clean_weibo_html_text(target_wb.get("text"))
-        list_text_raw = text_raw
-        long_text_content = await self._fetch_long_text_content(target_wb)
+        content = self._get_status_rich_text(target_wb)
+        list_text_raw = content.plain_text().strip()
+        long_text_content = await self._fetch_long_text_rich(target_wb)
         if long_text_content:
-            text_raw = long_text_content
+            content = long_text_content
+        text_raw = content.plain_text().strip()
 
         pic_ids = target_wb.get("pic_ids", [])
         if not isinstance(pic_ids, list):
@@ -1250,20 +1923,29 @@ class WeiboMonitor(BaseMonitor):
         if not isinstance(url_struct, list):
             url_struct = []
         created_at = str(target_wb.get("created_at") or "")
-        retweeted_status, retweeted_pic_candidates = await self._extract_retweeted_status(target_wb)
+        (
+            retweeted_status,
+            retweeted_pic_candidates,
+            retweeted_video_cover_candidates,
+            retweeted_long_text_fetched,
+        ) = await self._extract_retweeted_status(target_wb)
+        content_type = self._get_weibo_content_type(target_wb)
+        tags = self._extract_weibo_tags(text_raw)
+        video_cover_candidates = self._extract_video_cover_candidates(target_wb)
+        pic_candidates = self._extract_pic_url_candidates(
+            pic_ids,
+            pic_infos,
+            pics,
+            target_wb.get("mix_media_info", {}),
+        )
 
         spacing = "\n          "
         prefix = "          "
 
         text = prefix + text_raw
 
-        if pic_ids:
-            text += f"{spacing}[图片]  *  {len(pic_ids)}      (详情请点击噢!)"
-
-        if url_struct and isinstance(url_struct[0], dict):
-            url_title = str(url_struct[0].get("url_title") or "").strip()
-            if url_title:
-                text += f"{spacing}#{url_title}#"
+        if pic_candidates:
+            text += f"{spacing}[图片]  *  {len(pic_candidates)}      (详情请点击噢!)"
 
         text += f"\n\n{created_at}"
 
@@ -1271,12 +1953,20 @@ class WeiboMonitor(BaseMonitor):
         data["mid"] = str(target_wb.get("mid") or "0")
         data["图片"] = "[]"
         data["转发微博"] = self._dump_retweeted_status(retweeted_status)
+        data["正文结构"] = self._dump_rich_text_segments(content)
+        data["标签"] = self._dump_weibo_tags(tags)
+        data["内容类型"] = content_type
+        data["视频封面"] = ""
         data["_text_raw"] = text_raw
         data["_list_text_raw"] = list_text_raw
         data["_long_text_fetched"] = bool(long_text_content)
+        data["_content_rich_text"] = content
         data["_pic_ids"] = pic_ids
-        data["_pic_url_candidates"] = self._extract_pic_url_candidates(pic_ids, pic_infos, pics)
+        data["_pic_url_candidates"] = pic_candidates
         data["_retweeted_pic_url_candidates"] = retweeted_pic_candidates
+        data["_video_cover_url_candidates"] = video_cover_candidates
+        data["_retweeted_video_cover_url_candidates"] = retweeted_video_cover_candidates
+        data["_retweeted_long_text_fetched"] = retweeted_long_text_fetched
         data["_url_struct"] = url_struct
         data["_created_at"] = created_at
 
@@ -1326,6 +2016,10 @@ class WeiboMonitor(BaseMonitor):
             data["mid"] = "0"
             data["图片"] = "[]"
             data["转发微博"] = "{}"
+            data["正文结构"] = "[]"
+            data["标签"] = "[]"
+            data["内容类型"] = "text"
+            data["视频封面"] = ""
             data["_candidate_new_posts"] = []
             data["_old_mid_found"] = False
             return data
@@ -1336,13 +2030,15 @@ class WeiboMonitor(BaseMonitor):
             data["mid"] = "0"
             data["图片"] = "[]"
             data["转发微博"] = "{}"
+            data["正文结构"] = "[]"
+            data["标签"] = "[]"
+            data["内容类型"] = "text"
+            data["视频封面"] = ""
             data["_candidate_new_posts"] = []
             data["_old_mid_found"] = False
             return data
 
-        candidate_statuses, old_mid_found = self._collect_candidate_new_statuses(
-            statuses, old_mid
-        )
+        candidate_statuses, old_mid_found = self._collect_candidate_new_statuses(statuses, old_mid)
         parsed_by_mid: dict[str, dict] = {}
 
         async def parse_status(status: dict) -> dict:
@@ -1412,6 +2108,10 @@ class WeiboMonitor(BaseMonitor):
             data["mid"],
             data["图片"],
             data["转发微博"],
+            data["正文结构"],
+            data["标签"],
+            data["内容类型"],
+            data["视频封面"],
         )
 
     def _get_posts_to_push(self, data: dict, diff: int) -> list[dict]:
@@ -1445,7 +2145,14 @@ class WeiboMonitor(BaseMonitor):
             return
 
         new_data.setdefault("转发微博", "{}")
+        new_data.setdefault("正文结构", "[]")
+        new_data.setdefault("标签", "[]")
+        new_data.setdefault("内容类型", "text")
+        new_data.setdefault("视频封面", "")
         new_data.setdefault("_retweeted_pic_url_candidates", [])
+        new_data.setdefault("_video_cover_url_candidates", [])
+        new_data.setdefault("_retweeted_video_cover_url_candidates", [])
+        new_data.setdefault("_retweeted_long_text_fetched", False)
 
         if old_info:
             diff = self.check_info(new_data, old_info)
@@ -1462,12 +2169,44 @@ class WeiboMonitor(BaseMonitor):
                     new_data.get("转发微博"),
                     old_retweeted_status,
                 )
-                should_push_long_text = text_changed and self._is_long_text_backfill(
-                    new_data, old_info
+                old_segments = (
+                    old_info[WEIBO_CONTENT_SEGMENTS_INDEX]
+                    if len(old_info) > WEIBO_CONTENT_SEGMENTS_INDEX
+                    else "[]"
                 )
-                should_update_db = text_changed or retweeted_changed
+                old_tags = old_info[WEIBO_TAGS_INDEX] if len(old_info) > WEIBO_TAGS_INDEX else "[]"
+                old_content_type = (
+                    old_info[WEIBO_CONTENT_TYPE_INDEX]
+                    if len(old_info) > WEIBO_CONTENT_TYPE_INDEX
+                    else "text"
+                )
+                metadata_changed = any(
+                    [
+                        self._dump_rich_text_segments(
+                            self._parse_rich_text_segments(new_data.get("正文结构"))
+                        )
+                        != self._dump_rich_text_segments(
+                            self._parse_rich_text_segments(old_segments)
+                        ),
+                        self._dump_weibo_tags(new_data.get("标签"))
+                        != self._dump_weibo_tags(old_tags),
+                        str(new_data.get("内容类型") or "text") != str(old_content_type or "text"),
+                    ]
+                )
+                should_push_long_text = (
+                    text_changed and self._is_long_text_backfill(new_data, old_info)
+                ) or (
+                    retweeted_changed
+                    and self._is_retweeted_long_text_backfill(
+                        new_data,
+                        old_retweeted_status,
+                    )
+                )
+                should_update_db = text_changed or retweeted_changed or metadata_changed
                 if len(old_info) > 8:
                     new_data["图片"] = old_info[8]
+                if len(old_info) > WEIBO_VIDEO_COVER_INDEX:
+                    new_data["视频封面"] = old_info[WEIBO_VIDEO_COVER_INDEX]
                 if retweeted_changed:
                     new_retweeted = self._parse_retweeted_status(new_data.get("转发微博"))
                     old_retweeted = self._parse_retweeted_status(old_retweeted_status)
@@ -1478,8 +2217,10 @@ class WeiboMonitor(BaseMonitor):
                         == self._sanitize_path_part(old_retweeted.get("mid") or "0")
                     ):
                         new_retweeted["images"] = old_retweeted.get("images") or []
+                        new_retweeted["video_cover"] = old_retweeted.get("video_cover") or ""
                         new_data["转发微博"] = self._dump_retweeted_status(new_retweeted)
                     await self._save_retweeted_images(new_data, keep_existing=True)
+                    await self._save_retweeted_video_cover(new_data, keep_existing=True)
                 else:
                     new_data["转发微博"] = old_retweeted_status
 
@@ -1503,11 +2244,34 @@ class WeiboMonitor(BaseMonitor):
                         len(new_data.get("_retweeted_pic_url_candidates") or []),
                     )
 
+                if self._needs_video_cover_retry(new_data, old_info):
+                    saved_cover = await self._save_video_cover(new_data, keep_existing=True)
+                    if saved_cover and self._local_post_image_exists(saved_cover):
+                        should_update_db = True
+                        self.logger.info("%s 微博视频封面已补偿下载", new_data["用户名"])
+                    else:
+                        self.logger.debug("%s 微博视频封面本轮补偿未成功", new_data["用户名"])
+
+                if self._needs_retweeted_video_cover_retry(new_data, old_info):
+                    saved_cover = await self._save_retweeted_video_cover(
+                        new_data, keep_existing=True
+                    )
+                    if saved_cover and self._local_post_image_exists(saved_cover):
+                        should_update_db = True
+                        self.logger.info("%s 被转发微博视频封面已补偿下载", new_data["用户名"])
+                    else:
+                        self.logger.debug(
+                            "%s 被转发微博视频封面本轮补偿未成功",
+                            new_data["用户名"],
+                        )
+
                 if should_update_db:
                     sql = (
                         "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                         "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
-                        "图片=%(图片)s, 转发微博=%(转发微博)s WHERE UID=%(UID)s"
+                        "图片=%(图片)s, 转发微博=%(转发微博)s, 正文结构=%(正文结构)s, "
+                        "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s "
+                        "WHERE UID=%(UID)s"
                     )
                     updated = await self.db.execute_update(sql, new_data)
                     if not updated:
@@ -1516,17 +2280,23 @@ class WeiboMonitor(BaseMonitor):
                         self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
                         if should_push_long_text:
                             self.logger.info("%s 微博长文本已补全并写入数据库", new_data["用户名"])
-                            await self.push_notification(new_data, 1)
+                            await self.push_notification(
+                                new_data, 1, notification_reason="long_text_backfill"
+                            )
                 self.logger.debug(f"{new_data['用户名']} 最近在摸鱼🐟")
             else:
                 await self._save_post_images(new_data)
                 await self._save_retweeted_images(new_data)
+                await self._save_video_cover(new_data)
+                await self._save_retweeted_video_cover(new_data)
 
                 # 更新数据
                 sql = (
                     "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                     "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
-                    "图片=%(图片)s, 转发微博=%(转发微博)s WHERE UID=%(UID)s"
+                    "图片=%(图片)s, 转发微博=%(转发微博)s, 正文结构=%(正文结构)s, "
+                    "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s "
+                    "WHERE UID=%(UID)s"
                 )
                 updated = await self.db.execute_update(sql, new_data)
                 if not updated:
@@ -1565,12 +2335,16 @@ class WeiboMonitor(BaseMonitor):
         else:
             await self._save_post_images(new_data)
             await self._save_retweeted_images(new_data)
+            await self._save_video_cover(new_data)
+            await self._save_retweeted_video_cover(new_data)
 
             # 新用户插入
             sql = (
-                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, 图片, 转发微博) "
+                "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, "
+                "图片, 转发微博, 正文结构, 标签, 内容类型, 视频封面) "
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, "
-                "%(微博数)s, %(文本)s, %(mid)s, %(图片)s, %(转发微博)s)"
+                "%(微博数)s, %(文本)s, %(mid)s, %(图片)s, %(转发微博)s, %(正文结构)s, "
+                "%(标签)s, %(内容类型)s, %(视频封面)s)"
             )
             inserted = await self.db.execute_insert(sql, new_data)
             if not inserted:
@@ -1585,34 +2359,226 @@ class WeiboMonitor(BaseMonitor):
 
             self.old_data_dict[uid] = self._data_to_old_info_tuple(new_data)
 
-    def _build_description_for_channel(self, channel, data: dict) -> str:
-        """构建推送描述内容，各渠道字数限制由 UnifiedPushManager 统一截断处理。"""
-        retweeted = self._parse_retweeted_status(data.get("转发微博"))
-        if retweeted:
-            repost_body = self._normalize_weibo_text_for_compare(
-                self._extract_status_body_from_display_text(data.get("文本", ""))
-            )
-            original_text = self._normalize_weibo_text_for_compare(retweeted.get("text", ""))
-            image_count = len(retweeted.get("images") or [])
-            image_hint = f"\n[原微博图片] * {image_count}" if image_count else ""
-            return (
-                f"转发理由:👇\n{repost_body or '（无转发语）'}\n"
-                f"{'=' * 20}\n"
-                f"原微博 @{retweeted.get('user_name') or '未知用户'}:\n"
-                f"{original_text or '原微博暂无正文'}{image_hint}\n"
-                f"{'=' * 20}\n"
-                f"认证:{data['认证信息']}\n\n"
-                f"简介:{data['简介']}"
-            )
-
-        return (
-            f"Ta说:👇\n{data['文本']}\n"
-            f"{'=' * 20}\n"
-            f"认证:{data['认证信息']}\n\n"
-            f"简介:{data['简介']}"
+    @staticmethod
+    def _without_visible_urls(value: object) -> str:
+        """兼容旧数据：任何裸露 URL 在推送可见文本中都只显示统一标题。"""
+        return re.sub(
+            r"(?:https?:)?//[^\s<>'\"\]\[）)]+",
+            "网页链接",
+            str(value or ""),
+            flags=re.IGNORECASE,
         )
 
-    async def push_notification(self, data: dict, diff: int):
+    def _get_push_content(self, data: dict) -> RichText:
+        """读取主微博正文；新数据保留链接，旧数据安全降级为标题文本。"""
+        rich = data.get("_content_rich_text")
+        if not isinstance(rich, RichText):
+            rich = self._parse_rich_text_segments(data.get("正文结构"))
+        if not rich:
+            body = self._extract_status_body_from_display_text(data.get("文本", ""))
+            rich = RichText.text(body)
+        return self._apply_url_struct_fallback(rich, data.get("_url_struct"))
+
+    def _get_retweeted_push_content(self, retweeted: dict) -> RichText:
+        rich = self._parse_rich_text_segments(retweeted.get("content_segments"))
+        if not rich:
+            rich = RichText.text(retweeted.get("text", ""))
+        return self._apply_url_struct_fallback(rich, [])
+
+    def _strip_push_tags(self, content: RichText, tags: list[str]) -> RichText:
+        """从推送正文移除已单独展示的话题，保留链接片段与其原有顺序。"""
+        clean_tags = [tag.strip() for tag in tags if str(tag or "").strip()]
+        if not content or not clean_tags:
+            return content
+
+        pattern = re.compile(
+            "|".join(
+                rf"#{re.escape(tag)}#" for tag in sorted(set(clean_tags), key=len, reverse=True)
+            )
+        )
+        segments: list[RichTextSegment] = []
+        for segment in content.segments:
+            text = pattern.sub("", segment.text)
+            text = re.sub(r"[ \t]{2,}", " ", text)
+            text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
+            if text:
+                segments.append(RichTextSegment(text, segment.url))
+        return self._normalize_rich_text(RichText(segments))
+
+    def _append_push_profile(self, builder: RichTextBuilder, data: dict) -> None:
+        verified = self._without_visible_urls(data.get("认证信息")).strip()
+        intro = self._without_visible_urls(data.get("简介")).strip()
+        if verified:
+            builder.text(f"\n\n✨ 认证：{verified}")
+        if intro:
+            builder.text(f"\n🌱 简介：{intro}")
+
+    def _build_description_for_channel(
+        self,
+        channel,
+        data: dict,
+        diff: int = 1,
+        notification_reason: str = "status",
+    ) -> RichText:
+        """构建不暴露实际网址的结构化推送正文。"""
+        del channel  # 渲染格式由 UnifiedPushManager 根据通道统一选择。
+        builder = RichTextBuilder()
+        username = self._without_visible_urls(data.get("用户名") or "这位博主")
+
+        if diff < 0:
+            builder.text(f"🍃 看起来 {username} 收起了 {abs(diff)} 条微博，先悄悄记下来啦～")
+            self._append_push_profile(builder, data)
+            return builder.build()
+
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        content = self._get_push_content(data)
+        tags = self._parse_weibo_tags(data.get("标签"))
+        content = self._strip_push_tags(content, tags)
+        if retweeted:
+            repost_text = self._normalize_weibo_text_for_compare(content.plain_text())
+            if repost_text in {"转发微博", "转发"}:
+                repost_text = ""
+            if repost_text:
+                builder.text("💬 转发时说：\n　　").rich(content)
+            else:
+                builder.text("💬 悄悄转发，没有留下文字～")
+            if tags:
+                visible_tags = " ".join(f"#{self._without_visible_urls(tag)}#" for tag in tags)
+                builder.text(f"\n🏷️ {visible_tags}")
+
+            builder.text(
+                "\n\n────────\n"
+                f"🌷 原微博来自 @{self._without_visible_urls(retweeted.get('user_name') or '未知用户')}\n"
+            )
+            original_tags = self._parse_weibo_tags(retweeted.get("tags"))
+            original = self._strip_push_tags(
+                self._get_retweeted_push_content(retweeted),
+                original_tags,
+            )
+            original_images = retweeted.get("images") or []
+            original_image_count = max(
+                len(original_images),
+                len(data.get("_retweeted_pic_url_candidates") or []),
+            )
+            original_type = retweeted.get("content_type") or "text"
+            if retweeted.get("source_unavailable"):
+                builder.text("这条原微博暂时看不到啦～")
+            elif original:
+                builder.text("　　").rich(original)
+            elif original_image_count:
+                builder.text(f"原微博没有写正文，留下了 {original_image_count} 张图片～")
+            else:
+                builder.text("原微博没有留下正文～")
+
+            if original_type == "video" or retweeted.get("video_cover"):
+                builder.text("\n🎬 原微博带了一个视频，点“阅读全文”就能看～")
+            if original_image_count:
+                builder.text(f"\n🖼️ 原微博有 {original_image_count} 张图片")
+            if original_tags:
+                visible_tags = " ".join(
+                    f"#{self._without_visible_urls(tag)}#" for tag in original_tags
+                )
+                builder.text(f"\n🏷️ {visible_tags}")
+        else:
+            if notification_reason == "long_text_backfill":
+                builder.text("📝 正文已经补完整啦：\n")
+            elif content:
+                builder.text("💬 Ta说：\n")
+            if content:
+                builder.text("　　").rich(content)
+            elif data.get("内容类型") == "video":
+                builder.text("🎬 新视频已经准备好啦，点“阅读全文”就能看～")
+            else:
+                builder.text("这条微博没有留下正文～")
+
+            image_count = max(
+                len(self._parse_post_image_urls(data.get("图片"))),
+                len(data.get("_pic_url_candidates") or []),
+            )
+            if image_count:
+                builder.text(f"\n🖼️ * {image_count}")
+            if tags:
+                visible_tags = " ".join(f"#{self._without_visible_urls(tag)}#" for tag in tags)
+                builder.text(f"\n🏷️ {visible_tags}")
+
+        self._append_push_profile(builder, data)
+        return builder.build()
+
+    def _build_push_title(
+        self,
+        data: dict,
+        diff: int,
+        notification_reason: str = "status",
+    ) -> str:
+        username = self._without_visible_urls(data.get("用户名") or "这位博主")
+        if notification_reason == "long_text_backfill":
+            return f"📝 {username} 的微博正文补充完整啦"
+        if diff < 0:
+            return f"🍃 {username} 悄悄收起了 {abs(diff)} 条微博"
+        content_type = str(data.get("内容类型") or "").strip().lower()
+        titles = {
+            "repost": f"✨ {username} 转发了一条微博～",
+            "video": f"🎬 {username} 分享了一条新视频～",
+            "image": f"🖼️ {username} 发来一条新图文～",
+            "text": f"💬 {username} 发了条微博～",
+        }
+        return titles.get(content_type, f"🌟 {username} 有一条新微博～")
+
+    def _public_weibo_image_url(self, image_path: Path) -> str:
+        """将微博本地图片路径转换为配置的公开地址。"""
+        base_url = (self.config.base_url or "").rstrip("/")
+        if not base_url:
+            return ""
+        try:
+            relative = image_path.resolve().relative_to(self._get_weibo_data_dir().resolve())
+        except ValueError:
+            return ""
+        return f"{base_url}{self._build_weibo_img_url(*relative.parts)}"
+
+    def _select_push_cover(self, data: dict) -> tuple[str, Path | None]:
+        """按当前视频、原微博视频、主页封面顺序选择推送封面。"""
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
+        sources = [
+            (
+                data.get("视频封面"),
+                data.get("_video_cover_url_candidates") or [],
+            ),
+            (
+                retweeted.get("video_cover") if retweeted else "",
+                data.get("_retweeted_video_cover_url_candidates") or [],
+            ),
+        ]
+        has_base_url = bool((self.config.base_url or "").strip())
+        for stored_url, remote_candidates in sources:
+            local_path = self._get_local_post_image_path(str(stored_url or ""))
+            if local_path and (not local_path.is_file() or local_path.stat().st_size <= 0):
+                local_path = None
+            if has_base_url and local_path:
+                return self._public_weibo_image_url(local_path), local_path
+            if not has_base_url:
+                remote_url = next(
+                    (
+                        safe_url
+                        for candidate in remote_candidates
+                        if (safe_url := self._safe_weibo_link_url(candidate))
+                    ),
+                    "",
+                )
+                if local_path or remote_url:
+                    return remote_url, local_path
+
+        safe_username = self._sanitize_username(data.get("用户名", "unknown_user"))
+        profile_cover = self._get_weibo_data_dir() / safe_username / "cover_image_phone.jpg"
+        if profile_cover.is_file() and profile_cover.stat().st_size > 0:
+            return self._public_weibo_image_url(profile_cover), profile_cover
+        return "", None
+
+    async def push_notification(
+        self,
+        data: dict,
+        diff: int,
+        notification_reason: str = "status",
+    ):
         """发送推送通知"""
         # 检查是否在免打扰时段内
         if is_in_quiet_hours(self.config):
@@ -1627,71 +2593,76 @@ class WeiboMonitor(BaseMonitor):
         if not self.push:
             return
 
+        retweeted = self._parse_retweeted_status(data.get("转发微博"))
         action = "发布" if diff > 0 else "删除"
         count = abs(diff)
-        retweeted = self._parse_retweeted_status(data.get("转发微博"))
-        title_action = "转发" if diff > 0 and retweeted else action
 
         # 为方案一/方案二准备封面图信息：
         # - 方案一：如果配置了 base_url，则优先构造对外可访问的封面图 URL 供大部分通道使用；
         # - 方案二：同时将本地路径通过 extend_data.local_pic_path 传给支持本地上传的通道（如 Telegram）。
         # 同时，为 Bark 等通道准备头像 icon（extend_data.avatar_url）。
-        cover_pic_url = None
-        local_pic_path = None
+        cover_pic_url = ""
+        local_pic_path: Path | None = None
         avatar_url = None
         wecom_pic_url = None
         try:
             safe_username = self._sanitize_username(data.get("用户名", "unknown_user"))
             user_dir = self._get_weibo_data_dir() / safe_username
-
-            # 封面图（用于大图展示）
-            cover_path = user_dir / "cover_image_phone.jpg"
-            if cover_path.is_file():
-                local_pic_path = str(cover_path)
-
-                # 如果配置了 base_url，则构造 HTTP 访问地址
-                base_url = (self.config.base_url or "").rstrip("/")
-                if base_url:
-                    cover_pic_url = f"{base_url}/weibo_img/{safe_username}/cover_image_phone.jpg"
-                    # 若有企业微信通道，生成 resize 后的封面（1068×455）供企微使用
-                    if self._has_wecom_apps_channel():
-                        wecom_path = user_dir / "cover_image_phone_wecom.jpg"
-                        if self._resize_cover_for_wecom(cover_path, wecom_path):
-                            wecom_pic_url = (
-                                f"{base_url}/weibo_img/{safe_username}/cover_image_phone_wecom.jpg"
-                            )
+            cover_pic_url, local_pic_path = self._select_push_cover(data)
+            if local_pic_path and self._has_wecom_apps_channel():
+                wecom_path = local_pic_path.with_name(f"{local_pic_path.stem}_wecom.jpg")
+                if self._resize_cover_for_wecom(local_pic_path, wecom_path):
+                    wecom_pic_url = self._public_weibo_image_url(wecom_path)
 
             # 头像（用于 Bark icon）
             profile_path = user_dir / "profile_image.jpg"
             if profile_path.is_file():
-                base_url = (self.config.base_url or "").rstrip("/")
-                if base_url:
-                    avatar_url = f"{base_url}/weibo_img/{safe_username}/profile_image.jpg"
+                avatar_url = self._public_weibo_image_url(profile_path) or None
         except Exception as e:
             self.logger.debug("构造本地封面图路径失败（已忽略）: %s", e)
 
         try:
-            extend_data: dict | None = None
+            extend_data: dict = {"hide_visible_jump_url": True}
             # 将本地封面图路径传递给支持本地上传图片的通道
             if local_pic_path:
-                extend_data = {"local_pic_path": local_pic_path}
+                extend_data["local_pic_path"] = str(local_pic_path)
             # 为 Bark 等通道传递头像 URL，用作 icon
             if avatar_url:
-                if extend_data is None:
-                    extend_data = {}
                 extend_data["avatar_url"] = avatar_url
             # 为企业微信通道传递 resize 后的封面 URL（1068×455，符合企微图文消息推荐尺寸）
             if wecom_pic_url:
-                if extend_data is None:
-                    extend_data = {}
                 extend_data["wecom_pic_url"] = wecom_pic_url
 
-            # 使用 description_func 为各通道生成描述，超限时由 UnifiedPushManager 统一截断
+            description = self._build_description_for_channel(
+                None,
+                data,
+                diff=diff,
+                notification_reason=notification_reason,
+            )
+            safe_retweeted = None
+            if retweeted:
+                original = self._get_retweeted_push_content(retweeted)
+                safe_retweeted = {
+                    "user_name": self._without_visible_urls(retweeted.get("user_name")),
+                    "text": original.plain_text(),
+                    "tags": [
+                        self._without_visible_urls(tag)
+                        for tag in self._parse_weibo_tags(retweeted.get("tags"))
+                    ],
+                    "content_type": retweeted.get("content_type") or "text",
+                    "mid": retweeted.get("mid") or "",
+                    "source_unavailable": bool(retweeted.get("source_unavailable")),
+                }
+
             await self.send_push_news(
-                title=f"{data['用户名']} {title_action}了{count}条weibo",
-                description="",  # 这个值会被 description_func 覆盖
-                description_func=lambda channel: self._build_description_for_channel(channel, data),
-                # 方案一：如果有封面图 URL 则优先使用；否则仍然使用原先的固定 Bing 图
+                title=self._build_push_title(data, diff, notification_reason),
+                description=description,
+                description_func=lambda channel: self._build_description_for_channel(
+                    channel,
+                    data,
+                    diff=diff,
+                    notification_reason=notification_reason,
+                ),
                 picurl=cover_pic_url
                 or "https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url=f"https://m.weibo.cn/detail/{data['mid']}",
@@ -1700,14 +2671,19 @@ class WeiboMonitor(BaseMonitor):
                 event_type="weibo",
                 event_data={
                     "username": data.get("用户名"),
-                    "text": (data.get("文本") or "")[:500],
+                    "text": description.plain_text()[:500],
                     "verified": data.get("认证信息"),
                     "intro": data.get("简介"),
                     "mid": data.get("mid"),
                     "action": action,
                     "count": count,
                     "is_repost": bool(retweeted),
-                    "retweeted_status": retweeted or None,
+                    "content_type": data.get("内容类型") or "text",
+                    "tags": [
+                        self._without_visible_urls(tag)
+                        for tag in self._parse_weibo_tags(data.get("标签"))
+                    ],
+                    "retweeted_status": safe_retweeted,
                 },
             )
         except Exception as e:
@@ -1721,14 +2697,15 @@ class WeiboMonitor(BaseMonitor):
 
         try:
             await self.send_push_news(
-                title="⚠️ 微博Cookie已失效",
-                description=(
-                    "微博监控检测到Cookie已过期，需要重新登录更新Cookie。\n\n"
-                    "请及时更新config.yml文件中的微博Cookie配置，以确保监控正常运行。"
+                title="🍪 微博 Cookie 失效啦",
+                description=RichText.text(
+                    "微博的登录状态悄悄过期啦～\n\n"
+                    "请重新登录并更新 config.yml 里的微博 Cookie，监控就能继续工作啦。"
                 ),
                 picurl="https://cn.bing.com/th?id=OHR.DubrovnikHarbor_ZH-CN8590217905_1920x1080.jpg",
                 to_url="https://weibo.com/login.php",
                 btntxt="前往登录",
+                extend_data={"hide_visible_jump_url": True},
             )
             self.logger.info("已发送Cookie失效提醒")
         except Exception as e:

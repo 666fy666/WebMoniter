@@ -12,6 +12,7 @@ class FeishuApps(PushChannel):
     """飞书自建应用推送通道（消息体与单条内容有大小限制，见飞书开放文档）"""
 
     max_content_bytes = 12000  # 单条内容保守限制
+    rich_text_format = "markdown"
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

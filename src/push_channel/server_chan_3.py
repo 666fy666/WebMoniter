@@ -7,6 +7,7 @@ class ServerChan3(PushChannel):
     """Server酱 3 推送通道（desp 最大 64KB，与 Turbo 类似）"""
 
     max_content_bytes = 65536  # 64KB
+    rich_text_format = "markdown"
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

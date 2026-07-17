@@ -1,4 +1,6 @@
+import html
 import json
+import re
 from pathlib import Path
 
 from aiohttp import ClientResponseError, FormData
@@ -10,6 +12,7 @@ class TelegramBot(PushChannel):
     """Telegram 机器人推送通道（sendMessage 单条最多 4096 字符，见 Bot API 文档）"""
 
     max_content_bytes = 16384  # 4096 字符 × 4 字节/字符（UTF-8 上界）
+    rich_text_format = "html"
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
@@ -17,6 +20,34 @@ class TelegramBot(PushChannel):
         self.chat_id = str(config.get("chat_id", ""))
         if self.api_token == "" or self.chat_id == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
+
+    @staticmethod
+    def _strip_html(value: str) -> str:
+        """将本模块生成的安全 HTML 还原成不含链接目标的纯文本。"""
+        return html.unescape(re.sub(r"<[^>]+>", "", value))
+
+    def _build_rich_message(
+        self,
+        title: str,
+        content: str,
+        jump_url: str | None,
+        max_chars: int,
+    ) -> str:
+        """构造不会截断 HTML 标签的 Telegram 文本。"""
+        prefix_parts = [f"<b>{html.escape(title)}</b>"]
+        if jump_url:
+            prefix_parts.append(f'<a href="{html.escape(jump_url, quote=True)}">点击查看</a>')
+        prefix = "\n".join(prefix_parts)
+        message = f"{prefix}\n\n{content}"
+        if len(self._strip_html(message)) <= max_chars:
+            return message
+
+        plain_content = self._strip_html(content)
+        visible_prefix = self._strip_html(prefix)
+        available = max(0, max_chars - len(visible_prefix) - 4)
+        if len(plain_content) > available:
+            plain_content = plain_content[: max(0, available - 2)].rstrip() + "……"
+        return f"{prefix}\n\n{html.escape(plain_content)}"
 
     async def push(self, title, content, jump_url=None, pic_url=None, extend_data=None):
         """推送消息
@@ -28,6 +59,7 @@ class TelegramBot(PushChannel):
         local_pic_path = None
         if extend_data and isinstance(extend_data, dict):
             local_pic_path = extend_data.get("local_pic_path")
+        rich_html = bool(extend_data and extend_data.get("_rich_text_format") == "html")
         if local_pic_path:
             local_path = Path(str(local_pic_path))
         else:
@@ -38,18 +70,23 @@ class TelegramBot(PushChannel):
             push_url = f"https://api.telegram.org/bot{self.api_token}/sendPhoto"
 
             # 构建图片说明文字（caption），Telegram 限制为最多 1024 个字符
-            caption_parts = [f"*{title}*"]
-            if jump_url:
-                caption_parts.append(f"[点击查看]({jump_url})")
-            caption_parts.append(f"\n`{content}`")
-            caption = "\n".join(caption_parts)
-            if len(caption) > 1024:
-                caption = caption[:1018] + "......"
+            if rich_html:
+                caption = self._build_rich_message(title, content, jump_url, 1024)
+                parse_mode = "HTML"
+            else:
+                caption_parts = [f"*{title}*"]
+                if jump_url:
+                    caption_parts.append(f"[点击查看]({jump_url})")
+                caption_parts.append(f"\n`{content}`")
+                caption = "\n".join(caption_parts)
+                if len(caption) > 1024:
+                    caption = caption[:1018] + "......"
+                parse_mode = "Markdown"
 
             form = FormData()
             form.add_field("chat_id", self.chat_id)
             form.add_field("caption", caption)
-            form.add_field("parse_mode", "Markdown")
+            form.add_field("parse_mode", parse_mode)
             try:
                 with local_path.open("rb") as f:
                     form.add_field(
@@ -82,16 +119,21 @@ class TelegramBot(PushChannel):
         headers = {"Content-Type": "application/json"}
 
         # 构建消息文本
-        text_parts = [f"*{title}*"]
-        if jump_url:
-            text_parts.append(f"[点击查看]({jump_url})")
-        text_parts.append(f"\n`{content}`")
-        text = "\n".join(text_parts)
+        if rich_html:
+            text = self._build_rich_message(title, content, jump_url, 4096)
+            parse_mode = "HTML"
+        else:
+            text_parts = [f"*{title}*"]
+            if jump_url:
+                text_parts.append(f"[点击查看]({jump_url})")
+            text_parts.append(f"\n`{content}`")
+            text = "\n".join(text_parts)
+            parse_mode = "Markdown"
 
         body = {
             "chat_id": self.chat_id,
             "text": text,
-            "parse_mode": "Markdown",
+            "parse_mode": parse_mode,
         }
         if pic_url is not None:
             body["link_preview_options"] = {"is_disabled": False, "url": pic_url}

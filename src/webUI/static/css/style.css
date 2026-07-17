@@ -1366,18 +1366,21 @@ input:focus + .slider {
 }
 
 .weibo-feed-avatar,
-.weibo-media-img {
+.weibo-media-img,
+.weibo-video-cover-img {
     opacity: 0;
     transition: opacity 0.2s ease;
 }
 
 .weibo-feed-avatar.image-loaded,
-.weibo-media-img.image-loaded {
+.weibo-media-img.image-loaded,
+.weibo-video-cover-img.image-loaded {
     opacity: 1;
 }
 
 .weibo-feed-avatar:not([src]),
-.weibo-media-img:not([src]) {
+.weibo-media-img:not([src]),
+.weibo-video-cover-img:not([src]) {
     visibility: hidden;
     opacity: 0;
 }
@@ -1441,6 +1444,161 @@ input:focus + .slider {
     content: '';
     display: block;
     margin-bottom: 0.25em;
+}
+
+.weibo-content-link {
+    display: inline;
+    padding: 1px 5px;
+    color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.09);
+    border-radius: 5px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.weibo-content-link:hover {
+    background: rgba(99, 102, 241, 0.16);
+    text-decoration: underline;
+}
+
+.weibo-content-type {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.weibo-content-type-repost {
+    border-color: rgba(217, 70, 239, 0.23);
+    background: rgba(217, 70, 239, 0.08);
+    color: #a21caf;
+}
+
+.weibo-content-type-video {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(244, 63, 94, 0.08);
+    color: #e11d48;
+}
+
+.weibo-content-type-image {
+    border-color: rgba(14, 165, 233, 0.24);
+    background: rgba(14, 165, 233, 0.08);
+    color: #0284c7;
+}
+
+[data-theme="dark"] .weibo-content-type {
+    color: #c7d2fe;
+}
+
+[data-theme="dark"] .weibo-content-type-repost {
+    color: #f0abfc;
+}
+
+[data-theme="dark"] .weibo-content-type-video {
+    color: #fda4af;
+}
+
+[data-theme="dark"] .weibo-content-type-image {
+    color: #7dd3fc;
+}
+
+.weibo-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 9px;
+}
+
+.weibo-tag {
+    display: inline-flex;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(236, 72, 153, 0.08);
+    color: #be185d;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .weibo-tag {
+    color: #f9a8d4;
+}
+
+.weibo-video-cover {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    width: min(100%, 520px);
+    margin-top: 12px;
+    aspect-ratio: var(--weibo-video-aspect, 16 / 9);
+    border-radius: 10px;
+    background: #18181b;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.12);
+}
+
+.weibo-video-cover.is-portrait {
+    width: min(100%, 360px);
+}
+
+.weibo-video-cover > .weibo-video-cover-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.weibo-video-cover:hover .weibo-video-cover-img {
+    transform: scale(1.015);
+}
+
+.weibo-video-cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 48%, rgba(0, 0, 0, 0.58));
+    pointer-events: none;
+}
+
+.weibo-video-play {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    width: 54px;
+    height: 54px;
+    padding-left: 4px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.68);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%);
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.weibo-video-cover:hover .weibo-video-play {
+    background: rgba(236, 72, 153, 0.82);
+    transform: translate(-50%, -50%) scale(1.06);
+}
+
+.weibo-video-label {
+    position: absolute;
+    z-index: 1;
+    right: 12px;
+    bottom: 10px;
+    left: 12px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    text-align: right;
 }
 
 .weibo-retweet-block {
@@ -1509,6 +1667,10 @@ input:focus + .slider {
 .weibo-retweet-block .weibo-media-grid {
     max-width: 456px;
     margin-top: 10px;
+}
+
+.weibo-retweet-block .weibo-video-cover {
+    max-width: 456px;
 }
 
 .weibo-retweet-hint {
