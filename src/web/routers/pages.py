@@ -3,10 +3,20 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
+from src.core.paths import WEB_UI_STATIC_DIR
 from src.web.auth import check_login
 from src.web.templating import templates
 
 router = APIRouter()
+_CONFIG_JS_PATH = WEB_UI_STATIC_DIR / "js" / "config.js"
+
+
+def _config_js_version() -> str:
+    """以文件版本生成缓存键，前端脚本更新后 URL 必然变化。"""
+    try:
+        return str(_CONFIG_JS_PATH.stat().st_mtime_ns)
+    except OSError:
+        return "1"
 
 
 def _page_context(request: Request, page_title: str, active_nav: str) -> dict:
@@ -14,6 +24,7 @@ def _page_context(request: Request, page_title: str, active_nav: str) -> dict:
         "request": request,
         "page_title": page_title,
         "active_nav": active_nav,
+        "config_js_version": _config_js_version(),
     }
 
 

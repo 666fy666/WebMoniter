@@ -28,6 +28,8 @@ CONFIG_MAPPINGS: dict[str, dict[str, str]] = {
     "weibo": {
         "enable": "weibo_enable",
         "cookie": "weibo_cookie",
+        "cookie_refresh_enable": "weibo_cookie_refresh_enable",
+        "cookie_refresh_time": "weibo_cookie_refresh_time",
         "uids": "weibo_uids",
         "concurrency": "weibo_concurrency",
         "monitor_interval_seconds": "weibo_monitor_interval_seconds",

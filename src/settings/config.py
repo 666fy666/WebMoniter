@@ -3,6 +3,7 @@
 import logging
 import os
 import threading
+from contextlib import contextmanager
 from datetime import datetime, time
 from pathlib import Path
 
@@ -77,6 +78,8 @@ class AppConfig(BaseModel):
     # 微博
     weibo_enable: bool = True  # 是否启用微博监控
     weibo_cookie: str = ""
+    weibo_cookie_refresh_enable: bool = False  # 是否启用微博 Cookie 自动刷新
+    weibo_cookie_refresh_time: str = "21:00"  # Cookie 刷新时间（格式：HH:MM）
     weibo_uids: str = ""  # 逗号分隔的UID列表
     weibo_concurrency: int = 3  # 微博监控并发数，建议2-5（避免触发限流）
     weibo_push_channels: list[str] = Field(
@@ -595,6 +598,13 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
 _config_cache: AppConfig | None = None
 _config_file_mtime: float = 0  # 配置文件最后修改时间
 _config_lock = threading.RLock()
+
+
+@contextmanager
+def config_file_lock():
+    """串行化进程内的 config.yml 读写，避免热重载读到写入中间态。"""
+    with _config_lock:
+        yield
 
 
 def _read_config_mtime() -> float:

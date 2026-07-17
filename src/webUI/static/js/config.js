@@ -76,6 +76,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 监控任务开关
     const weiboEnable = document.getElementById('weibo_enable');
     const weiboEnableLabel = document.getElementById('weibo_enable_label');
+    const weiboCookieRefreshEnable = document.getElementById('weibo_cookie_refresh_enable');
+    const weiboCookieRefreshEnableLabel = document.getElementById('weibo_cookie_refresh_enable_label');
     const huyaEnable = document.getElementById('huya_enable');
     const huyaEnableLabel = document.getElementById('huya_enable_label');
     const bilibiliEnable = document.getElementById('bilibili_enable');
@@ -402,6 +404,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     ];
     const FALLBACK_SWITCH_IDS = [
         'quiet_hours_enable', 'rainyun_auto_renew', 'weibo_enable',
+        'weibo_cookie_refresh_enable',
         'weibo_chaohua_enable', 'huya_enable', 'bilibili_enable',
         'douyin_enable', 'douyu_enable', 'xhs_enable', 'checkin_enable',
         'rainyun_enable', 'tieba_enable', 'enshan_enable', 'tyyun_enable',
@@ -1277,6 +1280,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                         if (weiboEnableLabel) weiboEnableLabel.textContent = weiboEnable.checked ? '开启' : '关闭';
                     }
                     document.getElementById('weibo_cookie').value = config.weibo.cookie || '';
+                    if (weiboCookieRefreshEnable) {
+                        const refreshEnable = config.weibo.cookie_refresh_enable;
+                        weiboCookieRefreshEnable.checked = refreshEnable === true || refreshEnable === 'true';
+                        if (weiboCookieRefreshEnableLabel) {
+                            weiboCookieRefreshEnableLabel.textContent = weiboCookieRefreshEnable.checked ? '开启' : '关闭';
+                        }
+                    }
+                    const refreshTimeInput = document.getElementById('weibo_cookie_refresh_time');
+                    if (refreshTimeInput) {
+                        const refreshTime = config.weibo.cookie_refresh_time || '21:00';
+                        refreshTimeInput.value = refreshTime.length === 5 ? refreshTime : '21:00';
+                    }
                     document.getElementById('weibo_uids').value = typeof config.weibo.uids === 'string' 
                         ? config.weibo.uids 
                         : (Array.isArray(config.weibo.uids) ? config.weibo.uids.join(',') : '');
@@ -1897,6 +1912,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 config.weibo = {
                     enable: weiboEnable ? weiboEnable.checked : true,
                     cookie: document.getElementById('weibo_cookie').value.trim(),
+                    cookie_refresh_enable: weiboCookieRefreshEnable ? weiboCookieRefreshEnable.checked : false,
+                    cookie_refresh_time: (document.getElementById('weibo_cookie_refresh_time')?.value || '').trim() || '21:00',
                     uids: document.getElementById('weibo_uids').value.trim(),
                     concurrency: parseInt(document.getElementById('weibo_concurrency').value) || 3,
                     monitor_interval_seconds: parseInt(document.getElementById('weibo_monitor_interval_seconds').value) || 300,

@@ -27,7 +27,7 @@
 | 镜像 | 标签 | Compose 文件 | 适用场景 |
 |:--|:--|:--|:--|
 | 精简镜像 | `fengyu666/webmoniter:latest` | `docker/docker-compose.yml` | 默认推荐。适合监控、推送和大多数 HTTP 类签到 |
-| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 需要在容器内运行雨云浏览器签到时使用 |
+| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 运行微博 Cookie 刷新、雨云等浏览器任务时使用 |
 
 `latest` 与 semver 主标签（如 `2.2.2`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
 
@@ -77,7 +77,7 @@ docker compose -f docker/docker-compose.yml up -d
 docker image rm fengyu666/webmoniter:latest
 ```
 
-如果启用雨云浏览器签到（`rainyun.enable: true`），使用完整镜像：
+如果启用微博 Cookie 刷新（`weibo.cookie_refresh_enable: true`）或雨云浏览器签到，使用完整镜像：
 
 ```bash
 # 启动完整镜像

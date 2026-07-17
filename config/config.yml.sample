@@ -13,6 +13,8 @@
 # 获取 UID：访问用户主页，URL 中数字即为 UID，例如 https://weibo.com/u/1234567890 → UID 为 1234567890
 weibo:
   enable: true   # 是否启用微博监控
+  cookie_refresh_enable: false  # Selenium 静默刷新；候选值经微博真实接口校验通过后才写回（需 full 镜像或浏览器依赖）
+  cookie_refresh_time: "21:00"  # Cookie 刷新时间（24 小时制 HH:MM）
   cookie: your_weibo_cookie  # 从浏览器开发者工具获取
   uids: uid1,uid2,uid3  # 逗号分隔的 UID 列表
   concurrency: 2  # 并发数，建议 2-5（避免触发限流）

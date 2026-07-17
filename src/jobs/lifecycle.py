@@ -176,6 +176,9 @@ async def _run_initial_pass(
 ) -> None:
     logger.debug("正在启动时立即执行一次监控任务和定时任务...")
     for desc in jobs:
+        if not desc.run_on_startup:
+            logger.debug("%s: 配置为仅按触发器执行，跳过启动首轮", desc.job_id)
+            continue
         if should_stop is not None and should_stop():
             logger.info("收到停止信号，跳过剩余启动首轮任务")
             break

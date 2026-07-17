@@ -51,3 +51,21 @@ def test_register_task_replaces_existing_job_id() -> None:
         assert registry.TASK_JOBS[0].get_trigger_kwargs(None) == {"hour": "2", "minute": "30"}
     finally:
         registry.TASK_JOBS.clear()
+
+
+def test_register_task_can_opt_out_of_startup_run() -> None:
+    async def noop() -> bool:
+        return True
+
+    registry.TASK_JOBS.clear()
+    try:
+        register_task(
+            "cron_only",
+            noop,
+            lambda c: {"hour": "21", "minute": "0"},
+            run_on_startup=False,
+        )
+
+        assert registry.TASK_JOBS[0].run_on_startup is False
+    finally:
+        registry.TASK_JOBS.clear()

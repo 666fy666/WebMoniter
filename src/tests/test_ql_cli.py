@@ -15,6 +15,7 @@ def test_ql_list_includes_ikuuu_checkin() -> None:
     )
     assert result.returncode == 0
     assert "ikuuu_checkin" in result.stdout
+    assert "weibo_cookie_refresh" not in result.stdout
 
 
 def test_rainyun_ql_single_account_env_builds_accounts(monkeypatch) -> None:

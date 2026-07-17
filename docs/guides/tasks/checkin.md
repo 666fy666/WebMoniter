@@ -1,7 +1,7 @@
 # 定时任务（签到）详解
 
 以下为所有内置定时任务的配置说明。每个任务在 `config.yml` 中有独立配置节点，**必填项**未配置或 `enable: false` 时不会执行。  
-**默认行为**：项目启动时会尝试执行一次（若当天已运行则跳过）；之后按 `time` 每日定点执行；Web「任务管理」中手动触发可强制执行。
+**默认行为**：项目启动时会尝试执行一次（若当天已运行则跳过）；之后按 `time` 每日定点执行；Web「任务管理」中手动触发可强制执行。微博 Cookie 刷新是例外，只按 Cron 或手动触发。
 
 ---
 
@@ -17,11 +17,35 @@
 
 ---
 
+## 微博 Cookie 自动刷新
+
+**配置节点**：`weibo`
+
+**默认时间**：21:00
+
+**认证方式**：复用 `weibo.cookie`、`weibo_chaohua.cookie/cookies` 中的现有登录 Cookie。
+
+启用 `cookie_refresh_enable` 后，任务先使用微博监控/超话实际依赖的接口验证原 Cookie，再使用 Selenium 逐条打开微博首页并提取续期结果；相同 Cookie 只启动一次浏览器。超话校验必须从微博 SPA 配置中识别到完整登录 UID，匿名会话即使返回 `ok=1` 和空列表也会判定失败。候选 Cookie 会保留原字段和顺序，并再次通过相应接口验证，只有验证成功才写回原字段；若浏览器旋转的 `SUB` 被接口拒绝，任务会保留原 `SUB`、合并其余更新并重新验证。HTTP 401/403、未登录响应或网络校验失败时均保留旧值。每次执行复用 `weibo.push_channels` 发送脱敏汇总并遵守全局免打扰。Cookie 已过期时不会自动扫码登录。
+
+```yaml
+weibo:
+  cookie_refresh_enable: true
+  cookie_refresh_time: "21:00"
+  cookie: "SUB=xxx; XSRF-TOKEN=xxx; ..."
+  push_channels: []
+```
+
+该任务需要 Selenium、Chrome/Chromium 与匹配的 chromedriver。Docker 请使用 `full` 镜像；源码运行请执行 `uv sync --extra rainyun`。路径特殊时使用 `CHROME_BIN`、`CHROMEDRIVER_PATH`。
+
+---
+
 ## 微博超话签到
 
 **配置节点**：`weibo_chaohua`  
 **默认时间**：23:45  
 **认证方式**：Cookie（须包含 **XSRF-TOKEN**），支持多 Cookie。
+
+任务会先确认 Cookie 对应的完整登录 UID，再使用该 UID 获取关注的超话。只有已确认登录且关注数确实为 0 时，日志中的“总计=0”才代表正常空列表；匿名或不完整登录态会直接报错并提示重新获取 Cookie。
 
 ### 配置项
 

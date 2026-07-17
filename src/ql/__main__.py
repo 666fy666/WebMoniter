@@ -24,18 +24,20 @@ def _print_usage() -> None:
 
 
 def _list_tasks() -> None:
+    from src.jobs.metadata import TASK_ENV_MAP
     from src.jobs.registry import TASK_MODULES, discover_and_import_tasks_only
 
     discover_and_import_tasks_only()
     from src.jobs.registry import TASK_JOBS
 
     print("可运行的定时任务（青龙 CLI）：")
-    for job in TASK_JOBS:
-        if job.job_id == "demo_task":
-            continue
+    supported_jobs = [
+        job for job in TASK_JOBS if job.job_id in TASK_ENV_MAP and job.job_id != "demo_task"
+    ]
+    for job in supported_jobs:
         print(f"  {job.job_id:28}  {job.description}")
     print()
-    print(f"共 {len([j for j in TASK_JOBS if j.job_id != 'demo_task'])} 个任务（不含 demo_task）")
+    print(f"共 {len(supported_jobs)} 个任务（不含 demo_task 与仅服务模式任务）")
     print(f"模块列表由 src/jobs/metadata.py 生成（兼容导出 {len(TASK_MODULES)} 项）")
 
 
@@ -53,8 +55,14 @@ def main() -> None:
         _print_usage()
         sys.exit(1)
 
+    from src.jobs.metadata import TASK_ENV_MAP
     from src.jobs.registry import discover_and_import_tasks_only, get_registered_task
     from src.ql._runner import run_task
+
+    if task_id not in TASK_ENV_MAP or task_id == "demo_task":
+        print(f"错误: 任务 '{task_id}' 不支持青龙单任务模式")
+        print("使用 python -m src.ql --list 查看可用任务")
+        sys.exit(1)
 
     discover_and_import_tasks_only()
     job = get_registered_task(task_id)

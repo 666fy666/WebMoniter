@@ -65,6 +65,23 @@
                             <td><input type="text" id="weibo_cookie" class="form-input" placeholder="请输入微博Cookie"></td>
                         </tr>
                         <tr>
+                            <td class="config-label">自动刷新 Cookie</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="weibo_cookie_refresh_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="weibo_cookie_refresh_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie 刷新时间</td>
+                            <td>
+                                <input type="time" id="weibo_cookie_refresh_time" class="form-input" value="21:00">
+                                <p class="help-text">使用 Selenium 刷新微博与超话 Cookie，真实接口校验通过后才写回；需安装浏览器依赖或使用 full 镜像</p>
+                            </td>
+                        </tr>
+                        <tr>
                             <td class="config-label">UID列表</td>
                             <td><textarea id="weibo_uids" class="form-textarea" rows="3" placeholder="请输入UID列表，逗号分隔"></textarea></td>
                         </tr>
@@ -1601,5 +1618,5 @@
 
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/config.js?v=1"></script>
+<script src="/static/js/config.js?v={{ config_js_version }}"></script>
 {% endblock %}

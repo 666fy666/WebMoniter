@@ -108,6 +108,16 @@ MONITOR_SPECS: tuple[TaskSpec, ...] = (
 
 TASK_SPECS: tuple[TaskSpec, ...] = (
     TaskSpec(
+        "weibo_cookie_refresh",
+        "src.tasks.weibo_cookie_refresh",
+        "微博 Cookie 自动刷新",
+        "task",
+        "weibo",
+        enable_field="weibo_cookie_refresh_enable",
+        time_field="weibo_cookie_refresh_time",
+        default_time="21:00",
+    ),
+    TaskSpec(
         "log_cleanup",
         "src.tasks.log_cleanup",
         "日志清理",

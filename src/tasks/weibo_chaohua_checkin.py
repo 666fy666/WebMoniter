@@ -21,7 +21,12 @@ from dataclasses import dataclass
 import requests
 
 from src.core.http import create_certifi_connector
-from src.core.utils import mask_cookie_for_log
+from src.core.weibo_http import (
+    WEIBO_CHAOHUA_LIST_URL,
+    WEIBO_DESKTOP_USER_AGENT,
+    WEIBO_SPA_CONFIG_URL,
+    extract_weibo_login_uid,
+)
 from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
@@ -30,7 +35,6 @@ from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_
 logger = logging.getLogger(__name__)
 
 # 微博超话 API 常量
-CHAOHUA_LIST_URL = "https://weibo.com/ajax/profile/topicContent"
 CHAOHUA_SIGN_URL = "https://weibo.com/p/aj/general/button"
 
 
@@ -111,16 +115,11 @@ def _get_xsrf_token(cookie: str) -> str | None:
     return None
 
 
-def _get_user_info(cookie: str) -> str:
-    """获取用户基本信息"""
-    try:
-        # 从Cookie中提取用户名或ID
-        sub_match = re.search(r"SUB=([^;]+)", cookie)
-        if sub_match:
-            return f"用户{sub_match.group(1)[:8]}..."
-    except Exception:
-        pass
-    return "未知用户"
+def _mask_login_uid(uid: str) -> str:
+    """生成不包含 Cookie 内容的账号标签。"""
+    if len(uid) <= 4:
+        return "微博账号"
+    return f"UID {uid[:2]}***{uid[-2:]}"
 
 
 def _run_weibo_chaohua_sign_sync(
@@ -140,7 +139,7 @@ def _run_weibo_chaohua_sign_sync(
     session = requests.Session()
     session.headers.update(
         {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "User-Agent": WEIBO_DESKTOP_USER_AGENT,
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
@@ -161,17 +160,44 @@ def _run_weibo_chaohua_sign_sync(
     if xsrf_token:
         session.headers["X-XSRF-TOKEN"] = xsrf_token
 
-    user_info = _get_user_info(cookie)
+    def _fetch_login_uid() -> str:
+        """确认 Cookie 是完整微博登录态并获取当前账号 UID。"""
+        try:
+            response = session.get(WEIBO_SPA_CONFIG_URL, timeout=15)
+            if response.status_code != 200:
+                raise Exception(f"HTTP Error: {response.status_code}")
+            try:
+                payload = response.json()
+            except (json.JSONDecodeError, ValueError) as exc:
+                raise Exception("响应不是有效 JSON") from exc
+            uid = extract_weibo_login_uid(payload)
+            if not uid:
+                raise Exception("未识别到完整微博登录账号，Cookie 可能已失效或仅为匿名会话")
+            return uid
+        except requests.exceptions.RequestException as exc:
+            raise Exception(f"网络请求失败: {type(exc).__name__}") from exc
 
-    def _fetch_chaohua_list(page: int = 1, collected: list | None = None) -> list[dict]:
+    def _fetch_chaohua_list(
+        login_uid: str,
+        page: int = 1,
+        collected: list | None = None,
+    ) -> list[dict]:
         """获取超话列表"""
         if collected is None:
             collected = []
 
-        params = {"tabid": "231093_-_chaohua", "page": page}
+        params = {"tabid": "231093_-_chaohua", "page": page, "uid": login_uid}
+        headers = {
+            "Referer": f"https://weibo.com/u/page/follow/{login_uid}/231093_-_chaohua"
+        }
 
         try:
-            response = session.get(CHAOHUA_LIST_URL, params=params, timeout=15)
+            response = session.get(
+                WEIBO_CHAOHUA_LIST_URL,
+                params=params,
+                headers=headers,
+                timeout=15,
+            )
 
             if response.status_code != 200:
                 raise Exception(f"HTTP Error: {response.status_code}")
@@ -191,25 +217,42 @@ def _run_weibo_chaohua_sign_sync(
                 raise Exception(f"API返回错误: {error_msg}")
 
             api_data = data.get("data", {})
+            if not isinstance(api_data, dict):
+                raise Exception("API data 结构无效")
             chaohua_list = api_data.get("list", [])
+            if not isinstance(chaohua_list, list):
+                raise Exception("API list 结构无效")
+            max_page = int(api_data.get("max_page") or 1)
+            total_number = int(api_data.get("total_number") or 0)
 
             if not chaohua_list:
+                if page < max_page:
+                    time.sleep(0.8)
+                    return _fetch_chaohua_list(login_uid, page + 1, collected)
+                if total_number > len(collected):
+                    raise Exception("API 返回超话总数非零但列表为空")
                 return collected
 
             # 提取超话ID和名称
+            parsed_before = len(collected)
+            existing_ids = {item["id"] for item in collected}
             for item in chaohua_list:
+                if not isinstance(item, dict):
+                    continue
                 oid = item.get("oid", "")
                 if oid.startswith("1022:"):
                     chaohua_id = oid[5:]  # 去掉前缀 "1022:"
                     chaohua_name = item.get("topic_name", "")
-                    if chaohua_id and chaohua_name:
+                    if chaohua_id and chaohua_name and chaohua_id not in existing_ids:
                         collected.append({"id": chaohua_id, "name": chaohua_name})
+                        existing_ids.add(chaohua_id)
+            if len(collected) == parsed_before:
+                raise Exception("超话列表响应结构已变化，未能解析任何条目")
 
             # 检查是否还有下一页
-            max_page = api_data.get("max_page", 1)
             if page < max_page:
                 time.sleep(0.8)  # 增加延迟
-                return _fetch_chaohua_list(page + 1, collected)
+                return _fetch_chaohua_list(login_uid, page + 1, collected)
 
             return collected
 
@@ -263,7 +306,9 @@ def _run_weibo_chaohua_sign_sync(
 
     # 获取超话列表
     try:
-        chaohua_list = _fetch_chaohua_list()
+        login_uid = _fetch_login_uid()
+        user_info = _mask_login_uid(login_uid)
+        chaohua_list = _fetch_chaohua_list(login_uid)
     except Exception as e:
         return False, f"获取超话列表失败: {str(e)}", 0, 0, 0, 0
 
@@ -417,9 +462,8 @@ async def _send_weibo_chaohua_push(
         logger.debug("微博超话签到：免打扰时段，不发送推送")
         return
 
-    masked = mask_cookie_for_log(cfg.cookie)
     status_emoji = "✅" if success else "❌"
-    body = f"{status_emoji} Cookie: {masked}\n{detail or description}\n\n微博超话签到时间配置: {cfg.time}"
+    body = f"{status_emoji} {detail or description}\n\n微博超话签到时间配置: {cfg.time}"
 
     try:
         await push_manager.send_news(

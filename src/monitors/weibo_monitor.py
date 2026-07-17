@@ -18,6 +18,7 @@ from PIL import Image, ImageOps
 
 from src.core.http import create_certifi_connector
 from src.core.paths import DATA_DIR
+from src.core.weibo_http import WEIBO_DESKTOP_USER_AGENT
 from src.monitors.base import BaseMonitor, CookieExpiredError
 from src.push_channel.rich_text import RichText, RichTextBuilder, RichTextSegment
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours
@@ -56,7 +57,7 @@ class WeiboMonitor(BaseMonitor):
         if self.session is None:
             self.session = aiohttp.ClientSession(
                 headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                    "User-Agent": WEIBO_DESKTOP_USER_AGENT,
                     "Accept": "application/json, text/plain, */*",
                     "Referer": "https://www.weibo.com/",
                     "Cookie": self.weibo_config.cookie,

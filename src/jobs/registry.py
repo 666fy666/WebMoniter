@@ -37,6 +37,8 @@ class JobDescriptor:
     description: str = ""
     # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
     original_run_func: Callable[[], Awaitable[TaskOutcome]] | None = field(default=None)
+    # 是否参与项目启动后的首轮执行；监控与既有任务默认保持原行为
+    run_on_startup: bool = True
 
 
 MONITOR_JOBS: list[JobDescriptor] = []
@@ -140,6 +142,7 @@ def register_task(
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]],
     *,
     skip_if_run_today: bool = True,
+    run_on_startup: bool = True,
     description: str = "",
 ) -> None:
     """
@@ -151,6 +154,7 @@ def register_task(
         run_func: 任务执行函数
         get_trigger_kwargs: 获取触发参数的函数
         skip_if_run_today: 是否在当天已运行过时跳过（默认 True）
+        run_on_startup: 是否在项目启动首轮执行（默认 True）
         description: Web 任务列表展示文案
     """
     from src.storage.database import has_run_today as check_run_today
@@ -182,9 +186,15 @@ def register_task(
             get_trigger_kwargs=get_trigger_kwargs,
             description=description or f"任务 {job_id}",
             original_run_func=run_func,
+            run_on_startup=run_on_startup,
         ),
     )
-    logger.debug("已注册定时任务: %s (skip_if_run_today=%s)", job_id, skip_if_run_today)
+    logger.debug(
+        "已注册定时任务: %s (skip_if_run_today=%s, run_on_startup=%s)",
+        job_id,
+        skip_if_run_today,
+        run_on_startup,
+    )
 
 
 def get_registered_task(job_id: str) -> JobDescriptor | None:

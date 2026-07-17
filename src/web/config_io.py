@@ -1,15 +1,13 @@
 """Web 配置文件合并、补丁与保存校验。"""
 
-import asyncio
 import logging
-import tempfile
 from io import StringIO
 from pathlib import Path
 
 import yaml
 from fastapi.responses import JSONResponse
 
-from src.settings.config import AppConfig, get_config, load_config_from_yml
+from src.settings.config_writer import ConfigWriteError, run_write_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -154,38 +152,29 @@ def merge_config_to_yaml(config_path: Path, config_data: dict) -> str:
 
 
 async def _validate_and_save_config(yaml_content: str, config_path: Path) -> JSONResponse | None:
-    """
-    验证 YAML 内容并保存到 config.yml。
-
-    成功返回 None；失败返回错误 JSONResponse。验证流程：
-    写入临时文件 -> load_config_from_yml -> AppConfig 校验 -> 写入正式文件 -> 热重载。
-    """
-    temp_file = None
+    """在共享配置锁内校验并保存完整 YAML。"""
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yml", delete=False, encoding="utf-8"
-        ) as tmp:
-            tmp.write(yaml_content)
-            temp_file = tmp.name
+        await run_write_transaction(config_path, lambda: yaml_content)
+    except ConfigWriteError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({"error": f"保存配置失败: {exc}"}, status_code=400)
 
-        try:
-            test_config_dict = load_config_from_yml(temp_file)
-            AppConfig(**test_config_dict)
-        except Exception as e:
-            return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
-        finally:
-            if temp_file and Path(temp_file).exists():
-                Path(temp_file).unlink()
-    except Exception as e:
-        if temp_file and Path(temp_file).exists():
-            Path(temp_file).unlink()
-        return JSONResponse({"error": f"配置验证失败: {str(e)}"}, status_code=400)
+    return None
 
-    await asyncio.to_thread(config_path.write_text, yaml_content, encoding="utf-8")
 
+async def _merge_and_validate_and_save_config(
+    config_path: Path,
+    config_data: dict,
+) -> JSONResponse | None:
+    """在同一事务中读取最新配置、合并前端补丁、校验并保存。"""
     try:
-        get_config(reload=True)
-    except Exception as e:
-        logger.warning("热重载失败: %s", e)
-
+        await run_write_transaction(
+            config_path,
+            lambda: merge_config_to_yaml(config_path, config_data),
+        )
+    except ConfigWriteError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({"error": f"合并并转换YAML失败: {exc}"}, status_code=400)
     return None

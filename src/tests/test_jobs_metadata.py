@@ -27,6 +27,7 @@ from src.push_channel import _channel_type_to_class
 from src.settings.config import AppConfig
 from src.settings.loader_specs import CONFIG_MAPPINGS
 from src.web.routers import config as config_router
+from src.web.routers import pages as pages_router
 
 
 def test_metadata_drives_legacy_registry_exports() -> None:
@@ -79,6 +80,17 @@ def test_config_section_order_matches_frontend_template() -> None:
 
     assert template_sections == CONFIG_SECTION_ORDER
     assert "/api/config/metadata" in js
+    assert 'config.js?v={{ config_js_version }}' in html
+    assert "cookie_refresh_enable: weiboCookieRefreshEnable" in js
+    assert "cookie_refresh_time:" in js
+
+
+def test_config_page_asset_version_tracks_config_script() -> None:
+    context = pages_router._page_context(SimpleNamespace(), "配置管理", "config")
+
+    assert context["config_js_version"] == str(
+        pages_router._CONFIG_JS_PATH.stat().st_mtime_ns
+    )
 
 
 def test_frontend_fallback_metadata_matches_backend() -> None:
@@ -122,11 +134,16 @@ async def test_config_metadata_api_shape(monkeypatch) -> None:
     body = json.loads(response.body)
 
     assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
     assert "checkin" in body["sections"]
     assert body["push_channel_types"]["wecom_bot"]["fields"] == ["key"]
     checkin = next(task for task in body["tasks"] if task["job_id"] == "ikuuu_checkin")
     assert checkin["config_section"] == "checkin"
     assert checkin["push_container_id"] == "checkin_push_channels"
+    refresh = next(task for task in body["tasks"] if task["job_id"] == "weibo_cookie_refresh")
+    assert refresh["config_section"] == "weibo"
+    assert refresh["default_time"] == "21:00"
+    assert refresh["env_prefix"] is None
 
 
 @pytest.mark.asyncio
@@ -138,3 +155,26 @@ async def test_config_metadata_api_requires_login(monkeypatch) -> None:
     )
 
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_config_api_disables_cache(monkeypatch, tmp_path) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.yml").write_text(
+        "weibo:\n  cookie_refresh_enable: true\n  cookie_refresh_time: '20:30'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
+
+    response = await config_router.get_config_api(
+        SimpleNamespace(session={"session_id": "ok"}),
+        format="json",
+    )
+    body = json.loads(response.body)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert body["config"]["weibo"] == {
+        "cookie_refresh_enable": True,
+        "cookie_refresh_time": "20:30",
+    }

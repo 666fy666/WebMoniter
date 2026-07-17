@@ -41,11 +41,39 @@ def test_format_preflight_success_can_show_verbose_notes():
 
 
 def test_browser_required_only_when_browser_tasks_enabled():
-    disabled = SimpleNamespace(checkin_enable=False, rainyun_enable=False)
-    enabled = SimpleNamespace(checkin_enable=True, rainyun_enable=False)
+    disabled = SimpleNamespace(
+        checkin_enable=False,
+        rainyun_enable=False,
+        weibo_cookie_refresh_enable=False,
+    )
+    enabled = SimpleNamespace(
+        checkin_enable=True,
+        rainyun_enable=False,
+        weibo_cookie_refresh_enable=False,
+    )
+    refresh_enabled = SimpleNamespace(
+        checkin_enable=False,
+        rainyun_enable=False,
+        weibo_cookie_refresh_enable=True,
+    )
 
     assert preflight._browser_required(disabled) == (False, [])
     assert preflight._browser_required(enabled) == (True, ["ikuuu_checkin"])
+    assert preflight._browser_required(refresh_enabled) == (True, ["weibo_cookie_refresh"])
+
+
+def test_localhost_proxy_bypass_preserves_existing_entries(monkeypatch):
+    monkeypatch.setenv("NO_PROXY", "internal.example")
+    monkeypatch.delenv("no_proxy", raising=False)
+
+    preflight._ensure_localhost_proxy_bypass()
+
+    assert preflight.os.environ["NO_PROXY"].split(",") == [
+        "internal.example",
+        "localhost",
+        "127.0.0.1",
+        "::1",
+    ]
 
 
 def test_configured_browser_preferred_over_common_paths(monkeypatch):
@@ -164,7 +192,7 @@ def test_browser_smoke_failure_points_to_direct_chromium_probe(monkeypatch):
 
     class FailingWebDriver:
         @staticmethod
-        def Chrome(*args, **kwargs):
+        def Chrome(*args, **kwargs):  # noqa: N802
             raise RuntimeError("Chrome instance exited")
 
     class DummyOptions:

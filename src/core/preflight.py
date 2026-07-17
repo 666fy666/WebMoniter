@@ -231,7 +231,19 @@ def _browser_required(config: Any | None) -> tuple[bool, list[str]]:
         tasks.append("ikuuu_checkin")
     if bool(getattr(config, "rainyun_enable", False)):
         tasks.append("rainyun_checkin")
+    if bool(getattr(config, "weibo_cookie_refresh_enable", False)):
+        tasks.append("weibo_cookie_refresh")
     return bool(tasks), tasks
+
+
+def _ensure_localhost_proxy_bypass() -> None:
+    for env_name in ("NO_PROXY", "no_proxy"):
+        entries = [item.strip() for item in os.environ.get(env_name, "").split(",") if item.strip()]
+        lowered = {item.lower() for item in entries}
+        for host in ("localhost", "127.0.0.1", "::1"):
+            if host.lower() not in lowered:
+                entries.append(host)
+        os.environ[env_name] = ",".join(entries)
 
 
 def _valid_binary(path: str) -> tuple[bool, str]:
@@ -338,6 +350,7 @@ def _check_browser_smoke(
         )
         return
     try:
+        _ensure_localhost_proxy_bypass()
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.chrome.service import Service

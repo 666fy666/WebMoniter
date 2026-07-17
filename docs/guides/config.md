@@ -44,7 +44,7 @@
 | 类型       | 配置节点示例 | 说明 |
 |:----------:|:-------------|:-----|
 | 应用基础   | `app`        | 全局基础配置，目前包括 `base_url`（用于拼接微博封面图等资源的完整 URL） |
-| 微博监控   | `weibo`      | `enable`、Cookie、UID 列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#weibo-monitor) |
+| 微博监控与 Cookie 刷新 | `weibo` | `enable`、Cookie、UID、监控间隔及 `cookie_refresh_enable/time`，详见 [监控任务详解](tasks/monitors.md#weibo-monitor) 与 [定时任务详解](tasks/checkin.md) |
 | 虎牙监控   | `huya`       | `enable`、房间号列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#huya-monitor) |
 | 哔哩哔哩   | `bilibili`   | `enable`、UID 列表、Cookie（可选）、动态+开播/下播检测，详见 [监控任务详解](tasks/monitors.md#bilibili-monitor) |
 | 抖音直播   | `douyin`     | `enable`、抖音号列表、开播/下播检测，详见 [监控任务详解](tasks/monitors.md#douyin-monitor) |

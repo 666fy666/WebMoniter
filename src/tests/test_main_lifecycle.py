@@ -86,3 +86,25 @@ async def test_initial_pass_skips_remaining_jobs_after_shutdown_request() -> Non
     await _run_initial_pass(jobs, should_stop=lambda: bool(calls))
 
     assert calls == ["first"]
+
+
+@pytest.mark.asyncio
+async def test_initial_pass_skips_jobs_opted_out_of_startup() -> None:
+    calls = []
+
+    async def cron_only():
+        calls.append("cron-only")
+        return TASK_SUCCESS
+
+    async def regular():
+        calls.append("regular")
+        return TASK_SUCCESS
+
+    jobs = [
+        JobDescriptor("cron-only", cron_only, "cron", lambda config: {}, run_on_startup=False),
+        JobDescriptor("regular", regular, "cron", lambda config: {}),
+    ]
+
+    await _run_initial_pass(jobs)
+
+    assert calls == ["regular"]

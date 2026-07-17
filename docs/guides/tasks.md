@@ -7,7 +7,7 @@
 
 **通用行为**：
 
-- 项目**启动时**会尝试执行一次所有已注册任务（监控类需 `enable: true`；定时类还需配置完整，且若当天已在 `task_run_history` 中记录则跳过）。  
+- 项目**启动时**会尝试执行一次大多数已注册任务（微博 Cookie 刷新仅按 Cron 或手动触发，不参与启动首轮）。
 - 定时任务默认**当天已运行则跳过**（仅当上次执行返回 `TASK_SUCCESS` 时写入 `task_run_history`）；在 Web「任务管理」中**手动触发**可强制执行。  
 - 修改 `config.yml` 后约 **5 秒热重载** 生效，无需重启。
 
@@ -40,6 +40,7 @@
 
 | 任务 | 配置节点 | 默认时间 | 认证/说明 | 详细说明 |
 |:-----|:--------|:--------|:----------|:--------|
+| 微博 Cookie 刷新 | `weibo` | 21:00 | Selenium 静默续期 | [定时任务详解](tasks/checkin.md) |
 | 微博超话签到 | `weibo_chaohua` | 23:45 | Cookie（XSRF-TOKEN） | [定时任务详解](tasks/checkin.md) |
 | iKuuu 签到 | `checkin` | 08:00 | 邮箱+密码 | [定时任务详解](tasks/checkin.md) |
 | 雨云签到 | `rainyun` | 08:30 | 账号+密码（api_key 可选续费） | [定时任务详解](tasks/checkin.md) |
