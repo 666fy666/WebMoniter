@@ -859,7 +859,9 @@ def test_check_info_treats_same_second_higher_mid_as_new_post():
 
 
 @pytest.mark.asyncio
-async def test_process_user_skips_older_mid_without_overwriting_snapshot(monkeypatch):
+async def test_process_user_skips_older_mid_without_overwriting_snapshot(
+    monkeypatch, caplog
+):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     monitor.db = _FakeWeiboDatabase()
     monitor.old_data_dict = {
@@ -910,11 +912,13 @@ async def test_process_user_skips_older_mid_without_overwriting_snapshot(monkeyp
     monkeypatch.setattr(monitor, "mark_cookie_valid", mark_cookie_valid)
     monkeypatch.setattr(monitor, "push_notification", record_push)
 
+    caplog.set_level(logging.INFO, logger="WeiboMonitor")
     await monitor.process_user("1")
 
     assert monitor.db.update_calls == []
     assert monitor.old_data_dict["1"][7] == "103"
     assert push_calls == []
+    assert "本次接口返回的微博时间未晚于已记录微博" not in caplog.text
 
 
 def test_make_post_thumbnail_creates_small_jpeg(tmp_path):

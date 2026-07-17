@@ -1452,10 +1452,6 @@ class WeiboMonitor(BaseMonitor):
 
             if diff == 0:
                 if self._is_stale_status_snapshot(new_data, old_info):
-                    self.logger.info(
-                        "%s 本次接口返回的微博时间未晚于已记录微博，跳过推送和最新微博覆盖",
-                        new_data["用户名"],
-                    )
                     return
 
                 old_retweeted_status = old_info[9] if len(old_info) > 9 else "{}"
