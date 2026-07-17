@@ -162,7 +162,8 @@ async def test_rich_text_is_rendered_per_channel_without_visible_url() -> None:
         RichTextBuilder()
         .text("正文里的 ")
         .link("网页链接", "https://example.com/hidden-target")
-        .text(" 可以点开")
+        .text(" 可以点开，表情是 ")
+        .emoji("[泪]", "https://face.t.sinajs.cn/expression/tear.png")
         .build()
     )
 
@@ -173,11 +174,20 @@ async def test_rich_text_is_rendered_per_channel_without_visible_url() -> None:
     )
 
     assert result["errors"] == []
-    assert plain.sent[0]["content"] == "正文里的 网页链接 可以点开"
+    assert plain.sent[0]["content"] == "正文里的 网页链接 可以点开，表情是 [泪]"
     assert "http://" not in plain.sent[0]["content"]
     assert "https://" not in plain.sent[0]["content"]
     assert "[网页链接](https://example.com/hidden-target)" in markdown.sent[0]["content"]
     assert '<a href="https://example.com/hidden-target">网页链接</a>' in html.sent[0]["content"]
+    for channel in (plain, markdown, html):
+        assert "face.t.sinajs.cn" not in channel.sent[0]["content"]
+    assert "\\[泪\\]" in markdown.sent[0]["content"]
+    assert "[泪]" in html.sent[0]["content"]
+    assert description.to_dicts()[-1] == {
+        "type": "emoji",
+        "text": "[泪]",
+        "src": "https://face.t.sinajs.cn/expression/tear.png",
+    }
     assert plain.sent[0]["extend_data"]["_rich_text_format"] == "plain"
     assert markdown.sent[0]["extend_data"]["_rich_text_format"] == "markdown"
     assert html.sent[0]["extend_data"]["_rich_text_format"] == "html"

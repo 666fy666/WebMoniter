@@ -1461,6 +1461,20 @@ input:focus + .slider {
     text-decoration: underline;
 }
 
+.weibo-inline-emoji {
+    display: inline-block;
+    width: 1.3em;
+    height: 1.3em;
+    margin: 0 0.06em;
+    object-fit: contain;
+    vertical-align: -0.28em;
+    user-select: none;
+}
+
+.weibo-inline-emoji-fallback {
+    white-space: nowrap;
+}
+
 .weibo-content-type {
     display: inline-flex;
     align-items: center;

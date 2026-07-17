@@ -39,6 +39,11 @@ def test_weibo_structured_content_badges_tags_and_video_cover_contract():
     css = STYLE_PATH.read_text(encoding="utf-8")
 
     assert "function renderWeiboContentSegments" in script
+    assert "segment.type === 'emoji'" in script
+    assert 'class="weibo-inline-emoji"' in script
+    assert 'referrerpolicy="no-referrer"' in script
+    assert "img.classList.contains('weibo-inline-emoji')" in script
+    assert "img.replaceWith(fallback)" in script
     assert "function stripWeiboTagsFromText" in script
     assert "new RegExp(`#${escapeRegExp(tag)}#`, 'g')" in script
     assert 'class="weibo-content-link"' in script
@@ -50,6 +55,9 @@ def test_weibo_structured_content_badges_tags_and_video_cover_contract():
     assert 'class="weibo-video-cover-img"' in script
     assert "target.closest('a[href]')" in script
     assert ".weibo-content-type-video" in css
+    emoji_rule = _css_rule(css, ".weibo-inline-emoji")
+    assert "object-fit: contain" in emoji_rule
+    assert "vertical-align: -0.28em" in emoji_rule
     assert ".weibo-tag-list" in css
     assert ".weibo-video-cover" in css
 
@@ -63,3 +71,16 @@ def test_weibo_video_cover_adapts_to_portrait_without_cropping():
     assert "aspect-ratio: var(--weibo-video-aspect, 16 / 9)" in _css_rule(css, ".weibo-video-cover")
     assert "width: min(100%, 360px)" in _css_rule(css, ".weibo-video-cover.is-portrait")
     assert "object-fit: contain" in _css_rule(css, ".weibo-video-cover > .weibo-video-cover-img")
+
+
+def test_weibo_mixed_media_places_images_before_video_cover():
+    script = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    for marker in (
+        '<div class="weibo-retweet-body">',
+        '<div class="weibo-feed-body">',
+    ):
+        start = script.index(marker)
+        end = script.index("</div>", start)
+        body = script[start:end]
+        assert body.index("${mediaHtml}") < body.index("${videoHtml}")

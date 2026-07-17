@@ -29,6 +29,7 @@ POST_IMAGE_HEADERS = {
 }
 
 WEIBO_CONTENT_TYPES = {"repost", "video", "image", "text"}
+WEIBO_EMOJI_ALT_PATTERN = re.compile(r"^\[[^\[\]\r\n]{1,50}\]$")
 WEIBO_CONTENT_SEGMENTS_INDEX = 10
 WEIBO_TAGS_INDEX = 11
 WEIBO_CONTENT_TYPE_INDEX = 12
@@ -998,14 +999,14 @@ class WeiboMonitor(BaseMonitor):
             text = re.sub(r"\n[ \t]+", "\n", text)
             text = re.sub(r"\n{3,}", "\n\n", text)
             if text:
-                cleaned.append(RichTextSegment(text, segment.url))
+                cleaned.append(RichTextSegment(text, segment.url, segment.image_url))
 
         if not cleaned:
             return RichText()
         first = cleaned[0]
-        cleaned[0] = RichTextSegment(first.text.lstrip(), first.url)
+        cleaned[0] = RichTextSegment(first.text.lstrip(), first.url, first.image_url)
         last = cleaned[-1]
-        cleaned[-1] = RichTextSegment(last.text.rstrip(), last.url)
+        cleaned[-1] = RichTextSegment(last.text.rstrip(), last.url, last.image_url)
         return RichText(cleaned)
 
     def _parse_weibo_html_rich_text(self, value: object) -> RichText:
@@ -1029,7 +1030,12 @@ class WeiboMonitor(BaseMonitor):
                     builder.text("\n")
                     continue
                 if name == "img":
-                    builder.text(node.get("alt") or "")
+                    alt = str(node.get("alt") or "").strip()
+                    image_url = self._safe_weibo_link_url(node.get("src") or node.get("data-src"))
+                    if alt and image_url and WEIBO_EMOJI_ALT_PATTERN.fullmatch(alt):
+                        builder.emoji(alt, image_url)
+                    else:
+                        builder.text(alt)
                     continue
                 if name in {"script", "style"}:
                     continue
@@ -1092,7 +1098,7 @@ class WeiboMonitor(BaseMonitor):
         for short_url, target_url, label in link_metadata:
             replaced: list[RichTextSegment] = []
             for segment in segments:
-                if segment.is_link or short_url not in segment.text:
+                if segment.is_link or segment.is_emoji or short_url not in segment.text:
                     replaced.append(segment)
                     continue
                 parts = segment.text.split(short_url)
@@ -1107,7 +1113,7 @@ class WeiboMonitor(BaseMonitor):
         visible_url_pattern = re.compile(r"https?://[^\s<>'\"\]\[）)]+", re.IGNORECASE)
         hidden_urls: list[RichTextSegment] = []
         for segment in segments:
-            if segment.is_link:
+            if segment.is_link or segment.is_emoji:
                 hidden_urls.append(segment)
                 continue
             cursor = 0
@@ -2402,7 +2408,7 @@ class WeiboMonitor(BaseMonitor):
             text = re.sub(r"[ \t]{2,}", " ", text)
             text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
             if text:
-                segments.append(RichTextSegment(text, segment.url))
+                segments.append(RichTextSegment(text, segment.url, segment.image_url))
         return self._normalize_rich_text(RichText(segments))
 
     def _append_push_profile(self, builder: RichTextBuilder, data: dict) -> None:

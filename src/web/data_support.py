@@ -22,6 +22,8 @@ WEIBO_CONTENT_TYPES = {"repost", "video", "image", "text"}
 
 def _safe_http_url(raw: object) -> str:
     value = str(raw or "").strip()
+    if value.startswith("//"):
+        value = f"https:{value}"
     if re.search(r"[\x00-\x20\x7f]", value):
         return ""
     try:
@@ -72,7 +74,13 @@ def _parse_weibo_content_segments(raw: object) -> list[dict[str, str]]:
             text,
             flags=re.IGNORECASE,
         )
-        if item.get("type") == "link":
+        segment_type = item.get("type")
+        if segment_type == "emoji":
+            src = _safe_http_url(item.get("src"))
+            if src:
+                result.append({"type": "emoji", "text": text, "src": src})
+                continue
+        if segment_type == "link":
             url = _safe_http_url(item.get("url"))
             if url:
                 result.append({"type": "link", "text": text, "url": url})

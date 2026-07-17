@@ -539,6 +539,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!label) return '';
                 label = label.replace(/(?:https?:)?\/\/[^\s<>"'\]\[）)]+/gi, '网页链接');
                 visibleText += label;
+                const emojiSrc =
+                    segment.type === 'emoji' ? getSafeHttpUrl(segment.src) : '';
+                if (emojiSrc) {
+                    return `<img class="weibo-inline-emoji" data-src="${escapeAttr(
+                        emojiSrc,
+                    )}" alt="${escapeAttr(label)}" title="${escapeAttr(
+                        label,
+                    )}" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" draggable="false">`;
+                }
                 const renderedLabel = renderSegmentText(label);
                 const url = segment.type === 'link' ? getSafeHttpUrl(segment.url) : '';
                 if (!url) return renderedLabel;
@@ -637,8 +646,8 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="weibo-retweet-body">
           ${textHtml}
           ${tagHtml}
-          ${videoHtml}
           ${mediaHtml}
+          ${videoHtml}
         </div>
         ${url ? '<div class="weibo-retweet-hint">查看原微博</div>' : ''}
       </section>`;
@@ -1233,6 +1242,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!(img instanceof HTMLImageElement)) {
                 return;
             }
+            if (img.classList.contains('weibo-inline-emoji')) {
+                const fallback = document.createElement('span');
+                fallback.className = 'weibo-inline-emoji-fallback';
+                fallback.textContent = img.alt || '';
+                img.replaceWith(fallback);
+                return;
+            }
             if (img.classList.contains('weibo-video-cover-img')) {
                 const fallbackSrc = img.dataset.fallbackSrc || '';
                 if (fallbackSrc && img.src !== new URL(fallbackSrc, window.location.href).href) {
@@ -1365,8 +1381,8 @@ document.addEventListener('DOMContentLoaded', function () {
       ${textHtml}
       ${tagHtml}
       ${retweetHtml}
-      ${videoHtml}
       ${mediaHtml}
+      ${videoHtml}
     </div>
     <footer class="weibo-feed-footer">
       <span class="weibo-feed-action"><span class="weibo-feed-action-icon">↗</span> 转发</span>

@@ -179,8 +179,14 @@ def test_weibo_row_to_item_exposes_segments_tags_type_and_video_cover():
         json.dumps(
             [
                 {"type": "text", "text": "看看 "},
+                {
+                    "type": "emoji",
+                    "text": "[泪]",
+                    "src": "//face.t.sinajs.cn/expression/tear.png",
+                },
                 {"type": "link", "text": "网页链接", "url": "https://example.com/a"},
                 {"type": "link", "text": "坏链接", "url": "javascript:alert(1)"},
+                {"type": "emoji", "text": "[坏表情]", "src": "data:image/png;base64,AA"},
             ],
             ensure_ascii=False,
         ),
@@ -193,8 +199,14 @@ def test_weibo_row_to_item_exposes_segments_tags_type_and_video_cover():
 
     assert item["content_segments"] == [
         {"type": "text", "text": "看看 "},
+        {
+            "type": "emoji",
+            "text": "[泪]",
+            "src": "https://face.t.sinajs.cn/expression/tear.png",
+        },
         {"type": "link", "text": "网页链接", "url": "https://example.com/a"},
         {"type": "text", "text": "坏链接"},
+        {"type": "text", "text": "[坏表情]"},
     ]
     assert item["tags"] == ["话题一", "话题二"]
     assert item["content_type"] == "video"
@@ -205,7 +217,9 @@ def test_weibo_html_parser_preserves_order_and_hides_actual_urls():
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
     status = {
         "text": (
-            "第一行<br><img alt='[开心]'>"
+            "第一行<br>"
+            "<img alt='[开心]' src='//face.t.sinajs.cn/expression/happy.png'>"
+            "<img alt='[坏表情]' src='javascript:alert(1)'>"
             "<a href='https://weibo.com/n/abc'>@abc</a> "
             "<a href='https://s.weibo.com/weibo?q=x'>#话题#</a> "
             "<a href='https://t.cn/A1'>https://t.cn/A1</a> "
@@ -223,15 +237,21 @@ def test_weibo_html_parser_preserves_order_and_hides_actual_urls():
 
     rich = monitor._get_status_rich_text(status)
 
-    assert rich.plain_text() == "第一行\n[开心]@abc #话题# 网页链接 坏链接"
+    assert rich.plain_text() == "第一行\n[开心][坏表情]@abc #话题# 网页链接 坏链接"
     assert "http://" not in rich.plain_text()
     assert "https://" not in rich.plain_text()
     assert rich.to_dicts()[1] == {
+        "type": "emoji",
+        "text": "[开心]",
+        "src": "https://face.t.sinajs.cn/expression/happy.png",
+    }
+    assert {
         "type": "link",
         "text": "网页链接",
         "url": "https://example.com/article?id=1",
-    }
+    } in rich.to_dicts()
     assert "javascript:" not in json.dumps(rich.to_dicts())
+    assert {"type": "text", "text": "[坏表情]@abc #话题# "} in rich.to_dicts()
 
 
 def test_weibo_parser_unwraps_sinaurl_and_extracts_ordered_tags():

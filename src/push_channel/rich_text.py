@@ -42,16 +42,23 @@ def _markdown_url(url: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class RichTextSegment:
-    """一段纯文本，或一段带隐藏链接目标的文字。"""
+    """一段纯文本、隐藏链接文字，或带安全图片源的微博表情。"""
 
     text: str
     url: str = ""
+    image_url: str = ""
 
     @property
     def is_link(self) -> bool:
         return bool(self.url)
 
+    @property
+    def is_emoji(self) -> bool:
+        return bool(self.image_url)
+
     def to_dict(self) -> dict[str, str]:
+        if self.image_url:
+            return {"type": "emoji", "text": self.text, "src": self.image_url}
         if self.url:
             return {"type": "link", "text": self.text, "url": self.url}
         return {"type": "text", "text": self.text}
@@ -70,11 +77,18 @@ class RichText:
         merged: list[RichTextSegment] = []
         for item in segments:
             text = str(item.text or "")
-            url = _safe_http_url(item.url)
+            image_url = _safe_http_url(item.image_url)
+            url = "" if image_url else _safe_http_url(item.url)
             if not text:
                 continue
-            segment = RichTextSegment(text=text, url=url)
-            if merged and not url and not merged[-1].url:
+            segment = RichTextSegment(text=text, url=url, image_url=image_url)
+            if (
+                merged
+                and not segment.is_link
+                and not segment.is_emoji
+                and not merged[-1].is_link
+                and not merged[-1].is_emoji
+            ):
                 previous = merged[-1]
                 merged[-1] = RichTextSegment(previous.text + text)
             else:
@@ -94,7 +108,12 @@ class RichText:
             if not isinstance(raw, dict):
                 continue
             text = str(raw.get("text") or "")
-            url = raw.get("url") if raw.get("type") == "link" else ""
+            segment_type = raw.get("type")
+            if segment_type == "emoji":
+                image_url = _safe_http_url(raw.get("src"))
+                segments.append(RichTextSegment(text, image_url=image_url))
+                continue
+            url = raw.get("url") if segment_type == "link" else ""
             segments.append(RichTextSegment(text, _safe_http_url(url)))
         return cls(segments)
 
@@ -192,6 +211,15 @@ class RichTextBuilder:
         text = str(label or "").strip() or "网页链接"
         safe_url = _safe_http_url(url)
         self._segments.append(RichTextSegment(text, safe_url))
+        return self
+
+    def emoji(self, alt: object, image_url: object) -> RichTextBuilder:
+        """追加微博内联表情；地址异常时保留可读的 alt 文字。"""
+        text = str(alt or "").strip()
+        if not text:
+            return self
+        safe_url = _safe_http_url(image_url)
+        self._segments.append(RichTextSegment(text, image_url=safe_url))
         return self
 
     def rich(self, value: RichText) -> RichTextBuilder:
