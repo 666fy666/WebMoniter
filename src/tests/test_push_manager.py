@@ -154,10 +154,16 @@ async def test_rich_text_is_rendered_per_channel_without_visible_url() -> None:
     plain = _RecordingChannel("plain")
     markdown = _RecordingChannel("markdown")
     html = _RecordingChannel("html")
+    markdown_images = _RecordingChannel("markdown-images")
+    html_images = _RecordingChannel("html-images")
     plain.rich_text_format = "plain"
     markdown.rich_text_format = "markdown"
     html.rich_text_format = "html"
-    push_manager = UnifiedPushManager([plain, markdown, html])
+    markdown_images.rich_text_format = "markdown"
+    markdown_images.supports_inline_emoji = True
+    html_images.rich_text_format = "html"
+    html_images.supports_inline_emoji = True
+    push_manager = UnifiedPushManager([plain, markdown, html, markdown_images, html_images])
     description = (
         RichTextBuilder()
         .text("正文里的 ")
@@ -183,6 +189,14 @@ async def test_rich_text_is_rendered_per_channel_without_visible_url() -> None:
         assert "face.t.sinajs.cn" not in channel.sent[0]["content"]
     assert "\\[泪\\]" in markdown.sent[0]["content"]
     assert "[泪]" in html.sent[0]["content"]
+    assert (
+        "![\\[泪\\]](https://face.t.sinajs.cn/expression/tear.png)"
+        in markdown_images.sent[0]["content"]
+    )
+    assert (
+        '<img src="https://face.t.sinajs.cn/expression/tear.png" alt="[泪]"'
+        in html_images.sent[0]["content"]
+    )
     assert description.to_dicts()[-1] == {
         "type": "emoji",
         "text": "[泪]",
@@ -211,3 +225,14 @@ def test_rich_text_rejects_unsafe_url_and_truncates_without_broken_markup() -> N
     assert len(truncated_markdown.encode("utf-8")) <= 36
     assert truncated_html.count("<a ") == truncated_html.count("</a>")
     assert truncated_markdown.count("[") == truncated_markdown.count("](")
+
+
+def test_rich_text_inline_emoji_truncation_falls_back_to_alt_text() -> None:
+    description = (
+        RichTextBuilder().emoji("[泪]", "https://face.t.sinajs.cn/expression/tear.png").build()
+    )
+
+    truncated = description.render("html", max_bytes=15, allow_inline_images=True)
+
+    assert truncated == "[泪]……"
+    assert "https://" not in truncated

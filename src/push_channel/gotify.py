@@ -7,6 +7,7 @@ class Gotify(PushChannel):
     """Gotify 推送通道"""
 
     rich_text_format = "markdown"
+    supports_inline_emoji = True
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
@@ -24,8 +25,14 @@ class Gotify(PushChannel):
             "message": content,
             "priority": 5,
         }
-        if jump_url:
+        rich_markdown = bool(
+            extend_data
+            and isinstance(extend_data, dict)
+            and extend_data.get("_rich_text_format") == "markdown"
+        )
+        if rich_markdown or jump_url:
             body["extras"] = {"client::display": {"contentType": "text/markdown"}}
+        if jump_url:
             body["message"] = f"{content}\n\n[点击查看]({jump_url})"
 
         try:

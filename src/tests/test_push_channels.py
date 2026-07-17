@@ -9,6 +9,12 @@ from aiohttp import ClientResponseError
 from src.push_channel import _channel_type_to_class, get_push_channel
 from src.push_channel._push_channel import PushChannel
 from src.push_channel.dingtalk_bot import DingtalkBot
+from src.push_channel.email import Email
+from src.push_channel.gotify import Gotify
+from src.push_channel.pushplus import PushPlus
+from src.push_channel.server_chan_3 import ServerChan3
+from src.push_channel.server_chan_turbo import ServerChanTurbo
+from src.push_channel.telegram_bot import TelegramBot
 from src.push_channel.wxpusher import WxPusher
 
 
@@ -161,3 +167,54 @@ def test_wxpusher_accepts_string_markdown_content_type() -> None:
 
     assert channel.content_type == 3
     assert channel.rich_text_format == "markdown"
+
+
+def test_only_capable_channels_enable_inline_weibo_emoji() -> None:
+    pushplus_html = PushPlus(
+        {"name": "pushplus", "type": "pushplus", "token": "token", "template": "html"}
+    )
+    pushplus_text = PushPlus(
+        {"name": "pushplus", "type": "pushplus", "token": "token", "template": "txt"}
+    )
+    wx_html = WxPusher({"name": "wx", "type": "wxpusher", "app_token": "token", "content_type": 2})
+    wx_markdown = WxPusher(
+        {"name": "wx", "type": "wxpusher", "app_token": "token", "content_type": 3}
+    )
+    wx_plain = WxPusher({"name": "wx", "type": "wxpusher", "app_token": "token", "content_type": 1})
+
+    assert Email.supports_inline_emoji is True
+    assert ServerChanTurbo.supports_inline_emoji is True
+    assert ServerChan3.supports_inline_emoji is True
+    assert Gotify.supports_inline_emoji is True
+    assert pushplus_html.supports_inline_emoji is True
+    assert pushplus_text.supports_inline_emoji is False
+    assert wx_html.supports_inline_emoji is True
+    assert wx_markdown.supports_inline_emoji is True
+    assert wx_plain.supports_inline_emoji is False
+    assert TelegramBot.supports_inline_emoji is False
+
+
+@pytest.mark.asyncio
+async def test_gotify_declares_markdown_for_rich_content_without_jump_url() -> None:
+    session = _FakeSession(_FakeResponse({}))
+    channel = Gotify(
+        {
+            "name": "gotify",
+            "type": "gotify",
+            "web_server_url": "https://gotify.example/message?token=token",
+        },
+        session=session,
+    )
+
+    await channel.push(
+        "标题",
+        "![表情](https://example.com/emoji.png)",
+        extend_data={"_rich_text_format": "markdown"},
+    )
+
+    payload = session.calls[0][1]["json"]
+    assert payload["extras"] == {"client::display": {"contentType": "text/markdown"}}
+
+    await channel.push("标题", "普通任务文本")
+
+    assert "extras" not in session.calls[1][1]["json"]

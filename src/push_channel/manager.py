@@ -145,7 +145,14 @@ class UnifiedPushManager:
             if channel_extend_data.get("plain_text"):
                 output_format = "plain"
                 max_bytes = getattr(channel, "plain_text_max_content_bytes", max_bytes)
-            final_description = channel_description.render(output_format, max_bytes=max_bytes)
+            allow_inline_images = bool(
+                output_format != "plain" and getattr(channel, "supports_inline_emoji", False)
+            )
+            final_description = channel_description.render(
+                output_format,
+                max_bytes=max_bytes,
+                allow_inline_images=allow_inline_images,
+            )
             channel_extend_data["_rich_text_format"] = output_format
         else:
             final_description = self._ensure_content_within_limit(

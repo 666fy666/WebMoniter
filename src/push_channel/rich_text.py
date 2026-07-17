@@ -132,16 +132,30 @@ class RichText:
             return NotImplemented
         return RichText((*self.segments, *other.segments))
 
-    def _render_segment(self, segment: RichTextSegment, output_format: RichTextFormat) -> str:
+    def _render_segment(
+        self,
+        segment: RichTextSegment,
+        output_format: RichTextFormat,
+        allow_inline_images: bool = False,
+    ) -> str:
         if output_format == "plain":
             return segment.text
         if output_format == "html":
             label = html.escape(segment.text)
+            if segment.is_emoji and allow_inline_images:
+                source = html.escape(segment.image_url, quote=True)
+                return (
+                    f'<img src="{source}" alt="{label}" title="{label}" width="20" '
+                    'height="20" style="display:inline-block;width:1.25em;height:1.25em;'
+                    'vertical-align:-0.25em;object-fit:contain" referrerpolicy="no-referrer">'
+                )
             if segment.url:
                 return f'<a href="{html.escape(segment.url, quote=True)}">{label}</a>'
             return label
 
         label = _escape_markdown(segment.text)
+        if segment.is_emoji and allow_inline_images:
+            return f"![{label}]({_markdown_url(segment.image_url)})"
         if segment.url:
             return f"[{label}]({_markdown_url(segment.url)})"
         return label
@@ -150,9 +164,13 @@ class RichText:
         self,
         output_format: RichTextFormat = "plain",
         max_bytes: int | None = None,
+        allow_inline_images: bool = False,
     ) -> str:
         """安全渲染，并在需要时按完整片段截断，绝不截断富文本语法。"""
-        rendered = [self._render_segment(segment, output_format) for segment in self.segments]
+        rendered = [
+            self._render_segment(segment, output_format, allow_inline_images)
+            for segment in self.segments
+        ]
         full = "".join(rendered)
         if max_bytes is None or len(full.encode("utf-8")) <= max_bytes:
             return full

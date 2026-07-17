@@ -13,6 +13,8 @@ class PushChannel(ABC):
     max_content_bytes: int | None = None
     # RichText 的原生渲染格式；普通通道默认接收不带实际 URL 的纯文本。
     rich_text_format: str = "plain"
+    # 是否支持在正文中显示远程微博表情图片；默认关闭，避免不兼容通道显示破损语法。
+    supports_inline_emoji: bool = False
 
     def __init__(self, config, session: ClientSession | None = None):
         """

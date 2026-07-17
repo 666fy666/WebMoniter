@@ -8,6 +8,7 @@ class ServerChanTurbo(PushChannel):
 
     max_content_bytes = 65536  # 64KB
     rich_text_format = "markdown"
+    supports_inline_emoji = True
 
     def __init__(self, config, session=None):
         super().__init__(config, session)

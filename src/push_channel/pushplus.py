@@ -15,6 +15,7 @@ class PushPlus(PushChannel):
         self.channel = str(config.get("channel", "wechat"))  # 推送渠道，默认wechat
         self.topic = config.get("topic", None)  # 群组代码，可选
         self.template = str(config.get("template", "html"))  # 消息模板，默认html
+        self.supports_inline_emoji = self.template.lower() == "html"
         self.to = config.get("to", None)  # 好友消息的接收者标识，可选
         if self.token == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")

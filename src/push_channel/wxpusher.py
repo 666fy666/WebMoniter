@@ -19,6 +19,7 @@ class WxPusher(PushChannel):
             self.content_type = 1
         # 内容类型：1-文本，2-html，3-markdown，默认1
         self.rich_text_format = {2: "html", 3: "markdown"}.get(self.content_type, "plain")
+        self.supports_inline_emoji = self.content_type in {2, 3}
         if self.app_token == "":
             self.logger.error(f"【推送_{self.name}】配置不完整，推送功能将无法正常使用")
 

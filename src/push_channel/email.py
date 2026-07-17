@@ -10,6 +10,7 @@ class Email(PushChannel):
     """邮件推送通道"""
 
     rich_text_format = "html"
+    supports_inline_emoji = True
 
     def __init__(self, config, session=None):
         super().__init__(config, session)
