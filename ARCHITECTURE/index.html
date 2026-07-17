@@ -1,0 +1,3888 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发">
+      
+      
+        <meta name="author" content="FY">
+      
+      
+        <link rel="canonical" href="https://666fy666.github.io/WebMoniter/ARCHITECTURE/">
+      
+      
+        <link rel="prev" href="../guides/push-channels/">
+      
+      
+        <link rel="next" href="../SECONDARY_DEVELOPMENT/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>架构概览 - WebMoniter 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#web" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="WebMoniter 文档" class="md-header__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WebMoniter 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              架构概览
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+  
+  快速开始
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/config/" class="md-tabs__link">
+          
+  
+  
+  使用指南
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  二次开发
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+  帮助与支持
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WebMoniter 文档" class="md-nav__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    WebMoniter 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速开始
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    安装与运行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QINGLONG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    使用指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置与设置
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    配置与设置
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 管理界面
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务管理
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    任务管理
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/monitors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    监控任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/checkin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送与通知
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    推送与通知
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/push-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送通道配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    二次开发
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 目录
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        项目概述
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="项目概述">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心特性
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overall-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        整体架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="整体架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        架构图
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        系统启动流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心模块详解
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="核心模块详解">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mainpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. main.py - 主入口模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-srcsettingsconfigpy-srcsettingsloader_specspy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. src/settings/config.py / src/settings/loader_specs.py - 配置管理模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-srcmonitorsbasepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. src/monitors/base.py - 监控基类
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-srcjobsschedulerpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. src/jobs/scheduler.py - 任务调度器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-srcjobstask_outcomepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. src/jobs/task_outcome.py - 定时任务执行结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-srccoreruntimepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. src/core/runtime.py - 运行时与退出兜底
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-srcstoragedatabasepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. src/storage/database.py - 数据库模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-srcjobsregistrypy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. src/jobs/registry.py - 任务注册表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-srcsettingsdb_syncpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. src/settings/db_sync.py - 配置与数据库同步
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-srcjobslifecyclepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. src/jobs/lifecycle.py - 生命周期编排
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-srcsettingswatcherpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. src/settings/watcher.py - 配置监控器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-srcstoragecookie_cachepy-cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. src/storage/cookie_cache.py - Cookie缓存管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-srcpush_channel-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. src/push_channel/ - 推送通道模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-srcweb-web" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. src/web/ - Web服务器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-srcjobslog_managerpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. src/jobs/log_manager.py - 日志管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-srccoreversionpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. src/core/version.py - 版本信息模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据流设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据流设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        监控任务执行流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        定时任务执行流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置热重载流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扩展机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扩展机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新监控平台
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新定时任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新推送通道
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        技术栈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="技术栈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心依赖
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        架构模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#directory-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        目录结构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        关键设计模式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="关键设计模式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 插件化架构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 工厂模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 单例模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 观察者模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 模板方法模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置管理
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="配置管理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置文件结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置加载流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置热重载
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据库设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库选择
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        表结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        连接管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#push-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送通道架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="推送通道架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        统一推送接口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送管理器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web服务架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Web服务架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        技术栈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        路由设计
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        认证机制
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API设计
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECONDARY_DEVELOPMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    帮助与支持
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    帮助与支持
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    常见问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 目录
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        项目概述
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="项目概述">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心特性
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overall-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        整体架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="整体架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        架构图
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        系统启动流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心模块详解
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="核心模块详解">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mainpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. main.py - 主入口模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-srcsettingsconfigpy-srcsettingsloader_specspy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. src/settings/config.py / src/settings/loader_specs.py - 配置管理模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-srcmonitorsbasepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. src/monitors/base.py - 监控基类
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-srcjobsschedulerpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. src/jobs/scheduler.py - 任务调度器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-srcjobstask_outcomepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. src/jobs/task_outcome.py - 定时任务执行结果
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-srccoreruntimepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. src/core/runtime.py - 运行时与退出兜底
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-srcstoragedatabasepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. src/storage/database.py - 数据库模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-srcjobsregistrypy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. src/jobs/registry.py - 任务注册表
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-srcsettingsdb_syncpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. src/settings/db_sync.py - 配置与数据库同步
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-srcjobslifecyclepy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. src/jobs/lifecycle.py - 生命周期编排
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-srcsettingswatcherpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. src/settings/watcher.py - 配置监控器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-srcstoragecookie_cachepy-cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. src/storage/cookie_cache.py - Cookie缓存管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-srcpush_channel-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. src/push_channel/ - 推送通道模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-srcweb-web" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. src/web/ - Web服务器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-srcjobslog_managerpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. src/jobs/log_manager.py - 日志管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-srccoreversionpy-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. src/core/version.py - 版本信息模块
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据流设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据流设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        监控任务执行流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        定时任务执行流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置热重载流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扩展机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扩展机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新监控平台
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新定时任务
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        添加新推送通道
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        技术栈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="技术栈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        核心依赖
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        架构模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#directory-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        目录结构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        关键设计模式
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="关键设计模式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 插件化架构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 工厂模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 单例模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 观察者模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 模板方法模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置管理
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="配置管理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置文件结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置加载流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        配置热重载
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据库设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库选择
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        表结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        连接管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#push-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送通道架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="推送通道架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        统一推送接口
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送管理器
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        推送流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web服务架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Web服务架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        技术栈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        路由设计
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        认证机制
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API设计
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="web">Web任务系统 项目架构文档<a class="headerlink" href="#web" title="Permanent link">&para;</a></h1>
+<h2 id="_1">📋 目录<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#project-overview">项目概述</a></li>
+<li><a href="#overall-architecture">整体架构</a></li>
+<li><a href="#core-modules">核心模块详解</a></li>
+<li><a href="#data-flow">数据流设计</a></li>
+<li><a href="#extension">扩展机制</a></li>
+<li><a href="#tech-stack">技术栈</a></li>
+<li><a href="#directory-structure">目录结构</a></li>
+<li><a href="#design-patterns">关键设计模式</a></li>
+<li><a href="#config-management">配置管理</a></li>
+<li><a href="#database-design">数据库设计</a></li>
+<li><a href="#push-architecture">推送通道架构</a></li>
+<li><a href="#web-architecture">Web服务架构</a></li>
+</ul>
+<hr />
+<h2 id="project-overview">项目概述<a class="headerlink" href="#project-overview" title="Permanent link">&para;</a></h2>
+<p>Web任务系统（项目代号 WebMoniter）是一个基于 Python 的<strong>多平台任务系统</strong>，采用异步IO架构，支持：</p>
+<ul>
+<li><strong>多平台监控</strong>：虎牙直播、微博等平台的实时监控</li>
+<li><strong>定时任务</strong>：iKuuu签到、百度贴吧签到、微博超话签到等</li>
+<li><strong>多渠道推送</strong>：支持 18 种推送 type（企业微信、钉钉、Telegram、Bark 等）</li>
+<li><strong>配置热重载</strong>：修改配置文件无需重启，5秒内自动生效</li>
+<li><strong>Web管理界面</strong>：提供友好的Web界面进行配置管理和数据查看</li>
+</ul>
+<h3 id="_2">核心特性<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✅ <strong>异步IO架构</strong>：基于 <code>asyncio</code> 和 <code>aiohttp</code>，支持高并发</li>
+<li>✅ <strong>任务调度</strong>：基于 <code>APScheduler</code> 的灵活任务调度系统</li>
+<li>✅ <strong>插件化设计</strong>：监控和定时任务采用插件化架构，易于扩展</li>
+<li>✅ <strong>配置热重载</strong>：配置文件修改后自动检测并应用，无需重启</li>
+<li>✅ <strong>Cookie管理</strong>：智能Cookie缓存和过期检测机制</li>
+<li>✅ <strong>免打扰时段</strong>：支持配置免打扰时段，静默运行监控任务</li>
+<li>✅ <strong>版本更新检测</strong>：自动检测 GitHub 新版本并在 Web 界面提示更新</li>
+</ul>
+<hr />
+<h2 id="overall-architecture">整体架构<a class="headerlink" href="#overall-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="_3">架构图<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│                        main.py                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │  Web Server  │  │  Scheduler   │  │ Config Watcher│   │
+│  │  (FastAPI)   │  │ (APScheduler)│  │  (热重载)     │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬────────┘   │
+└─────────┼──────────────────┼─────────────────┼────────────┘
+          │                  │                 │
+          │                  │                 │
+┌─────────▼──────────────────▼─────────────────▼────────────┐
+│                    Job Registry                            │
+│  ┌──────────────┐              ┌──────────────┐          │
+│  │ MONITOR_JOBS │              │  TASK_JOBS   │          │
+│  └──────┬───────┘              └──────┬───────┘          │
+└─────────┼─────────────────────────────┼──────────────────┘
+          │                             │
+          │                             │
+┌─────────▼─────────────────────────────▼──────────────────┐
+│  ┌──────────────┐              ┌──────────────┐         │
+│  │  Monitors    │              │    Tasks     │         │
+│  │  Huya/Weibo  │              │  Checkin/    │         │
+│  │  Bilibili/   │              │  Tieba 等    │         │
+│  └──────┬───────┘              └──────┬───────┘         │
+└─────────┼─────────────────────────────┼──────────────────┘
+          │                             │
+          │                             │
+┌─────────▼─────────────────────────────▼──────────────────┐
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │   Database   │  │ Push Manager │  │ Cookie Cache │   │
+│  │  (SQLite)    │  │  (统一推送)  │  │  (状态管理)  │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘   │
+└───────────────────────────────────────────────────────────┘
+</code></pre></div>
+<h3 id="_4">系统启动流程<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>初始化阶段</strong></li>
+<li>设置日志系统：先 <code>setup_logging()</code>（仅控制台；非 TTY 环境不输出到控制台），创建 Web 应用与 Uvicorn 服务器（FastAPI）后，再挂载 <code>main</code> 文件日志 Handler（<code>LogManager.setup_file_logging("main")</code>）到 root logger</li>
+<li>Web 服务默认端口 8866，可通过环境变量 <code>PORT</code> 覆盖</li>
+<li>加载配置文件 (<code>config.yml</code>)；失败则 <code>sys.exit(1)</code></li>
+<li>
+<p>重置 Cookie 缓存 (<code>cookie_cache.reset_all()</code>)</p>
+</li>
+<li>
+<p><strong>任务注册阶段</strong></p>
+</li>
+<li>通过 <code>src.jobs.registry.discover_and_import()</code> 按 <code>MONITOR_MODULES</code>、<code>TASK_MODULES</code> 导入任务模块</li>
+<li>各模块调用 <code>register_monitor()</code> 或 <code>register_task()</code> 注册任务</li>
+<li>
+<p>任务描述符 (<code>JobDescriptor</code>) 被添加到 <code>MONITOR_JOBS</code> 或 <code>TASK_JOBS</code></p>
+</li>
+<li>
+<p><strong>调度器启动阶段</strong></p>
+</li>
+<li>创建 <code>TaskScheduler</code> 实例（基于 <code>APScheduler</code>）</li>
+<li>遍历 <code>MONITOR_JOBS</code> 和 <code>TASK_JOBS</code>，注册到调度器</li>
+<li>
+<p>启动时立即执行一次所有任务（首次运行）</p>
+</li>
+<li>
+<p><strong>Web 服务与配置监控启动</strong></p>
+</li>
+<li>Web 服务以 <code>asyncio.create_task</code> 与调度器并行运行</li>
+<li>
+<p>启动 <code>ConfigWatcher</code>（默认每 5 秒检查 <code>config.yml</code> 修改时间）</p>
+</li>
+<li>
+<p><strong>配置变化回调</strong>（由 ConfigWatcher 在检测到变化时触发）</p>
+</li>
+<li>先执行 <code>sync_config_to_db</code>（删除配置中已移除的 uid/room 对应数据库记录）</li>
+<li>
+<p>再更新调度器任务参数（间隔、Cron、暂停/恢复、免打扰）</p>
+</li>
+<li>
+<p><strong>运行阶段</strong></p>
+</li>
+<li>调度器按配置的间隔/时间执行任务</li>
+<li>监控任务检测变化并推送通知</li>
+<li>定时任务按Cron表达式执行</li>
+<li>Web服务处理HTTP请求</li>
+</ol>
+<hr />
+<h2 id="core-modules">核心模块详解<a class="headerlink" href="#core-modules" title="Permanent link">&para;</a></h2>
+<h3 id="1-mainpy-">1. main.py - 主入口模块<a class="headerlink" href="#1-mainpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：系统启动和生命周期管理</p>
+<p><strong>关键功能</strong>：
+- 初始化日志系统（控制台；main 文件日志在创建 Web 应用后挂载）
+- 创建并启动 Web 服务器（FastAPI + Uvicorn）
+- 加载配置并创建调度器
+- 注册所有监控和定时任务
+- 启动配置监控器（热重载）
+- 处理优雅关闭（信号处理）</p>
+<p><strong>关键代码流程</strong>（<code>main.py</code> 负责编排，<code>src/jobs/lifecycle.py</code> 封装 Web/调度细节）：
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># 1. 设置日志（控制台；非 TTY 不输出）</span>
+    <span class="n">setup_logging</span><span class="p">(</span><span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">console_output</span><span class="o">=</span><span class="ow">not</span> <span class="n">is_background</span><span class="p">)</span>
+    <span class="c1"># 2. 创建 Web 应用与 Uvicorn，后台启动 Web 服务</span>
+    <span class="n">web_app</span> <span class="o">=</span> <span class="n">create_web_app</span><span class="p">()</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">build_uvicorn_server</span><span class="p">(</span><span class="n">web_app</span><span class="p">)</span>
+    <span class="n">web_task</span> <span class="o">=</span> <span class="n">start_uvicorn_background</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+    <span class="n">setup_main_file_logging</span><span class="p">()</span>  <span class="c1"># 挂载 main_YYYYMMDD.log</span>
+
+    <span class="c1"># 3. 加载配置（失败则 sys.exit(1)）</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">()</span>
+
+    <span class="c1"># 4. 重置 Cookie 缓存</span>
+    <span class="k">await</span> <span class="n">cookie_cache</span><span class="o">.</span><span class="n">reset_all</span><span class="p">()</span>
+
+    <span class="c1"># 5. 创建调度器、发现并注册任务、启动首轮执行</span>
+    <span class="n">scheduler</span> <span class="o">=</span> <span class="n">TaskScheduler</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">register_and_prime_jobs</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+    <span class="c1"># 6. 启动配置监控（热重载），回调 on_scheduler_config_changed</span>
+    <span class="n">config_watcher</span> <span class="o">=</span> <span class="n">ConfigWatcher</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">on_config_changed</span><span class="o">=...</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">config_watcher</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c1"># 8. 运行调度器（阻塞直至收到停止信号）；finally 中优雅关闭 Web/监控器/DB</span>
+    <span class="k">await</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
+</code></pre></div></p>
+<hr />
+<h3 id="2-srcsettingsconfigpy-srcsettingsloader_specspy-">2. src/settings/config.py / src/settings/loader_specs.py - 配置管理模块<a class="headerlink" href="#2-srcsettingsconfigpy-srcsettingsloader_specspy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：配置文件的加载、解析、验证与 YAML 映射规格管理</p>
+<p><strong>核心类</strong>：
+- <code>AppConfig</code>：配置数据模型（基于 Pydantic）
+- <code>WeiboConfig</code>：微博配置子模型
+- <code>HuyaConfig</code>：虎牙配置子模型
+- <code>CONFIG_MAPPINGS</code>：<code>config.yml</code> 节点到 <code>AppConfig</code> 扁平字段的映射规格
+- <code>MULTI_ACCOUNT_SPECS</code> / <code>MULTI_STRING_SPECS</code>：多账号、多 Cookie/Token 字段解析规格</p>
+<p><strong>关键功能</strong>：
+- 从YAML文件加载配置
+- 配置缓存机制（避免重复读取）
+- 配置验证（Pydantic模型验证）
+- 扁平化配置映射（YAML嵌套 → 扁平字段，规格集中在 <code>src/settings/loader_specs.py</code>）</p>
+<p><strong>配置结构</strong>：
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AppConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="c1"># 微博配置</span>
+    <span class="n">weibo_cookie</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">weibo_uids</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 逗号分隔</span>
+    <span class="n">weibo_concurrency</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="c1"># 虎牙配置</span>
+    <span class="n">huya_rooms</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 逗号分隔</span>
+    <span class="n">huya_concurrency</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="c1"># 调度器配置</span>
+    <span class="n">huya_monitor_interval_seconds</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">weibo_monitor_interval_seconds</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="c1"># 推送通道配置</span>
+    <span class="n">push_channel_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span>
+
+    <span class="c1"># 免打扰时段</span>
+    <span class="n">quiet_hours_enable</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">quiet_hours_start</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">quiet_hours_end</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="c1"># 插件配置（供扩展使用）</span>
+    <span class="n">plugins</span><span class="p">:</span> <span class="nb">dict</span>
+</code></pre></div></p>
+<p><strong>配置加载流程</strong>：
+1. <code>load_config_from_yml()</code> 读取YAML文件
+2. 按 <code>CONFIG_MAPPINGS</code> 将嵌套结构转换为扁平结构
+3. 按 <code>MULTI_ACCOUNT_SPECS</code> / <code>MULTI_STRING_SPECS</code> 解析多账号与多字符串字段
+4. 创建 <code>AppConfig</code> 实例（Pydantic验证）
+5. 缓存配置实例（<code>_config_cache</code>）</p>
+<hr />
+<h3 id="3-srcmonitorsbasepy-">3. src/monitors/base.py - 监控基类<a class="headerlink" href="#3-srcmonitorsbasepy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：提供监控任务的抽象基类和通用功能</p>
+<p><strong>核心类</strong>：
+- <code>BaseMonitor</code>：监控基类（抽象类）
+- <code>CookieExpiredError</code>：Cookie过期异常</p>
+<p><strong>关键功能</strong>：
+- 数据库初始化和管理
+- 推送服务初始化和管理
+- HTTP会话管理（共享或独立）
+- Cookie过期检测和处理
+- 异步上下文管理器支持</p>
+<p><strong>基类接口</strong>：
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseMonitor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;运行监控任务&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">monitor_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;监控器名称&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">platform_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;平台名称（用于 Cookie 缓存）&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">push_channel_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;推送通道名称列表，用于过滤；返回 None 或空列表时使用全部通道。子类可重写以返回任务配置中的 push_channels。&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></p>
+<p><strong>子类实现示例</strong>：
+- <code>HuyaMonitor</code>：虎牙直播监控
+- <code>WeiboMonitor</code>：微博监控</p>
+<hr />
+<h3 id="4-srcjobsschedulerpy-">4. src/jobs/scheduler.py - 任务调度器<a class="headerlink" href="#4-srcjobsschedulerpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：基于APScheduler的任务调度管理</p>
+<p><strong>核心类</strong>：
+- <code>TaskScheduler</code>：任务调度器封装
+- <code>TaskGroupFormatter</code>：日志格式化器（任务组分隔）</p>
+<p><strong>关键功能</strong>：
+- 添加间隔任务（<code>add_interval_job</code>）
+- 添加Cron任务（<code>add_cron_job</code>）
+- 更新任务参数（热重载支持）
+- 优雅关闭（信号处理）：Ctrl+C 后停止调度器接收新任务，不无限等待正在执行的同步任务；第二次 Ctrl+C 强制退出</p>
+<p><strong>任务类型</strong>：
+- <strong>间隔任务</strong>：使用 <code>IntervalTrigger</code>，按固定间隔执行
+  - 示例：虎牙监控每 65 秒执行一次，哔哩哔哩监控每 60 秒执行一次
+- <strong>Cron任务</strong>：使用 <code>CronTrigger</code>，按时间表达式执行
+  - 示例：每天08:00执行签到任务</p>
+<p><strong>热重载支持</strong>：
+- <code>update_interval_job()</code>：更新间隔任务的间隔时间
+- <code>update_cron_job()</code>：更新Cron任务的执行时间</p>
+<h3 id="5-srcjobstask_outcomepy-">5. src/jobs/task_outcome.py - 定时任务执行结果<a class="headerlink" href="#5-srcjobstask_outcomepy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：约定定时任务 <code>run_func</code> 的返回值语义，供 <code>register_task</code> 包装层判断是否写入「今日已运行」。</p>
+<p><strong>约定</strong>：
+- <code>TASK_SUCCESS</code>（<code>True</code>）：任务已成功完成，当天可跳过
+- <code>TASK_FAILED</code>（<code>False</code>）：未执行、配置不完整或执行失败，允许当天重试</p>
+<p>定时任务实现应返回上述常量，而非依赖「正常 return 即视为成功」。</p>
+<hr />
+<h3 id="6-srccoreruntimepy-">6. src/core/runtime.py - 运行时与退出兜底<a class="headerlink" href="#6-srccoreruntimepy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：统一运行 asyncio 主协程，并处理 Ctrl+C 时的退出兜底。</p>
+<p><strong>关键功能</strong>：
+- 使用带 daemon worker 的默认线程池，避免 <code>asyncio.to_thread()</code> 中的同步网络/Selenium 任务拖住进程。
+- 关闭时取消未完成异步任务，并给默认线程池一个短超时。
+- 收到 Ctrl+C 后启动 watchdog；若清理流程卡住，会在兜底时间后强制退出。</p>
+<hr />
+<h3 id="7-srcstoragedatabasepy-">7. src/storage/database.py - 数据库模块<a class="headerlink" href="#7-srcstoragedatabasepy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：异步SQLite数据库操作</p>
+<p><strong>核心类</strong>：
+- <code>AsyncDatabase</code>：异步数据库操作类</p>
+<p><strong>关键特性</strong>：
+- <strong>共享连接模式</strong>：多个实例共享同一个数据库连接（提高性能）
+- <strong>WAL模式</strong>：启用Write-Ahead Logging，提高并发性能
+- <strong>连接健康检查</strong>：自动检测连接失效并重连
+- <strong>重试机制</strong>：数据库锁定时的指数退避重试
+- <strong>SQL兼容</strong>：支持MySQL风格的参数占位符转换</p>
+<p><strong>表结构</strong>：
+<div class="highlight"><pre><span></span><code><span class="c1">-- 微博表</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">weibo</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">UID</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="err">用户名</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="err">认证信息</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="err">简介</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="err">粉丝数</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="err">微博数</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="err">文本</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">mid</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
+
+<span class="c1">-- 虎牙表</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">huya</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">room</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">name</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">is_live</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
+</code></pre></div></p>
+<p><strong>连接管理</strong>：
+- 全局单例连接（<code>_shared_connection</code>）
+- 引用计数机制（<code>_connection_ref_count</code>）
+- 线程安全的连接管理（<code>_connection_lock</code>）</p>
+<hr />
+<h3 id="8-srcjobsregistrypy-">8. src/jobs/registry.py - 任务注册表<a class="headerlink" href="#8-srcjobsregistrypy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：统一管理监控和定时任务的注册</p>
+<p><strong>核心概念</strong>：
+- <code>JobDescriptor</code>：任务描述符（job_id、run_func、trigger、get_trigger_kwargs、original_run_func、description；定时任务 <code>run_func</code> 返回 <code>TaskOutcome</code>，其中 original_run_func 用于 Web 手动触发时绕过「当天已运行则跳过」）
+- <code>MONITOR_MODULES</code>：由 <code>src/jobs/metadata.py</code> 生成的监控模块兼容导出
+- <code>TASK_MODULES</code>：由 <code>src/jobs/metadata.py</code> 生成的定时任务模块兼容导出
+- <code>MONITOR_JOBS</code>：已注册的监控任务列表
+- <code>TASK_JOBS</code>：已注册的定时任务列表</p>
+<p><strong>注册流程</strong>：
+1. 在 <code>MONITOR_SPECS</code> 或 <code>TASK_SPECS</code> 中添加 <code>TaskSpec</code>
+2. <code>discover_and_import()</code> 按 <code>MONITOR_MODULES</code>、<code>TASK_MODULES</code> 顺序导入模块，模块加载时调用 <code>register_monitor()</code> 或 <code>register_task()</code>，任务描述符加入 <code>MONITOR_JOBS</code> 或 <code>TASK_JOBS</code>
+3. 调度器启动时注册 <code>MONITOR_JOBS</code>、<code>TASK_JOBS</code></p>
+<p><strong>扩展新任务</strong>：
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. 在 src/monitors/ 或 src/tasks/ 下创建模块（见 docs/SECONDARY_DEVELOPMENT.md）</span>
+<span class="c1"># 2. 在 src/jobs/metadata.py 的 MONITOR_SPECS 或 TASK_SPECS 中添加 TaskSpec</span>
+<span class="n">TaskSpec</span><span class="p">(</span>
+    <span class="n">module</span><span class="o">=</span><span class="s2">&quot;src.monitors.new_monitor&quot;</span><span class="p">,</span>
+    <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;new_monitor&quot;</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;新监控&quot;</span><span class="p">,</span>
+    <span class="n">config_section</span><span class="o">=</span><span class="s2">&quot;new_monitor&quot;</span><span class="p">,</span>
+    <span class="n">enable_field</span><span class="o">=</span><span class="s2">&quot;new_monitor_enable&quot;</span><span class="p">,</span>
+    <span class="n">push_field</span><span class="o">=</span><span class="s2">&quot;new_monitor_push_channels&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 3. 在模块中注册任务</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.jobs.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_monitor</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_new_monitor</span><span class="p">():</span>
+    <span class="c1"># 监控逻辑</span>
+    <span class="k">pass</span>
+
+<span class="n">register_monitor</span><span class="p">(</span>
+    <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;new_monitor&quot;</span><span class="p">,</span>
+    <span class="n">run_func</span><span class="o">=</span><span class="n">run_new_monitor</span><span class="p">,</span>
+    <span class="n">get_trigger_kwargs</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;seconds&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">new_monitor_interval_seconds</span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div></p>
+<hr />
+<h3 id="9-srcsettingsdb_syncpy-">9. src/settings/db_sync.py - 配置与数据库同步<a class="headerlink" href="#9-srcsettingsdb_syncpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：在配置热重载时，删除配置中已移除的 uid/room 对应的数据库记录，保持配置与数据库一致。</p>
+<p><strong>核心函数</strong>：
+- <code>sync_config_to_db(old_config, new_config)</code>：对比新旧配置中的监控列表（weibo_uids、huya_rooms、bilibili_uids、douyin_douyin_ids、douyu_rooms、xhs_profile_ids），计算 <code>removed_ids = old_ids - new_ids</code>，对每个监控平台对应的表执行 <code>DELETE</code>，删除已从配置中移除的记录。首次启动（<code>old_config is None</code>）时不执行删除。</p>
+<p><strong>支持的平台与表映射</strong>：微博 → weibo.UID；虎牙 → huya.room；哔哩哔哩 → bilibili_dynamic.uid、bilibili_live.uid；抖音 → douyin.douyin_id；斗鱼 → douyu.room；小红书 → xhs.profile_id。</p>
+<hr />
+<h3 id="10-srcjobslifecyclepy-">10. src/jobs/lifecycle.py - 生命周期编排<a class="headerlink" href="#10-srcjobslifecyclepy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：Web 服务、任务注册与首轮执行、配置热重载回调等启动/关闭细节（由 <code>main.py</code> 调用）。</p>
+<p><strong>关键函数</strong>：
+- <code>register_and_prime_jobs()</code>：<code>discover_and_import()</code> → 注册间隔/Cron 任务 → 暂停未启用监控 → 启动时对所有任务执行首轮
+- <code>on_scheduler_config_changed()</code>：热重载时 <code>sync_config_to_db</code> + 更新 APScheduler 间隔/Cron/暂停状态
+- <code>build_uvicorn_server()</code> / <code>start_uvicorn_background()</code> / <code>shutdown_web_server()</code>：Web 服务启停</p>
+<hr />
+<h3 id="11-srcsettingswatcherpy-">11. src/settings/watcher.py - 配置监控器<a class="headerlink" href="#11-srcsettingswatcherpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：监控配置文件变化并触发热重载</p>
+<p><strong>核心类</strong>：
+- <code>ConfigWatcher</code>：配置文件监控器</p>
+<p><strong>关键功能</strong>：
+- 定期检查配置文件修改时间（默认5秒）
+- 检测到变化时重新加载配置
+- 比较配置内容变化（避免无效重载）
+- 触发回调函数更新调度器任务参数</p>
+<p><strong>热重载流程</strong>：
+1. <code>ConfigWatcher</code> 每 5 秒检查 <code>config.yml</code> 的修改时间（<code>check_interval</code> 默认 5）
+2. 检测到 <code>st_mtime</code> 变化时：调用 <code>get_config(reload=True)</code> 重新加载
+3. 通过 <code>_config_changed()</code> 利用 Pydantic <code>model_dump()</code> 对比新旧配置的完整序列化结果，判断是否发生实际变化。避免文件保存但内容未变时误触发
+4. 若有变化则调用 <code>on_config_changed()</code> 回调
+5. 回调内先执行 <code>sync_config_to_db</code>（删除配置中已移除的 uid/room），再更新调度器任务参数（间隔、Cron、暂停/恢复、免打扰）</p>
+<p><strong>配置变化检测</strong>：
+- 利用 <code>model_dump()</code> 自动覆盖 AppConfig 的所有字段（新增字段无需手动维护比较列表）
+- 避免因文件保存但内容未变而触发重载</p>
+<hr />
+<h3 id="12-srcstoragecookie_cachepy-cookie">12. src/storage/cookie_cache.py - Cookie缓存管理<a class="headerlink" href="#12-srcstoragecookie_cachepy-cookie" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：管理各平台Cookie的过期状态</p>
+<p><strong>核心类</strong>：
+- <code>CookieCache</code>：Cookie缓存管理器</p>
+<p><strong>关键功能</strong>：
+- Cookie有效性状态缓存（<code>valid</code>）
+- 过期提醒发送状态（<code>notified</code>）
+- 文件持久化（<code>data/cookie_cache.json</code>）
+- 异步操作（带锁保护）</p>
+<p><strong>缓存结构</strong>：
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;weibo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;notified&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;huya&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;notified&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p><strong>状态管理</strong>：
+- <code>mark_expired()</code>：标记Cookie为过期
+- <code>mark_valid()</code>：标记Cookie为有效（重置提醒状态）
+- <code>reset_all()</code>：启动时重置所有Cookie为有效状态
+- <code>is_notified()</code>：检查是否已发送过期提醒</p>
+<p><strong>使用场景</strong>：
+- 监控任务检测到Cookie失效时，调用 <code>mark_expired()</code>
+- 避免重复发送Cookie过期提醒（通过 <code>notified</code> 标记）
+- Cookie恢复有效时，重置提醒状态，允许下次过期时再次提醒</p>
+<hr />
+<h3 id="13-srcpush_channel-">13. src/push_channel/ - 推送通道模块<a class="headerlink" href="#13-srcpush_channel-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：统一管理多种推送通道</p>
+<p><strong>核心组件</strong>：
+- <code>_push_channel.py</code>：推送通道基类
+- <code>manager.py</code>：统一推送管理器
+- 各通道实现：<code>wecom_apps.py</code>、<code>dingtalk_bot.py</code> 等</p>
+<p><strong>支持的推送通道</strong>：
+- 企业微信（自建应用、群聊机器人）
+- 钉钉（群聊机器人）
+- 飞书（自建应用、群聊机器人）
+- Telegram机器人
+- QQ频道机器人、NapCatQQ
+- Server酱、PushPlus、WxPusher
+- Bark、Gotify、Webhook、Email</p>
+<p><strong>推送通道基类</strong>：
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PushChannel</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">jump_url</span><span class="p">,</span> <span class="n">pic_url</span><span class="p">,</span> <span class="n">extend_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;推送消息&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</code></pre></div></p>
+<p><strong>统一推送管理器</strong>：
+- <code>UnifiedPushManager</code>：管理多个推送通道
+- <code>send_news()</code>：并发发送到所有启用的通道
+- 支持通道特定的描述生成（<code>description_func</code>）</p>
+<p><strong>通道注册机制</strong>：
+<div class="highlight"><pre><span></span><code><span class="c1"># src/push_channel/__init__.py</span>
+<span class="n">_channel_type_to_class</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;wecom_apps&quot;</span><span class="p">:</span> <span class="n">WeComApps</span><span class="p">,</span>
+    <span class="s2">&quot;dingtalk_bot&quot;</span><span class="p">:</span> <span class="n">DingtalkBot</span><span class="p">,</span>
+    <span class="c1"># ...</span>
+<span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_push_channel</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PushChannel</span><span class="p">:</span>
+    <span class="n">channel_type</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_channel_type_to_class</span><span class="p">[</span><span class="n">channel_type</span><span class="p">](</span><span class="n">config</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+</code></pre></div></p>
+<hr />
+<h3 id="14-srcweb-web">14. src/web/ - Web服务器<a class="headerlink" href="#14-srcweb-web" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：提供 Web 管理界面和 API 接口。<code>src/web/app.py</code> 负责 FastAPI 应用组装，具体接口按功能拆到 <code>src/web/routers/</code>，通用逻辑放在同一 <code>src/web/</code> 功能包内。</p>
+<p><strong>技术栈</strong>：
+- FastAPI：Web框架
+- Jinja2：模板引擎
+- Uvicorn：ASGI服务器</p>
+<p><strong>主要功能</strong>：
+- <strong>配置管理</strong>：在线编辑 <code>config.yml</code>（保留注释）
+- <strong>数据查看</strong>：查看监控数据（分页、过滤）
+- <strong>日志查看</strong>：查看系统日志
+- <strong>API接口</strong>：RESTful API供外部调用</p>
+<p><strong>模块层级</strong>：
+- <code>src/web/app.py</code>：应用创建、SessionMiddleware、静态资源挂载、router 注册
+- <code>src/web/routers/pages.py</code>：页面模板路由
+- <code>src/web/routers/auth.py</code>：登录、登出、改密、版本 API
+- <code>src/web/routers/tasks.py</code>：任务列表与手动执行 API
+- <code>src/web/routers/config.py</code>：配置读取与保存 API
+- <code>src/web/routers/data.py</code>：数据展示与监控状态 API
+- <code>src/web/routers/logs.py</code>：日志读取 API
+- <code>src/web/auth.py</code>：登录会话、认证文件读写、密码哈希
+- <code>src/web/config_io.py</code>：配置合并、配置保存前校验、热重载触发
+- <code>src/web/templating.py</code>：共享 Jinja2 模板环境
+- <code>src/web/static_files.py</code>：<code>CachedStaticFiles</code>（微博图片等静态资源 Cache-Control）
+- <code>JobDescriptor.description</code>：任务 ID 到展示文案（在 <code>register_*</code> 时注册）</p>
+<p><strong>静态资源</strong>：
+- <code>/static</code> → <code>src/webUI/static/</code>
+- <code>/weibo_img</code> → <code>data/weibo/</code>（带缓存头的 <code>CachedStaticFiles</code>）</p>
+<p><strong>页面路由</strong>：
+- <code>/</code>：首页（已登录则配置页，未登录则登录页）
+- <code>/login</code>：登录页面
+- <code>/config</code>：配置管理页面
+- <code>/tasks</code>：任务管理页面
+- <code>/data</code>：数据展示页面
+- <code>/logs</code>：日志展示页面</p>
+<p><strong>API接口</strong>：
+- <code>GET /api/config</code>：获取配置
+- <code>POST /api/config</code>：保存配置（触发热重载）
+- <code>GET /api/data/{platform}</code>：获取监控数据
+- <code>GET /api/logs</code>：获取日志内容（可选 <code>task</code> 参数指定任务今日日志）
+- <code>GET /api/logs/tasks</code>：获取任务日志列表
+- <code>GET /api/monitor-status</code>：获取全部监控状态（无需登录）
+- <code>GET /api/monitor-status/{platform}</code>：按平台获取监控状态（无需登录）
+- <code>GET /api/version</code>：获取版本信息（无需登录，用于前端检测新版本）</p>
+<p><strong>配置保存特性</strong>：
+- 使用 <code>ruamel.yaml</code> 保留YAML注释
+- 配置验证（加载测试）
+- 保存后自动触发热重载</p>
+<hr />
+<h3 id="15-srcjobslog_managerpy-">15. src/jobs/log_manager.py - 日志管理<a class="headerlink" href="#15-srcjobslog_managerpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：统一管理日志文件</p>
+<p><strong>核心类</strong>：
+- <code>LogManager</code>：日志管理器
+- <code>DailyRotatingFileHandler</code>：按日期轮转的文件处理器</p>
+<p><strong>关键功能</strong>：
+- 按日期自动轮转日志文件（<code>main_20250130.log</code>）
+- 日志清理（删除超过保留天数的日志）
+- 日志文件大小统计</p>
+<p><strong>日志文件结构</strong>：
+<div class="highlight"><pre><span></span><code>logs/
+  main_20250130.log           # 今日总日志
+  main_20250129.log
+  task_ikuuu_checkin_20250130.log   # 各任务专属日志（按任务名+日期）
+  task_huya_monitor_20250130.log
+  task_log_cleanup_20250130.log
+</code></pre></div></p>
+<ul>
+<li>总日志 <code>main_*.log</code>：所有输出汇总</li>
+<li>任务日志 <code>task_{job_id}_*.log</code>：每个任务执行时单独写入</li>
+</ul>
+<p><strong>任务日志实现</strong>：<code>src.jobs.registry</code> 通过 <code>_task_logging_context</code> 异步上下文管理器，在任务执行期间将专属文件 Handler 挂到 <code>logging.root</code>，执行结束后自动移除。这样可统一捕获监控类（<code>BaseMonitor</code> 的 <code>__class__.__name__</code> logger）、推送通道、定时任务模块等所有相关输出，避免仅挂模块 logger 时漏掉监控/推送日志。</p>
+<p><strong>日志清理</strong>：
+- 定时任务每天执行一次（默认 02:10）
+- 删除超过 <code>retention_days</code> 天的日志文件（包括总日志和各任务日志）
+- 从文件名提取日期或使用文件修改时间</p>
+<hr />
+<h3 id="16-srccoreversionpy-">16. src/core/version.py - 版本信息模块<a class="headerlink" href="#16-srccoreversionpy-" title="Permanent link">&para;</a></h3>
+<p><strong>职责</strong>：管理应用版本信息，支持版本更新检测</p>
+<p><strong>核心功能</strong>：
+- 从 <code>pyproject.toml</code> 读取当前版本号
+- 提供 GitHub 仓库信息（用于检测新版本）
+- 缓存版本号避免重复读取</p>
+<p><strong>版本获取流程</strong>：
+1. 优先从 <code>importlib.metadata.version()</code> 读取（已安装包场景）
+2. 失败则从 <code>pyproject.toml</code> 直接解析版本号
+3. 缓存到 <code>__version__</code> 变量</p>
+<p><strong>导出内容</strong>：
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">src.core.version</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">__version__</span><span class="p">,</span>          <span class="c1"># 当前版本号，如 &quot;2.3.7&quot;</span>
+    <span class="n">GITHUB_RELEASES_URL</span><span class="p">,</span>  <span class="c1"># GitHub Tags 页面 URL</span>
+    <span class="n">GITHUB_API_LATEST_TAG</span> <span class="c1"># GitHub API 获取 tags 的 URL</span>
+<span class="p">)</span>
+</code></pre></div></p>
+<p><strong>前端版本检测流程</strong>：
+1. 前端调用 <code>GET /api/version</code> 获取当前版本和 GitHub API 地址
+2. 前端调用 GitHub Tags API 获取最新 tag 的 <code>name</code>
+3. 比较版本号，若有新版本则显示更新提示横幅
+4. 用户可点击跳转至 GitHub Tags 页面查看更新内容</p>
+<hr />
+<h2 id="data-flow">数据流设计<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
+<h3 id="_5">监控任务执行流程<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>1. 调度器触发任务
+   ↓
+2. 监控任务初始化
+   - 加载数据库中的旧数据
+   - 初始化推送服务
+   ↓
+3. 并发获取平台数据
+   - 使用 aiohttp 请求平台API/页面
+   - 解析响应数据
+   ↓
+4. 数据对比
+   - 与数据库中的旧数据对比
+   - 检测变化（新内容、开播等）
+   ↓
+5. 更新数据库
+   - 插入或更新数据
+   ↓
+6. 推送通知（如有变化）
+   - 检查免打扰时段
+   - 构建推送消息
+   - 并发发送到所有启用的推送通道
+   ↓
+7. 记录日志
+</code></pre></div>
+<h3 id="_6">定时任务执行流程<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>1. 调度器触发任务（Cron）
+   ↓
+2. 检查当天是否已运行（skip_if_run_today）
+   - 查询 task_run_history 表
+   - 如果当天已运行，记录日志并跳过
+   - Web「立即运行」使用 original_run_func，不经过此检查
+   ↓
+3. 任务初始化
+   - 加载配置
+   - 初始化推送服务
+   ↓
+4. 执行任务逻辑
+   - 登录（如需要）
+   - 执行签到/清理等操作
+   ↓
+5. 标记为已运行
+   - 任务函数返回 `TASK_SUCCESS`（见 `src/jobs/task_outcome.py`）后写入 `task_run_history`
+   - 返回 `TASK_FAILED`（未启用、配置不完整、执行失败等）时不写入，允许当天重试
+   - 若抛出未捕获异常则不写入
+   ↓
+6. 推送结果
+   - 构建推送消息
+   - 发送到推送通道
+   ↓
+7. 记录日志
+</code></pre></div>
+<h3 id="_7">配置热重载流程<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>1. ConfigWatcher 检测文件变化
+   ↓
+2. 重新加载配置
+   - get_config(reload=True)
+   - 解析YAML并验证
+   ↓
+3. 比较配置变化
+  - 利用 Pydantic model_dump() 完整对比所有 AppConfig 字段
+  ↓
+4. 配置与数据库同步（sync_config_to_db）
+  - 从配置中删除的 uid/room 对应删除数据库记录
+  ↓
+5. 更新调度器
+   - 更新间隔任务的间隔时间
+   - 更新Cron任务的执行时间
+   - 更新免打扰时段配置
+   ↓
+6. 记录日志
+</code></pre></div>
+<hr />
+<h2 id="extension">扩展机制<a class="headerlink" href="#extension" title="Permanent link">&para;</a></h2>
+<h3 id="_8">添加新监控平台<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<p><strong>步骤</strong>：</p>
+<ol>
+<li>
+<p><strong>创建监控模块</strong>（<code>src/monitors/new_platform_monitor.py</code>）
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">src.monitors.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMonitor</span><span class="p">,</span> <span class="n">CookieExpiredError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.settings.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_config</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NewPlatformMonitor</span><span class="p">(</span><span class="n">BaseMonitor</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">monitor_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;新平台监控&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">platform_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;new_platform&quot;</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">()</span>
+        <span class="c1"># 监控逻辑</span>
+        <span class="k">pass</span>
+
+<span class="c1"># 注册任务</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.jobs.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_monitor</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_new_platform_monitor</span><span class="p">():</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">NewPlatformMonitor</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">monitor</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">monitor</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="n">register_monitor</span><span class="p">(</span>
+    <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;new_platform_monitor&quot;</span><span class="p">,</span>
+    <span class="n">run_func</span><span class="o">=</span><span class="n">run_new_platform_monitor</span><span class="p">,</span>
+    <span class="n">get_trigger_kwargs</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;seconds&quot;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">new_platform_interval_seconds</span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在 <code>src/jobs/registry.py</code> 中添加模块路径</strong>
+<div class="highlight"><pre><span></span><code><span class="n">MONITOR_MODULES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;src.monitors.huya_monitor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;src.monitors.weibo_monitor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;src.monitors.new_platform_monitor&quot;</span><span class="p">,</span>  <span class="c1"># 新增</span>
+<span class="p">]</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在 <code>src/settings/config.py</code> 中添加配置字段</strong>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AppConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">new_platform_interval_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span>
+    <span class="c1"># 其他配置...</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在 <code>loader_specs.py</code> 中添加配置映射</strong>
+<div class="highlight"><pre><span></span><code><span class="n">CONFIG_MAPPINGS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;new_platform&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;interval_seconds&quot;</span><span class="p">:</span> <span class="s2">&quot;new_platform_interval_seconds&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="c1"># ...</span>
+<span class="p">}</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="_9">添加新定时任务<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p><strong>步骤</strong>：</p>
+<ol>
+<li>
+<p><strong>创建任务模块</strong>（<code>src/tasks/new_task.py</code>）
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">src.jobs.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_task</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.settings.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_config</span><span class="p">,</span> <span class="n">parse_checkin_time</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_new_task</span><span class="p">():</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">()</span>
+    <span class="c1"># 任务逻辑</span>
+    <span class="k">return</span> <span class="n">TASK_SUCCESS</span>  <span class="c1"># 或 TASK_FAILED，见 src/jobs/task_outcome.py</span>
+
+<span class="n">register_task</span><span class="p">(</span>
+    <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;new_task&quot;</span><span class="p">,</span>
+    <span class="n">run_func</span><span class="o">=</span><span class="n">run_new_task</span><span class="p">,</span>
+    <span class="n">get_trigger_kwargs</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;hour&quot;</span><span class="p">:</span> <span class="n">parse_checkin_time</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">new_task_time</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">&quot;minute&quot;</span><span class="p">:</span> <span class="n">parse_checkin_time</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">new_task_time</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在 <code>src/jobs/registry.py</code> 中添加模块路径</strong>
+<div class="highlight"><pre><span></span><code><span class="n">TASK_MODULES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;src.tasks.log_cleanup&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;src.tasks.new_task&quot;</span><span class="p">,</span>  <span class="c1"># 新增</span>
+<span class="p">]</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在配置文件中添加配置项</strong>
+<div class="highlight"><pre><span></span><code><span class="nt">new_task</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;08:00&quot;</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="_10">添加新推送通道<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<p><strong>步骤</strong>：</p>
+<ol>
+<li>
+<p><strong>创建推送通道类</strong>（<code>src/push_channel/new_channel.py</code>）
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">._push_channel</span><span class="w"> </span><span class="kn">import</span> <span class="n">PushChannel</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NewChannel</span><span class="p">(</span><span class="n">PushChannel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="c1"># 初始化配置</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">jump_url</span><span class="p">,</span> <span class="n">pic_url</span><span class="p">,</span> <span class="n">extend_data</span><span class="p">):</span>
+        <span class="c1"># 推送逻辑</span>
+        <span class="k">pass</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>在 <code>__init__.py</code> 中注册</strong>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">.new_channel</span><span class="w"> </span><span class="kn">import</span> <span class="n">NewChannel</span>
+
+<span class="n">_channel_type_to_class</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;new_channel&quot;</span><span class="p">:</span> <span class="n">NewChannel</span><span class="p">,</span>
+    <span class="c1"># ...</span>
+<span class="p">}</span>
+</code></pre></div></p>
+</li>
+</ol>
+<hr />
+<h2 id="tech-stack">技术栈<a class="headerlink" href="#tech-stack" title="Permanent link">&para;</a></h2>
+<h3 id="_11">核心依赖<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>库名</th>
+<th>版本</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python</td>
+<td>&gt;=3.10</td>
+<td>编程语言</td>
+</tr>
+<tr>
+<td>aiohttp</td>
+<td>&gt;=3.9.0</td>
+<td>异步HTTP客户端</td>
+</tr>
+<tr>
+<td>aiosqlite</td>
+<td>&gt;=0.19.0</td>
+<td>异步SQLite数据库</td>
+</tr>
+<tr>
+<td>APScheduler</td>
+<td>&gt;=3.10.0</td>
+<td>任务调度器</td>
+</tr>
+<tr>
+<td>Pydantic</td>
+<td>&gt;=2.5.0</td>
+<td>数据验证和配置模型</td>
+</tr>
+<tr>
+<td>FastAPI</td>
+<td>&gt;=0.104.0</td>
+<td>Web框架</td>
+</tr>
+<tr>
+<td>Uvicorn</td>
+<td>&gt;=0.24.0</td>
+<td>ASGI服务器</td>
+</tr>
+<tr>
+<td>PyYAML</td>
+<td>&gt;=6.0.0</td>
+<td>YAML解析</td>
+</tr>
+<tr>
+<td>ruamel.yaml</td>
+<td>&gt;=0.18.0</td>
+<td>YAML编辑（保留注释）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_12">架构模式<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>异步IO</strong>：全面使用 <code>asyncio</code> 和 <code>async/await</code></li>
+<li><strong>插件化架构</strong>：监控和任务采用插件化设计</li>
+<li><strong>依赖注入</strong>：通过构造函数注入配置和会话</li>
+<li><strong>工厂模式</strong>：推送通道通过工厂函数创建</li>
+<li><strong>单例模式</strong>：数据库连接、Cookie缓存采用单例</li>
+<li><strong>观察者模式</strong>：配置监控器观察配置文件变化</li>
+</ul>
+<hr />
+<h2 id="directory-structure">目录结构<a class="headerlink" href="#directory-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>WebMoniter/
+├── main.py                 # 主入口（生命周期编排，细节见 src/jobs/lifecycle.py）
+├── config.yml              # 配置文件（用户在仓库根创建）
+├── config/
+│   └── config.yml.sample   # 配置模板（复制到根目录 config.yml）
+├── docker/
+│   ├── Dockerfile          # 精简镜像（构建：`docker build -f docker/Dockerfile .`）
+│   ├── Dockerfile.full     # 完整镜像（iKuuu/雨云/Chromium）
+│   ├── docker-compose.yml
+│   ├── docker-compose.full.yml
+│   ├── docker-entrypoint.sh
+│   └── README.md           # Compose 与构建说明
+├── pyproject.toml          # 项目配置和依赖
+├── uv.lock                 # 依赖锁定文件
+│
+├── src/                    # 核心源代码
+│   ├── core/               # 运行时、路径、版本、HTTP 工具
+│   │   ├── runtime.py      # asyncio 运行与 Ctrl+C 退出兜底（12 秒 watchdog）
+│   │   ├── paths.py        # 配置/数据/日志路径常量
+│   │   ├── version.py      # 版本号与 GitHub API 地址
+│   │   ├── utils.py
+│   │   └── http.py
+│   ├── settings/           # 配置加载、映射、热重载、DB 同步
+│   │   ├── config.py       # AppConfig 与 get_config()
+│   │   ├── loader_specs.py # YAML → AppConfig 映射规格
+│   │   ├── watcher.py      # ConfigWatcher（默认 5 秒轮询）
+│   │   └── db_sync.py      # 热重载时删除已移除的 uid/room 记录
+│   ├── jobs/               # 任务元数据、调度、注册、日志、生命周期
+│   │   ├── scheduler.py    # APScheduler 封装
+│   │   ├── metadata.py     # TaskSpec / PushChannelSpec 与模块清单单一来源
+│   │   ├── registry.py     # register_* 与 metadata 模块清单的兼容导出
+│   │   ├── lifecycle.py    # Web/调度启动编排与热重载回调
+│   │   ├── task_outcome.py # TASK_SUCCESS / TASK_FAILED 约定
+│   │   ├── log_manager.py  # 按日轮转与任务专属日志
+│   │   ├── tracker.py      # task_run_history 读写 API 再导出
+│   │   └── enable_fields.py # 任务启用开关映射（registry + 青龙 compat 共用）
+│   ├── storage/            # 持久化
+│   │   ├── database.py     # AsyncDatabase（SQLite WAL）
+│   │   └── cookie_cache.py # Cookie 过期状态缓存
+│   ├── monitors/           # 平台监控（interval 触发）
+│   │   ├── base.py
+│   │   ├── huya_monitor.py
+│   │   ├── weibo_monitor.py
+│   │   ├── bilibili_monitor.py
+│   │   ├── douyin_monitor.py
+│   │   ├── douyu_monitor.py
+│   │   └── xhs_monitor.py
+│   ├── tasks/              # 定时/签到任务（Cron 触发）
+│   │   ├── log_cleanup.py
+│   │   ├── ikuuu_checkin.py
+│   │   ├── rainyun_checkin.py
+│   │   ├── rainyun/        # 雨云子包（浏览器、验证码、续费等）
+│   │   ├── demo_task.py    # 二次开发示例
+│   │   └── ...             # 其余签到任务见 src/jobs/metadata.py TASK_SPECS
+│   ├── push_channel/       # 推送通道（18 种 type，含 demo、qlapi）
+│   │   ├── _push_channel.py
+│   │   ├── manager.py
+│   │   └── ...             # wecom_apps、dingtalk_bot、telegram_bot 等
+│   ├── web/                # FastAPI 应用与 API
+│   │   ├── app.py
+│   │   ├── auth.py
+│   │   ├── config_io.py
+│   │   ├── data_support.py
+│   │   ├── templating.py
+│   │   ├── static_files.py
+│   │   └── routers/        # pages、auth、tasks、config、data、logs
+│   ├── webUI/              # 前端静态资源与 Jinja2 模板
+│   │   ├── static/         # css、js、截图等
+│   │   └── templates/      # login、config、tasks、data、logs
+│   ├── ql/                 # 青龙 CLI 与环境变量兼容
+│   │   ├── __main__.py     # python -m src.ql &lt;task_id&gt;
+│   │   ├── _runner.py      # run_task() 执行封装
+│   │   └── compat.py       # WEBMONITER_* 环境变量 → 配置
+│   └── tests/              # 单元与 smoke 测试（pytest，见 pyproject.toml）
+│
+├── docs/                   # 文档（MkDocs 源目录，配置见 docs/mkdocs.yml）
+│   ├── mkdocs.yml
+│   ├── index.md、API.md、ARCHITECTURE.md、SECONDARY_DEVELOPMENT.md
+│   ├── installation.md、faq.md、QINGLONG.md
+│   └── guides/             # config、tasks、web-ui、push-channels 等
+│
+├── data/                   # 运行时数据（gitignore）
+│   ├── data.db             # SQLite（监控数据 + task_run_history）
+│   ├── cookie_cache.json
+│   ├── auth.json           # Web 登录凭据
+│   ├── session_secret      # Web Session 密钥（持久化，避免重启掉线）
+│   └── web_sessions.json   # Web 登录会话（默认一年有效）
+│
+└── logs/                   # 运行时日志（gitignore）
+    ├── main_YYYYMMDD.log
+    └── task_{job_id}_YYYYMMDD.log
+</code></pre></div>
+<hr />
+<h2 id="design-patterns">关键设计模式<a class="headerlink" href="#design-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="1">1. 插件化架构<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<p><strong>实现</strong>：通过 <code>src.jobs.registry</code> 模块（<code>discover_and_import()</code>、<code>MONITOR_MODULES</code>、<code>TASK_MODULES</code>）实现任务的自动发现和注册。<strong>青龙面板</strong> 下通过 <code>python -m src.ql &lt;task_id&gt;</code> CLI + 环境变量 + <code>src.ql.compat</code> 模块实现兼容，与主流程解耦。</p>
+<p><strong>优势</strong>：
+- 新增任务只需添加模块路径，无需修改核心代码
+- 任务模块独立，易于维护和测试
+- 支持动态加载和卸载任务</p>
+<h3 id="2">2. 工厂模式<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
+<p><strong>实现</strong>：推送通道通过 <code>get_push_channel()</code> 工厂函数创建</p>
+<p><strong>优势</strong>：
+- 统一创建接口，隐藏具体实现
+- 易于扩展新的推送通道
+- 支持配置驱动的通道选择</p>
+<h3 id="3">3. 单例模式<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<p><strong>实现</strong>：
+- 数据库连接：全局 <code>_shared_connection</code>
+- Cookie缓存：全局 <code>cookie_cache</code> 实例</p>
+<p><strong>优势</strong>：
+- 避免资源浪费（连接复用）
+- 保证状态一致性</p>
+<h3 id="4">4. 观察者模式<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<p><strong>实现</strong>：<code>ConfigWatcher</code> 观察配置文件变化</p>
+<p><strong>优势</strong>：
+- 解耦配置变化和业务逻辑
+- 支持配置热重载
+- 易于扩展配置变化处理</p>
+<h3 id="5">5. 模板方法模式<a class="headerlink" href="#5" title="Permanent link">&para;</a></h3>
+<p><strong>实现</strong>：<code>BaseMonitor</code> 定义监控流程模板</p>
+<p><strong>优势</strong>：
+- 统一监控任务的结构
+- 子类只需实现具体逻辑
+- 减少代码重复</p>
+<hr />
+<h2 id="config-management">配置管理<a class="headerlink" href="#config-management" title="Permanent link">&para;</a></h2>
+<h3 id="_13">配置文件结构<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>配置文件采用YAML格式，支持嵌套结构和注释：</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 监控配置（示例：微博、虎牙，各任务可配置 monitor_interval_seconds 与 push_channels）</span>
+<span class="nt">weibo</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># 是否启用，默认 true；设为 false 时任务暂停</span>
+<span class="w">  </span><span class="nt">cookie</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxx&quot;</span>
+<span class="w">  </span><span class="nt">uids</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;123,456&quot;</span>
+<span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">monitor_interval_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+
+<span class="nt">huya</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">rooms</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;123,456&quot;</span>
+<span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7</span>
+<span class="w">  </span><span class="nt">monitor_interval_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65</span>
+
+<span class="c1"># 推送通道配置（每个任务可通过 push_channels 字段选择使用哪些通道）</span>
+<span class="nt">push_channel</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;企业微信&quot;</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wecom_apps</span>
+<span class="w">    </span><span class="c1"># ...</span>
+</code></pre></div>
+<h3 id="_14">配置加载流程<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>读取YAML文件</strong>：<code>load_config_from_yml()</code></li>
+<li><strong>扁平化转换</strong>：按 <code>src/settings/loader_specs.py</code> 的 <code>CONFIG_MAPPINGS</code> 将嵌套结构转为扁平字段</li>
+<li><strong>列表规格解析</strong>：按 <code>MULTI_ACCOUNT_SPECS</code> / <code>MULTI_STRING_SPECS</code> 解析多账号、多 Cookie/Token</li>
+<li><strong>Pydantic验证</strong>：创建 <code>AppConfig</code> 实例</li>
+<li><strong>缓存配置</strong>：避免重复读取</li>
+</ol>
+<h3 id="_15">配置热重载<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>检测机制</strong>：<code>ConfigWatcher</code> 每5秒检查文件修改时间</li>
+<li><strong>变化检测</strong>：利用 Pydantic <code>model_dump()</code> 完整对比所有字段，新增字段自动覆盖，无需手动维护比较列表</li>
+<li><strong>更新机制</strong>：更新调度器任务参数（间隔任务间隔、Cron 执行时间、暂停/恢复）</li>
+<li><strong>生效时间</strong>：约5秒内生效</li>
+</ul>
+<hr />
+<h2 id="database-design">数据库设计<a class="headerlink" href="#database-design" title="Permanent link">&para;</a></h2>
+<h3 id="_16">数据库选择<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>SQLite</strong>：轻量级、无需单独服务、适合单机部署</li>
+<li><strong>WAL模式</strong>：提高并发性能</li>
+<li><strong>异步操作</strong>：使用 <code>aiosqlite</code> 支持异步IO</li>
+</ul>
+<h3 id="_17">表结构<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<p><strong>weibo表</strong>：
+- <code>UID</code>：用户ID（主键）
+- <code>用户名</code>：用户昵称
+- <code>认证信息</code>：认证标识
+- <code>简介</code>：用户简介
+- <code>粉丝数</code>：粉丝数量
+- <code>微博数</code>：微博数量
+- <code>文本</code>：最新微博内容
+- <code>mid</code>：微博ID</p>
+<p><strong>huya表</strong>：
+- <code>room</code>：房间号（主键）
+- <code>name</code>：主播名称
+- <code>is_live</code>：直播状态（"1"=直播中，"0"=未开播）
+- <code>room_pic</code>、<code>avatar_url</code>：封面与头像 URL（旧库通过 ALTER TABLE 迁移追加，可选）</p>
+<p><strong>bilibili_dynamic表</strong>（B 站动态）：
+- <code>uid</code>：UP 主 UID（主键）
+- <code>uname</code>：UP 主昵称
+- <code>dynamic_id</code>：最近一条动态 ID
+- <code>dynamic_text</code>：最近一条动态的文本内容</p>
+<p><strong>bilibili_live表</strong>（B 站直播）：
+- <code>uid</code>：UP 主 UID（主键）
+- <code>uname</code>：UP 主昵称
+- <code>room_id</code>：直播间房间号
+- <code>is_live</code>：直播状态</p>
+<p><strong>douyin表</strong>：
+- <code>douyin_id</code>：抖音号（主键）
+- <code>name</code>：用户名
+- <code>is_live</code>：直播状态</p>
+<p><strong>douyu表</strong>：
+- <code>room</code>：房间号（主键）
+- <code>name</code>：主播名称
+- <code>is_live</code>：直播状态</p>
+<p><strong>xhs表</strong>（小红书）：
+- <code>profile_id</code>：用户 profile_id（主键）
+- <code>user_name</code>：用户名
+- <code>latest_note_title</code>：最近一条笔记标题</p>
+<p><strong>task_run_history表</strong>（定时任务运行记录）：
+- <code>job_id</code>：任务ID（主键）
+- <code>last_run_date</code>：最后运行日期（ISO格式，如 "2025-02-04"）</p>
+<blockquote>
+<p>该表在 <code>src/storage/database.py</code> 的 <code>_init_tables()</code> 中创建；读写 API 由同模块提供，<code>src/jobs/tracker.py</code> 对其再导出。用于实现"当天已运行则跳过"功能。<code>register_task</code> 包装层仅在 <code>run_func</code> 返回 <code>TASK_SUCCESS</code> 时写入记录；返回 <code>TASK_FAILED</code> 或抛出未捕获异常时不写入，允许当天重试。Web「立即运行」使用 <code>original_run_func</code>，不经过此检查。</p>
+</blockquote>
+<h3 id="_18">连接管理<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>共享连接</strong>：多个 <code>AsyncDatabase</code> 实例共享同一连接</li>
+<li><strong>引用计数</strong>：跟踪连接使用情况</li>
+<li><strong>健康检查</strong>：自动检测连接失效</li>
+<li><strong>自动重连</strong>：连接失效时自动重建</li>
+</ul>
+<hr />
+<h2 id="push-architecture">推送通道架构<a class="headerlink" href="#push-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="_19">统一推送接口<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<p>所有推送通道实现统一的 <code>PushChannel</code> 接口：</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PushChannel</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">jump_url</span><span class="p">,</span> <span class="n">pic_url</span><span class="p">,</span> <span class="n">extend_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;推送消息&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</code></pre></div>
+<h3 id="_20">推送管理器<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h3>
+<p><code>UnifiedPushManager</code> 管理多个推送通道：</p>
+<ul>
+<li><strong>并发推送</strong>：同时发送到所有启用的通道</li>
+<li><strong>错误处理</strong>：单个通道失败不影响其他通道</li>
+<li><strong>通道过滤</strong>：只发送到 <code>enable=true</code> 的通道</li>
+</ul>
+<h3 id="_21">推送流程<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h3>
+<ol>
+<li>构建推送消息（标题、内容、链接、图片）</li>
+<li>检查免打扰时段</li>
+<li>并发发送到所有启用的通道</li>
+<li>收集推送结果和错误</li>
+<li>记录日志</li>
+</ol>
+<hr />
+<h2 id="web-architecture">Web服务架构<a class="headerlink" href="#web-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="_22">技术栈<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>FastAPI</strong>：现代、快速的Web框架</li>
+<li><strong>Jinja2</strong>：模板引擎</li>
+<li><strong>Uvicorn</strong>：ASGI服务器</li>
+</ul>
+<h3 id="_23">路由设计<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>页面路由</strong>：返回 HTML 页面（配置、任务管理、数据、日志）</li>
+<li><strong>API路由</strong>：返回 JSON 数据（配置、任务、数据、日志、监控状态、版本信息）</li>
+</ul>
+<h3 id="_24">认证机制<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Session认证</strong>：基于 <code>SessionMiddleware</code></li>
+<li><strong>登录验证</strong>：用户名密码验证（默认 <code>admin/123</code>）</li>
+<li><strong>会话管理</strong>：<code>data/web_sessions.json</code> 持久化活跃会话，Cookie 与服务端会话默认一年有效</li>
+</ul>
+<h3 id="api">API设计<a class="headerlink" href="#api" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>RESTful风格</strong>：资源导向的URL设计</li>
+<li><strong>统一响应格式</strong>：JSON格式响应</li>
+<li><strong>错误处理</strong>：HTTP状态码 + 错误消息</li>
+</ul>
+<hr />
+<h2 id="_25">总结<a class="headerlink" href="#_25" title="Permanent link">&para;</a></h2>
+<p>Web任务系统采用<strong>模块化、插件化、异步IO</strong>的架构设计，具有以下特点：</p>
+<ol>
+<li><strong>高可扩展性</strong>：新增监控或任务只需添加模块，无需修改核心代码</li>
+<li><strong>配置热重载</strong>：修改配置无需重启，5秒内自动生效</li>
+<li><strong>异步高性能</strong>：全面使用异步IO，支持高并发</li>
+<li><strong>统一推送</strong>：支持 18 种推送 type，统一管理</li>
+<li><strong>Web管理</strong>：提供友好的Web界面进行配置和数据管理</li>
+</ol>
+<p>该架构设计使得系统易于维护、扩展和部署，适合个人和小团队使用。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; FY · MIT License
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/666fy666/WebMoniter" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
