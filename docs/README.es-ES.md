@@ -7,7 +7,7 @@
 <sub>Monitoreo · Registro · Avisos de Vivo · Notificaciones · Tareas Programadas · Recarga Dinámica de Configuración</sub>
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](../LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![APScheduler](https://img.shields.io/badge/APScheduler-scheduler-blueviolet?style=flat-square)](https://apscheduler.readthedocs.io/)
@@ -22,11 +22,13 @@
 [![Docker Image Size (full)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/full?style=flat-square&logo=docker&label=full%20size)](https://hub.docker.com/r/fengyu666/webmoniter/tags)
 [![GitHub Release](https://img.shields.io/github/v/release/666fy666/WebMoniter?style=flat-square&logo=github&label=EXE)](https://github.com/666fy666/WebMoniter/releases/latest)
 
+[中文](../README.md) · [English](README.en-US.md) · **Español** · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md)
+
 [Sitio de Documentación](https://666fy666.github.io/WebMoniter/) ·
-[Instalación](docs/installation.md) ·
-[Configuración](docs/guides/config.md) ·
-[API](docs/API.md) ·
-[Desarrollo Secundario](docs/SECONDARY_DEVELOPMENT.md) ·
+[Instalación](installation.md) ·
+[Configuración](guides/config.md) ·
+[API](API.md) ·
+[Desarrollo Secundario](SECONDARY_DEVELOPMENT.md) ·
 [Releases](https://github.com/666fy666/WebMoniter/releases/latest)
 
 **Repositorios de código**: [GitHub](https://github.com/666fy666/WebMoniter) · [GitCode](https://gitcode.com/qq_35720175/WebMoniter)
@@ -50,7 +52,7 @@ La configuración admite recarga en caliente; los cambios en `config.yml` suelen
 
 ## Vista General de Funciones
 
-Para más detalles sobre la interfaz y las funciones, consulte la [Página Principal de Documentación](docs/index.md) y la [Interfaz de Gestión Web](docs/guides/web-ui.md).
+Para más detalles sobre la interfaz y las funciones, consulte la [Página Principal de Documentación](index.md) y la [Interfaz de Gestión Web](guides/web-ui.md).
 
 <details>
 <summary><strong>Expandir más detalles del proyecto</strong></summary>
@@ -181,7 +183,7 @@ docker rm webmoniter-full
 docker image rm fengyu666/webmoniter:full
 ```
 
-En Windows PowerShell, si encuentra problemas con la ruta de montaje, cambie `$(pwd)` por la ruta absoluta del directorio actual. Para más detalles sobre puertos, montajes, actualizaciones y retención de datos, consulte [Instalación y Ejecución](docs/installation.md) y [docker/README.md](docker/README.md).
+En Windows PowerShell, si encuentra problemas con la ruta de montaje, cambie `$(pwd)` por la ruta absoluta del directorio actual. Para más detalles sobre puertos, montajes, actualizaciones y retención de datos, consulte [Instalación y Ejecución](installation.md) y [docker/README.md](../docker/README.md).
 
 </details>
 
@@ -210,7 +212,7 @@ Descargue `WebMoniter-vX.X.X-windows-x64.zip` desde [Releases](https://github.co
 
 ### Panel Qinglong
 
-Los usuarios de Qinglong pueden configurar a través de variables de entorno y ejecutar tareas programadas usando `python -m src.ql <task_id>`. Para más detalles, vea la [Guía de compatibilidad con Panel Qinglong](docs/QINGLONG.md).
+Los usuarios de Qinglong pueden configurar a través de variables de entorno y ejecutar tareas programadas usando `python -m src.ql <task_id>`. Para más detalles, vea la [Guía de compatibilidad con Panel Qinglong](QINGLONG.md).
 
 ---
 
@@ -224,9 +226,9 @@ cp config/config.yml.sample config.yml
 
 Para más información sobre los elementos de configuración, consulte:
 
-- [Explicación de la Configuración](docs/guides/config.md)
-- [Monitoreo y Tareas Programadas](docs/guides/tasks.md)
-- [Canales de Notificación](docs/guides/push-channels.md)
+- [Explicación de la Configuración](guides/config.md)
+- [Monitoreo y Tareas Programadas](guides/tasks.md)
+- [Canales de Notificación](guides/push-channels.md)
 
 ---
 
@@ -234,16 +236,16 @@ Para más información sobre los elementos de configuración, consulte:
 
 | Función | Documentación |
 |---|---|
-| Instalación y Despliegue | [docs/installation.md](docs/installation.md) |
-| Interfaz de Gestión Web | [docs/guides/web-ui.md](docs/guides/web-ui.md) |
-| Configuración de Tareas | [docs/guides/tasks.md](docs/guides/tasks.md) |
-| Tareas de Monitoreo | [docs/guides/tasks/monitors.md](docs/guides/tasks/monitors.md) |
-| Tareas de Registro | [docs/guides/tasks/checkin.md](docs/guides/tasks/checkin.md) |
-| Canales de Notificación | [docs/guides/push-channels.md](docs/guides/push-channels.md) |
-| REST API | [docs/API.md](docs/API.md) |
-| Descripción de Arquitectura | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Desarrollo Secundario | [docs/SECONDARY_DEVELOPMENT.md](docs/SECONDARY_DEVELOPMENT.md) |
-| Preguntas Frecuentes | [docs/faq.md](docs/faq.md) |
+| Instalación y Despliegue | [installation.md](installation.md) |
+| Interfaz de Gestión Web | [guides/web-ui.md](guides/web-ui.md) |
+| Configuración de Tareas | [guides/tasks.md](guides/tasks.md) |
+| Tareas de Monitoreo | [guides/tasks/monitors.md](guides/tasks/monitors.md) |
+| Tareas de Registro | [guides/tasks/checkin.md](guides/tasks/checkin.md) |
+| Canales de Notificación | [guides/push-channels.md](guides/push-channels.md) |
+| REST API | [API.md](API.md) |
+| Descripción de Arquitectura | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Desarrollo Secundario | [SECONDARY_DEVELOPMENT.md](SECONDARY_DEVELOPMENT.md) |
+| Preguntas Frecuentes | [faq.md](faq.md) |
 
 ---
 
@@ -257,7 +259,7 @@ uv run black --check .
 uv run pytest -q
 ```
 
-Para agregar nuevos monitoreos o tareas programadas, consulte la [Guía de Desarrollo Secundario](docs/SECONDARY_DEVELOPMENT.md). En `src/tests/` hay pruebas de consistencia para metadata, registro y mapeo de habilitación; `uv run pytest` fallará si falta alguna configuración. Para una descripción completa de la arquitectura, vea [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El proyecto utiliza actualmente una estructura modular:
+Para agregar nuevos monitoreos o tareas programadas, consulte la [Guía de Desarrollo Secundario](SECONDARY_DEVELOPMENT.md). En `src/tests/` hay pruebas de consistencia para metadata, registro y mapeo de habilitación; `uv run pytest` fallará si falta alguna configuración. Para una descripción completa de la arquitectura, vea [ARCHITECTURE.md](ARCHITECTURE.md). El proyecto utiliza actualmente una estructura modular:
 
 | Módulo | Responsabilidad |
 |------|------|
@@ -297,21 +299,9 @@ Algunas ideas de registro y notificaciones se basaron en los siguientes proyecto
 
 ---
 
-## Star History
-
-<a href="https://www.star-history.com/?type=date&repos=666fy666%2FWebMoniter">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&theme=dark&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
- </picture>
-</a>
-
----
-
 ## Licencia
 
-[MIT License](LICENSE)
+[MIT License](../LICENSE)
 
 <div align="center">
 

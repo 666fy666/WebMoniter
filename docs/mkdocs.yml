@@ -87,6 +87,11 @@ nav:
     - API 参考: API.md
   - 帮助与支持:
     - 常见问题: faq.md
+  - 其他语言:
+    - English: README.en-US.md
+    - Español: README.es-ES.md
+    - 日本語: README.ja-JP.md
+    - 한국어: README.ko-KR.md
 
 extra:
   social:

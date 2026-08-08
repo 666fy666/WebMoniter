@@ -8,7 +8,7 @@ from datetime import datetime, time
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from src.core.paths import CONFIG_YAML_FILE
 from src.settings.loader_specs import (
@@ -74,6 +74,33 @@ class AppConfig(BaseModel):
 
     # 基础访问地址，用于构造对外可访问的 HTTP 链接（例如微博封面图 URL）
     base_url: str = ""
+
+    # MySQL 主库；配置不完整或不可用时自动使用本地 SQLite
+    mysql_enabled: bool = False
+    mysql_host: str = ""
+    mysql_port: int = Field(default=3306, ge=1, le=65535)
+    mysql_user: str = ""
+    mysql_password: str = ""
+    mysql_database: str = ""
+    mysql_connect_timeout: int = Field(default=5, ge=1, le=60)
+    mysql_pool_min_size: int = Field(default=1, ge=1, le=100)
+    mysql_pool_max_size: int = Field(default=5, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_mysql_pool_sizes(self):
+        if self.mysql_pool_min_size > self.mysql_pool_max_size:
+            raise ValueError("mysql.pool_min_size 不能大于 pool_max_size")
+        return self
+
+    @property
+    def mysql_configured(self) -> bool:
+        """是否具备尝试连接 MySQL 的最小配置。"""
+        return bool(
+            self.mysql_enabled
+            and self.mysql_host.strip()
+            and self.mysql_user.strip()
+            and self.mysql_database.strip()
+        )
 
     # 微博
     weibo_enable: bool = True  # 是否启用微博监控

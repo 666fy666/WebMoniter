@@ -22,6 +22,8 @@
 [![Docker Image Size (full)](https://img.shields.io/docker/image-size/fengyu666/webmoniter/full?style=flat-square&logo=docker&label=full%20size)](https://hub.docker.com/r/fengyu666/webmoniter/tags)
 [![GitHub Release](https://img.shields.io/github/v/release/666fy666/WebMoniter?style=flat-square&logo=github&label=EXE)](https://github.com/666fy666/WebMoniter/releases/latest)
 
+**中文** · [English](docs/README.en-US.md) · [Español](docs/README.es-ES.md) · [日本語](docs/README.ja-JP.md) · [한국어](docs/README.ko-KR.md)
+
 [文档站](https://666fy666.github.io/WebMoniter/) ·
 [安装](docs/installation.md) ·
 [配置](docs/guides/config.md) ·
@@ -293,18 +295,6 @@ uv run pytest -q
 
 <a href="https://github.com/666fy666/WebMoniter/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=666fy666/WebMoniter" alt="Contributors" />
-</a>
-
----
-
-## Star History
-
-<a href="https://www.star-history.com/?type=date&repos=666fy666%2FWebMoniter">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&theme=dark&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=666fy666/WebMoniter&type=date&legend=top-left&sealed_token=_5ZVFJzKqU7_wg-KVdKrKUkkMj35yaXuBxHrWm8162OiC9NNzbOAIQ9OG5radniZEsxW86qcYUpzuN3zAYsQWUZNOf_6VzxJGqjIUtAI-nSadvI5xEdSqgSTqkiN5N3Ui5oGw_BXQQ8mCT32TQXY1uzJLz_c3Pyq7we_jYGxNcscsxqhsAYBGcMAji0V" />
- </picture>
 </a>
 
 ---

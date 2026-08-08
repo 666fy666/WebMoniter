@@ -25,6 +25,17 @@ CONFIG_MAPPINGS: dict[str, dict[str, str]] = {
     "app": {
         "base_url": "base_url",
     },
+    "mysql": {
+        "enabled": "mysql_enabled",
+        "host": "mysql_host",
+        "port": "mysql_port",
+        "user": "mysql_user",
+        "password": "mysql_password",
+        "database": "mysql_database",
+        "connect_timeout": "mysql_connect_timeout",
+        "pool_min_size": "mysql_pool_min_size",
+        "pool_max_size": "mysql_pool_max_size",
+    },
     "weibo": {
         "enable": "weibo_enable",
         "cookie": "weibo_cookie",
@@ -281,6 +292,9 @@ STRING_FIELDS = frozenset(
         "openid",
         "city_code",
         "base_url",
+        "host",
+        "user",
+        "database",
     }
 )
 

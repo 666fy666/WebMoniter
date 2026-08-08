@@ -83,6 +83,10 @@ def test_config_section_order_matches_frontend_template() -> None:
     assert 'config.js?v={{ config_js_version }}' in html
     assert "cookie_refresh_enable: weiboCookieRefreshEnable" in js
     assert "cookie_refresh_time:" in js
+    assert 'data-module="system"' in html
+    assert 'id="mysql_password"' in html
+    assert "refreshDatabaseStatus" in js
+    assert "'/api/database/test'" in js
 
 
 def test_config_page_asset_version_tracks_config_script() -> None:
@@ -178,3 +182,79 @@ async def test_get_config_api_disables_cache(monkeypatch, tmp_path) -> None:
         "cookie_refresh_enable": True,
         "cookie_refresh_time": "20:30",
     }
+
+
+@pytest.mark.asyncio
+async def test_database_status_api_is_authenticated_and_contains_no_credentials(monkeypatch) -> None:
+    monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
+    monkeypatch.setattr(
+        config_router,
+        "get_database_status",
+        lambda: _async_value(
+            {
+                "configured": True,
+                "active_backend": "mysql",
+                "mysql_reachable": True,
+                "sqlite_healthy": True,
+                "sync_state": "in_sync",
+                "pending_changes": 0,
+                "last_sync_at": None,
+                "message": "已同步",
+            }
+        ),
+    )
+
+    response = await config_router.get_database_status_api(
+        SimpleNamespace(session={"session_id": "ok"})
+    )
+    body = json.loads(response.body)
+
+    assert response.status_code == 200
+    assert body["active_backend"] == "mysql"
+    assert "password" not in body
+    assert "host" not in body
+
+
+async def _async_value(value):
+    return value
+
+
+class _JsonRequest:
+    session = {"session_id": "ok"}
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def json(self):
+        return self.payload
+
+
+@pytest.mark.asyncio
+async def test_database_connection_api_tests_unsaved_values_without_returning_password(monkeypatch) -> None:
+    tested = []
+    monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
+    monkeypatch.setattr(config_router, "get_config", lambda: AppConfig())
+
+    async def fake_test(config):
+        tested.append(config)
+
+    monkeypatch.setattr(config_router, "test_database_config", fake_test)
+    response = await config_router.test_database_connection_api(
+        _JsonRequest(
+            {
+                "mysql": {
+                    "enabled": True,
+                    "host": "db.internal",
+                    "user": "monitor",
+                    "password": "private-value",
+                    "database": "webmoniter",
+                }
+            }
+        )
+    )
+    body = json.loads(response.body)
+
+    assert response.status_code == 200
+    assert tested[0].mysql_password == "private-value"
+    assert "private-value" not in response.body.decode()
+    assert body["success"] is True

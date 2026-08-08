@@ -479,6 +479,22 @@ app:
   base_url: "http://localhost:8866"
 
 # ==========================================================================
+# MySQL 主库配置（可选；不可用时自动回退到 data/data.db）
+# ==========================================================================
+# 密码直接保存在 config.yml，请确保该文件仅当前用户可读且不要提交到版本库。
+# 首次连接空 MySQL 时会从 SQLite 导入；非空 MySQL 会作为权威数据源覆盖 SQLite 镜像。
+mysql:
+  enabled: false
+  host: "127.0.0.1"
+  port: 3306
+  user: "webmoniter"
+  password: "change_me"
+  database: "webmoniter"
+  connect_timeout: 5
+  pool_min_size: 1
+  pool_max_size: 5
+
+# ==========================================================================
 # 插件/扩展任务配置（供二次开发使用，详见 docs/SECONDARY_DEVELOPMENT.md）
 # ==========================================================================
 # 新增定时任务可使用 plugins.xxx 配置；不需要 demo_task 可删除此块，并在 src.jobs.metadata.TASK_SPECS 中移除对应 TaskSpec

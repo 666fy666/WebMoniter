@@ -26,6 +26,7 @@
                     <button class="config-module-tab active" data-module="monitor">📡 监控任务</button>
                     <button class="config-module-tab" data-module="scheduled">⏰ 定时任务</button>
                     <button class="config-module-tab" data-module="push">📢 推送配置</button>
+                    <button class="config-module-tab" data-module="system">⚙️ 系统设置</button>
                     <button class="config-module-tab" data-module="plugins">🔌 插件</button>
                 </div>
                 <div class="config-module-search-wrap">
@@ -1479,7 +1480,7 @@
             </div>
 
             <!-- 应用基础配置 -->
-            <div class="card config-section fade-in" data-section="app" data-module="push" style="animation-delay: 0.25s;">
+            <div class="card config-section fade-in" data-section="app" data-module="system" style="animation-delay: 0.25s;">
                 <div class="card-header">
                     <h2>🌐 应用基础配置</h2>
                     <div class="card-actions">
@@ -1506,6 +1507,95 @@
                             </td>
                         </tr>
                     </table>
+                </div>
+            </div>
+
+            <!-- MySQL 主库配置 -->
+            <div class="card config-section fade-in" data-section="mysql" data-module="system" style="animation-delay: 0.28s;">
+                <div class="card-header">
+                    <h2>🗄️ MySQL 主库与 SQLite 备份</h2>
+                    <div class="card-actions">
+                        <button type="button" id="mysqlTestBtn" class="btn btn-secondary">
+                            <span>🔌</span>
+                            测试连接
+                        </button>
+                        <button class="btn btn-secondary section-reload-btn">
+                            <span>🔄</span>
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            <span>💾</span>
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="databaseStatus" class="database-status-panel" aria-live="polite">
+                        <div class="database-status-heading">
+                            <strong>数据库运行状态</strong>
+                            <span id="databaseStatusBadge" class="database-status-badge is-loading">读取中</span>
+                        </div>
+                        <div class="database-status-grid">
+                            <div><span>当前后端</span><strong id="databaseActiveBackend">--</strong></div>
+                            <div><span>MySQL</span><strong id="databaseMysqlHealth">--</strong></div>
+                            <div><span>SQLite</span><strong id="databaseSqliteHealth">--</strong></div>
+                            <div><span>待回放</span><strong id="databasePendingChanges">--</strong></div>
+                        </div>
+                        <p id="databaseStatusMessage" class="help-text">正在读取数据库状态...</p>
+                    </div>
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用 MySQL 主库</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="mysql_enabled">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="mysql_enabled_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_host">主机</label></td>
+                            <td><input type="text" id="mysql_host" class="form-input" autocomplete="off" placeholder="127.0.0.1"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_port">端口</label></td>
+                            <td><input type="number" id="mysql_port" class="form-input" min="1" max="65535" value="3306"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_user">用户名</label></td>
+                            <td><input type="text" id="mysql_user" class="form-input" autocomplete="username"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_password">密码</label></td>
+                            <td>
+                                <div class="password-input-wrap">
+                                    <input type="password" id="mysql_password" class="form-input" autocomplete="current-password">
+                                    <button type="button" id="mysqlPasswordToggle" class="password-toggle" aria-label="显示 MySQL 密码" aria-pressed="false">👁</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_database">数据库名</label></td>
+                            <td><input type="text" id="mysql_database" class="form-input" autocomplete="off"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label"><label for="mysql_connect_timeout">连接超时（秒）</label></td>
+                            <td><input type="number" id="mysql_connect_timeout" class="form-input" min="1" max="60" value="5"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">连接池大小</td>
+                            <td>
+                                <div class="database-pool-fields">
+                                    <label>最小 <input type="number" id="mysql_pool_min_size" class="form-input" min="1" max="100" value="1"></label>
+                                    <label>最大 <input type="number" id="mysql_pool_max_size" class="form-input" min="1" max="100" value="5"></label>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="help-box" style="margin-top: 16px;">
+                        <p>MySQL 可用时作为权威数据源，项目写入会即时镜像到本地 SQLite；连接失败时自动回退并在恢复后补写。密码会直接保存到 <code>config.yml</code>，请限制该文件权限且不要提交到版本库。</p>
+                    </div>
                 </div>
             </div>
 

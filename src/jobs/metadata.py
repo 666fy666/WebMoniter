@@ -604,6 +604,7 @@ CONFIG_SECTION_ORDER: tuple[str, ...] = (
     "ssq_500w",
     "log_cleanup",
     "app",
+    "mysql",
     "quiet_hours",
     "push_channel",
     "plugins",

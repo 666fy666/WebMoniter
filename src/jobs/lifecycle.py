@@ -265,6 +265,9 @@ async def on_scheduler_config_changed(
 ) -> None:
     """热重载：DB 与配置对齐，并按注册表更新 APScheduler。"""
     try:
+        from src.storage.database import reconfigure_database
+
+        await reconfigure_database(new_config)
         await sync_config_to_db(old_config, new_config)
         updates: list[str] = []
         updates.extend(_apply_monitor_jobs_after_config_reload(scheduler, new_config))

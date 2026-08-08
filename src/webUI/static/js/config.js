@@ -254,6 +254,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         monitor: '在监控任务中搜索（如：微博、bilibili、虎牙...）',
         scheduled: '在定时任务中搜索（如：ikuuu、贴吧、签到...）',
         push: '在推送配置中搜索',
+        system: '在系统设置中搜索',
         plugins: '在插件中搜索'
     };
 
@@ -400,10 +401,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         'zdm_draw', 'fg', 'miui', 'iqiyi', 'lenovo', 'lbly', 'pinzan', 'dml',
         'xiaomao', 'ydwx', 'xingkong', 'qtw', 'freenom', 'weather', 'kuake',
         'kjwj', 'fr', 'nine_nine_nine', 'zgfc', 'ssq_500w', 'log_cleanup',
-        'app', 'quiet_hours', 'push_channel', 'plugins'
+        'app', 'mysql', 'quiet_hours', 'push_channel', 'plugins'
     ];
     const FALLBACK_SWITCH_IDS = [
-        'quiet_hours_enable', 'rainyun_auto_renew', 'weibo_enable',
+        'quiet_hours_enable', 'mysql_enabled', 'rainyun_auto_renew', 'weibo_enable',
         'weibo_cookie_refresh_enable',
         'weibo_chaohua_enable', 'huya_enable', 'bilibili_enable',
         'douyin_enable', 'douyu_enable', 'xhs_enable', 'checkin_enable',
@@ -448,7 +449,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function getSwitchIdsFromMetadata() {
-        const switchIds = new Set(['quiet_hours_enable', 'rainyun_auto_renew']);
+        const switchIds = new Set(['quiet_hours_enable', 'mysql_enabled', 'rainyun_auto_renew']);
         getTaskMetadata().forEach(task => {
             if (task.enable_field) {
                 switchIds.add(task.enable_field);
@@ -474,6 +475,61 @@ document.addEventListener('DOMContentLoaded', async function() {
         getSwitchIdsFromMetadata().forEach(bindSwitchLabel);
     }
 
+    async function refreshDatabaseStatus() {
+        const badge = document.getElementById('databaseStatusBadge');
+        if (!badge) return;
+        try {
+            const response = await fetch('/api/database/status', { cache: 'no-store' });
+            const status = await response.json();
+            if (!response.ok || status.error) throw new Error(status.error || '状态读取失败');
+
+            const labels = {
+                in_sync: ['已同步', 'is-success'],
+                fallback: ['SQLite 回退', 'is-warning'],
+                replaying: ['正在回放', 'is-loading'],
+                mirror_degraded: ['镜像降级', 'is-error'],
+                sqlite_only: ['SQLite', 'is-neutral'],
+            };
+            const [text, className] = labels[status.sync_state] || ['未知', 'is-neutral'];
+            badge.textContent = text;
+            badge.className = `database-status-badge ${className}`;
+            document.getElementById('databaseActiveBackend').textContent = status.active_backend === 'mysql' ? 'MySQL 主库' : 'SQLite';
+            document.getElementById('databaseMysqlHealth').textContent = status.mysql_reachable ? '可连接' : (status.configured ? '不可用' : '未配置');
+            document.getElementById('databaseSqliteHealth').textContent = status.sqlite_healthy ? '正常' : '异常';
+            document.getElementById('databasePendingChanges').textContent = String(status.pending_changes ?? 0);
+            const syncTime = status.last_sync_at ? ` 最近同步：${status.last_sync_at}` : '';
+            document.getElementById('databaseStatusMessage').textContent = `${status.message || ''}${syncTime}`;
+        } catch (error) {
+            badge.textContent = '状态不可用';
+            badge.className = 'database-status-badge is-error';
+            const message = document.getElementById('databaseStatusMessage');
+            if (message) message.textContent = '无法读取数据库运行状态';
+        }
+    }
+
+    async function testMysqlConnection() {
+        const button = document.getElementById('mysqlTestBtn');
+        if (!button) return;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.textContent = '测试中...';
+        try {
+            const response = await fetch('/api/database/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(collectSectionConfig('mysql')),
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error || '连接失败');
+            showMessage('configMessage', data.message || 'MySQL 连接测试成功', 'success');
+        } catch (error) {
+            showMessage('configMessage', error.message || 'MySQL 连接测试失败', 'error');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
     // 加载配置
     async function loadConfig() {
         try {
@@ -491,6 +547,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             getConfigSectionOrder().forEach(section => {
                 loadSectionConfig(section, config);
             });
+            await refreshDatabaseStatus();
 
             showMessage('configMessage', '配置加载成功', 'success');
         } catch (error) {
@@ -579,7 +636,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const sections = tasksWithPush.length > 0
             ? tasksWithPush.map(task => task.config_section)
             : FALLBACK_CONFIG_SECTIONS.filter(section => (
-                section !== 'app' && section !== 'quiet_hours' &&
+                section !== 'app' && section !== 'mysql' && section !== 'quiet_hours' &&
                 section !== 'push_channel' && section !== 'plugins' &&
                 section !== 'log_cleanup'
             ));
@@ -1272,6 +1329,30 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 break;
             }
+            case 'mysql': {
+                const mysql = config.mysql || {};
+                const values = {
+                    mysql_host: mysql.host || '',
+                    mysql_port: mysql.port ?? 3306,
+                    mysql_user: mysql.user || '',
+                    mysql_password: mysql.password || '',
+                    mysql_database: mysql.database || '',
+                    mysql_connect_timeout: mysql.connect_timeout ?? 5,
+                    mysql_pool_min_size: mysql.pool_min_size ?? 1,
+                    mysql_pool_max_size: mysql.pool_max_size ?? 5,
+                };
+                Object.entries(values).forEach(([id, value]) => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = value;
+                });
+                const enabled = document.getElementById('mysql_enabled');
+                if (enabled) {
+                    enabled.checked = mysql.enabled === true || mysql.enabled === 'true';
+                    const label = document.getElementById('mysql_enabled_label');
+                    if (label) label.textContent = enabled.checked ? '开启' : '关闭';
+                }
+                break;
+            }
             case 'weibo':
                 if (config.weibo) {
                     if (weiboEnable) {
@@ -1905,6 +1986,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const baseUrlInput = document.getElementById('app_base_url');
                 config.app = {
                     base_url: (baseUrlInput?.value || '').trim(),
+                };
+                break;
+            }
+            case 'mysql': {
+                config.mysql = {
+                    enabled: document.getElementById('mysql_enabled')?.checked || false,
+                    host: (document.getElementById('mysql_host')?.value || '').trim(),
+                    port: parseInt(document.getElementById('mysql_port')?.value || '3306', 10),
+                    user: (document.getElementById('mysql_user')?.value || '').trim(),
+                    password: document.getElementById('mysql_password')?.value || '',
+                    database: (document.getElementById('mysql_database')?.value || '').trim(),
+                    connect_timeout: parseInt(document.getElementById('mysql_connect_timeout')?.value || '5', 10),
+                    pool_min_size: parseInt(document.getElementById('mysql_pool_min_size')?.value || '1', 10),
+                    pool_max_size: parseInt(document.getElementById('mysql_pool_max_size')?.value || '5', 10),
                 };
                 break;
             }
@@ -3056,6 +3151,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    const mysqlTestBtn = document.getElementById('mysqlTestBtn');
+    if (mysqlTestBtn) mysqlTestBtn.addEventListener('click', testMysqlConnection);
+
+    const mysqlPasswordToggle = document.getElementById('mysqlPasswordToggle');
+    if (mysqlPasswordToggle) {
+        mysqlPasswordToggle.addEventListener('click', function () {
+            const input = document.getElementById('mysql_password');
+            if (!input) return;
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            this.setAttribute('aria-pressed', String(!showing));
+            this.setAttribute('aria-label', showing ? '显示 MySQL 密码' : '隐藏 MySQL 密码');
+            this.textContent = showing ? '👁' : '🙈';
+        });
+    }
+
     // 初始加载配置
     await loadConfigMetadata();
     bindSwitchLabelsFromMetadata();
@@ -3064,6 +3175,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 监听 config-saved 事件，刷新配置表单以反映最新状态
     document.addEventListener('config-saved', async function () {
         await loadConfig();
+        await refreshDatabaseStatus();
         if (textView && textView.style.display !== 'none') {
             await loadYamlConfig();
         }

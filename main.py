@@ -54,7 +54,7 @@ async def main() -> None:
     from src.settings.config import AppConfig, get_config
     from src.settings.watcher import ConfigWatcher
     from src.storage.cookie_cache import get_cookie_cache
-    from src.storage.database import close_shared_connection
+    from src.storage.database import close_shared_connection, reconfigure_database
 
     is_background = not sys.stdout.isatty()
     setup_logging(log_level="INFO", console_output=not is_background)
@@ -86,6 +86,7 @@ async def main() -> None:
     config_watcher: ConfigWatcher | None = None
     try:
         await cookie_cache.reset_all()
+        await reconfigure_database(config)
 
         scheduler = TaskScheduler(config)
         scheduler.install_signal_handlers()

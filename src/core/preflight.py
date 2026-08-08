@@ -25,6 +25,7 @@ CORE_IMPORTS: tuple[tuple[str, str], ...] = (
     ("aiohttp", "aiohttp"),
     ("requests", "requests"),
     ("aiosqlite", "aiosqlite"),
+    ("aiomysql", "aiomysql"),
     ("pydantic", "pydantic"),
     ("apscheduler", "apscheduler"),
     ("yaml", "pyyaml"),

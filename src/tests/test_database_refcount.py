@@ -11,6 +11,11 @@ def isolated_db(monkeypatch, tmp_path):
     """Use a temp DB path; tests must call reset helper when done."""
     db_path = tmp_path / "test.db"
     monkeypatch.setattr(db_module, "DB_PATH", db_path)
+
+    async def skip_mysql_runtime():
+        return None
+
+    monkeypatch.setattr(db_module, "_ensure_hybrid_runtime", skip_mysql_runtime)
     return db_path
 
 

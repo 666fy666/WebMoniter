@@ -44,6 +44,7 @@
 | 类型       | 配置节点示例 | 说明 |
 |:----------:|:-------------|:-----|
 | 应用基础   | `app`        | 全局基础配置，目前包括 `base_url`（用于拼接微博封面图等资源的完整 URL） |
+| 数据库     | `mysql`      | 可选 MySQL 主库；本地 SQLite 始终作为镜像与故障回退 |
 | 微博监控与 Cookie 刷新 | `weibo` | `enable`、Cookie、UID、监控间隔及 `cookie_refresh_enable/time`，详见 [监控任务详解](tasks/monitors.md#weibo-monitor) 与 [定时任务详解](tasks/checkin.md) |
 | 虎牙监控   | `huya`       | `enable`、房间号列表、监控间隔、推送通道等，详见 [监控任务详解](tasks/monitors.md#huya-monitor) |
 | 哔哩哔哩   | `bilibili`   | `enable`、UID 列表、Cookie（可选）、动态+开播/下播检测，详见 [监控任务详解](tasks/monitors.md#bilibili-monitor) |
@@ -77,6 +78,27 @@ app:
 - 将被监控用户的头像与手机封面图缓存到 `data/weibo/<用户名>/`；
 - 通过 `base_url + /weibo_img/<用户名>/cover_image_phone.jpg` 为大部分推送通道提供可访问的封面图 URL；
 - 对于支持本地图片上传的通道（如 `telegram_bot`），还会直接上传本地封面图。
+
+## MySQL 主库与 SQLite 备份 `mysql`
+
+默认只使用 `data/data.db`。填写并启用下面的配置后，MySQL 成为权威数据源，项目写入会同步到本地 SQLite；MySQL 连接失败时自动回退，恢复后补写离线变更。
+
+```yaml
+mysql:
+  enabled: true
+  host: "127.0.0.1"
+  port: 3306
+  user: "webmoniter"
+  password: "change_me"
+  database: "webmoniter"
+  connect_timeout: 5
+  pool_min_size: 1
+  pool_max_size: 5
+```
+
+数据库和账号需提前创建，并具备建表、改表和数据读写权限。首次连接空 MySQL 时会导入现有 SQLite 数据；若 MySQL 已有业务数据，则以 MySQL 为准刷新 SQLite。密码直接保存在被 Git 忽略的 `config.yml`，请限制文件权限且不要提交该文件。
+
+Web 配置页的「系统设置」支持测试未保存的连接参数，并显示当前权威后端、SQLite 健康度和待回放数量。应用自身写入会即时双写，MySQL 在线时还会每 60 秒校准一次 SQLite，以同步其他客户端直接写入 MySQL 的变更。
 
 ## 任务级推送通道选择
 

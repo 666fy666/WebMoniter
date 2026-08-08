@@ -77,6 +77,15 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 
 ---
 
+## 其他语言
+
+- [English](README.en-US.md)
+- [Español](README.es-ES.md)
+- [日本語](README.ja-JP.md)
+- [한국어](README.ko-KR.md)
+
+---
+
 ## 核心特性
 
 | 特性 | 说明 |

@@ -1,14 +1,32 @@
-"""异步数据库操作模块 - 使用 SQLite"""
+"""异步数据库操作模块 - MySQL 主库与 SQLite 本地镜像。"""
 
 import asyncio
+import json
 import logging
 import re
 from contextlib import asynccontextmanager
-from datetime import date
+from dataclasses import replace
+from datetime import date, datetime
+from typing import Any
 
 import aiosqlite
 
 from src.core.paths import DB_PATH
+from src.storage.mysql_backend import (
+    TABLE_SPECS,
+    MySQLSettings,
+    close_mysql_pool,
+    create_mysql_pool,
+    fetch_mysql_tables,
+    initialize_mysql_schema,
+    is_mysql_connection_error,
+    mysql_query,
+    mysql_tables_empty,
+    mysql_update,
+    replace_mysql_tables,
+    replay_mysql_events,
+    test_mysql_connection,
+)
 
 # 全局单例数据库连接
 _shared_connection: aiosqlite.Connection | None = None
@@ -17,12 +35,32 @@ _connection_ref_count = 0
 _active_shared_databases: set["AsyncDatabase"] = set()
 _logger = logging.getLogger(__name__)
 
+# MySQL/SQLite 协调状态。SQLite 连接仍沿用上面的共享连接与引用计数。
+_mysql_pool = None
+_mysql_settings: MySQLSettings | None = None
+_active_backend = "sqlite"
+_sync_state = "sqlite_only"
+_last_sync_at: str | None = None
+_status_message = "未启用 MySQL，正在使用 SQLite"
+_sqlite_healthy = True
+_mysql_reachable = False
+_mirror_degraded = False
+_hybrid_init_lock = asyncio.Lock()
+_database_operation_lock = asyncio.Lock()
+_maintenance_task: asyncio.Task | None = None
+_maintenance_stop = asyncio.Event()
+
+_WRITE_TABLE = re.compile(
+    r"^\s*(?:INSERT(?:\s+OR\s+REPLACE)?\s+INTO|REPLACE\s+INTO|UPDATE|DELETE\s+FROM)\s+[`\"]?([A-Za-z_][A-Za-z0-9_]*)",
+    re.IGNORECASE,
+)
+
 # MySQL 风格 %(name)s 占位符 -> SQLite :name（预编译避免每条 SQL 重复编译正则）
 _MYSQL_STYLE_PARAM = re.compile(r"%\((\w+)\)s")
 
 
 class AsyncDatabase:
-    """异步数据库操作类 - 使用 SQLite（支持共享连接）"""
+    """兼容原 API 的异步数据库门面。"""
 
     def __init__(self):
         """初始化数据库连接"""
@@ -79,6 +117,8 @@ class AsyncDatabase:
                 await self._conn.execute("PRAGMA busy_timeout=30000")
                 await self._conn.commit()
                 await self._init_tables(self._conn)
+
+        await _ensure_hybrid_runtime()
 
     async def _init_tables(self, conn: aiosqlite.Connection):
         """初始化数据库表结构"""
@@ -214,6 +254,20 @@ class AsyncDatabase:
                 last_run_date TEXT NOT NULL
             )
         """
+        )
+
+        # MySQL 故障期间的本地变更日志，只存在 SQLite，不参与主备表同步。
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mysql_sync_outbox (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                table_name TEXT NOT NULL,
+                pk_value TEXT,
+                operation TEXT NOT NULL,
+                row_data TEXT,
+                created_at TEXT NOT NULL
+            )
+            """
         )
 
         await conn.commit()
@@ -411,41 +465,62 @@ class AsyncDatabase:
             raise last_exception
 
     async def execute_query(self, sql: str, params: dict | None = None) -> list[tuple]:
-        """执行查询操作（带重试机制和连接检查）"""
-        # 转换 SQL 和参数
+        """从当前权威后端查询；MySQL 断连时自动回退 SQLite。"""
         sqlite_sql = self._convert_sql(sql)
-
-        async def _query():
-            async with self._conn.execute(sqlite_sql, params) as cursor:
-                rows = await cursor.fetchall()
-                # 将 Row 对象转换为元组
-                return [tuple(row) for row in rows]
-
+        await self._ensure_connection()
+        await _ensure_hybrid_runtime()
         try:
-            return await self._execute_with_retry(_query)
+            async with _database_operation_lock:
+                if _active_backend == "mysql" and _mysql_pool is not None:
+                    try:
+                        return await mysql_query(_mysql_pool, sql, params)
+                    except Exception as exc:
+                        if not is_mysql_connection_error(exc):
+                            raise
+                        await _activate_sqlite_fallback_locked("MySQL 连接中断，已回退 SQLite")
+                return await _sqlite_query(self._conn, sqlite_sql, params)
         except Exception as e:
-            _logger.error("数据库查询失败: %s\nSQL: %s\nParams: %s", e, sqlite_sql, params)
+            _logger.error("数据库查询失败: %s\nSQL: %s", e, sqlite_sql)
             raise
 
     async def execute_update(self, sql: str, params: dict | None = None) -> bool:
-        """执行更新操作（INSERT/UPDATE/DELETE，带重试机制和连接检查）"""
-        # 转换 SQL 和参数
+        """写入权威后端并维护 SQLite 镜像。"""
         sqlite_sql = self._convert_sql(sql)
-
-        async def _update():
-            await self._conn.execute(sqlite_sql, params)
-            await self._conn.commit()
-            return True
-
+        await self._ensure_connection()
+        await _ensure_hybrid_runtime()
         try:
-            return await self._execute_with_retry(_update)
+            async with _database_operation_lock:
+                if _active_backend == "mysql" and _mysql_pool is not None:
+                    try:
+                        await mysql_update(_mysql_pool, sql, params)
+                    except Exception as exc:
+                        if not is_mysql_connection_error(exc):
+                            raise
+                        await _activate_sqlite_fallback_locked("MySQL 连接中断，已回退 SQLite")
+                    else:
+                        try:
+                            await _sqlite_update(self._conn, sqlite_sql, params)
+                            _set_sqlite_health(True)
+                        except Exception as mirror_error:
+                            _mark_mirror_degraded(mirror_error)
+                        return True
+
+                journal = bool(_mysql_settings and _mysql_settings.configured)
+                if journal:
+                    await _sqlite_update_with_outbox(self._conn, sqlite_sql, params)
+                else:
+                    await _sqlite_update(self._conn, sqlite_sql, params)
+                _set_sqlite_health(True)
+                return True
         except Exception as e:
             try:
                 if self._conn:
                     await self._conn.rollback()
             except Exception:
                 pass
-            _logger.error("数据库操作失败: %s\nSQL: %s\nParams: %s", e, sqlite_sql, params)
+            if _active_backend != "mysql":
+                _set_sqlite_health(False)
+            _logger.error("数据库操作失败: %s\nSQL: %s", e, sqlite_sql)
             return False
 
     async def execute_insert(self, sql: str, params: dict | None = None) -> bool:
@@ -489,6 +564,381 @@ class AsyncDatabase:
         await self.close()
 
 
+def _set_sqlite_health(healthy: bool) -> None:
+    global _sqlite_healthy
+    _sqlite_healthy = healthy
+
+
+def _mark_mirror_degraded(exc: BaseException) -> None:
+    global _mirror_degraded, _sync_state, _status_message, _sqlite_healthy
+    _mirror_degraded = True
+    _sqlite_healthy = False
+    _sync_state = "mirror_degraded"
+    _status_message = "MySQL 正常，但 SQLite 镜像写入失败，等待重新校准"
+    _logger.error("SQLite 镜像写入失败: %s", type(exc).__name__)
+
+
+async def _sqlite_query(
+    conn: aiosqlite.Connection,
+    sql: str,
+    params: dict | None = None,
+) -> list[tuple]:
+    async with conn.execute(sql, params) as cursor:
+        return [tuple(row) for row in await cursor.fetchall()]
+
+
+async def _sqlite_update(
+    conn: aiosqlite.Connection,
+    sql: str,
+    params: dict | None = None,
+) -> None:
+    try:
+        await conn.execute(sql, params)
+        await conn.commit()
+    except Exception:
+        await conn.rollback()
+        raise
+
+
+def _table_from_write_sql(sql: str) -> str | None:
+    match = _WRITE_TABLE.match(sql)
+    if match is None:
+        return None
+    table_name = match.group(1)
+    return table_name if table_name in TABLE_SPECS else None
+
+
+async def _sqlite_update_with_outbox(
+    conn: aiosqlite.Connection,
+    sql: str,
+    params: dict | None,
+) -> None:
+    """原子写入 SQLite 业务表和 MySQL 离线日志。"""
+    table_name = _table_from_write_sql(sql)
+    if table_name is None:
+        raise ValueError("MySQL 回退模式不支持未登记的数据表写入")
+    try:
+        await conn.execute("BEGIN IMMEDIATE")
+        await conn.execute(sql, params)
+        if table_name is not None:
+            spec = TABLE_SPECS[table_name]
+            normalized = sql.lstrip().upper()
+            if normalized.startswith("DELETE") and not params:
+                operation = "clear"
+                pk_value = None
+                row_data = None
+            else:
+                pk_value = str((params or {}).get(spec.primary_key, (params or {}).get("pk", "")))
+                quoted_columns = ", ".join(f'"{column}"' for column in spec.columns)
+                async with conn.execute(
+                    f'SELECT {quoted_columns} FROM "{table_name}" WHERE "{spec.primary_key}"=:pk',
+                    {"pk": pk_value},
+                ) as cursor:
+                    row = await cursor.fetchone()
+                if row is None:
+                    operation = "delete"
+                    row_data = None
+                else:
+                    operation = "upsert"
+                    row_data = json.dumps(
+                        dict(zip(spec.columns, tuple(row), strict=True)),
+                        ensure_ascii=False,
+                    )
+            await conn.execute(
+                """
+                INSERT INTO mysql_sync_outbox
+                    (table_name, pk_value, operation, row_data, created_at)
+                VALUES (:table_name, :pk_value, :operation, :row_data, :created_at)
+                """,
+                {
+                    "table_name": table_name,
+                    "pk_value": pk_value,
+                    "operation": operation,
+                    "row_data": row_data,
+                    "created_at": datetime.now().isoformat(timespec="seconds"),
+                },
+            )
+        await conn.commit()
+    except Exception:
+        await conn.rollback()
+        raise
+
+
+async def _fetch_sqlite_tables(
+    conn: aiosqlite.Connection,
+) -> dict[str, list[dict[str, Any]]]:
+    tables: dict[str, list[dict[str, Any]]] = {}
+    for spec in TABLE_SPECS.values():
+        quoted_columns = ", ".join(f'"{column}"' for column in spec.columns)
+        async with conn.execute(f'SELECT {quoted_columns} FROM "{spec.name}"') as cursor:
+            rows = await cursor.fetchall()
+        tables[spec.name] = [
+            dict(zip(spec.columns, tuple(row), strict=True)) for row in rows
+        ]
+    return tables
+
+
+async def _replace_sqlite_tables(
+    conn: aiosqlite.Connection,
+    tables: dict[str, list[dict[str, Any]]],
+) -> None:
+    try:
+        await conn.execute("BEGIN IMMEDIATE")
+        for spec in TABLE_SPECS.values():
+            await conn.execute(f'DELETE FROM "{spec.name}"')
+            rows = tables.get(spec.name, [])
+            if not rows:
+                continue
+            quoted_columns = ", ".join(f'"{column}"' for column in spec.columns)
+            placeholders = ", ".join(f":{column}" for column in spec.columns)
+            await conn.executemany(
+                f'INSERT INTO "{spec.name}" ({quoted_columns}) VALUES ({placeholders})',
+                [{column: row.get(column) for column in spec.columns} for row in rows],
+            )
+        await conn.commit()
+        _set_sqlite_health(True)
+    except Exception:
+        await conn.rollback()
+        _set_sqlite_health(False)
+        raise
+
+
+async def _load_outbox(conn: aiosqlite.Connection) -> list[dict[str, Any]]:
+    async with conn.execute(
+        "SELECT id, table_name, pk_value, operation, row_data FROM mysql_sync_outbox ORDER BY id"
+    ) as cursor:
+        rows = await cursor.fetchall()
+    events = []
+    for row in rows:
+        events.append(
+            {
+                "id": row[0],
+                "table_name": row[1],
+                "pk_value": row[2],
+                "operation": row[3],
+                "row_data": json.loads(row[4]) if row[4] else None,
+            }
+        )
+    return events
+
+
+async def _clear_outbox(conn: aiosqlite.Connection, event_ids: list[int] | None = None) -> None:
+    if event_ids:
+        placeholders = ",".join("?" for _ in event_ids)
+        await conn.execute(
+            f"DELETE FROM mysql_sync_outbox WHERE id IN ({placeholders})",
+            event_ids,
+        )
+    else:
+        await conn.execute("DELETE FROM mysql_sync_outbox")
+    await conn.commit()
+
+
+async def _synchronize_connected_mysql_locked(pool) -> None:
+    """按初始化规则对齐已连接的 MySQL 与 SQLite。"""
+    global _sync_state, _last_sync_at, _status_message, _mirror_degraded
+    conn = _shared_connection
+    if conn is None:
+        raise RuntimeError("SQLite 尚未初始化")
+
+    _sync_state = "replaying"
+    _status_message = "正在同步 MySQL 与 SQLite"
+    events = await _load_outbox(conn)
+    if await mysql_tables_empty(pool):
+        await replace_mysql_tables(pool, await _fetch_sqlite_tables(conn))
+        await _clear_outbox(conn)
+    else:
+        if events:
+            await replay_mysql_events(pool, events)
+            await _clear_outbox(conn, [event["id"] for event in events])
+        await _replace_sqlite_tables(conn, await fetch_mysql_tables(pool))
+
+    _mirror_degraded = False
+    _last_sync_at = datetime.now().isoformat(timespec="seconds")
+    _sync_state = "in_sync"
+    _status_message = "MySQL 主库与 SQLite 镜像已同步"
+
+
+async def _activate_sqlite_fallback_locked(message: str) -> None:
+    global _mysql_pool, _active_backend, _sync_state, _mysql_reachable, _status_message
+    pool = _mysql_pool
+    _mysql_pool = None
+    _active_backend = "sqlite"
+    _sync_state = "fallback"
+    _mysql_reachable = False
+    _status_message = message
+    await close_mysql_pool(pool)
+    _start_maintenance_task()
+
+
+def _start_maintenance_task() -> None:
+    global _maintenance_task, _maintenance_stop
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    if _maintenance_task is not None and not _maintenance_task.done():
+        return
+    _maintenance_stop = asyncio.Event()
+    _maintenance_task = asyncio.create_task(
+        _maintenance_loop(),
+        name="database-mysql-maintenance",
+    )
+
+
+async def _maintenance_loop() -> None:
+    calibration_ticks = 0
+    while not _maintenance_stop.is_set():
+        try:
+            await asyncio.wait_for(_maintenance_stop.wait(), timeout=30)
+            break
+        except TimeoutError:
+            pass
+
+        try:
+            if _mysql_settings is None or not _mysql_settings.configured:
+                continue
+            if _active_backend != "mysql" or _mysql_pool is None:
+                from src.settings.config import get_config
+
+                await reconfigure_database(get_config(), force=True)
+                calibration_ticks = 0
+                continue
+            calibration_ticks += 1
+            if calibration_ticks >= 2:
+                await calibrate_sqlite_mirror()
+                calibration_ticks = 0
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            _logger.warning("数据库后台维护失败: %s", type(exc).__name__)
+
+
+async def calibrate_sqlite_mirror() -> None:
+    global _last_sync_at, _sync_state, _status_message, _mirror_degraded
+    async with _database_operation_lock:
+        if _active_backend != "mysql" or _mysql_pool is None or _shared_connection is None:
+            return
+        try:
+            tables = await fetch_mysql_tables(_mysql_pool)
+            await _replace_sqlite_tables(_shared_connection, tables)
+            _last_sync_at = datetime.now().isoformat(timespec="seconds")
+            _mirror_degraded = False
+            _sync_state = "in_sync"
+            _status_message = "MySQL 主库与 SQLite 镜像已同步"
+        except Exception as exc:
+            if is_mysql_connection_error(exc):
+                await _activate_sqlite_fallback_locked("MySQL 校准时断连，已回退 SQLite")
+            else:
+                _mark_mirror_degraded(exc)
+
+
+async def reconfigure_database(config=None, *, force: bool = False) -> dict[str, Any]:
+    """按最新配置热切换数据库后端，失败时保持 SQLite 可用。"""
+    global _mysql_pool, _mysql_settings, _active_backend, _sync_state
+    global _mysql_reachable, _status_message
+
+    if config is None:
+        from src.settings.config import get_config
+
+        config = get_config()
+    settings = MySQLSettings.from_config(config)
+    await _ensure_shared_connection()
+
+    async with _hybrid_init_lock:
+        if (
+            not force
+            and _mysql_settings is not None
+            and settings.fingerprint == _mysql_settings.fingerprint
+            and ((_mysql_pool is not None) or not settings.configured)
+        ):
+            _start_maintenance_task()
+            return await get_database_status()
+
+        async with _database_operation_lock:
+            old_pool = _mysql_pool
+            _mysql_pool = None
+            if old_pool is not None:
+                if _active_backend == "mysql" and _shared_connection is not None:
+                    try:
+                        await _replace_sqlite_tables(
+                            _shared_connection,
+                            await fetch_mysql_tables(old_pool),
+                        )
+                    except Exception as exc:
+                        _logger.warning("切换前校准 SQLite 失败: %s", type(exc).__name__)
+                await close_mysql_pool(old_pool)
+
+            _mysql_settings = settings
+            _active_backend = "sqlite"
+            _mysql_reachable = False
+            if not settings.configured:
+                _sync_state = "sqlite_only"
+                _status_message = (
+                    "MySQL 配置不完整，正在使用 SQLite"
+                    if settings.enabled
+                    else "未启用 MySQL，正在使用 SQLite"
+                )
+                return await get_database_status()
+
+            pool = None
+            try:
+                pool = await create_mysql_pool(settings)
+                await initialize_mysql_schema(pool)
+                await _synchronize_connected_mysql_locked(pool)
+            except Exception as exc:
+                await close_mysql_pool(pool)
+                _sync_state = "fallback"
+                _status_message = "MySQL 暂时不可用，正在使用 SQLite 并等待重连"
+                _logger.warning("MySQL 连接或同步失败，已回退 SQLite: %s", type(exc).__name__)
+            else:
+                _mysql_pool = pool
+                _active_backend = "mysql"
+                _mysql_reachable = True
+
+        _start_maintenance_task()
+        return await get_database_status()
+
+
+async def _ensure_hybrid_runtime() -> None:
+    if _mysql_settings is None:
+        await reconfigure_database()
+    else:
+        _start_maintenance_task()
+
+
+async def get_database_status() -> dict[str, Any]:
+    pending = 0
+    if _shared_connection is not None:
+        try:
+            async with _shared_connection.execute(
+                "SELECT COUNT(*) FROM mysql_sync_outbox"
+            ) as cursor:
+                row = await cursor.fetchone()
+                pending = int(row[0]) if row else 0
+        except Exception:
+            pass
+    settings = _mysql_settings
+    return {
+        "configured": bool(settings and settings.configured),
+        "active_backend": _active_backend,
+        "mysql_reachable": _mysql_reachable,
+        "sqlite_healthy": _sqlite_healthy,
+        "sync_state": _sync_state,
+        "pending_changes": pending,
+        "last_sync_at": _last_sync_at,
+        "message": _status_message,
+    }
+
+
+async def test_database_config(config) -> None:
+    settings = MySQLSettings.from_config(config)
+    if not settings.host or not settings.user or not settings.database:
+        raise ValueError("请填写 MySQL 主机、用户和数据库名")
+    settings = replace(settings, enabled=True)
+    await test_mysql_connection(settings)
+
+
 async def _ensure_shared_connection() -> aiosqlite.Connection:
     """确保共享连接已建立（供 task_run_history 等模块级 API 使用）。"""
     global _shared_connection
@@ -512,51 +962,71 @@ async def _ensure_shared_connection() -> aiosqlite.Connection:
 
 async def has_run_today(job_id: str) -> bool:
     """检查指定任务今天是否已经运行过。"""
-    conn = await _ensure_shared_connection()
     today_str = date.today().isoformat()
-
-    async with conn.execute(
-        "SELECT last_run_date FROM task_run_history WHERE job_id = ?",
-        (job_id,),
-    ) as cursor:
-        row = await cursor.fetchone()
-        if row is None:
-            return False
-        return row[0] == today_str
+    async with AsyncDatabase() as db:
+        rows = await db.execute_query(
+            "SELECT last_run_date FROM task_run_history WHERE job_id=%(job_id)s",
+            {"job_id": job_id},
+        )
+    return bool(rows and rows[0][0] == today_str)
 
 
 async def mark_as_run_today(job_id: str) -> None:
     """标记指定任务今天已经运行过。"""
-    conn = await _ensure_shared_connection()
     today_str = date.today().isoformat()
-
-    await conn.execute(
-        """
-        INSERT OR REPLACE INTO task_run_history (job_id, last_run_date)
-        VALUES (?, ?)
-        """,
-        (job_id, today_str),
-    )
-    await conn.commit()
+    async with AsyncDatabase() as db:
+        ok = await db.execute_update(
+            """
+            INSERT OR REPLACE INTO task_run_history (job_id, last_run_date)
+            VALUES (%(job_id)s, %(last_run_date)s)
+            """,
+            {"job_id": job_id, "last_run_date": today_str},
+        )
+    if not ok:
+        raise RuntimeError("写入任务运行历史失败")
 
 
 async def clear_run_history(job_id: str | None = None) -> None:
     """清除任务运行记录；job_id 为 None 时清除全部。"""
-    conn = await _ensure_shared_connection()
-
-    if job_id is None:
-        await conn.execute("DELETE FROM task_run_history")
-    else:
-        await conn.execute(
-            "DELETE FROM task_run_history WHERE job_id = ?",
-            (job_id,),
-        )
-    await conn.commit()
+    async with AsyncDatabase() as db:
+        if job_id is None:
+            ok = await db.execute_update("DELETE FROM task_run_history")
+        else:
+            ok = await db.execute_update(
+                "DELETE FROM task_run_history WHERE job_id=%(job_id)s",
+                {"job_id": job_id},
+            )
+    if not ok:
+        raise RuntimeError("清除任务运行历史失败")
 
 
 async def close_shared_connection():
     """关闭共享数据库连接（程序退出时调用）"""
-    global _shared_connection, _connection_ref_count
+    global _shared_connection, _connection_ref_count, _mysql_pool, _mysql_settings
+    global _maintenance_task, _active_backend, _mysql_reachable, _sync_state
+    global _sqlite_healthy, _mirror_degraded, _last_sync_at, _status_message
+
+    _maintenance_stop.set()
+    task = _maintenance_task
+    _maintenance_task = None
+    if task is not None and task is not asyncio.current_task():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+    pool = _mysql_pool
+    _mysql_pool = None
+    await close_mysql_pool(pool)
+    _mysql_settings = None
+    _active_backend = "sqlite"
+    _mysql_reachable = False
+    _sync_state = "sqlite_only"
+    _sqlite_healthy = True
+    _mirror_degraded = False
+    _last_sync_at = None
+    _status_message = "未启用 MySQL，正在使用 SQLite"
 
     async with _connection_lock:
         if _shared_connection is not None:
