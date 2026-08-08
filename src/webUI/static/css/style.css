@@ -1330,79 +1330,53 @@ input:focus + .slider {
 }
 
 .weibo-feed-grid .data-card {
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
+    --data-card-radius: var(--radius-md);
+    border-radius: var(--data-card-radius);
+    border-color: transparent;
+    background: transparent;
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow: visible;
+    transform: translate3d(0, 0, 0);
 }
 
-.weibo-feed-grid .data-card:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+.weibo-feed-grid .data-card:hover,
+.weibo-feed-card:hover {
+    transform: none;
 }
 
 .weibo-feed-card {
     position: relative;
     display: block;
     padding: 18px 24px;
-    transition: transform var(--transition-fast), box-shadow var(--transition-normal),
-        border-color var(--transition-normal), background-color var(--transition-normal);
+    transition: transform var(--transition-fast), box-shadow var(--transition-normal);
 }
 
-/* 不同博主：奇数条 - 紫色系 */
+/* 不同博主：左侧色条改到圆角表面伪元素，避免悬停放大时直角露底 */
 .weibo-feed-card:nth-child(odd) {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-left: 4px solid #8b5cf6;
-}
-
-.weibo-feed-card:nth-child(odd):hover {
-    background: var(--glass-bg-hover);
+    --data-card-accent: #8b5cf6;
+    background: transparent;
 }
 
 .weibo-feed-card:nth-child(odd) .weibo-feed-avatar {
     border-color: rgba(139, 92, 246, 0.35);
 }
 
-/* 不同博主：偶数条 - 蓝青系 */
 .weibo-feed-card:nth-child(even) {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-left: 4px solid #06b6d4;
-}
-
-.weibo-feed-card:nth-child(even):hover {
-    background: var(--glass-bg-hover);
+    --data-card-accent: #06b6d4;
+    background: transparent;
 }
 
 .weibo-feed-card:nth-child(even) .weibo-feed-avatar {
     border-color: rgba(6, 182, 212, 0.35);
 }
 
-/* 不同博主：3n 条 - 琥珀系 */
 .weibo-feed-card:nth-child(3n) {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-left-color: #f59e0b;
-}
-
-.weibo-feed-card:nth-child(3n):hover {
-    background: var(--glass-bg-hover);
+    --data-card-accent: #f59e0b;
+    background: transparent;
 }
 
 .weibo-feed-card:nth-child(3n) .weibo-feed-avatar {
     border-color: rgba(245, 158, 11, 0.4);
-}
-
-.weibo-feed-card,
-.weibo-feed-card:nth-child(odd),
-.weibo-feed-card:nth-child(even),
-.weibo-feed-card:nth-child(3n) {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
 }
 
 .weibo-feed-inner {
@@ -2466,15 +2440,15 @@ input:focus + .slider {
 
 .data-card {
     position: relative;
-    background: var(--glass-bg);
+    --data-card-radius: var(--radius-md);
+    background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--data-card-radius);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--glass-border);
-    overflow: hidden;
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal),
-        border-color var(--transition-normal), background-color var(--transition-normal);
+    border: none;
+    overflow: visible;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 @supports (content-visibility: auto) {
@@ -2486,13 +2460,21 @@ input:focus + .slider {
     .weibo-feed-grid .data-card {
         contain-intrinsic-size: auto 420px;
     }
+
+    /* content-visibility + hover scale can drop border-radius clipping in Chromium. */
+    .data-card:hover,
+    .data-card:focus-within,
+    .data-card-chosen,
+    .data-card-drag {
+        content-visibility: visible;
+    }
 }
 
 .data-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg), 0 12px 30px rgba(52, 211, 153, 0.08);
-    border-color: var(--glass-border-hover);
-    background: var(--glass-bg-hover);
+    border-color: transparent;
+    background: transparent;
 }
 
 /* 卡片拖拽手柄 */
@@ -5762,12 +5744,7 @@ input:checked + .slider::before {
     color: var(--error-color);
 }
 
-/* Data cards */
-.data-card,
-.weibo-feed-card,
-.weibo-card,
-.live-card,
-.feed-card,
+/* Data cards: host stays transparent; rounded fill is painted by liquid-glass ::after. */
 .push-channel-item,
 .task-item,
 .multi-account-row,
@@ -5778,11 +5755,16 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-sm);
 }
 
-[data-theme="dark"] .data-card,
-[data-theme="dark"] .weibo-feed-card,
-[data-theme="dark"] .weibo-card,
-[data-theme="dark"] .live-card,
-[data-theme="dark"] .feed-card,
+.data-card,
+.weibo-feed-card,
+.weibo-card,
+.live-card,
+.feed-card {
+    background: transparent;
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
 [data-theme="dark"] .push-channel-item,
 [data-theme="dark"] .task-item,
 [data-theme="dark"] .multi-account-row,
@@ -5791,11 +5773,14 @@ input:checked + .slider::before {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.data-card:hover,
-.weibo-feed-card:hover,
-.weibo-card:hover,
-.live-card:hover,
-.feed-card:hover,
+[data-theme="dark"] .data-card,
+[data-theme="dark"] .weibo-feed-card,
+[data-theme="dark"] .weibo-card,
+[data-theme="dark"] .live-card,
+[data-theme="dark"] .feed-card {
+    background: transparent;
+}
+
 .push-channel-item:hover,
 .task-item:hover,
 .multi-account-row:hover,
@@ -5805,6 +5790,22 @@ input:checked + .slider::before {
     background: var(--glass-bg-hover);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
+}
+
+.data-card:hover,
+.weibo-card:hover,
+.live-card:hover,
+.feed-card:hover {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.weibo-feed-card:hover {
+    border-color: transparent;
+    background: transparent;
+    transform: none;
 }
 
 .push-channel-checkbox.selected {

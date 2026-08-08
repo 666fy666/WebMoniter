@@ -254,7 +254,6 @@ textarea {
 /* Stable, readable content layer */
 .card,
 .task-item,
-.data-card,
 .config-section {
     background: var(--liquid-content);
     border: 1px solid var(--liquid-stroke);
@@ -1291,11 +1290,6 @@ body,
 }
 
 .task-item,
-.data-card,
-.weibo-feed-card,
-.weibo-card,
-.live-card,
-.feed-card,
 .push-channel-item,
 .multi-account-row,
 .multi-cookie-row,
@@ -1311,11 +1305,6 @@ body,
 }
 
 [data-theme="dark"] .task-item,
-[data-theme="dark"] .data-card,
-[data-theme="dark"] .weibo-feed-card,
-[data-theme="dark"] .weibo-card,
-[data-theme="dark"] .live-card,
-[data-theme="dark"] .feed-card,
 [data-theme="dark"] .push-channel-item,
 [data-theme="dark"] .multi-account-row,
 [data-theme="dark"] .multi-cookie-row,
@@ -1324,37 +1313,41 @@ body,
     background: var(--liquid-content);
 }
 
-/* Detailed data cards use a clearer glass grade so the landscape can show through. */
+/*
+ * Data cards: paint the rounded surface on ::after, keep transform/shadow on the host.
+ * Edge/Chromium drops border-radius when overflow+scale share one compositor layer;
+ * separating the fill from the scaled host avoids square corners on hover enlarge.
+ */
 .data-card {
+    --data-card-radius: var(--liquid-radius-card);
+    --data-card-fill: var(--liquid-data);
+    --data-card-fill-image: var(--liquid-data-sheen);
+    --data-card-stroke: rgba(255, 255, 255, 0.52);
+    --data-card-accent: transparent;
     position: relative;
     z-index: 0;
-    overflow: hidden;
-    border-radius: var(--liquid-radius-card);
-    background-clip: padding-box;
-    background-color: var(--liquid-data);
-    background-image: var(--liquid-data-sheen);
-    background-position: 0 0;
-    background-size: 150% 150%;
-    border-color: rgba(255, 255, 255, 0.52);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.55),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.14),
-        0 8px 24px rgba(52, 32, 68, 0.09);
-    backdrop-filter: blur(16px) saturate(1.24);
-    -webkit-backdrop-filter: blur(16px) saturate(1.24);
+    overflow: visible;
+    border-radius: var(--data-card-radius);
+    background: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: 0 8px 24px rgba(52, 32, 68, 0.09);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transform: translate3d(0, 0, 0);
     transform-origin: center;
     transition:
         transform 260ms var(--liquid-spring),
-        background-color 220ms var(--liquid-ease),
-        background-position 320ms var(--liquid-spring),
-        border-color 220ms var(--liquid-ease),
         box-shadow 260ms var(--liquid-spring);
 }
 
 [data-theme="dark"] .data-card {
-    background-color: var(--liquid-data);
-    background-image: var(--liquid-data-sheen);
-    border-color: rgba(255, 255, 255, 0.13);
+    --data-card-fill: var(--liquid-data);
+    --data-card-fill-image: var(--liquid-data-sheen);
+    --data-card-stroke: rgba(255, 255, 255, 0.13);
+    background: transparent;
+    background-image: none;
+    border: none;
 }
 
 /* Beat legacy nth-child user-card backgrounds without using !important. */
@@ -1365,33 +1358,76 @@ body,
 .data-card.weibo-card,
 .data-card.live-card,
 .data-card.feed-card {
-    background-color: var(--liquid-data);
-    background-image: var(--liquid-data-sheen);
+    background: transparent;
+    background-image: none;
+}
+
+.data-card.weibo-feed-card:nth-child(odd) {
+    --data-card-accent: #8b5cf6;
+}
+
+.data-card.weibo-feed-card:nth-child(even) {
+    --data-card-accent: #06b6d4;
+}
+
+.data-card.weibo-feed-card:nth-child(3n) {
+    --data-card-accent: #f59e0b;
+}
+
+/* Rounded fill lives here so hover scale on the host cannot square the corners. */
+.data-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: var(--data-card-radius);
+    background-color: var(--data-card-fill);
+    background-image: var(--data-card-fill-image);
+    background-position: 0 0;
+    background-size: 150% 150%;
+    background-clip: padding-box;
+    border: 1px solid var(--data-card-stroke);
+    border-left-width: 1px;
+    border-left-color: var(--data-card-stroke);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+    pointer-events: none;
+    transition:
+        background-color 220ms var(--liquid-ease),
+        background-position 320ms var(--liquid-spring),
+        border-color 220ms var(--liquid-ease),
+        box-shadow 260ms var(--liquid-spring);
+}
+
+.data-card.weibo-feed-card:nth-child(odd)::after,
+.data-card.weibo-feed-card:nth-child(even)::after,
+.data-card.weibo-feed-card:nth-child(3n)::after {
+    border-left-width: 4px;
+    border-left-color: var(--data-card-accent);
 }
 
 .data-card::before {
     content: '';
     position: absolute;
-    inset: -35%;
-    z-index: 0;
-    border-radius: 50%;
+    inset: 0;
+    z-index: 1;
+    border-radius: var(--data-card-radius);
     background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.4) 0%,
-        rgba(255, 255, 255, 0.1) 30%,
-        transparent 68%
+        circle at 18% 12%,
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.12) 28%,
+        transparent 62%
     );
     opacity: 0.34;
     pointer-events: none;
-    transform: translate3d(-24%, -18%, 0) scale(0.82);
-    transition:
-        opacity 220ms var(--liquid-ease),
-        transform 340ms var(--liquid-spring);
+    transform: none;
+    transition: opacity 220ms var(--liquid-ease);
 }
 
 .data-card > * {
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 /* Data page: remove nested card-on-card elevation and keep one primary surface. */
@@ -1432,13 +1468,20 @@ body.page-data .data-card-grid {
 }
 
 body.page-data .data-card {
-    overflow: hidden;
-    border-radius: var(--liquid-radius-card);
+    --data-card-radius: var(--liquid-radius-card);
+    overflow: visible;
+    border-radius: var(--data-card-radius);
+    background: transparent;
+    background-image: none;
+    border: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.45),
-        0 2px 10px rgba(52, 32, 68, 0.08);
+    transform: translate3d(0, 0, 0);
+    box-shadow: 0 2px 10px rgba(52, 32, 68, 0.08);
+}
+
+body.page-data .data-card::after {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 body.page-data .data-card-drag-handle {
@@ -1607,25 +1650,39 @@ select.form-input {
 
     .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
         z-index: 5;
-        border-radius: var(--liquid-radius-card);
-        background-color: var(--liquid-data-hover);
-        background-position: 100% 100%;
-        border-color: rgba(255, 255, 255, 0.82);
+        overflow: visible;
+        content-visibility: visible;
+        background: transparent;
+        background-image: none;
+        border: none;
+        --data-card-fill: var(--liquid-data-hover);
+        --data-card-stroke: rgba(255, 255, 255, 0.82);
         box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.72),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.18),
             0 18px 42px rgba(52, 32, 68, 0.18),
             0 0 0 1px rgba(255, 127, 172, 0.08);
-        transform: translate3d(0, -5px, 0) scale(1.025);
+        transform: translate3d(0, -5px, 0) scale3d(1.025, 1.025, 1);
+    }
+
+    .data-card:not(.data-card-dragging):not(.data-card-chosen):hover::after {
+        background-position: 100% 100%;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.72),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.18);
     }
 
     [data-theme="dark"] .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
-        border-color: rgba(255, 255, 255, 0.24);
+        --data-card-stroke: rgba(255, 255, 255, 0.24);
+        border: none;
     }
 
     .data-card:hover::before {
-        opacity: 0.86;
-        transform: translate3d(20%, 14%, 0) scale(1.16);
+        opacity: 0.72;
+        background: radial-gradient(
+            circle at 78% 70%,
+            rgba(255, 255, 255, 0.46) 0%,
+            rgba(255, 255, 255, 0.12) 30%,
+            transparent 64%
+        );
     }
 
     .btn:hover:not(:disabled),
@@ -1655,11 +1712,26 @@ select.form-input {
     }
 
     body.page-data .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
-        border-radius: var(--liquid-radius-card);
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.62),
-            0 10px 28px rgba(52, 32, 68, 0.14);
-        transform: translate3d(0, -5px, 0) scale(1.025);
+        overflow: visible;
+        content-visibility: visible;
+        background: transparent;
+        background-image: none;
+        border: none;
+        box-shadow: 0 10px 28px rgba(52, 32, 68, 0.14);
+        transform: translate3d(0, -5px, 0) scale3d(1.025, 1.025, 1);
+    }
+
+    body.page-data .data-card:not(.data-card-dragging):not(.data-card-chosen):hover::after {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+    }
+
+    /* Weibo feed: no hover enlarge (Edge loses corner radius with scale). */
+    .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
+    .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
+    body.page-data .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
+    body.page-data .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
+        transform: none;
+        box-shadow: 0 2px 10px rgba(52, 32, 68, 0.08);
     }
 }
 

@@ -272,7 +272,7 @@ uv run pytest -q
 | `src/tasks/` | 30 个定时/签到任务（Cron 触发，含 `rainyun/` 子包，清单由 `metadata.TASK_SPECS` 生成） |
 | `src/push_channel/` | 18 种推送 type（企业微信、钉钉、Telegram 等，含 `demo`、`qlapi`） |
 | `src/web/` | FastAPI 应用（`app.py`）、路由（`routers/`）、认证/配置/数据辅助、`templating.py`、`static_files.py` |
-| `src/webUI/` | 前端静态资源与 Jinja2 模板 |
+| `src/webUI/` | 前端静态资源与 Jinja2 模板（微博卡片悬停不放大） |
 | `src/ql/` | 青龙 CLI（`python -m src.ql <task_id>`，环境变量兼容见 `compat.py`） |
 | `src/tests/` | pytest 单元与 smoke 测试 |
 

@@ -145,7 +145,12 @@ def test_data_cards_use_translucent_glass_and_pointer_hover_magnification():
     assert "--liquid-data-hover:" in css
     assert "--liquid-data-sheen:" in css
     assert re.search(
-        r"\.data-card\s*\{[^}]+overflow:\s*hidden;[^}]+border-radius:\s*var\(--liquid-radius-card\);",
+        r"\.data-card::after\s*\{[^}]+border-radius:\s*var\(--data-card-radius\);",
+        css,
+        flags=re.DOTALL,
+    )
+    assert re.search(
+        r"body\.page-data \.data-card\s*\{[^}]+--data-card-radius:\s*var\(--liquid-radius-card\);",
         css,
         flags=re.DOTALL,
     )
@@ -156,10 +161,11 @@ def test_data_cards_use_translucent_glass_and_pointer_hover_magnification():
     )
     assert "@media (hover: hover) and (pointer: fine)" in css
     assert re.search(
-        r"\.data-card:not\([^}]+:hover\s*\{[^}]+scale\(1\.025\)",
+        r"\.data-card:not\([^}]+:hover\s*\{[^}]+scale3d\(1\.025,\s*1\.025,\s*1\)",
         css,
         flags=re.DOTALL,
     )
+    assert ".data-card:not(.data-card-dragging):not(.data-card-chosen):hover::after" in css
     assert ".data-card:hover::before" in css
     assert '{% block body_class %} class="page-data"{% endblock %}' in data_template
     assert ".data-card.weibo-feed-card:nth-child(odd)" in css
