@@ -20,8 +20,8 @@ def _read(path: Path) -> str:
 def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
-        assert "/static/css/style.css?v=1" in template
-        assert "/static/css/liquid-glass.css?v=1" in template
+        assert "/static/css/style.css?v=5" in template
+        assert "/static/css/liquid-glass.css?v=5" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -75,10 +75,26 @@ def test_mobile_navigation_has_four_routes_and_safe_area_spacing():
         "/data",
         "/logs",
     ]
+    assert 'id="mobileMenuBtn"' in mobile_nav.group(0)
     assert 'aria-current="page"' in mobile_nav.group(0)
     assert "env(safe-area-inset-bottom)" in css
     assert "--mobile-nav-height" in css
     assert "min-height: 44px" in css
+
+
+def test_shell_removes_page_topbar_and_uses_sidebar_collapse_handle():
+    base = _read(TEMPLATE_ROOT / "base.html")
+    sidebar = _read(TEMPLATE_ROOT / "partials" / "sidebar.html")
+    style_css = _read(STATIC_ROOT / "css" / "style.css")
+    common_js = _read(STATIC_ROOT / "js" / "common.js")
+
+    assert "page-topbar" not in base
+    assert 'class="page-title-group"' not in base
+    assert 'class="sr-only"' in base
+    assert 'id="sidebarCollapseHandle"' in sidebar
+    assert "sidebar-collapse-handle" in style_css
+    assert "sidebarCollapseHandle" in common_js
+    assert "applyDesktopCollapsedState" in common_js
 
 
 def test_liquid_glass_preserves_shell_positioning():
@@ -86,7 +102,6 @@ def test_liquid_glass_preserves_shell_positioning():
 
     for selector, position in (
         (".sidebar", "fixed"),
-        (".page-topbar", "sticky"),
         (".config-module-nav", "sticky"),
         (".task-toolbar", "sticky"),
         ("body.page-data .tabs-scroll-wrap", "sticky"),

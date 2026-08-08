@@ -7,8 +7,8 @@
     <title>{% block title %}{{ page_title }} - WebMoniter{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preload" href="/static/images/liquid-landscape.webp" as="image" type="image/webp">
-    <link rel="stylesheet" href="/static/css/style.css?v=1">
-    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=1">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=5">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -71,18 +71,7 @@
     </div>
 
     <div class="main-content">
-        <header class="page-topbar">
-            <button type="button" class="page-topbar-menu mobile-menu-btn" id="mobileMenuBtn" aria-label="打开账户与设置">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-                {{ icon('user', 'ui-icon mobile-account-icon') }}
-            </button>
-            <div class="page-title-group">
-                <span class="page-kicker">WebMoniter</span>
-                <h1 class="page-title">{{ page_title }}</h1>
-            </div>
-        </header>
+        <h1 class="sr-only">{{ page_title }}</h1>
         <main class="content-body" id="mainContent" tabindex="-1">
             {% block content %}{% endblock %}
         </main>
@@ -92,9 +81,12 @@
         <a href="/tasks" class="mobile-bottom-nav-item"{% if active_nav == 'tasks' %} aria-current="page"{% endif %}>{{ icon('tasks') }}<span>任务</span></a>
         <a href="/data" class="mobile-bottom-nav-item"{% if active_nav == 'data' %} aria-current="page"{% endif %}>{{ icon('chart') }}<span>数据</span></a>
         <a href="/logs" class="mobile-bottom-nav-item"{% if active_nav == 'logs' %} aria-current="page"{% endif %}>{{ icon('logs') }}<span>日志</span></a>
+        <button type="button" class="mobile-bottom-nav-item" id="mobileMenuBtn" aria-label="打开账户与设置" aria-controls="sidebar" aria-expanded="false">
+            {{ icon('user') }}<span>账户</span>
+        </button>
     </nav>
     <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">{{ icon('arrow-up') }}</button>
-    <script src="/static/js/common.js?v=1"></script>
+    <script src="/static/js/common.js?v=3"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

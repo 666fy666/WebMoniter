@@ -29,8 +29,6 @@ let sortableInstance = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     const tabButtons = document.querySelectorAll('.tab-btn');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const tableTitle = document.getElementById('tableTitle');
     const dataTableContainer = document.getElementById('dataTableContainer');
     const pagination = document.getElementById('pagination');
     let lightboxEl = null;
@@ -68,16 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let pendingLazyObserverEntries = [];
     let lazyObserverRaf = 0;
 
-    const tableTitles = {
-        weibo: ['comment', '微博数据'],
-        huya: ['radar', '虎牙数据'],
-        bilibili_live: ['play', '哔哩哔哩直播'],
-        bilibili_dynamic: ['play', '哔哩哔哩动态'],
-        douyin: ['play', '抖音直播'],
-        douyu: ['play', '斗鱼直播'],
-        xhs: ['module', '小红书数据'],
-    };
-
     // 切换标签页
     tabButtons.forEach((btn) => {
         btn.addEventListener('click', function () {
@@ -89,21 +77,13 @@ document.addEventListener('DOMContentLoaded', function () {
             this.setAttribute('aria-selected', 'true');
             currentTable = this.dataset.table;
             currentPage = 1;
-            const [icon, label] = tableTitles[currentTable] || ['module', currentTable];
-            tableTitle.innerHTML = `${uiIcon(icon)} <span>${label}</span>`;
             loadTableData();
         });
     });
 
-    // 刷新数据
-    refreshBtn.addEventListener('click', function () {
-        loadTableData(refreshBtn);
-    });
-
     // 加载数据（虎牙：先取基础数据，再异步加载封面/头像 URL）
-    async function loadTableData(triggerButton = null) {
+    async function loadTableData() {
         dataTableContainer.innerHTML = '<div class="loading">加载中...</div>';
-        if (triggerButton) setButtonLoading(triggerButton, true, '刷新中...');
 
         try {
             const isHuya = currentTable === 'huya';
@@ -137,8 +117,6 @@ document.addEventListener('DOMContentLoaded', function () {
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
                 error.message,
             )}</div>`;
-        } finally {
-            if (triggerButton) setButtonLoading(triggerButton, false);
         }
     }
 

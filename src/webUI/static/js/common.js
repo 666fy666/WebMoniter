@@ -239,15 +239,13 @@ function initMobileMenu() {
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebarCollapseHandle = document.getElementById('sidebarCollapseHandle');
 
-    if (!mobileMenuBtn || !sidebar || !sidebarOverlay) {
+    if (!sidebar || !sidebarOverlay) {
         return;
     }
 
     const SIDEBAR_STATE_KEY = 'sidebarCollapsed';
-
-    mobileMenuBtn.setAttribute('aria-controls', 'sidebar');
-    mobileMenuBtn.setAttribute('aria-expanded', 'false');
 
     function isMobileViewport() {
         return window.innerWidth <= 768;
@@ -257,12 +255,31 @@ function initMobileMenu() {
         return document.body.classList.contains('sidebar-collapsed');
     }
 
+    function syncCollapseHandle(collapsed) {
+        if (!sidebarCollapseHandle) {
+            return;
+        }
+        sidebarCollapseHandle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        sidebarCollapseHandle.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
+        sidebarCollapseHandle.setAttribute('title', collapsed ? '展开侧边栏' : '收起侧边栏');
+        sidebarCollapseHandle.classList.toggle('is-collapsed', collapsed);
+        sidebarCollapseHandle.hidden = isMobileViewport();
+    }
+
+    function syncMobileMenuBtn(open) {
+        if (!mobileMenuBtn) {
+            return;
+        }
+        mobileMenuBtn.classList.toggle('active', open);
+        mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        mobileMenuBtn.setAttribute('aria-label', open ? '关闭账户与设置' : '打开账户与设置');
+    }
+
     function applyDesktopCollapsedState(collapsed) {
         document.body.classList.toggle('sidebar-collapsed', collapsed);
         localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? '1' : '0');
-        mobileMenuBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-        mobileMenuBtn.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
         sidebar.toggleAttribute('inert', collapsed);
+        syncCollapseHandle(collapsed);
     }
 
     function initDesktopSidebarState() {
@@ -270,7 +287,8 @@ function initMobileMenu() {
             document.body.classList.remove('sidebar-collapsed');
             sidebar.setAttribute('aria-hidden', 'true');
             sidebar.setAttribute('inert', '');
-            mobileMenuBtn.setAttribute('aria-label', '打开账户与设置');
+            syncMobileMenuBtn(false);
+            syncCollapseHandle(false);
             return;
         }
 
@@ -281,15 +299,14 @@ function initMobileMenu() {
         sidebarOverlay.classList.remove('show');
         document.body.classList.remove('mobile-sidebar-open');
         sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+        syncMobileMenuBtn(false);
     }
 
     function setMobileMenuState(open) {
         sidebar.classList.toggle('show', open);
         sidebarOverlay.classList.toggle('show', open);
-        mobileMenuBtn.classList.toggle('active', open);
         document.body.classList.toggle('mobile-sidebar-open', open);
-        mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        mobileMenuBtn.setAttribute('aria-label', open ? '关闭账户与设置' : '打开账户与设置');
+        syncMobileMenuBtn(open);
         sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
         sidebar.toggleAttribute('inert', !open);
         if (open) {
@@ -304,26 +321,39 @@ function initMobileMenu() {
         setMobileMenuState(false);
     }
 
-    function toggleMenu() {
+    function toggleDesktopSidebar() {
         if (isMobileViewport()) {
-            setMobileMenuState(!sidebar.classList.contains('show'));
             return;
         }
-
         applyDesktopCollapsedState(!isSidebarCollapsed());
         sidebar.setAttribute('aria-hidden', isSidebarCollapsed() ? 'true' : 'false');
     }
 
-    mobileMenuBtn.addEventListener('click', toggleMenu);
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            if (!isMobileViewport()) {
+                return;
+            }
+            setMobileMenuState(!sidebar.classList.contains('show'));
+        });
+    }
+
+    if (sidebarCollapseHandle) {
+        sidebarCollapseHandle.addEventListener('click', toggleDesktopSidebar);
+    }
+
     sidebarOverlay.addEventListener('click', closeMobileMenu);
 
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') {
             return;
         }
+        if (document.querySelector('.modal.show')) {
+            return;
+        }
         if (isMobileViewport() && sidebar.classList.contains('show')) {
             closeMobileMenu();
-            mobileMenuBtn.focus();
+            mobileMenuBtn?.focus();
         }
     });
 
@@ -349,6 +379,7 @@ function initMobileMenu() {
                 document.body.classList.remove('sidebar-collapsed');
                 closeMobileMenu();
                 sidebar.setAttribute('aria-hidden', sidebar.classList.contains('show') ? 'false' : 'true');
+                syncCollapseHandle(false);
             } else {
                 closeMobileMenu();
                 initDesktopSidebarState();

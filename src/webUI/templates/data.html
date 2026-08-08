@@ -14,15 +14,6 @@
                 </div>
             </div>
             <div class="card fade-in">
-                <div class="card-header">
-                    <h2 id="tableTitle">{{ icon('comment') }} <span>微博数据</span></h2>
-                    <div class="card-actions">
-                        <button id="refreshBtn" class="btn btn-secondary">
-                            {{ icon('refresh') }}
-                            刷新
-                        </button>
-                    </div>
-                </div>
                 <div class="card-body">
                     <div id="dataTableContainer" class="table-container">
                         <div class="loading">加载中...</div>
@@ -33,5 +24,5 @@
 {% endblock %}
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="/static/js/data.js?v=1"></script>
+<script src="/static/js/data.js?v=2"></script>
 {% endblock %}

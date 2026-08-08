@@ -532,6 +532,71 @@ body.sidebar-collapsed .main-content {
     body.sidebar-collapsed .sidebar {
         transform: translateX(-100%);
     }
+
+    .config-module-nav {
+        top: 12px;
+    }
+
+    body.has-update-banner .config-module-nav {
+        top: calc(var(--update-banner-height) + 12px);
+    }
+}
+
+/* 侧边栏收起/展开拉手 */
+.sidebar-collapse-handle {
+    position: fixed;
+    left: var(--sidebar-width);
+    top: 50%;
+    z-index: 1001;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 72px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+    background: var(--gradient-sidebar);
+    color: var(--text-muted);
+    cursor: pointer;
+    transform: translateY(-50%);
+    box-shadow: 2px 0 14px rgba(236, 72, 153, 0.12);
+    transition:
+        left var(--transition-normal),
+        color var(--transition-fast),
+        background var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.sidebar-collapse-handle:hover,
+.sidebar-collapse-handle:focus-visible {
+    color: var(--primary-color);
+    box-shadow: 3px 0 18px rgba(236, 72, 153, 0.22);
+}
+
+.sidebar-collapse-handle.is-collapsed,
+body.sidebar-collapsed .sidebar-collapse-handle {
+    left: 0;
+    border-left: 1px solid var(--border-color);
+}
+
+.sidebar-collapse-handle-grip {
+    display: block;
+    width: 5px;
+    height: 28px;
+    border-radius: 999px;
+    background:
+        linear-gradient(currentColor, currentColor) 0 center / 1.5px 100% no-repeat,
+        linear-gradient(currentColor, currentColor) 100% center / 1.5px 100% no-repeat;
+    opacity: 0.55;
+}
+
+@media (max-width: 768px) {
+    .sidebar-collapse-handle {
+        display: none !important;
+    }
 }
 
 /* 紧凑顶栏 - NapCat 风格 */
@@ -949,7 +1014,7 @@ input:focus + .slider {
     border: 1px solid var(--glass-border-light);
     box-shadow: var(--shadow-sm);
     position: sticky;
-    top: calc(var(--topbar-height) + 24px);
+    top: 12px;
     z-index: 50;
 }
 
@@ -3102,6 +3167,7 @@ body.page-logs {
 body.page-logs .main-content {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
@@ -3109,16 +3175,12 @@ body.page-logs .main-content {
     padding: 16px 20px;
 }
 
-body.page-logs .page-topbar {
-    flex-shrink: 0;
-    margin-bottom: 12px;
-}
-
 body.page-logs .content-body {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
 body.page-logs .content-body > .card {
@@ -4880,7 +4942,7 @@ body.page-logs .logs-container {
 
 @media (max-width: 768px) {
     .config-module-nav {
-        top: calc(var(--topbar-height) + 24px + env(safe-area-inset-top));
+        top: calc(8px + env(safe-area-inset-top));
     }
 
     .task-search {
@@ -5390,6 +5452,17 @@ body.page-logs .content-body {
     box-shadow: var(--shadow-sm);
     backdrop-filter: blur(18px) saturate(1.25);
     -webkit-backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.sidebar-collapse-handle {
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+[data-theme="dark"] .sidebar-collapse-handle {
+    background: var(--glass-bg);
 }
 
 [data-theme="dark"] .page-topbar {
@@ -6070,7 +6143,7 @@ table td {
     }
 
     .config-module-nav {
-        top: calc(var(--topbar-height) + 20px + env(safe-area-inset-top));
+        top: calc(8px + env(safe-area-inset-top));
     }
 
     .config-module-search-wrap {
@@ -6246,7 +6319,7 @@ body.has-update-banner .page-topbar {
 }
 
 body.has-update-banner .config-module-nav {
-    top: calc(var(--update-banner-height) + var(--topbar-height) + 22px);
+    top: calc(var(--update-banner-height) + 12px);
 }
 
 body.has-update-banner .toast-container {
@@ -6304,7 +6377,7 @@ body.login-body.has-update-banner .theme-toggle-fab {
     }
 
     body.has-update-banner .config-module-nav {
-        top: calc(var(--update-banner-height) + var(--topbar-height) + 20px + env(safe-area-inset-top));
+        top: calc(var(--update-banner-height) + 8px + env(safe-area-inset-top));
     }
 
     body.has-update-banner .toast-container {
