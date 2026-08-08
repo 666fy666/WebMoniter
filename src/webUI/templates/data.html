@@ -3,7 +3,7 @@
 {% block body_class %} class="page-data"{% endblock %}
 {% block content %}
 <div class="tabs-scroll-wrap">
-                <div class="tabs" role="tablist" aria-label="数据来源">
+                <div class="tabs" role="tablist" aria-label="数据来源" aria-orientation="horizontal">
                     <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-table="weibo">{{ icon('comment') }} 微博数据</button>
                     <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="huya">{{ icon('radar') }} 虎牙数据</button>
                     <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="bilibili_live">{{ icon('play') }} 哔哩哔哩直播</button>
@@ -24,5 +24,5 @@
 {% endblock %}
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="/static/js/data.js?v=6"></script>
+<script src="/static/js/data.js?v=7"></script>
 {% endblock %}

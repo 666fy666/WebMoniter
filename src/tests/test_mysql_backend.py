@@ -1,11 +1,17 @@
 """MySQL 方言和 SQLite 离线日志契约。"""
 
+import aiomysql
 import aiosqlite
 import pytest
 
 from src.settings.config import AppConfig
 from src.storage import database as db_module
-from src.storage.mysql_backend import MySQLSettings, convert_mysql_sql, select_mysql_params
+from src.storage.mysql_backend import (
+    MySQLSettings,
+    _migrate_mysql_columns,
+    convert_mysql_sql,
+    select_mysql_params,
+)
 
 
 def test_mysql_sql_conversion_supports_both_project_placeholder_styles() -> None:
@@ -38,6 +44,80 @@ def test_mysql_settings_requires_enabled_host_user_and_database() -> None:
 
     assert incomplete.configured is False
     assert complete.configured is True
+
+
+@pytest.mark.asyncio
+async def test_sqlite_connection_uses_consistent_pragmas() -> None:
+    class FakeConnection:
+        row_factory = None
+
+        def __init__(self) -> None:
+            self.statements: list[str] = []
+            self.committed = False
+
+        async def execute(self, sql) -> None:
+            self.statements.append(sql)
+
+        async def commit(self) -> None:
+            self.committed = True
+
+    conn = FakeConnection()
+    await db_module._configure_sqlite_connection(conn)
+
+    assert conn.row_factory is aiosqlite.Row
+    assert conn.statements == [
+        "PRAGMA journal_mode=WAL",
+        "PRAGMA synchronous=NORMAL",
+        "PRAGMA busy_timeout=30000",
+    ]
+    assert conn.committed is True
+
+
+@pytest.mark.asyncio
+async def test_mysql_schema_migration_adds_only_missing_legacy_columns() -> None:
+    class FakeCursor:
+        def __init__(self) -> None:
+            self.current_table = ""
+            self.statements: list[str] = []
+
+        async def execute(self, sql, params=None) -> None:
+            self.statements.append(" ".join(sql.split()))
+            if params:
+                self.current_table = params[0]
+
+        async def fetchall(self):
+            existing = {
+                "weibo": [("图片",), ("转发微博",)],
+                "huya": [("room_pic",)],
+                "xhs": [],
+            }
+            return existing[self.current_table]
+
+    cursor = FakeCursor()
+    await _migrate_mysql_columns(cursor)
+
+    alters = [statement for statement in cursor.statements if statement.startswith("ALTER TABLE")]
+    assert not any("`weibo` ADD COLUMN `图片`" in statement for statement in alters)
+    assert any("`weibo` ADD COLUMN `正文结构`" in statement for statement in alters)
+    assert any("`huya` ADD COLUMN `avatar_url`" in statement for statement in alters)
+    assert any("`xhs` ADD COLUMN `note_id`" in statement for statement in alters)
+
+
+@pytest.mark.asyncio
+async def test_mysql_schema_migration_tolerates_concurrent_duplicate_column() -> None:
+    class RacingCursor:
+        current_table = ""
+
+        async def execute(self, sql, params=None) -> None:
+            if params:
+                self.current_table = params[0]
+            elif sql.lstrip().startswith("ALTER TABLE"):
+                raise aiomysql.OperationalError(1060, "Duplicate column name")
+
+        async def fetchall(self):
+            return []
+
+    await _migrate_mysql_columns(RacingCursor())
 
 
 @pytest.mark.asyncio
@@ -78,6 +158,39 @@ async def test_sqlite_fallback_delete_records_idempotent_delete(tmp_path) -> Non
 
     assert events[0]["operation"] == "delete"
     assert events[0]["pk_value"] == "1"
+
+
+@pytest.mark.asyncio
+async def test_sqlite_fallback_rejects_untracked_conditional_delete(tmp_path) -> None:
+    async with aiosqlite.connect(tmp_path / "fallback.db") as conn:
+        conn.row_factory = aiosqlite.Row
+        await db_module.AsyncDatabase()._init_tables(conn)
+        await conn.execute(
+            "INSERT INTO douyu (room, name, is_live) VALUES ('1', '主播', '1')"
+        )
+        await conn.commit()
+
+        with pytest.raises(ValueError, match="缺少主键参数"):
+            await db_module._sqlite_update_with_outbox(
+                conn,
+                "DELETE FROM douyu WHERE room='1'",
+                None,
+            )
+        rows = await db_module._sqlite_query(conn, "SELECT room FROM douyu")
+
+    assert rows == [("1",)]
+
+
+@pytest.mark.asyncio
+async def test_sqlite_fallback_full_delete_records_clear_event(tmp_path) -> None:
+    async with aiosqlite.connect(tmp_path / "fallback.db") as conn:
+        conn.row_factory = aiosqlite.Row
+        await db_module.AsyncDatabase()._init_tables(conn)
+        await db_module._sqlite_update_with_outbox(conn, "DELETE FROM task_run_history", None)
+        events = await db_module._load_outbox(conn)
+
+    assert events[0]["operation"] == "clear"
+    assert events[0]["pk_value"] is None
 
 
 @pytest.mark.asyncio

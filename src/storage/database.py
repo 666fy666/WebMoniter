@@ -54,9 +54,22 @@ _WRITE_TABLE = re.compile(
     r"^\s*(?:INSERT(?:\s+OR\s+REPLACE)?\s+INTO|REPLACE\s+INTO|UPDATE|DELETE\s+FROM)\s+[`\"]?([A-Za-z_][A-Za-z0-9_]*)",
     re.IGNORECASE,
 )
+_CLEAR_TABLE = re.compile(
+    r'^\s*DELETE\s+FROM\s+[`"]?([A-Za-z_][A-Za-z0-9_]*)[`"]?\s*;?\s*$',
+    re.IGNORECASE,
+)
 
 # MySQL 风格 %(name)s 占位符 -> SQLite :name（预编译避免每条 SQL 重复编译正则）
 _MYSQL_STYLE_PARAM = re.compile(r"%\((\w+)\)s")
+
+
+async def _configure_sqlite_connection(conn: aiosqlite.Connection) -> None:
+    """统一 SQLite 连接的并发与返回值配置。"""
+    conn.row_factory = aiosqlite.Row
+    await conn.execute("PRAGMA journal_mode=WAL")
+    await conn.execute("PRAGMA synchronous=NORMAL")
+    await conn.execute("PRAGMA busy_timeout=30000")
+    await conn.commit()
 
 
 class AsyncDatabase:
@@ -85,14 +98,7 @@ class AsyncDatabase:
                     _shared_connection = await aiosqlite.connect(
                         str(self.db_path.resolve()), timeout=30.0  # 增加超时时间
                     )
-                    # 设置行工厂，返回字典格式的结果
-                    _shared_connection.row_factory = aiosqlite.Row
-
-                    # 启用 WAL 模式以提高并发性能
-                    await _shared_connection.execute("PRAGMA journal_mode=WAL")
-                    await _shared_connection.execute("PRAGMA synchronous=NORMAL")
-                    await _shared_connection.execute("PRAGMA busy_timeout=30000")  # 30秒超时
-                    await _shared_connection.commit()
+                    await _configure_sqlite_connection(_shared_connection)
 
                     # 初始化表结构
                     await self._init_tables(_shared_connection)
@@ -111,11 +117,7 @@ class AsyncDatabase:
                 self.db_path.parent.mkdir(parents=True, exist_ok=True)
                 # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
                 self._conn = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
-                self._conn.row_factory = aiosqlite.Row
-                await self._conn.execute("PRAGMA journal_mode=WAL")
-                await self._conn.execute("PRAGMA synchronous=NORMAL")
-                await self._conn.execute("PRAGMA busy_timeout=30000")
-                await self._conn.commit()
+                await _configure_sqlite_connection(self._conn)
                 await self._init_tables(self._conn)
 
         await _ensure_hybrid_runtime()
@@ -332,12 +334,7 @@ class AsyncDatabase:
             # 重新创建连接
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             _shared_connection = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
-            _shared_connection.row_factory = aiosqlite.Row
-
-            await _shared_connection.execute("PRAGMA journal_mode=WAL")
-            await _shared_connection.execute("PRAGMA synchronous=NORMAL")
-            await _shared_connection.execute("PRAGMA busy_timeout=30000")
-            await _shared_connection.commit()
+            await _configure_sqlite_connection(_shared_connection)
 
             await self._init_tables(_shared_connection)
 
@@ -617,18 +614,30 @@ async def _sqlite_update_with_outbox(
     table_name = _table_from_write_sql(sql)
     if table_name is None:
         raise ValueError("MySQL 回退模式不支持未登记的数据表写入")
+    spec = TABLE_SPECS[table_name]
+    normalized = sql.lstrip().upper()
+    is_delete = normalized.startswith("DELETE")
+    is_clear = bool(_CLEAR_TABLE.fullmatch(sql))
+    param_values = params or {}
+    pk_value_raw = param_values.get(spec.primary_key, param_values.get("pk"))
+    if not is_clear and pk_value_raw is None:
+        raise ValueError(
+            f"MySQL 回退模式写入 {table_name} 时缺少主键参数 {spec.primary_key}"
+        )
+
     try:
         await conn.execute("BEGIN IMMEDIATE")
         await conn.execute(sql, params)
-        if table_name is not None:
-            spec = TABLE_SPECS[table_name]
-            normalized = sql.lstrip().upper()
-            if normalized.startswith("DELETE") and not params:
-                operation = "clear"
-                pk_value = None
+        if is_clear:
+            operation = "clear"
+            pk_value = None
+            row_data = None
+        else:
+            pk_value = str(pk_value_raw)
+            if is_delete:
+                operation = "delete"
                 row_data = None
             else:
-                pk_value = str((params or {}).get(spec.primary_key, (params or {}).get("pk", "")))
                 quoted_columns = ", ".join(f'"{column}"' for column in spec.columns)
                 async with conn.execute(
                     f'SELECT {quoted_columns} FROM "{table_name}" WHERE "{spec.primary_key}"=:pk',
@@ -636,28 +645,28 @@ async def _sqlite_update_with_outbox(
                 ) as cursor:
                     row = await cursor.fetchone()
                 if row is None:
-                    operation = "delete"
-                    row_data = None
-                else:
-                    operation = "upsert"
-                    row_data = json.dumps(
-                        dict(zip(spec.columns, tuple(row), strict=True)),
-                        ensure_ascii=False,
+                    raise RuntimeError(
+                        f"写入 {table_name} 后未找到主键 {spec.primary_key}={pk_value}"
                     )
-            await conn.execute(
-                """
-                INSERT INTO mysql_sync_outbox
-                    (table_name, pk_value, operation, row_data, created_at)
-                VALUES (:table_name, :pk_value, :operation, :row_data, :created_at)
-                """,
-                {
-                    "table_name": table_name,
-                    "pk_value": pk_value,
-                    "operation": operation,
-                    "row_data": row_data,
-                    "created_at": datetime.now().isoformat(timespec="seconds"),
-                },
-            )
+                operation = "upsert"
+                row_data = json.dumps(
+                    dict(zip(spec.columns, tuple(row), strict=True)),
+                    ensure_ascii=False,
+                )
+        await conn.execute(
+            """
+            INSERT INTO mysql_sync_outbox
+                (table_name, pk_value, operation, row_data, created_at)
+            VALUES (:table_name, :pk_value, :operation, :row_data, :created_at)
+            """,
+            {
+                "table_name": table_name,
+                "pk_value": pk_value,
+                "operation": operation,
+                "row_data": row_data,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            },
+        )
         await conn.commit()
     except Exception:
         await conn.rollback()
@@ -950,11 +959,7 @@ async def _ensure_shared_connection() -> aiosqlite.Connection:
         if _shared_connection is None:
             DB_PATH.parent.mkdir(parents=True, exist_ok=True)
             _shared_connection = await aiosqlite.connect(str(DB_PATH.resolve()), timeout=30.0)
-            _shared_connection.row_factory = aiosqlite.Row
-            await _shared_connection.execute("PRAGMA journal_mode=WAL")
-            await _shared_connection.execute("PRAGMA synchronous=NORMAL")
-            await _shared_connection.execute("PRAGMA busy_timeout=30000")
-            await _shared_connection.commit()
+            await _configure_sqlite_connection(_shared_connection)
             await AsyncDatabase()._init_tables(_shared_connection)
 
     return _shared_connection

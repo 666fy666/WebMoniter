@@ -10,7 +10,9 @@ function setButtonLoading(button, loading, loadingText = '处理中...') {
     if (!button) return;
 
     if (loading) {
-        button.dataset.originalHtml = button.innerHTML;
+        if (!button.dataset.originalHtml) {
+            button.dataset.originalHtml = button.innerHTML;
+        }
         button.disabled = true;
         button.classList.add('is-loading');
         button.setAttribute('aria-busy', 'true');
@@ -107,6 +109,57 @@ function updateThemeIcon(theme) {
     if (themeIcon) {
         themeIcon.innerHTML = uiIcon(theme === 'dark' ? 'moon' : 'sun');
     }
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        const isDark = theme === 'dark';
+        themeToggleBtn.setAttribute('aria-pressed', String(isDark));
+        themeToggleBtn.setAttribute('aria-label', isDark ? '切换到浅色主题' : '切换到深色主题');
+    }
+}
+
+function initTablistKeyboardNavigation() {
+    document.querySelectorAll('[role="tablist"]').forEach((tablist) => {
+        const getTabs = () => Array.from(tablist.querySelectorAll('[role="tab"]'))
+            .filter((tab) => !tab.disabled && tab.getAttribute('aria-disabled') !== 'true');
+        const syncTabStops = () => {
+            const tabs = getTabs();
+            const selected = tabs.find((tab) => tab.getAttribute('aria-selected') === 'true');
+            tabs.forEach((tab) => {
+                tab.tabIndex = tab === selected || (!selected && tab === tabs[0]) ? 0 : -1;
+            });
+        };
+
+        syncTabStops();
+        tablist.addEventListener('click', (event) => {
+            if (event.target.closest('[role="tab"]')) {
+                requestAnimationFrame(syncTabStops);
+            }
+        });
+        tablist.addEventListener('keydown', (event) => {
+            const current = event.target.closest('[role="tab"]');
+            if (!current) return;
+            const tabs = getTabs();
+            const currentIndex = tabs.indexOf(current);
+            if (currentIndex < 0) return;
+
+            let nextIndex;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                nextIndex = (currentIndex + 1) % tabs.length;
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            } else if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = tabs.length - 1;
+            } else {
+                return;
+            }
+
+            event.preventDefault();
+            tabs[nextIndex].focus();
+            tabs[nextIndex].click();
+        });
+    });
 }
 
 // 检查认证状态
@@ -780,9 +833,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
 
         backToTopBtn.addEventListener('click', function () {
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             window.scrollTo({
                 top: 0,
-                behavior: 'smooth',
+                behavior: reduceMotion ? 'auto' : 'smooth',
             });
         });
 
@@ -792,6 +846,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化主题
     initTheme();
+
+    // 标签组支持方向键、Home 和 End，保持焦点与选中状态一致
+    initTablistKeyboardNavigation();
 
     // 液态玻璃：按钮区域内高光跟随
     initLiquidGlassLens();

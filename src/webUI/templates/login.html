@@ -7,8 +7,8 @@
     <title>登录 - WebMoniter</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preload" href="/static/images/liquid-landscape.webp" as="image" type="image/webp">
-    <link rel="stylesheet" href="/static/css/style.css?v=6">
-    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=6">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
+    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=7">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -21,7 +21,7 @@
 </head>
 <body class="login-body">
     <!-- 版本更新提示横幅 -->
-    <div id="updateBanner" class="login-update-banner">
+    <div id="updateBanner" class="login-update-banner" role="status" aria-live="polite">
         <div class="update-banner-content">
             <span class="update-banner-icon">{{ icon('sparkles') }}</span>
             <span class="update-banner-text">
@@ -66,7 +66,7 @@
     <button id="themeToggleBtn" class="btn btn-secondary theme-toggle-fab" aria-label="切换主题">
         <span id="themeIcon">{{ icon('sun') }}</span>
     </button>
-    <script src="/static/js/common.js?v=6"></script>
-    <script src="/static/js/login.js?v=6"></script>
+    <script src="/static/js/common.js?v=7"></script>
+    <script src="/static/js/login.js?v=7"></script>
 </body>
 </html>

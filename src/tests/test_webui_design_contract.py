@@ -20,8 +20,8 @@ def _read(path: Path) -> str:
 def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
-        assert "/static/css/style.css?v=6" in template
-        assert "/static/css/liquid-glass.css?v=6" in template
+        assert "/static/css/style.css?v=7" in template
+        assert "/static/css/liquid-glass.css?v=7" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -227,7 +227,13 @@ def test_external_template_links_are_isolated_and_scripts_share_cache_version():
         (TEMPLATE_ROOT / "logs.html", "logs.js"),
         (TEMPLATE_ROOT / "data.html", "data.js"),
     ):
-        assert f"/static/js/{script_name}?v=6" in _read(path)
+        assert f"/static/js/{script_name}?v=7" in _read(path)
+
+    interactive_sources = [*template_paths, *sorted((STATIC_ROOT / "js").glob("*.js"))]
+    for path in interactive_sources:
+        assert not re.search(r"\bon(?:click|change|input)\s*=", _read(path)), (
+            f"仍有内联事件处理器: {path}"
+        )
 
 
 def test_high_risk_visual_tokens_and_controls_keep_accessibility_contract():
@@ -299,6 +305,7 @@ def test_tabs_and_modals_expose_semantic_state():
 
     for template in (config, tasks, data):
         assert 'role="tablist"' in template
+        assert 'aria-orientation="horizontal"' in template
         assert 'aria-selected="true"' in template
         assert 'aria-selected="false"' in template
 
@@ -306,6 +313,24 @@ def test_tabs_and_modals_expose_semantic_state():
         assert 'role="dialog"' in template
         assert 'aria-modal="true"' in template
         assert 'aria-hidden="true"' in template
+
+
+def test_tab_keyboard_navigation_and_touch_targets_are_consistent():
+    common_js = _read(STATIC_ROOT / "js" / "common.js")
+    liquid_css = _read(LIQUID_CSS)
+
+    assert "function initTablistKeyboardNavigation" in common_js
+    for key in ("ArrowRight", "ArrowLeft", "Home", "End"):
+        assert key in common_js
+    assert "initTablistKeyboardNavigation();" in common_js
+    assert re.search(
+        r"\.password-input-wrap \.password-toggle\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;",
+        liquid_css,
+        flags=re.DOTALL,
+    )
+    assert '{% block body_class %} class="page-tasks"{% endblock %}' in _read(
+        TEMPLATE_ROOT / "tasks.html"
+    )
 
 
 def test_all_frontend_templates_render_with_the_icon_macro():

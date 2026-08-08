@@ -1698,7 +1698,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // 上一页
         html += `<button aria-label="上一页" ${
             currentPage === 1 ? 'disabled' : ''
-        } onclick="goToPage(${currentPage - 1})">上一页</button>`;
+        } data-page="${currentPage - 1}">上一页</button>`;
 
         // 页码信息
         html += `<span class="page-info">第 ${currentPage} / ${totalPages} 页 (共 ${total} 条)</span>`;
@@ -1706,17 +1706,20 @@ document.addEventListener('DOMContentLoaded', function () {
         // 下一页
         html += `<button aria-label="下一页" ${
             currentPage === totalPages ? 'disabled' : ''
-        } onclick="goToPage(${currentPage + 1})">下一页</button>`;
+        } data-page="${currentPage + 1}">下一页</button>`;
 
         pagination.innerHTML = html;
+        pagination.querySelectorAll('button[data-page]').forEach((button) => {
+            button.addEventListener('click', () => goToPage(Number(button.dataset.page)));
+        });
     }
 
-    // 跳转页面（挂到 window 以便分页按钮调用）
-    window.goToPage = function (page) {
+    // 跳转页面
+    function goToPage(page) {
         if (!page || page < 1 || page === currentPage) return;
         currentPage = page;
         loadTableData();
-    };
+    }
 
     // 初始加载
     loadTableData();

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "partials/icon.html" import icon %}
+{% block body_class %} class="page-tasks"{% endblock %}
 {% block extra_modals %}
 <!-- 查看任务日志弹窗 -->
     <div id="taskLogModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="taskLogModalTitle" aria-hidden="true">
@@ -26,7 +27,7 @@
 {% endblock %}
 {% block content %}
 <div class="tabs-scroll-wrap">
-                <div class="tabs" role="tablist" aria-label="任务类型筛选">
+                <div class="tabs" role="tablist" aria-label="任务类型筛选" aria-orientation="horizontal">
                     <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-filter="all">{{ icon('module') }} 全部任务</button>
                     <button class="tab-btn" type="button" role="tab" aria-selected="false" data-filter="monitor">{{ icon('radar') }} 监控任务</button>
                     <button class="tab-btn" type="button" role="tab" aria-selected="false" data-filter="task">{{ icon('clock') }} 定时任务</button>
@@ -63,5 +64,5 @@
             </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/tasks.js?v=6"></script>
+<script src="/static/js/tasks.js?v=7"></script>
 {% endblock %}

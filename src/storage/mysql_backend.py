@@ -148,6 +148,26 @@ TABLE_SPECS: dict[str, TableSpec] = {
     ),
 }
 
+# 这些字段曾通过 SQLite 的增量迁移加入。MySQL 的 CREATE TABLE IF NOT EXISTS
+# 不会更新旧表，因此连接旧数据库时需要显式补齐，保证两种后端结构一致。
+MYSQL_COLUMN_MIGRATIONS: dict[str, dict[str, str]] = {
+    "weibo": {
+        "图片": "LONGTEXT NULL",
+        "转发微博": "LONGTEXT NULL",
+        "正文结构": "LONGTEXT NULL",
+        "标签": "LONGTEXT NULL",
+        "内容类型": "LONGTEXT NULL",
+        "视频封面": "LONGTEXT NULL",
+    },
+    "huya": {
+        "room_pic": "LONGTEXT NULL",
+        "avatar_url": "LONGTEXT NULL",
+    },
+    "xhs": {
+        "note_id": "LONGTEXT NULL",
+    },
+}
+
 
 @dataclass(frozen=True)
 class MySQLSettings:
@@ -248,16 +268,46 @@ async def close_mysql_pool(pool: aiomysql.Pool | None) -> None:
 
 async def initialize_mysql_schema(pool: aiomysql.Pool) -> None:
     async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            for spec in TABLE_SPECS.values():
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        message=r"Table '.*' already exists",
-                        category=Warning,
-                    )
-                    await cursor.execute(spec.mysql_ddl)
-        await conn.commit()
+        try:
+            async with conn.cursor() as cursor:
+                for spec in TABLE_SPECS.values():
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            message=r"Table '.*' already exists",
+                            category=Warning,
+                        )
+                        await cursor.execute(spec.mysql_ddl)
+                await _migrate_mysql_columns(cursor)
+            await conn.commit()
+        except Exception:
+            await conn.rollback()
+            raise
+
+
+async def _migrate_mysql_columns(cursor) -> None:
+    """补齐旧 MySQL 表缺少的增量字段。"""
+    for table_name, columns in MYSQL_COLUMN_MIGRATIONS.items():
+        await cursor.execute(
+            """
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s
+            """,
+            (table_name,),
+        )
+        existing = {row[0] for row in await cursor.fetchall()}
+        for column_name, column_ddl in columns.items():
+            if column_name in existing:
+                continue
+            try:
+                await cursor.execute(
+                    f"ALTER TABLE `{table_name}` ADD COLUMN `{column_name}` {column_ddl}"
+                )
+            except aiomysql.OperationalError as exc:
+                # 多实例可能同时完成同一迁移；重复列表示目标结构已经满足。
+                if not exc.args or exc.args[0] != 1060:
+                    raise
 
 
 async def mysql_query(pool: aiomysql.Pool, sql: str, params: dict | None = None) -> list[tuple]:

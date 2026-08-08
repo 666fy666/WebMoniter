@@ -3,7 +3,7 @@
 {% block body_class %} class="page-config"{% endblock %}
 {% block content %}
 <!-- 视图切换标签 -->
-            <div class="tabs config-view-tabs" role="tablist" aria-label="配置视图">
+            <div class="tabs config-view-tabs" role="tablist" aria-label="配置视图" aria-orientation="horizontal">
                 <button class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="tableView" data-view="table">{{ icon('module') }} 表格视图</button>
                 <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="textView" data-view="text">{{ icon('code') }} 文本视图</button>
             </div>
@@ -24,7 +24,7 @@
 
             <!-- 模块切换与搜索 -->
             <div class="config-module-nav">
-                <div class="config-module-tabs" role="tablist" aria-label="配置模块">
+                <div class="config-module-tabs" role="tablist" aria-label="配置模块" aria-orientation="horizontal">
                     <button class="config-module-tab active" type="button" role="tab" aria-selected="true" data-module="monitor">{{ icon('radar') }} 监控任务</button>
                     <button class="config-module-tab" type="button" role="tab" aria-selected="false" data-module="scheduled">{{ icon('clock') }} 定时任务</button>
                     <button class="config-module-tab" type="button" role="tab" aria-selected="false" data-module="push">{{ icon('megaphone') }} 推送配置</button>

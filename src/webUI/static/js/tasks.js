@@ -28,10 +28,11 @@ async function loadTasks(triggerButton = null) {
         console.error('加载任务失败:', error);
         container.innerHTML = `
             <div class="error-state">
-                <p>加载任务列表失败: ${error.message}</p>
-                <button class="btn btn-primary" onclick="loadTasks()">重试</button>
+                <p>加载任务列表失败: ${escapeHtml(error.message)}</p>
+                <button class="btn btn-primary retry-tasks-btn" type="button">重试</button>
             </div>
         `;
+        container.querySelector('.retry-tasks-btn')?.addEventListener('click', () => loadTasks());
         updateTaskCount(0);
     } finally {
         if (triggerButton) setButtonLoading(triggerButton, false);

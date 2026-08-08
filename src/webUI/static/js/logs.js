@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     renderLogs(cachedLogs, true);
                     return;
                 }
-                logsContainer.innerHTML = `<div class="error-message show">${data.error}</div>`;
+                logsContainer.innerHTML = `<div class="error-message show">${escapeHtml(data.error)}</div>`;
                 return;
             }
 
@@ -255,11 +255,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const errorMsg = error.message || error.name || '未知错误';
             logsContainer.innerHTML = `
                 <div class="error-message show">
-                    <div style="margin-bottom: 10px;">加载失败: ${errorMsg}</div>
-                    ${isNetworkError ? '<div style="font-size: 12px; color: #999; margin-bottom: 10px;">请检查网络连接后点击刷新按钮重试</div>' : ''}
-                    <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">刷新页面</button>
+                    <div class="error-recovery-message">加载失败: ${escapeHtml(errorMsg)}</div>
+                    ${isNetworkError ? '<div class="error-recovery-hint">请检查网络连接后点击刷新按钮重试</div>' : ''}
+                    <button type="button" class="btn btn-primary logs-reload-page-btn">刷新页面</button>
                 </div>
             `;
+            logsContainer.querySelector('.logs-reload-page-btn')?.addEventListener('click', () => {
+                window.location.reload();
+            });
         } finally {
             // 清除请求状态（仅当这是当前请求时）
             if (currentRequestController === controller && requestId === lastRequestId) {
