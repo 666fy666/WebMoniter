@@ -978,15 +978,15 @@ quiet_hours:
 ## 插件示例任务（Demo）
 
 **配置节点**：`plugins.demo_task`  
-**默认时间**：08:30  
-**说明**：二次开发示例任务，不需要可在 `src/jobs/registry.py` 的 `TASK_MODULES` 中移除 `src.tasks.demo_task`。
+**默认时间**：08:00  
+**说明**：二次开发示例任务，不需要可在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中移除对应 `TaskSpec`（`TASK_MODULES` 由元数据生成）。
 
 ### 配置项
 
 | 配置项 | 类型 | 必填 | 说明 |
 |:-------|:-----|:----:|:-----|
 | `enable` | 布尔 | ✅ | 是否启用 |
-| `time` | 字符串 | 否 | 默认 `"08:30"` |
+| `time` | 字符串 | 否 | 默认 `"08:00"` |
 | `message` | 字符串 | 否 | 自定义消息内容 |
 
 ### 示例
@@ -995,7 +995,7 @@ quiet_hours:
 plugins:
   demo_task:
     enable: false
-    time: "08:30"
+    time: "08:00"
     message: "Demo 定时任务执行完成"
 ```
 

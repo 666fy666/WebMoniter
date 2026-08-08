@@ -89,5 +89,5 @@ register_task(
     "demo_task",
     run_demo_task_once,
     _get_demo_task_trigger_kwargs,
-    description="示例任务（二次开发演示）",
+    description="二次开发示例任务",
 )

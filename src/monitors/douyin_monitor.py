@@ -280,5 +280,5 @@ register_monitor(
     "douyin_monitor",
     run_douyin_monitor,
     _get_douyin_trigger_kwargs,
-    description="抖音直播状态监控",
+    description="抖音直播监控",
 )

@@ -372,5 +372,5 @@ register_monitor(
     "huya_monitor",
     run_huya_monitor,
     _get_huya_trigger_kwargs,
-    description="虎牙直播状态监控",
+    description="虎牙直播监控",
 )

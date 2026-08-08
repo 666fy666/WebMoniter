@@ -207,5 +207,5 @@ register_monitor(
     "douyu_monitor",
     run_douyu_monitor,
     _get_douyu_trigger_kwargs,
-    description="斗鱼直播状态监控",
+    description="斗鱼直播监控",
 )

@@ -30,7 +30,10 @@
 | Gotify | gotify | ❌ | 自建推送服务 |
 | 电子邮件 | email | ✅ | SMTP 发送邮件 |
 | QQ 频道机器人 | qq_bot | ✅ | 需创建 QQ 机器人并开通频道发言 |
+| Demo | demo | ❌ | 二次开发示例通道，仅记录日志不真正推送 |
 | 青龙 QLAPI | qlapi | ❌ | 青龙环境下自动使用 systemNotify，无需配置 |
+
+> 以上合计 **18** 种 type（与 `src/jobs/metadata.py` 的 `PUSH_CHANNEL_SPECS` / `src/push_channel/__init__.py` 一致）。
 
 ---
 
@@ -588,6 +591,18 @@ push_channel:
     sender_email: "your@qq.com"
     sender_password: "授权码"
     receiver_email: "receiver@example.com"
+```
+
+---
+
+## Demo（demo）
+
+二次开发示例推送通道（`type: demo`），不发起真实网络推送，仅用于联调与示例。生产环境请使用其他通道。
+
+```yaml
+push_channel:
+  - name: Demo
+    type: demo
 ```
 
 ---

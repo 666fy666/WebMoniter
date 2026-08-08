@@ -54,17 +54,25 @@ GET /api/version
 
 ```json
 {
-  "version": "2.3.7",
+  "version": "2.4.7",
   "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/tags",
   "tags_url": "https://github.com/666fy666/WebMoniter/tags"
 }
 ```
 
-> 用于 Web 界面自动检测新版本。前端会调用 `github_api_url` 获取最新 tag 信息并与当前版本比较。
+> 用于 Web 界面自动检测新版本。前端会调用 `github_api_url` 获取最新 tag 信息并与当前版本比较。当前版本号以 `pyproject.toml` 为准。
 
 ---
 
 ### 2. 配置管理（需登录）
+
+#### 获取配置元数据
+
+```http
+GET /api/config/metadata
+```
+
+返回配置页只读元数据：`sections`（配置节顺序）、`tasks`（监控与定时任务的 `TaskSpec` 字段）、`push_channel_types`（各推送 type 的名称与字段列表）。数据来自 `src/jobs/metadata.py`。
 
 #### 获取配置
 
@@ -98,6 +106,48 @@ Content-Type: application/json
   }
 }
 ```
+
+保存成功后会调用 `reconfigure_database`，响应中可能包含 `database` 状态字段。
+
+#### 数据库状态
+
+```http
+GET /api/database/status
+```
+
+返回脱敏后的数据库运行状态，例如：
+
+```json
+{
+  "configured": false,
+  "active_backend": "sqlite",
+  "mysql_reachable": false,
+  "sqlite_healthy": true,
+  "sync_state": "idle",
+  "pending_changes": 0,
+  "last_sync_at": null,
+  "message": "..."
+}
+```
+
+#### 测试 MySQL 连接（不写盘）
+
+```http
+POST /api/database/test
+Content-Type: application/json
+
+{
+  "mysql": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "webmoniter",
+    "password": "xxx",
+    "database": "webmoniter"
+  }
+}
+```
+
+用于测试尚未保存的 MySQL 配置，不会修改 `config.yml`。成功返回 `{"success": true, "message": "MySQL 连接测试成功"}`。
 
 ---
 
@@ -293,14 +343,14 @@ GET /api/tasks
       "trigger": "interval",
       "type": "monitor",
       "type_label": "监控任务",
-      "description": "虎牙直播状态监控"
+      "description": "虎牙直播监控"
     },
     {
       "job_id": "ikuuu_checkin",
       "trigger": "cron",
       "type": "task",
       "type_label": "定时任务",
-      "description": "ikuuu 每日签到"
+      "description": "iKuuu 签到"
     }
   ]
 }

@@ -70,7 +70,7 @@
 | 福彩抽奖 | `zgfc` | 08:00 | Authorization | [定时任务详解](tasks/checkin.md) |
 | 双色球通知 | `ssq_500w` | 21:30 | 无需账号 | [定时任务详解](tasks/checkin.md) |
 | 日志清理 | `log_cleanup` | 02:10 | 无 | [定时任务详解](tasks/checkin.md) |
-| Demo 示例 | `plugins.demo_task` | 08:30 | 无 | [定时任务详解](tasks/checkin.md) |
+| Demo 示例 | `plugins.demo_task` | 08:00 | 无 | [定时任务详解](tasks/checkin.md) |
 
 每个任务的**配置项、获取方式、示例**见 **[定时任务（签到）详解](tasks/checkin.md)**。
 

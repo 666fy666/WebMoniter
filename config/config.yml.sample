@@ -503,7 +503,7 @@ mysql:
 plugins:
   demo_task:
     enable: false
-    time: "08:30"  # 执行时间 HH:MM
+    time: "08:00"  # 执行时间 HH:MM，默认 08:00（与 metadata.TASK_SPECS 一致）
     message: "Demo 定时任务执行完成"
 
 # ==========================================================================

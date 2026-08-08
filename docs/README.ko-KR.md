@@ -37,7 +37,7 @@
 WebMoniter는 Python, FastAPI, APScheduler 기반의 작업 시스템으로 다음 기능을 통합 관리합니다.
 
 - Huya, Weibo, Bilibili, Douyin, Douyu, Xiaohongshu 플랫폼 모니터링.
-- Weibo 쿠키 갱신, iKuuu, Tieba, Weibo Super Topic, Rainyun, Aliyun Drive, Freenom, 날씨 알림 등을 포함한 **30개의 예약 출석 체크 및 알림 작업**(`src/jobs/registry.py` 참고).
+- Weibo 쿠키 갱신, iKuuu, Tieba, Weibo Super Topic, Rainyun, Aliyun Drive, Freenom, 날씨 알림 등을 포함한 **30개의 예약 출석 체크 및 알림 작업**(추가로 `demo_task` 예제; 목록은 `src/jobs/metadata.py`의 `TASK_SPECS`).
 - WeCom, DingTalk, Feishu, Telegram, Bark, WxPusher, 이메일 등을 포함한 **18가지 알림 채널 유형**.
 - 설정, 작업, 데이터, 로그, 비밀번호를 관리하는 반응형 Web UI. 내비게이션, 도구 모음, 대화상자와 컨트롤에는 Liquid Glass 스타일을 적용하며 데스크톱 사이드바, 모바일 하단 내비게이션, 키보드 조작 및 동작/투명도 감소 설정을 지원합니다.
 

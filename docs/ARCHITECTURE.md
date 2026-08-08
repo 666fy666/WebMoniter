@@ -81,23 +81,24 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 ### 系统启动流程
 
 1. **初始化阶段**
-   - 设置日志系统：先 `setup_logging()`（仅控制台；非 TTY 环境不输出到控制台），创建 Web 应用与 Uvicorn 服务器（FastAPI）后，再挂载 `main` 文件日志 Handler（`LogManager.setup_file_logging("main")`）到 root logger
+   - 设置日志系统：`setup_logging()`（仅控制台；非 TTY 环境不输出到控制台）
+   - **先**加载配置文件 (`config.yml`)；失败则 `sys.exit(1)`
+   - 再创建 Web 应用与 Uvicorn 服务器（FastAPI），后台启动后挂载 `main` 文件日志 Handler（`LogManager.setup_file_logging("main")`）到 root logger
    - Web 服务默认端口 8866，可通过环境变量 `PORT` 覆盖
-   - 加载配置文件 (`config.yml`)；失败则 `sys.exit(1)`
-   - 重置 Cookie 缓存 (`cookie_cache.reset_all()`)
+   - 重置 Cookie 缓存 (`cookie_cache.reset_all()`)，并调用 `reconfigure_database(config)`
 
 2. **任务注册阶段**
-   - 通过 `src.jobs.registry.discover_and_import()` 按 `MONITOR_MODULES`、`TASK_MODULES` 导入任务模块
+   - 通过 `src.jobs.registry.discover_and_import()` 按元数据生成的 `MONITOR_MODULES`、`TASK_MODULES` 导入任务模块
    - 各模块调用 `register_monitor()` 或 `register_task()` 注册任务
    - 任务描述符 (`JobDescriptor`) 被添加到 `MONITOR_JOBS` 或 `TASK_JOBS`
 
 3. **调度器启动阶段**
    - 创建 `TaskScheduler` 实例（基于 `APScheduler`）
    - 遍历 `MONITOR_JOBS` 和 `TASK_JOBS`，注册到调度器
-   - 启动时立即执行一次所有任务（首次运行）
+   - 启动时对 `run_on_startup=True` 的任务执行首轮（例如 `weibo_cookie_refresh` 为 `False`，仅按 Cron 或手动触发）
 
-4. **Web 服务与配置监控启动**
-   - Web 服务以 `asyncio.create_task` 与调度器并行运行
+4. **配置监控启动**
+   - Web 服务已与调度器并行运行
    - 启动 `ConfigWatcher`（默认每 5 秒检查 `config.yml` 修改时间）
 
 5. **配置变化回调**（由 ConfigWatcher 在检测到变化时触发）
@@ -107,8 +108,8 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 6. **运行阶段**
    - 调度器按配置的间隔/时间执行任务
    - 监控任务检测变化并推送通知
-   - 定时任务按Cron表达式执行
-   - Web服务处理HTTP请求
+   - 定时任务按 Cron 表达式执行
+   - Web 服务处理 HTTP 请求
 
 ---
 
@@ -120,9 +121,10 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 
 **关键功能**：
 - 初始化日志系统（控制台；main 文件日志在创建 Web 应用后挂载）
+- 加载配置（失败则退出）
 - 创建并启动 Web 服务器（FastAPI + Uvicorn）
-- 加载配置并创建调度器
-- 注册所有监控和定时任务
+- 重置 Cookie 缓存并 `reconfigure_database`
+- 创建调度器并注册监控/定时任务（首轮尊重 `run_on_startup`）
 - 启动配置监控器（热重载）
 - 处理优雅关闭（信号处理）
 
@@ -131,19 +133,19 @@ Web任务系统（项目代号 WebMoniter）是一个基于 Python 的**多平�
 async def main():
     # 1. 设置日志（控制台；非 TTY 不输出）
     setup_logging(log_level="INFO", console_output=not is_background)
-    # 2. 创建 Web 应用与 Uvicorn，后台启动 Web 服务
+    # 2. 加载配置（失败则 sys.exit(1)）
+    config = get_config()
+    # 3. 创建 Web 应用与 Uvicorn，后台启动 Web 服务
     web_app = create_web_app()
     server = build_uvicorn_server(web_app)
     web_task = start_uvicorn_background(server, logger)
     setup_main_file_logging()  # 挂载 main_YYYYMMDD.log
 
-    # 3. 加载配置（失败则 sys.exit(1)）
-    config = get_config()
-
-    # 4. 重置 Cookie 缓存
+    # 4. 重置 Cookie 缓存，并按配置初始化/切换数据库
     await cookie_cache.reset_all()
+    await reconfigure_database(config)
 
-    # 5. 创建调度器、发现并注册任务、启动首轮执行
+    # 5. 创建调度器、发现并注册任务、启动首轮执行（尊重 run_on_startup）
     scheduler = TaskScheduler(config)
     await register_and_prime_jobs(scheduler, config)
 
@@ -151,7 +153,7 @@ async def main():
     config_watcher = ConfigWatcher(..., on_config_changed=...)
     await config_watcher.start()
 
-    # 8. 运行调度器（阻塞直至收到停止信号）；finally 中优雅关闭 Web/监控器/DB
+    # 7. 运行调度器（阻塞直至收到停止信号）；finally 中优雅关闭 Web/监控器/DB
     await scheduler.run_forever()
 ```
 
@@ -390,7 +392,7 @@ register_monitor(
 **职责**：Web 服务、任务注册与首轮执行、配置热重载回调等启动/关闭细节（由 `main.py` 调用）。
 
 **关键函数**：
-- `register_and_prime_jobs()`：`discover_and_import()` → 注册间隔/Cron 任务 → 暂停未启用监控 → 启动时对所有任务执行首轮
+- `register_and_prime_jobs()`：`discover_and_import()` → 注册间隔/Cron 任务 → 暂停未启用监控 → 启动时对 `run_on_startup=True` 的任务执行首轮
 - `on_scheduler_config_changed()`：热重载时 `sync_config_to_db` + 更新 APScheduler 间隔/Cron/暂停状态
 - `build_uvicorn_server()` / `start_uvicorn_background()` / `shutdown_web_server()`：Web 服务启停
 
@@ -552,14 +554,18 @@ def get_push_channel(config: dict, session) -> PushChannel:
 - `/logs`：日志展示页面
 
 **API接口**：
+- `POST /api/login`、`POST /api/logout`、`POST /api/change-password`、`GET /api/check-auth`：认证相关
+- `GET /api/version`：获取版本信息（无需登录，用于前端检测新版本）
+- `GET /api/config/metadata`：配置页只读元数据（需登录）
 - `GET /api/config`：获取配置
-- `POST /api/config`：保存配置（触发热重载）
-- `GET /api/data/{platform}`：获取监控数据
+- `POST /api/config`：保存配置（触发热重载，并 `reconfigure_database`）
+- `GET /api/database/status`、`POST /api/database/test`：数据库状态与 MySQL 连接测试（需登录）
+- `GET /api/data/{platform}`、`GET /api/data/{platform}/{item_id}`：获取监控数据
+- `GET /api/tasks`、`POST /api/tasks/{task_id}/run`：任务列表与手动触发
 - `GET /api/logs`：获取日志内容（可选 `task` 参数指定任务今日日志）
 - `GET /api/logs/tasks`：获取任务日志列表
 - `GET /api/monitor-status`：获取全部监控状态（无需登录）
-- `GET /api/monitor-status/{platform}`：按平台获取监控状态（无需登录）
-- `GET /api/version`：获取版本信息（无需登录，用于前端检测新版本）
+- `GET /api/monitor-status/{platform}`、`GET /api/monitor-status/{platform}/{item_id}`：按平台/ID 获取监控状态（无需登录）
 
 **配置保存特性**：
 - 使用 `ruamel.yaml` 保留YAML注释
@@ -620,7 +626,7 @@ logs/
 **导出内容**：
 ```python
 from src.core.version import (
-    __version__,          # 当前版本号，如 "2.3.7"
+    __version__,          # 当前版本号，如 "2.4.7"
     GITHUB_RELEASES_URL,  # GitHub Tags 页面 URL
     GITHUB_API_LATEST_TAG # GitHub API 获取 tags 的 URL
 )
@@ -759,14 +765,20 @@ register_monitor(
 )
 ```
 
-2. **在 `src/jobs/registry.py` 中添加模块路径**
+2. **在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` 中添加 `TaskSpec`**
 ```python
-MONITOR_MODULES = [
-    "src.monitors.huya_monitor",
-    "src.monitors.weibo_monitor",
-    "src.monitors.new_platform_monitor",  # 新增
-]
+TaskSpec(
+    "new_platform_monitor",
+    "src.monitors.new_platform_monitor",
+    "新平台监控",
+    "monitor",
+    "new_platform",
+    enable_field="new_platform_enable",
+    interval_field="new_platform_interval_seconds",
+    push_field="new_platform_push_channels",
+)
 ```
+（`MONITOR_MODULES` 由元数据生成，无需手改 `registry.py`。）
 
 3. **在 `src/settings/config.py` 中添加配置字段**
 ```python
@@ -809,13 +821,20 @@ register_task(
 )
 ```
 
-2. **在 `src/jobs/registry.py` 中添加模块路径**
+2. **在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中添加 `TaskSpec`**
 ```python
-TASK_MODULES = [
-    "src.tasks.log_cleanup",
-    "src.tasks.new_task",  # 新增
-]
+TaskSpec(
+    "new_task",
+    "src.tasks.new_task",
+    "新定时任务",
+    "task",
+    "new_task",
+    enable_field="new_task_enable",
+    time_field="new_task_time",
+    default_time="08:00",
+)
 ```
+（`TASK_MODULES` 由元数据生成，无需手改 `registry.py`。）
 
 3. **在配置文件中添加配置项**
 ```yaml
@@ -852,6 +871,11 @@ _channel_type_to_class = {
 }
 ```
 
+3. **在 `src/jobs/metadata.py` 的 `PUSH_CHANNEL_SPECS` 中添加 `PushChannelSpec`**（供 Web 配置页与元数据 API 使用）
+```python
+PushChannelSpec("new_channel", "新通道", ("field_a", "field_b")),
+```
+
 ---
 
 ## 技术栈 {#tech-stack}
@@ -860,7 +884,7 @@ _channel_type_to_class = {
 
 | 库名 | 版本 | 用途 |
 |------|------|------|
-| Python | >=3.10 | 编程语言 |
+| Python | >=3.11,<3.12 | 编程语言 |
 | aiohttp | >=3.9.0 | 异步HTTP客户端 |
 | aiosqlite | >=0.19.0 | SQLite 本地镜像与离线日志 |
 | aiomysql | >=0.3.2 | MySQL 异步连接池 |

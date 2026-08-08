@@ -6,6 +6,7 @@
 
 from src.jobs import registry
 from src.jobs.enable_fields import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_JOB_ENABLE_FIELD_MAP
+from src.jobs.metadata import MONITOR_SPECS, TASK_SPECS, get_task_spec
 from src.jobs.registry import (
     MONITOR_MODULES,
     TASK_MODULES,
@@ -108,6 +109,20 @@ def test_registered_job_ids_are_unique() -> None:
     _reload_and_discover_all()
     all_ids = [job.job_id for job in registry.MONITOR_JOBS + registry.TASK_JOBS]
     assert len(all_ids) == len(set(all_ids))
+
+
+def test_registered_descriptions_match_metadata() -> None:
+    """register_* 的 description 必须与 metadata.TaskSpec.description 一致。"""
+    _reload_and_discover_all()
+    expected = {spec.job_id: spec.description for spec in (*MONITOR_SPECS, *TASK_SPECS)}
+    mismatches: list[str] = []
+    for job in registry.MONITOR_JOBS + registry.TASK_JOBS:
+        meta_desc = expected.get(job.job_id)
+        assert meta_desc is not None, f"注册任务 {job.job_id} 缺少 TaskSpec"
+        if job.description != meta_desc:
+            mismatches.append(f"{job.job_id}: register={job.description!r} meta={meta_desc!r}")
+    assert not mismatches, "任务展示文案不一致：\n" + "\n".join(mismatches)
+    assert get_task_spec("huya_monitor") is not None
 
 
 def test_monitor_jobs_use_interval_trigger() -> None:

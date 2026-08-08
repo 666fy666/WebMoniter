@@ -151,6 +151,7 @@ WebMoniter 支持在 [青龙面板](https://github.com/whyour/qinglong) 中运�
 
 | task_id（`python -m src.ql <id>`） | 主要环境变量 |
 |----------|--------------|
+| `log_cleanup` | `LOG_CLEANUP_ENABLE`, `LOG_CLEANUP_TIME` |
 | `enshan_checkin` | `ENSHAN_ENABLE`, `ENSHAN_COOKIE`, `ENSHAN_COOKIES` |
 | `tyyun_checkin` | `TYYUN_ENABLE`, `TYYUN_USERNAME`, `TYYUN_PASSWORD`, `TYYUN_ACCOUNTS` |
 | `smzdm_checkin` | `SMZDM_ENABLE`, `SMZDM_COOKIE`, `SMZDM_COOKIES` |
@@ -256,10 +257,16 @@ WebMoniter 支持在 [青龙面板](https://github.com/whyour/qinglong) 中运�
 
 ## 六、支持的任务列表
 
-运行 `python -m src.ql --list` 可查看完整列表。常用 task_id：
+运行 `python -m src.ql --list` 可查看完整列表。清单来自 `src/jobs/metadata.py` 的 `TASK_ENV_MAP`（有 `ql_prefix` 的任务）。说明：
+
+- `weibo_cookie_refresh` **无**青龙环境变量前缀，CLI 不支持该任务
+- `demo_task` 为二次开发示例，CLI 会显式排除
+
+常用 task_id：
 
 | 命令 | 说明 |
 |------|------|
+| `python -m src.ql log_cleanup` | 日志清理 |
 | `python -m src.ql ikuuu_checkin` | iKuuu 签到 |
 | `python -m src.ql tieba_checkin` | 百度贴吧签到 |
 | `python -m src.ql rainyun_checkin` | 雨云签到 |
@@ -277,7 +284,7 @@ WebMoniter 支持在 [青龙面板](https://github.com/whyour/qinglong) 中运�
 | `python -m src.ql lbly_checkin` | 丽宝乐园签到 |
 | `python -m src.ql pinzan_checkin` | 品赞签到 |
 | `python -m src.ql dml_checkin` | 达美乐任务 |
-| `python -m src.ql xiaomao_checkin` | 小茅预约（i茅台） |
+| `python -m src.ql xiaomao_checkin` | 小茅预约 |
 | `python -m src.ql ydwx_checkin` | 一点万象签到 |
 | `python -m src.ql xingkong_checkin` | 星空代理签到 |
 | `python -m src.ql freenom_checkin` | Freenom 续期 |

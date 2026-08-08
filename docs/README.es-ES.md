@@ -42,7 +42,7 @@
 WebMoniter es un sistema de tareas basado en Python, FastAPI y APScheduler, diseñado para la gestión unificada de:
 
 - Monitoreo de plataformas: Huya, Weibo, Bilibili, Douyin, Douyu, Xiaohongshu.
-- Tareas programadas: **30 tareas** de registro (check-in) y recordatorios, incluyendo actualización de cookies de Weibo, iKuuu, Tieba, Super Topic de Weibo, Rainyun, Aliyun Drive, Freenom, notificaciones meteorológicas, etc. (ver `src/jobs/registry.py`).
+- Tareas programadas: **30 tareas** de registro (check-in) y recordatorios, incluyendo actualización de cookies de Weibo, iKuuu, Tieba, Super Topic de Weibo, Rainyun, Aliyun Drive, Freenom, notificaciones meteorológicas, etc. (más el ejemplo `demo_task`; ver `TASK_SPECS` en `src/jobs/metadata.py`).
 - Notificaciones multicanal: **18 tipos** de canales como WeChat Work, DingTalk, Feishu, Telegram, Bark, WxPusher, Email, etc.
 - Gestión Web responsive para configuración, tareas, datos, logs y contraseñas. La navegación, barras de herramientas, diálogos y controles usan un estilo Liquid Glass, con barra lateral en escritorio, navegación inferior en móvil y alternativas accesibles para movimiento y transparencia.
 
@@ -269,7 +269,7 @@ Para agregar nuevos monitoreos o tareas programadas, consulte la [Guía de Desar
 | `src/jobs/` | Metadatos de tareas (`metadata.py`), Programación (`scheduler.py`), Registro (`registry.py`), Mapeo de habilitación (`enable_fields.py`), Resultados de tarea (`task_outcome.py`), Ciclo de vida (`lifecycle.py`), Logs (`log_manager.py`), Registro de ejecución (`tracker.py`) |
 | `src/storage/` | MySQL primario opcional, espejo/respaldo SQLite (`database.py`, `mysql_backend.py`) y caché de Cookies (`cookie_cache.py`) |
 | `src/monitors/` | Monitoreo de 6 plataformas (disparado por intervalo, lista generada por `metadata.MONITOR_SPECS`) |
-| `src/tasks/` | 30 tareas de registro/programadas (disparado por Cron, incluye subpaquete `rainyun/`, lista generada por `metadata.TASK_SPECS`) |
+| `src/tasks/` | 30 tareas de negocio + ejemplo `demo_task` (Cron; incluye subpaquete `rainyun/`; `TASK_SPECS` tiene 31 entradas) |
 | `src/push_channel/` | 18 tipos de notificaciones (WeChat Work, DingTalk, Telegram, etc., incluye `demo`, `qlapi`) |
 | `src/web/` | Aplicación FastAPI (`app.py`), Rutas (`routers/`), Auxiliares de autenticación/config/datos, `templating.py`, `static_files.py` |
 | `src/webUI/` | Recursos estáticos frontend y plantillas Jinja2 |

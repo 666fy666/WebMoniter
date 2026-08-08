@@ -387,5 +387,5 @@ register_task(
     "xiaomao_checkin",
     run_xiaomao_checkin_once,
     _get_xiaomao_trigger_kwargs,
-    description="小茅预约（i茅台）",
+    description="小茅预约",
 )

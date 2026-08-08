@@ -31,5 +31,5 @@ register_task(
     "log_cleanup",
     cleanup_logs,
     _get_cleanup_logs_trigger_kwargs,
-    description="日志文件清理",
+    description="日志清理",
 )

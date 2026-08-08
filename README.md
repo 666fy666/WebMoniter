@@ -42,7 +42,7 @@
 WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，用于统一管理：
 
 - 平台监控：虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书。
-- 定时任务：微博 Cookie 刷新、iKuuu、贴吧、微博超话、雨云、阿里云盘、Freenom、天气推送等 **30 个**签到/提醒任务（见 `src/jobs/registry.py`）。
+- 定时任务：微博 Cookie 刷新、iKuuu、贴吧、微博超话、雨云、阿里云盘、Freenom、天气推送等 **30 个**签到/提醒任务（另含 `demo_task` 示例；清单见 `src/jobs/metadata.py` 的 `TASK_SPECS`）。
 - 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 **18 种** type。
 - Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理；桌面端无顶栏，用侧边栏拉手收起/展开导航，手机端底部导航含账户入口。导航、工具栏、弹窗与交互控件采用 iOS 液态玻璃风格，内容区域保持清晰易读；PC 与移动端共用统一设计规范，支持键盘标签切换、可见焦点、44px 触控目标及减少动效/透明度偏好。细节见 [Web 管理界面](docs/guides/web-ui.md)。
 
@@ -259,7 +259,7 @@ uv run black --check .
 uv run pytest -q
 ```
 
-新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。`src/tests/` 中有 metadata、注册表与 enable 映射一致性测试，漏配时 `uv run pytest` 会失败。完整架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。项目当前采用模块化结构：
+新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。任务/推送/配置节清单以 `src/jobs/metadata.py` 为单一真相源；文档描述与该文件及运行时代码对齐。`src/tests/` 中有 metadata、注册表与 enable 映射一致性测试，漏配时 `uv run pytest` 会失败。完整架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。项目当前采用模块化结构：
 
 | 模块 | 职责 |
 |------|------|
@@ -269,7 +269,7 @@ uv run pytest -q
 | `src/jobs/` | 任务元数据（`metadata.py`）、调度（`scheduler.py`）、注册（`registry.py`）、启用映射（`enable_fields.py`）、执行结果（`task_outcome.py`）、生命周期（`lifecycle.py`）、日志（`log_manager.py`）、运行记录（`tracker.py`） |
 | `src/storage/` | MySQL 权威主库（可选）、SQLite 镜像/故障回退（`database.py`、`mysql_backend.py`）、Cookie 缓存（`cookie_cache.py`） |
 | `src/monitors/` | 6 个平台监控（interval 触发，清单由 `metadata.MONITOR_SPECS` 生成） |
-| `src/tasks/` | 30 个定时/签到任务（Cron 触发，含 `rainyun/` 子包，清单由 `metadata.TASK_SPECS` 生成） |
+| `src/tasks/` | 30 个业务定时/签到任务 + `demo_task` 示例（Cron 触发，含 `rainyun/` 子包；`TASK_SPECS` 共 31 项） |
 | `src/push_channel/` | 18 种推送 type（企业微信、钉钉、Telegram 等，含 `demo`、`qlapi`） |
 | `src/web/` | FastAPI 应用（`app.py`）、路由（`routers/`）、认证/配置/数据辅助、`templating.py`、`static_files.py` |
 | `src/webUI/` | 响应式前端静态资源与 Jinja2 模板（液态玻璃功能层、键盘/触控无障碍交互） |

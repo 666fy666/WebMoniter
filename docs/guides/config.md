@@ -55,7 +55,7 @@
 | 推送通道   | `push_channel` | 列表形式，每项需 `name`、`type` 及该类型所需参数，详见 [推送通道配置详解](push-channels.md) |
 | 日志清理   | `log_cleanup` | 执行时间、日志保留天数 |
 | 免打扰时段 | `quiet_hours` | 启用后，在指定时间段内不推送通知（任务照常执行） |
-| 插件任务   | `plugins.demo_task` 等 | 二次开发扩展任务，不需要可删除并在注册表中移除 |
+| 插件任务   | `plugins.demo_task` 等 | 二次开发扩展任务；不需要可删除配置，并在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中移除对应 `TaskSpec` |
 
 ---
 

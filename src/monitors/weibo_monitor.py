@@ -2863,5 +2863,5 @@ register_monitor(
     "weibo_monitor",
     run_weibo_monitor,
     _get_weibo_trigger_kwargs,
-    description="微博动态监控",
+    description="微博监控",
 )

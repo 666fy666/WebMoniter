@@ -181,5 +181,5 @@ register_task(
     "ssq_500w_notice",
     run_ssq_500w_notice_once,
     _get_ssq_trigger_kwargs,
-    description="双色球开奖通知（守号+冷号机选）",
+    description="双色球开奖通知",
 )

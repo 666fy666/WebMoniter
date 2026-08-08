@@ -412,5 +412,5 @@ register_monitor(
     "bilibili_monitor",
     run_bilibili_monitor,
     _get_bilibili_trigger_kwargs,
-    description="哔哩哔哩动态+直播监控",
+    description="哔哩哔哩监控",
 )

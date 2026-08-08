@@ -236,9 +236,9 @@ register_task("ikuuu_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
 
 `register_task` 默认启用 `skip_if_run_today=True`，任务在执行前会检查当天是否已经运行过：
 - 如果已运行：输出日志 `{job_id}: 当天已经运行过了，跳过该任务`，然后跳过执行
-- 如果未运行：正常执行任务；函数正常返回（未抛异常）后记录运行日期
-- 如果任务抛出未捕获异常：不记录运行日期，允许后续重试
-- 若任务内部自行捕获错误并 return，仍会被视为已运行
+- 如果未运行：正常执行任务；**仅当返回值 `is TASK_SUCCESS` 时**才写入 `task_run_history`
+- 返回 `TASK_FAILED` 或抛出未捕获异常：不记录运行日期，允许后续重试
+- 任务内部自行捕获错误后若返回 `TASK_FAILED`，不会记为已运行；若误返回 `TASK_SUCCESS` 则会记为已运行
 
 若某个任务需要每次触发都执行（不检查当天是否已运行），可在注册时禁用：
 
@@ -256,14 +256,21 @@ register_task("always_run_task", run_task, _get_trigger_kwargs, skip_if_run_toda
 
 ```python
 TaskSpec(
-    module="src.tasks.ikuuu_checkin",
-    job_id="ikuuu_checkin",
-    description="iKuuu 签到",
-    config_section="checkin",
+    "ikuuu_checkin",
+    "src.tasks.ikuuu_checkin",
+    "iKuuu 签到",
+    "task",
+    "checkin",
     enable_field="checkin_enable",
     time_field="checkin_time",
+    default_time="08:00",
     push_field="checkin_push_channels",
-    ql_prefix="IKUUU",
+    ql_prefix="CHECKIN",
+    ql_extra_env={
+        "EMAIL": "checkin_email",
+        "PASSWORD": "checkin_password",
+        "TIME": "checkin_time",
+    },
 )
 ```
 
@@ -281,7 +288,7 @@ Demo 任务使用 **plugins** 配置：无需改 `AppConfig` 和 `load_config_fr
 plugins:
   demo_task:
     enable: false
-    time: "08:30"
+    time: "08:00"
     message: "Demo 定时任务执行完成"
 ```
 
@@ -315,7 +322,7 @@ def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:
 register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
 ```
 
-在 `src/jobs/registry.py` 的 `TASK_MODULES` 中需包含 `"src.tasks.demo_task"`（当前已包含）。  
+在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中需包含对应 `TaskSpec`（`plugin_only=True`；`TASK_MODULES` 由元数据生成，当前已包含）。  
 完整代码见 `src/tasks/demo_task.py`。
 
 ---
@@ -410,12 +417,13 @@ register_monitor("huya_monitor", run_huya_monitor, _get_huya_trigger_kwargs)
 
 见 `src/monitors/huya_monitor.py` 末尾。
 
-### 4.4 注册表：src/jobs/registry.py
+### 4.4 任务元数据：src/jobs/metadata.py
 
-在 `MONITOR_MODULES` 中已包含虎牙模块（当前全部监控模块如下）：
+在 `MONITOR_SPECS` 中添加对应 `TaskSpec` 后，`MONITOR_MODULES` 会由元数据自动生成并在 `src/jobs/registry.py` 兼容导出。当前监控模块包括：
 
 ```python
-MONITOR_MODULES: list[str] = [
+# 由 MONITOR_SPECS 生成（示意）
+MONITOR_MODULES = [
     "src.monitors.huya_monitor",
     "src.monitors.weibo_monitor",
     "src.monitors.bilibili_monitor",
@@ -591,7 +599,7 @@ await self.db.execute_insert(sql, data)
   - 默认启用 `skip_if_run_today=True`，当天已运行则跳过
   - 若需每次触发都执行，设置 `skip_if_run_today=False`
 - [ ] 在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/time/push 字段；plugins 任务标记 `plugin_only=True`）。
-- [ ] 若该任务支持青龙环境变量：在同一个 `TaskSpec` 中配置 `ql_prefix` 与 `ql_env_fields`。
+- [ ] 若该任务支持青龙环境变量：在同一个 `TaskSpec` 中配置 `ql_prefix` 与 `ql_extra_env`。
 
 ---
 
