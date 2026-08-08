@@ -106,12 +106,17 @@ def test_liquid_glass_preserves_shell_positioning():
         (".task-toolbar", "sticky"),
         ("body.page-data .tabs-scroll-wrap", "sticky"),
         (".mobile-bottom-nav", "fixed"),
+        (".theme-toggle-fab", "fixed"),
+        (".data-card-drag-handle", "absolute"),
     ):
         assert re.search(
             rf"{re.escape(selector)}[^{{]*\{{[^}}]*position:\s*{position};",
             css,
             flags=re.DOTALL,
         ), f"{selector} 应保持 {position} 定位"
+
+    assert ".data-card > :not(.data-card-drag-handle)" in css
+    assert ".btn:not(.theme-toggle-fab)" in css
 
 
 def test_back_to_top_keeps_fixed_position_and_hidden_state():
@@ -187,6 +192,67 @@ def test_motion_transparency_and_keyboard_accessibility_have_fallbacks():
     assert "event.key !== 'Tab'" in common_js
     assert "拖拽或使用方向键调整顺序" in data_js
     assert "ArrowUp" in data_js and "ArrowDown" in data_js
+
+
+def test_frontend_controls_and_dynamic_config_fields_have_accessible_names():
+    config = _read(TEMPLATE_ROOT / "config.html")
+    tasks = _read(TEMPLATE_ROOT / "tasks.html")
+    config_js = _read(STATIC_ROOT / "js" / "config.js")
+
+    assert 'id="configModuleSearch"' in config
+    assert 'aria-label="搜索监控任务配置"' in config
+    assert 'id="taskSearch"' in tasks
+    assert 'aria-label="搜索任务名称或 ID"' in tasks
+    assert "function ensureConfigControlAccessibleNames" in config_js
+    assert "control.setAttribute('aria-labelledby', labelCell.id)" in config_js
+    assert "new MutationObserver" in config_js
+
+
+def test_external_template_links_are_isolated_and_scripts_share_cache_version():
+    template_paths = [
+        *TEMPLATE_ROOT.glob("*.html"),
+        TEMPLATE_ROOT / "partials" / "sidebar.html",
+    ]
+    for path in template_paths:
+        source = _read(path)
+        for match in re.finditer(r'<a\b[^>]*target="_blank"[^>]*>', source):
+            tag = match.group(0)
+            assert 'rel="noopener noreferrer"' in tag, f"外链缺少隔离属性: {path}"
+
+    for path, script_name in (
+        (TEMPLATE_ROOT / "base.html", "common.js"),
+        (TEMPLATE_ROOT / "login.html", "common.js"),
+        (TEMPLATE_ROOT / "login.html", "login.js"),
+        (TEMPLATE_ROOT / "tasks.html", "tasks.js"),
+        (TEMPLATE_ROOT / "logs.html", "logs.js"),
+        (TEMPLATE_ROOT / "data.html", "data.js"),
+    ):
+        assert f"/static/js/{script_name}?v=6" in _read(path)
+
+
+def test_high_risk_visual_tokens_and_controls_keep_accessibility_contract():
+    css = _read(STATIC_ROOT / "css" / "style.css")
+
+    for declaration in (
+        "--primary-color: #be185d;",
+        "--text-muted: #626b7b;",
+        "--success-color: #15803d;",
+        "--warning-color: #92400e;",
+        "--error-color: #b91c1c;",
+        "--info-color: #1d4ed8;",
+        "--z-lightbox: 3000;",
+        "--z-toast: 3100;",
+    ):
+        assert declaration in css
+
+    assert "transition: all" not in css
+    assert "content: '🔐'" not in css
+    assert "z-index: var(--z-lightbox)" in css
+    assert "z-index: var(--z-toast)" in css
+    toast_close = re.search(r"\.toast-close\s*\{(?P<body>[^}]+)\}", css)
+    assert toast_close is not None
+    assert "width: 44px" in toast_close.group("body")
+    assert "height: 44px" in toast_close.group("body")
 
 
 def test_data_cards_use_translucent_glass_and_pointer_hover_magnification():

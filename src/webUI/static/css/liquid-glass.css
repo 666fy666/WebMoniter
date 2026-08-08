@@ -1479,7 +1479,7 @@ body,
     transition: opacity 220ms var(--liquid-ease);
 }
 
-.data-card > * {
+.data-card > :not(.data-card-drag-handle) {
     position: relative;
     z-index: 2;
 }
@@ -1711,7 +1711,7 @@ select.form-input {
 
 /* Pressable controls: in-bounds liquid lens highlight (pointer-driven via --lg-x/--lg-y). */
 :is(
-    .btn,
+    .btn:not(.theme-toggle-fab),
     .tab-btn,
     .config-module-tab,
     .nav-item,
@@ -1741,7 +1741,7 @@ select.form-input {
 }
 
 :is(
-    .btn,
+    .btn:not(.theme-toggle-fab),
     .tab-btn,
     .config-module-tab,
     .nav-item,
@@ -1749,11 +1749,20 @@ select.form-input {
     .pagination button,
     .pagination a,
     .page-topbar-menu,
-    .modal-close,
-    .theme-toggle-fab,
-    .data-card-drag-handle
+    .modal-close
 ) {
     position: relative;
+    overflow: clip;
+}
+
+/* These controls are intentionally anchored to the viewport/card. */
+.theme-toggle-fab {
+    position: fixed;
+    overflow: clip;
+}
+
+.data-card-drag-handle {
+    position: absolute;
     overflow: clip;
 }
 

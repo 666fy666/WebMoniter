@@ -33,7 +33,7 @@
                 </div>
             </div>
             <div class="task-toolbar">
-                <input type="search" id="taskSearch" class="form-input task-search" placeholder="搜索任务名称或 ID..." autocomplete="off">
+                <input type="search" id="taskSearch" class="form-input task-search" placeholder="搜索任务名称或 ID..." aria-label="搜索任务名称或 ID" autocomplete="off">
                 <span id="taskCountBadge" class="task-count-badge">共 0 个任务</span>
             </div>
             <div class="card fade-in">
@@ -63,5 +63,5 @@
             </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/tasks.js?v=1"></script>
+<script src="/static/js/tasks.js?v=6"></script>
 {% endblock %}

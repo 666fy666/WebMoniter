@@ -64,7 +64,7 @@
             <span class="update-banner-icon">{{ icon('sparkles') }}</span>
             <span class="update-banner-text">
                 发现新版本 <strong id="latestVersion"></strong>！
-                <a id="releasesLink" href="#" target="_blank">前往更新</a>
+                <a id="releasesLink" href="#" target="_blank" rel="noopener noreferrer">前往更新</a>
             </span>
         </div>
         <button id="dismissUpdateBanner" class="update-banner-close" type="button" aria-label="关闭更新提示">{{ icon('close') }}</button>
@@ -86,7 +86,7 @@
         </button>
     </nav>
     <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">{{ icon('arrow-up') }}</button>
-    <script src="/static/js/common.js?v=1"></script>
+    <script src="/static/js/common.js?v=6"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

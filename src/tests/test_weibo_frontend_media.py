@@ -42,6 +42,7 @@ def test_weibo_structured_content_badges_tags_and_video_cover_contract():
     assert "segment.type === 'emoji'" in script
     assert 'class="weibo-inline-emoji"' in script
     assert 'referrerpolicy="no-referrer"' in script
+    assert 'width="20" height="20"' in script
     assert "img.classList.contains('weibo-inline-emoji')" in script
     assert "img.replaceWith(fallback)" in script
     assert "function stripWeiboTagsFromText" in script
@@ -60,6 +61,20 @@ def test_weibo_structured_content_badges_tags_and_video_cover_contract():
     assert "vertical-align: -0.28em" in emoji_rule
     assert ".weibo-tag-list" in css
     assert ".weibo-video-cover" in css
+
+
+def test_data_cards_offer_safe_keyboard_reachable_detail_links():
+    script = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert "function enhanceDataCardLinks" in script
+    assert "function createExternalDetailLink" in script
+    assert "document.createElement('a')" in script
+    assert "link.target = '_blank'" in script
+    assert "link.rel = 'noopener noreferrer'" in script
+    assert "const href = getSafeHttpUrl(card.getAttribute('data-href'))" in script
+    assert "enhanceDataCardLinks();" in script
+    assert 'width="44" height="44"' in script
+    assert 'width="48" height="48"' in script
 
 
 def test_weibo_video_cover_adapts_to_portrait_without_cropping():

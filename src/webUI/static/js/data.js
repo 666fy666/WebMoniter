@@ -507,6 +507,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function createExternalDetailLink(href, className, text) {
+        const link = document.createElement('a');
+        link.href = href;
+        link.className = className;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = text.replace(/^点击卡片/, '').trim();
+        link.setAttribute('aria-label', `${link.textContent}（新标签页）`);
+        return link;
+    }
+
+    function enhanceDataCardLinks() {
+        dataTableContainer.querySelectorAll('.data-card-link[data-href]').forEach((card) => {
+            const href = getSafeHttpUrl(card.getAttribute('data-href'));
+            const hint = card.querySelector(
+                '.weibo-feed-link-hint, .feed-card-link-hint, .live-card-link-hint',
+            );
+            if (!href) {
+                card.classList.remove('data-card-link');
+                card.removeAttribute('data-href');
+                hint?.remove();
+                return;
+            }
+            card.setAttribute('data-href', href);
+            if (hint && !(hint instanceof HTMLAnchorElement)) {
+                hint.replaceWith(
+                    createExternalDetailLink(
+                        href,
+                        hint.className,
+                        hint.textContent.trim(),
+                    ),
+                );
+            }
+        });
+
+        dataTableContainer.querySelectorAll('.weibo-retweet-block[data-href]').forEach((block) => {
+            const href = getSafeHttpUrl(block.getAttribute('data-href'));
+            const hint = block.querySelector('.weibo-retweet-hint');
+            if (!href) {
+                block.removeAttribute('data-href');
+                hint?.remove();
+                return;
+            }
+            block.setAttribute('data-href', href);
+            if (hint && !(hint instanceof HTMLAnchorElement)) {
+                hint.replaceWith(
+                    createExternalDetailLink(
+                        href,
+                        hint.className,
+                        hint.textContent.trim(),
+                    ),
+                );
+            }
+        });
+    }
+
     function renderSegmentText(value) {
         return escapeHtml((value || '').toString()).replace(/\n/g, '<br>');
     }
@@ -551,7 +607,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         emojiSrc,
                     )}" alt="${escapeAttr(label)}" title="${escapeAttr(
                         label,
-                    )}" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" draggable="false">`;
+                    )}" width="20" height="20" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" draggable="false">`;
                 }
                 const renderedLabel = renderSegmentText(label);
                 const url = segment.type === 'link' ? getSafeHttpUrl(segment.url) : '';
@@ -1374,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="weibo-feed-header">
       <img data-src="${escapeAttr(
           avatarUrl,
-      )}" alt="头像" class="weibo-feed-avatar" decoding="async" onerror="this.classList.add('avatar-fallback')">
+      )}" alt="头像" class="weibo-feed-avatar" width="44" height="44" decoding="async" onerror="this.classList.add('avatar-fallback')">
       <div class="weibo-feed-user">
         <div class="weibo-feed-name-row">
           <span class="weibo-feed-name">${escapeHtml(row.用户名)}</span>
@@ -1493,11 +1549,11 @@ document.addEventListener('DOMContentLoaded', function () {
     ${
         hasHuyaMedia
             ? `<div class="live-card-avatar-wrap">
-      <img src="${avatarUrl ? escapeAttr(avatarUrl) : ''}" alt="头像" class="live-card-avatar" loading="lazy"${!avatarUrl ? ' style="display:none"' : ''}>
+      <img src="${avatarUrl ? escapeAttr(avatarUrl) : ''}" alt="头像" class="live-card-avatar" width="48" height="48" loading="lazy"${!avatarUrl ? ' style="display:none"' : ''}>
     </div>`
             : avatarUrl
             ? `<div class="live-card-avatar-wrap">
-      <img src="${escapeAttr(avatarUrl)}" alt="头像" class="live-card-avatar" loading="lazy">
+      <img src="${escapeAttr(avatarUrl)}" alt="头像" class="live-card-avatar" width="48" height="48" loading="lazy">
     </div>`
             : ''
     }
@@ -1608,6 +1664,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         dataTableContainer.innerHTML = html;
+        enhanceDataCardLinks();
         initLazyImages();
         initSortable();
     }

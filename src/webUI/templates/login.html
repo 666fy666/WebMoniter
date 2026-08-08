@@ -26,7 +26,7 @@
             <span class="update-banner-icon">{{ icon('sparkles') }}</span>
             <span class="update-banner-text">
                 发现新版本 <strong id="latestVersion"></strong>！
-                <a id="releasesLink" href="#" target="_blank">前往更新</a>
+                <a id="releasesLink" href="#" target="_blank" rel="noopener noreferrer">前往更新</a>
             </span>
         </div>
         <button id="dismissUpdateBanner" class="update-banner-close" type="button" aria-label="关闭更新提示">{{ icon('close') }}</button>
@@ -59,14 +59,14 @@
             </form>
             <p class="login-tagline">多平台监控 · 签到 · 推送 · 定时任务</p>
             <div class="login-version-info">
-                <a id="currentVersion" href="#" target="_blank">加载中...</a>
+                <a id="currentVersion" href="#" target="_blank" rel="noopener noreferrer">加载中...</a>
             </div>
         </div>
     </div>
     <button id="themeToggleBtn" class="btn btn-secondary theme-toggle-fab" aria-label="切换主题">
         <span id="themeIcon">{{ icon('sun') }}</span>
     </button>
-    <script src="/static/js/common.js?v=1"></script>
-    <script src="/static/js/login.js?v=1"></script>
+    <script src="/static/js/common.js?v=6"></script>
+    <script src="/static/js/login.js?v=6"></script>
 </body>
 </html>

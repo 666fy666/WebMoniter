@@ -28,7 +28,61 @@ let configMetadata = {
     push_channel_types: {}
 };
 
+let generatedConfigLabelId = 0;
+
+function hasProgrammaticControlName(control) {
+    if (control.getAttribute('aria-label')?.trim()) return true;
+    if (control.getAttribute('aria-labelledby')?.trim()) return true;
+    if (control.getAttribute('title')?.trim()) return true;
+    return Array.from(control.labels || []).some((label) => label.textContent.trim());
+}
+
+function ensureConfigControlAccessibleNames(root) {
+    if (!root?.querySelectorAll) return;
+    const controlSelector = 'input:not([type="hidden"]), select, textarea';
+    const rows = [];
+    if (root.matches?.('tr')) rows.push(root);
+    root.querySelectorAll('tr').forEach((row) => rows.push(row));
+
+    rows.forEach((row) => {
+        const labelCell = row.querySelector('.config-label');
+        const labelText = labelCell?.textContent.trim();
+        if (!labelCell || !labelText) return;
+        if (!labelCell.id) {
+            generatedConfigLabelId += 1;
+            labelCell.id = `config-control-label-${generatedConfigLabelId}`;
+        }
+        row.querySelectorAll(controlSelector).forEach((control) => {
+            if (!hasProgrammaticControlName(control)) {
+                control.setAttribute('aria-labelledby', labelCell.id);
+            }
+        });
+    });
+
+    const controls = [];
+    if (root.matches?.(controlSelector)) controls.push(root);
+    root.querySelectorAll(controlSelector).forEach((control) => controls.push(control));
+    controls.forEach((control) => {
+        if (hasProgrammaticControlName(control)) return;
+        const placeholder = control.getAttribute('placeholder')?.trim();
+        if (placeholder) control.setAttribute('aria-label', placeholder);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
+    const accessibilityRoot = document.getElementById('mainContent') || document.body;
+    ensureConfigControlAccessibleNames(accessibilityRoot);
+    const configAccessibilityObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    ensureConfigControlAccessibleNames(node);
+                }
+            });
+        });
+    });
+    configAccessibilityObserver.observe(accessibilityRoot, { childList: true, subtree: true });
+
     const configMessage = document.getElementById('configMessage');
     const quietHoursEnable = document.getElementById('quiet_hours_enable');
     const quietHoursEnableLabel = document.getElementById('quiet_hours_enable_label');
