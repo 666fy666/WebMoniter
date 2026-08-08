@@ -363,7 +363,7 @@ def test_custom_cursor_and_pointer_reactions_keep_safe_fallbacks():
     assert "cursor: revert !important" in liquid_css
     assert re.search(
         r"\.custom-cursor-ring\s*\{[^}]*width:\s*28px;[^}]*height:\s*28px;"
-        r"[^}]*backdrop-filter:\s*blur\(1px\)",
+        r"[^}]*backdrop-filter:\s*blur\(0\.2px\)",
         liquid_css,
         flags=re.DOTALL,
     )
