@@ -760,6 +760,194 @@ function initLiquidGlassLens() {
 
 window.initLiquidGlassLens = initLiquidGlassLens;
 
+const CUSTOM_CURSOR_HOVER_SELECTOR = [
+    'a[href]',
+    'button',
+    'summary',
+    '[role="button"]',
+    '[role="tab"]',
+    '[data-cursor-hover]',
+    '.data-card',
+    'input',
+    'textarea',
+    'select',
+].join(', ');
+
+const CUSTOM_CURSOR_TEXT_SELECTOR = [
+    'textarea',
+    '[contenteditable="true"]',
+    'input:not([type])',
+    'input[type="text"]',
+    'input[type="search"]',
+    'input[type="email"]',
+    'input[type="password"]',
+    'input[type="url"]',
+    'input[type="tel"]',
+    'input[type="number"]',
+].join(', ');
+
+const CURSOR_MAGNET_SELECTOR = [
+    '.btn:not(.theme-toggle-fab)',
+    '.tab-btn',
+    '.config-module-tab',
+    '.nav-item',
+    '.mobile-bottom-nav-item',
+    '.pagination button',
+    '.pagination a',
+].join(', ');
+
+function canUseCustomCursor() {
+    return canUseLiquidLensPointer()
+        && !window.matchMedia('(forced-colors: active)').matches;
+}
+
+function isDisabledControl(el) {
+    return Boolean(el && (el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true'));
+}
+
+/**
+ * Moonshot-inspired two-layer cursor with liquid-glass feedback.
+ * The dot stays close to the pointer while the ring eases behind it. Cards and
+ * primary controls react locally, so no layout or touch behavior is changed.
+ */
+function initCustomCursorExperience() {
+    if (!canUseCustomCursor() || document.querySelector('.custom-cursor-ring')) return;
+
+    const ring = document.createElement('span');
+    const dot = document.createElement('span');
+    ring.className = 'custom-cursor-ring';
+    dot.className = 'custom-cursor-dot';
+    ring.setAttribute('aria-hidden', 'true');
+    dot.setAttribute('aria-hidden', 'true');
+    document.body.append(ring, dot);
+
+    const targetPoint = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const ringPoint = { ...targetPoint };
+    const dotPoint = { ...targetPoint };
+    let frameId = 0;
+    let lastFrameTime = performance.now();
+    let magnetTarget = null;
+    let tiltTarget = null;
+
+    const setVisible = (visible) => {
+        ring.classList.toggle('is-visible', visible);
+        dot.classList.toggle('is-visible', visible);
+        document.documentElement.classList.toggle('custom-cursor-enabled', visible);
+    };
+
+    const animate = (time) => {
+        const frameScale = Math.min(2, Math.max(0.25, (time - lastFrameTime) / (1000 / 60)));
+        lastFrameTime = time;
+        const ringEase = 1 - Math.pow(0.8, frameScale);
+        const dotEase = 1 - Math.pow(0.28, frameScale);
+
+        ringPoint.x += (targetPoint.x - ringPoint.x) * ringEase;
+        ringPoint.y += (targetPoint.y - ringPoint.y) * ringEase;
+        dotPoint.x += (targetPoint.x - dotPoint.x) * dotEase;
+        dotPoint.y += (targetPoint.y - dotPoint.y) * dotEase;
+        ring.style.translate = `${ringPoint.x}px ${ringPoint.y}px`;
+        dot.style.translate = `${dotPoint.x}px ${dotPoint.y}px`;
+
+        const settled = Math.abs(targetPoint.x - ringPoint.x) < 0.1
+            && Math.abs(targetPoint.y - ringPoint.y) < 0.1
+            && Math.abs(targetPoint.x - dotPoint.x) < 0.1
+            && Math.abs(targetPoint.y - dotPoint.y) < 0.1;
+        frameId = settled ? 0 : requestAnimationFrame(animate);
+    };
+
+    const clearMagnet = () => {
+        if (!magnetTarget) return;
+        magnetTarget.style.removeProperty('--cursor-pull-x');
+        magnetTarget.style.removeProperty('--cursor-pull-y');
+        magnetTarget = null;
+    };
+
+    const clearTilt = () => {
+        if (!tiltTarget) return;
+        tiltTarget.style.removeProperty('--cursor-tilt-x');
+        tiltTarget.style.removeProperty('--cursor-tilt-y');
+        clearLiquidLensPoint(tiltTarget);
+        tiltTarget = null;
+    };
+
+    const syncTargetEffects = (target, clientX, clientY) => {
+        const interactive = target.closest(CUSTOM_CURSOR_HOVER_SELECTOR);
+        const isText = Boolean(target.closest(CUSTOM_CURSOR_TEXT_SELECTOR));
+        const isDisabled = isDisabledControl(interactive);
+        ring.classList.toggle('is-hover', Boolean(interactive) && !isText && !isDisabled);
+        ring.classList.toggle('is-text', isText && !isDisabled);
+        ring.classList.toggle('is-disabled', isDisabled);
+        dot.classList.toggle('is-text', isText && !isDisabled);
+        dot.classList.toggle('is-disabled', isDisabled);
+
+        const nextMagnet = isDisabled ? null : target.closest(CURSOR_MAGNET_SELECTOR);
+        if (nextMagnet !== magnetTarget) clearMagnet();
+        magnetTarget = nextMagnet;
+        if (magnetTarget) {
+            const rect = magnetTarget.getBoundingClientRect();
+            const pullX = Math.max(-4, Math.min(4, (clientX - rect.left - rect.width / 2) * 0.08));
+            const pullY = Math.max(-3, Math.min(3, (clientY - rect.top - rect.height / 2) * 0.08));
+            magnetTarget.style.setProperty('--cursor-pull-x', `${pullX.toFixed(2)}px`);
+            magnetTarget.style.setProperty('--cursor-pull-y', `${pullY.toFixed(2)}px`);
+        }
+
+        let nextTilt = target.closest('.card:not(.data-card)');
+        if (nextTilt?.matches('body.page-data .content-body > .card')) nextTilt = null;
+        if (nextTilt !== tiltTarget) clearTilt();
+        tiltTarget = nextTilt;
+        if (tiltTarget) {
+            const rect = tiltTarget.getBoundingClientRect();
+            const localX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const localY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+            tiltTarget.classList.add('cursor-reactive-card');
+            tiltTarget.style.setProperty('--cursor-tilt-x', `${((0.5 - localY) * 2.4).toFixed(2)}deg`);
+            tiltTarget.style.setProperty('--cursor-tilt-y', `${((localX - 0.5) * 3.2).toFixed(2)}deg`);
+            setLiquidLensPoint(tiltTarget, clientX, clientY);
+        }
+    };
+
+    document.addEventListener('pointermove', (event) => {
+        if (event.pointerType && event.pointerType !== 'mouse') return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+
+        targetPoint.x = event.clientX;
+        targetPoint.y = event.clientY;
+        if (!ring.classList.contains('is-visible')) {
+            ringPoint.x = dotPoint.x = targetPoint.x;
+            ringPoint.y = dotPoint.y = targetPoint.y;
+            ring.style.translate = `${targetPoint.x}px ${targetPoint.y}px`;
+            dot.style.translate = `${targetPoint.x}px ${targetPoint.y}px`;
+            setVisible(true);
+        }
+        syncTargetEffects(target, event.clientX, event.clientY);
+        if (!frameId) {
+            lastFrameTime = performance.now();
+            frameId = requestAnimationFrame(animate);
+        }
+    }, { passive: true });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (!event.pointerType || event.pointerType === 'mouse') {
+            ring.classList.add('is-pressed');
+        }
+    }, { passive: true });
+    document.addEventListener('pointerup', () => ring.classList.remove('is-pressed'), { passive: true });
+    document.addEventListener('pointercancel', () => ring.classList.remove('is-pressed'), { passive: true });
+    document.addEventListener('mouseleave', () => {
+        setVisible(false);
+        clearMagnet();
+        clearTilt();
+    });
+    window.addEventListener('blur', () => {
+        setVisible(false);
+        clearMagnet();
+        clearTilt();
+    });
+}
+
+window.initCustomCursorExperience = initCustomCursorExperience;
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
     // 登录页（含未登录时访问 /）不做认证检查，避免重复跳转
@@ -852,4 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 液态玻璃：按钮区域内高光跟随
     initLiquidGlassLens();
+
+    // Moonshot 风格：双层缓动光标、控件磁吸与卡片微倾斜
+    initCustomCursorExperience();
 });

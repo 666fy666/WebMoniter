@@ -20,8 +20,8 @@ def _read(path: Path) -> str:
 def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
-        assert "/static/css/style.css?v=7" in template
-        assert "/static/css/liquid-glass.css?v=7" in template
+        assert "/static/css/style.css?v=8" in template
+        assert "/static/css/liquid-glass.css?v=8" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -227,7 +227,7 @@ def test_external_template_links_are_isolated_and_scripts_share_cache_version():
         (TEMPLATE_ROOT / "logs.html", "logs.js"),
         (TEMPLATE_ROOT / "data.html", "data.js"),
     ):
-        assert f"/static/js/{script_name}?v=7" in _read(path)
+        assert f"/static/js/{script_name}?v=8" in _read(path)
 
     interactive_sources = [*template_paths, *sorted((STATIC_ROOT / "js").glob("*.js"))]
     for path in interactive_sources:
@@ -330,6 +330,43 @@ def test_tab_keyboard_navigation_and_touch_targets_are_consistent():
     )
     assert '{% block body_class %} class="page-tasks"{% endblock %}' in _read(
         TEMPLATE_ROOT / "tasks.html"
+    )
+
+
+def test_custom_cursor_and_pointer_reactions_keep_safe_fallbacks():
+    common_js = _read(STATIC_ROOT / "js" / "common.js")
+    liquid_css = _read(LIQUID_CSS)
+
+    assert "function initCustomCursorExperience" in common_js
+    assert "CUSTOM_CURSOR_HOVER_SELECTOR" in common_js
+    assert "CUSTOM_CURSOR_TEXT_SELECTOR" in common_js
+    assert "CURSOR_MAGNET_SELECTOR" in common_js
+    assert "requestAnimationFrame(animate)" in common_js
+    assert "initCustomCursorExperience();" in common_js
+    assert "(hover: hover) and (pointer: fine)" in common_js
+    assert "(forced-colors: active)" in common_js
+
+    for selector in (
+        ".custom-cursor-ring",
+        ".custom-cursor-dot",
+        ".custom-cursor-ring.is-hover",
+        ".custom-cursor-ring.is-text",
+        ".card.cursor-reactive-card:hover",
+    ):
+        assert selector in liquid_css
+    assert "--cursor-pull-x" in liquid_css
+    assert "--cursor-tilt-x" in liquid_css
+    assert "cursor: revert !important" in liquid_css
+    assert re.search(
+        r"\.custom-cursor-ring\s*\{[^}]*width:\s*28px;[^}]*height:\s*28px;"
+        r"[^}]*backdrop-filter:\s*blur\(1px\)",
+        liquid_css,
+        flags=re.DOTALL,
+    )
+    assert re.search(
+        r"\.custom-cursor-ring\.is-hover\s*\{[^}]*scale:\s*1\.35;",
+        liquid_css,
+        flags=re.DOTALL,
     )
 
 
