@@ -21,7 +21,7 @@ def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
         assert "/static/css/style.css?v=1" in template
-        assert "/static/css/liquid-glass.css?v=3" in template
+        assert "/static/css/liquid-glass.css?v=5" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -113,6 +113,26 @@ def test_motion_transparency_and_keyboard_accessibility_have_fallbacks():
     assert "event.key !== 'Tab'" in common_js
     assert "拖拽或使用方向键调整顺序" in data_js
     assert "ArrowUp" in data_js and "ArrowDown" in data_js
+
+
+def test_data_cards_use_translucent_glass_and_pointer_hover_magnification():
+    css = _read(LIQUID_CSS)
+    data_template = _read(TEMPLATE_ROOT / "data.html")
+
+    assert "--liquid-data:" in css
+    assert "--liquid-data-hover:" in css
+    assert "--liquid-data-sheen:" in css
+    assert "@media (hover: hover) and (pointer: fine)" in css
+    assert re.search(
+        r"\.data-card:not\([^}]+:hover\s*\{[^}]+scale\(1\.025\)",
+        css,
+        flags=re.DOTALL,
+    )
+    assert ".data-card:hover::before" in css
+    assert '{% block body_class %} class="page-data"{% endblock %}' in data_template
+    assert ".data-card.weibo-feed-card:nth-child(odd)" in css
+    assert "body.page-data .content-body > .card" in css
+    assert "body.page-data .table-container" in css
 
 
 def test_tabs_and_modals_expose_semantic_state():
