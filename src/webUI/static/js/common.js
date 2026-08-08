@@ -614,6 +614,99 @@ function isLoginPage() {
     return document.body.classList.contains('login-body');
 }
 
+const LIQUID_LENS_SELECTOR = [
+    '.btn',
+    '.tab-btn',
+    '.config-module-tab',
+    '.nav-item',
+    '.mobile-bottom-nav-item',
+    '.pagination button',
+    '.pagination a',
+    '.page-topbar-menu',
+    '.password-toggle',
+    '.modal-close',
+    '.back-to-top',
+    '.theme-toggle-fab',
+    '.data-card-drag-handle',
+    '.weibo-feed-card.data-card',
+    '.weibo-feed-grid .data-card',
+].join(', ');
+
+function canUseLiquidLensPointer() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return false;
+    }
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+function setLiquidLensPoint(el, clientX, clientY) {
+    if (!el || typeof clientX !== 'number' || typeof clientY !== 'number') return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    el.style.setProperty('--lg-x', `${Math.max(0, Math.min(100, x)).toFixed(2)}%`);
+    el.style.setProperty('--lg-y', `${Math.max(0, Math.min(100, y)).toFixed(2)}%`);
+}
+
+function clearLiquidLensPoint(el) {
+    if (!el) return;
+    el.style.removeProperty('--lg-x');
+    el.style.removeProperty('--lg-y');
+    el.style.removeProperty('--lg-spot-opacity');
+}
+
+/**
+ * In-bounds liquid-glass lens highlight for pressable controls and Weibo cards.
+ * Magnify is CSS-only; spotlight tracks the pointer only inside each control.
+ */
+function initLiquidGlassLens() {
+    if (!canUseLiquidLensPointer()) return;
+
+    let frameId = 0;
+    let pending = null;
+
+    const flush = () => {
+        frameId = 0;
+        if (!pending) return;
+        const { el, clientX, clientY } = pending;
+        pending = null;
+        setLiquidLensPoint(el, clientX, clientY);
+        if (el.matches('.btn, .tab-btn, .config-module-tab, .nav-item, .mobile-bottom-nav-item, .pagination button, .pagination a, .page-topbar-menu, .password-toggle, .modal-close, .back-to-top, .theme-toggle-fab, .data-card-drag-handle')) {
+            el.style.setProperty('--lg-spot-opacity', '1');
+        }
+    };
+
+    const schedule = (el, clientX, clientY) => {
+        pending = { el, clientX, clientY };
+        if (!frameId) {
+            frameId = requestAnimationFrame(flush);
+        }
+    };
+
+    document.addEventListener('pointermove', (event) => {
+        if (event.pointerType && event.pointerType !== 'mouse') return;
+        const el = event.target.closest(LIQUID_LENS_SELECTOR);
+        if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+        schedule(el, event.clientX, event.clientY);
+    }, { passive: true });
+
+    document.addEventListener('pointerleave', (event) => {
+        const el = event.target.closest?.(LIQUID_LENS_SELECTOR);
+        if (el) clearLiquidLensPoint(el);
+    }, true);
+
+    document.addEventListener('pointerout', (event) => {
+        const el = event.target.closest?.(LIQUID_LENS_SELECTOR);
+        if (!el) return;
+        const related = event.relatedTarget;
+        if (related && el.contains(related)) return;
+        clearLiquidLensPoint(el);
+    }, true);
+}
+
+window.initLiquidGlassLens = initLiquidGlassLens;
+
 // 页面加载时检查认证
 document.addEventListener('DOMContentLoaded', function() {
     // 登录页（含未登录时访问 /）不做认证检查，避免重复跳转
@@ -699,4 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化主题
     initTheme();
+
+    // 液态玻璃：按钮区域内高光跟随
+    initLiquidGlassLens();
 });

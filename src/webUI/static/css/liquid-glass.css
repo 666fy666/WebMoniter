@@ -6,9 +6,13 @@
     --liquid-content: rgba(255, 255, 255, 0.88);
     --liquid-stroke: rgba(255, 255, 255, 0.84);
     --liquid-stroke-soft: rgba(236, 72, 153, 0.14);
-    --liquid-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.16) 42%, transparent 66%);
-    --liquid-shadow-1: 0 1px 1px rgba(255, 255, 255, 0.85) inset, 0 8px 30px rgba(91, 33, 78, 0.08);
-    --liquid-shadow-2: 0 1px 1px rgba(255, 255, 255, 0.8) inset, 0 18px 50px rgba(91, 33, 78, 0.13);
+    --liquid-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.1) 42%, transparent 66%);
+    --liquid-shadow-1: 0 1px 1px rgba(255, 255, 255, 0.55) inset, 0 8px 30px rgba(91, 33, 78, 0.08);
+    --liquid-shadow-2: 0 1px 1px rgba(255, 255, 255, 0.5) inset, 0 18px 50px rgba(91, 33, 78, 0.13);
+    --liquid-lens-spot: rgba(255, 255, 255, 0.22);
+    --lg-x: 50%;
+    --lg-y: 40%;
+    --lg-spot-opacity: 0;
     --liquid-blur: 20px;
     --liquid-blur-strong: 30px;
     --liquid-radius-control: 14px;
@@ -28,9 +32,10 @@
     --liquid-content: rgba(42, 29, 54, 0.9);
     --liquid-stroke: rgba(255, 255, 255, 0.13);
     --liquid-stroke-soft: rgba(244, 114, 182, 0.2);
-    --liquid-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.025) 44%, transparent 68%);
-    --liquid-shadow-1: 0 1px 1px rgba(255, 255, 255, 0.08) inset, 0 10px 32px rgba(0, 0, 0, 0.24);
-    --liquid-shadow-2: 0 1px 1px rgba(255, 255, 255, 0.1) inset, 0 22px 56px rgba(0, 0, 0, 0.38);
+    --liquid-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.018) 44%, transparent 68%);
+    --liquid-shadow-1: 0 1px 1px rgba(255, 255, 255, 0.06) inset, 0 10px 32px rgba(0, 0, 0, 0.24);
+    --liquid-shadow-2: 0 1px 1px rgba(255, 255, 255, 0.08) inset, 0 22px 56px rgba(0, 0, 0, 0.38);
+    --liquid-lens-spot: rgba(255, 255, 255, 0.12);
 }
 
 html {
@@ -500,12 +505,16 @@ select.form-input:focus {
     box-shadow: var(--liquid-shadow-1);
 }
 
-.password-toggle,
 .modal-close,
 .update-banner-close,
 .back-to-top {
     min-width: 44px;
     min-height: 44px;
+    display: inline-grid;
+    place-items: center;
+}
+
+.password-toggle {
     display: inline-grid;
     place-items: center;
 }
@@ -564,10 +573,16 @@ select.form-input:focus {
 @media (max-width: 1024px) and (min-width: 769px) {
     .sidebar {
         width: 232px;
+        margin: 12px;
     }
 
+    /* 232 sidebar + 12*2 outer margins */
     .main-content {
         margin-left: 256px;
+    }
+
+    body.sidebar-collapsed .main-content {
+        margin-left: 0;
     }
 }
 
@@ -680,10 +695,10 @@ select.form-input:focus {
         right: max(8px, env(safe-area-inset-right));
         bottom: max(8px, env(safe-area-inset-bottom));
         min-height: var(--mobile-nav-height);
-        padding: 7px 8px;
+        padding: 6px 6px;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 4px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 2px;
         border-radius: 24px;
     }
 
@@ -694,12 +709,13 @@ select.form-input:focus {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 2px;
         color: var(--text-secondary);
         text-decoration: none;
         border-radius: 17px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
+        line-height: 1.15;
         transition: background var(--liquid-duration-fast) var(--liquid-ease), color var(--liquid-duration-fast) var(--liquid-ease), transform var(--liquid-duration-fast) var(--liquid-ease);
     }
 
@@ -1025,27 +1041,28 @@ select.form-input:focus {
     --liquid-data-hover: rgba(255, 255, 255, 0.96);
     --liquid-data-sheen: linear-gradient(
         145deg,
-        rgba(255, 255, 255, 0.3),
-        rgba(255, 255, 255, 0.08) 48%,
-        rgba(255, 127, 172, 0.06)
+        rgba(255, 255, 255, 0.18),
+        rgba(255, 255, 255, 0.05) 48%,
+        rgba(255, 127, 172, 0.05)
     );
     --liquid-stroke: rgba(255, 255, 255, 0.72);
     --liquid-stroke-soft: rgba(255, 255, 255, 0.42);
     --liquid-highlight: linear-gradient(
         138deg,
-        rgba(255, 255, 255, 0.78) 0%,
-        rgba(255, 255, 255, 0.28) 22%,
-        rgba(255, 255, 255, 0.06) 48%,
-        rgba(255, 255, 255, 0.18) 100%
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.16) 22%,
+        rgba(255, 255, 255, 0.04) 48%,
+        rgba(255, 255, 255, 0.1) 100%
     );
     --liquid-shadow-1:
-        inset 0 1px 0 rgba(255, 255, 255, 0.78),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.48),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.12),
         0 10px 30px rgba(52, 32, 68, 0.11);
     --liquid-shadow-2:
-        inset 0 1px 0 rgba(255, 255, 255, 0.88),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.12),
         0 24px 64px rgba(52, 32, 68, 0.18);
+    --liquid-lens-spot: rgba(255, 255, 255, 0.2);
     --liquid-surface-gradient: linear-gradient(
         145deg,
         rgba(255, 255, 255, 0.96) 0%,
@@ -1075,27 +1092,28 @@ select.form-input:focus {
     --liquid-data-hover: rgba(34, 32, 48, 0.94);
     --liquid-data-sheen: linear-gradient(
         145deg,
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.018) 52%,
-        rgba(243, 18, 96, 0.055)
+        rgba(255, 255, 255, 0.06),
+        rgba(255, 255, 255, 0.012) 52%,
+        rgba(243, 18, 96, 0.045)
     );
     --liquid-stroke: rgba(255, 255, 255, 0.16);
     --liquid-stroke-soft: rgba(255, 255, 255, 0.09);
     --liquid-highlight: linear-gradient(
         138deg,
-        rgba(255, 255, 255, 0.17) 0%,
-        rgba(255, 255, 255, 0.045) 32%,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.03) 32%,
         transparent 58%,
-        rgba(243, 18, 96, 0.055) 100%
+        rgba(243, 18, 96, 0.04) 100%
     );
     --liquid-shadow-1:
-        inset 0 1px 0 rgba(255, 255, 255, 0.11),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
         inset 0 -1px 0 rgba(0, 0, 0, 0.18),
         0 12px 34px rgba(5, 6, 12, 0.3);
     --liquid-shadow-2:
-        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
         inset 0 -1px 0 rgba(0, 0, 0, 0.28),
         0 28px 70px rgba(3, 4, 10, 0.48);
+    --liquid-lens-spot: rgba(255, 255, 255, 0.1);
     --liquid-surface-gradient: linear-gradient(
         145deg,
         rgba(43, 42, 58, 0.95) 0%,
@@ -1229,7 +1247,7 @@ body,
 .modal-content::before,
 .login-box::before {
     background: var(--liquid-highlight);
-    opacity: 0.78;
+    opacity: 0.5;
     transform: translate3d(-5%, -4%, 0) scale(1.1);
     transition:
         opacity var(--liquid-duration) var(--liquid-ease),
@@ -1413,12 +1431,12 @@ body,
     z-index: 1;
     border-radius: var(--data-card-radius);
     background: radial-gradient(
-        circle at 18% 12%,
-        rgba(255, 255, 255, 0.42) 0%,
-        rgba(255, 255, 255, 0.12) 28%,
+        circle at var(--lg-x, 18%) var(--lg-y, 12%),
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.08) 28%,
         transparent 62%
     );
-    opacity: 0.34;
+    opacity: 0.28;
     pointer-events: none;
     transform: none;
     transition: opacity 220ms var(--liquid-ease);
@@ -1626,6 +1644,191 @@ select.form-input {
     will-change: transform;
 }
 
+/* Pressable controls: in-bounds liquid lens highlight (pointer-driven via --lg-x/--lg-y). */
+:is(
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .nav-item,
+    .mobile-bottom-nav-item,
+    .pagination button,
+    .pagination a,
+    .page-topbar-menu,
+    .password-toggle,
+    .modal-close,
+    .back-to-top,
+    .theme-toggle-fab,
+    .data-card-drag-handle
+) {
+    --lg-x: 50%;
+    --lg-y: 40%;
+    --lg-spot-opacity: 0;
+    isolation: isolate;
+    transform-origin: center;
+    transition:
+        color var(--liquid-duration-fast) var(--liquid-ease),
+        background var(--liquid-duration-fast) var(--liquid-ease),
+        border-color var(--liquid-duration-fast) var(--liquid-ease),
+        box-shadow var(--liquid-duration) var(--liquid-ease),
+        opacity var(--liquid-duration-fast) var(--liquid-ease),
+        transform 220ms var(--liquid-spring),
+        filter 220ms var(--liquid-ease);
+}
+
+:is(
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .nav-item,
+    .mobile-bottom-nav-item,
+    .pagination button,
+    .pagination a,
+    .page-topbar-menu,
+    .modal-close,
+    .back-to-top,
+    .theme-toggle-fab,
+    .data-card-drag-handle
+) {
+    position: relative;
+    overflow: clip;
+}
+
+/* Keep eye button absolutely centered inside the password field. */
+.password-input-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.password-input-wrap .form-input,
+.password-input-wrap input {
+    width: 100%;
+    padding-right: 44px;
+    box-sizing: border-box;
+}
+
+.password-input-wrap .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+    border-radius: 10px;
+    transform: translateY(-50%);
+    transform-origin: center;
+}
+
+:is(
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .nav-item,
+    .mobile-bottom-nav-item,
+    .pagination button,
+    .pagination a,
+    .page-topbar-menu,
+    .password-toggle,
+    .modal-close,
+    .back-to-top,
+    .theme-toggle-fab,
+    .data-card-drag-handle
+)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle 72px at var(--lg-x, 50%) var(--lg-y, 40%),
+        var(--liquid-lens-spot) 0%,
+        rgba(255, 255, 255, 0.06) 38%,
+        transparent 68%
+    );
+    opacity: var(--lg-spot-opacity, 0);
+    pointer-events: none;
+    transform: none;
+    transition: opacity var(--liquid-duration-fast) var(--liquid-ease);
+}
+
+/* Override legacy ripple / active-nav ::before hides. */
+.btn::before,
+.nav-item.active::before,
+.nav-item[aria-current="page"]::before {
+    display: block;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    transform: none;
+    background: radial-gradient(
+        circle 72px at var(--lg-x, 50%) var(--lg-y, 40%),
+        var(--liquid-lens-spot) 0%,
+        rgba(255, 255, 255, 0.06) 38%,
+        transparent 68%
+    );
+}
+
+.btn:active::before {
+    width: auto;
+    height: auto;
+}
+
+:is(
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .nav-item,
+    .mobile-bottom-nav-item,
+    .pagination button,
+    .pagination a,
+    .page-topbar-menu,
+    .password-toggle,
+    .modal-close,
+    .back-to-top,
+    .theme-toggle-fab,
+    .data-card-drag-handle
+) > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Keep inactive nav tip above the lens wash without fighting layout. */
+.nav-item:not(.active)::after {
+    position: relative;
+    z-index: 1;
+}
+
+.weibo-feed-link-hint {
+    opacity: 0.72;
+    transition:
+        color var(--liquid-duration-fast) var(--liquid-ease),
+        opacity var(--liquid-duration-fast) var(--liquid-ease),
+        transform var(--liquid-duration-fast) var(--liquid-spring);
+}
+
+.data-card.weibo-feed-card,
+.data-card.weibo-feed-card:nth-child(odd),
+.data-card.weibo-feed-card:nth-child(even),
+.data-card.weibo-feed-card:nth-child(3n) {
+    --lg-x: 18%;
+    --lg-y: 12%;
+}
+
 .btn-secondary {
     background: rgba(255, 255, 255, 0.34);
     border-color: var(--liquid-stroke-soft);
@@ -1702,7 +1905,7 @@ select.form-input {
     .mobile-bottom-nav:hover::before,
     .modal-content:hover::before,
     .login-box:hover::before {
-        opacity: 1;
+        opacity: 0.68;
         transform: translate3d(1%, 1%, 0) scale(1.12);
     }
 
@@ -1742,32 +1945,68 @@ select.form-input {
     }
 
     .data-card:hover::before {
-        opacity: 0.72;
+        opacity: 0.48;
         background: radial-gradient(
-            circle at 78% 70%,
-            rgba(255, 255, 255, 0.46) 0%,
-            rgba(255, 255, 255, 0.12) 30%,
+            circle at var(--lg-x, 78%) var(--lg-y, 70%),
+            rgba(255, 255, 255, 0.3) 0%,
+            rgba(255, 255, 255, 0.08) 30%,
             transparent 64%
         );
     }
 
+    .liquid-lens:hover:not(:disabled),
     .btn:hover:not(:disabled),
     .tab-btn:hover,
     .config-module-tab:hover,
     .page-topbar-menu:hover,
-    .password-toggle:hover,
     .modal-close:hover,
     .back-to-top:hover,
-    .data-card-drag-handle:hover {
-        transform: translate3d(0, -1px, 0) scale(1.04);
+    .theme-toggle-fab:hover,
+    .data-card-drag-handle:hover,
+    .pagination button:hover,
+    .pagination a:hover {
+        --lg-spot-opacity: 1;
+        transform: translate3d(0, -1px, 0) scale(1.05);
+        filter: saturate(1.06);
+    }
+
+    .password-input-wrap .password-toggle:hover {
+        --lg-spot-opacity: 1;
+        transform: translateY(-50%) scale(1.06);
+        filter: saturate(1.05);
     }
 
     .nav-item:hover {
-        transform: translate3d(2px, 0, 0) scale(1.018);
+        --lg-spot-opacity: 1;
+        transform: translate3d(2px, 0, 0) scale(1.04);
+        filter: saturate(1.05);
     }
 
     .mobile-bottom-nav-item:hover {
-        transform: translate3d(0, -2px, 0) scale(1.045);
+        --lg-spot-opacity: 1;
+        transform: translate3d(0, -2px, 0) scale(1.05);
+        filter: saturate(1.05);
+    }
+
+    .btn:active:not(:disabled),
+    .tab-btn:active,
+    .config-module-tab:active,
+    .nav-item:active,
+    .mobile-bottom-nav-item:active,
+    .pagination button:active,
+    .pagination a:active,
+    .page-topbar-menu:active,
+    .modal-close:active,
+    .back-to-top:active,
+    .theme-toggle-fab:active,
+    .data-card-drag-handle:active {
+        transform: scale(0.97);
+        filter: none;
+    }
+
+    .password-input-wrap .password-toggle:active {
+        transform: translateY(-50%) scale(0.96);
+        filter: none;
     }
 
     body.page-data .content-body > .card:hover {
@@ -1791,13 +2030,44 @@ select.form-input {
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
     }
 
-    /* Weibo feed: no hover enlarge (Edge loses corner radius with scale). */
+    /* Weibo feed: no scale (Edge loses corner radius); lift + sheen + accent only. */
     .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
     .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
     body.page-data .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
     body.page-data .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
-        transform: none;
-        box-shadow: 0 2px 10px rgba(52, 32, 68, 0.08);
+        --data-card-fill: var(--liquid-data-hover);
+        --data-card-stroke: rgba(255, 255, 255, 0.78);
+        transform: translate3d(0, -3px, 0);
+        box-shadow:
+            0 14px 34px rgba(52, 32, 68, 0.14),
+            0 0 0 1px rgba(255, 127, 172, 0.08);
+        filter: none;
+    }
+
+    .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover::after,
+    .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover::after {
+        background-position: 100% 100%;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.55),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.14),
+            inset 4px 0 12px color-mix(in srgb, var(--data-card-accent) 18%, transparent);
+    }
+
+    [data-theme="dark"] .weibo-feed-card.data-card:not(.data-card-dragging):not(.data-card-chosen):hover,
+    [data-theme="dark"] .weibo-feed-grid .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
+        --data-card-stroke: rgba(255, 255, 255, 0.22);
+        box-shadow:
+            0 16px 36px rgba(3, 4, 10, 0.42),
+            0 0 0 1px rgba(243, 18, 96, 0.12);
+    }
+
+    .weibo-feed-card:hover .weibo-feed-link-hint {
+        opacity: 1;
+        transform: translate3d(2px, 0, 0);
+    }
+
+    .weibo-feed-card:hover .weibo-feed-action {
+        color: var(--primary-color);
     }
 }
 
@@ -1949,7 +2219,22 @@ select.form-input {
         will-change: auto;
     }
 
-    .data-card::before {
+    .data-card::before,
+    :is(
+        .btn,
+        .tab-btn,
+        .config-module-tab,
+        .nav-item,
+        .mobile-bottom-nav-item,
+        .pagination button,
+        .pagination a,
+        .page-topbar-menu,
+        .password-toggle,
+        .modal-close,
+        .back-to-top,
+        .theme-toggle-fab,
+        .data-card-drag-handle
+    )::before {
         transition: none !important;
     }
 
@@ -1960,8 +2245,19 @@ select.form-input {
     .tab-btn:hover,
     .config-module-tab:hover,
     .nav-item:hover,
-    .mobile-bottom-nav-item:hover {
+    .mobile-bottom-nav-item:hover,
+    .page-topbar-menu:hover,
+    .password-toggle:hover,
+    .modal-close:hover,
+    .back-to-top:hover,
+    .theme-toggle-fab:hover,
+    .pagination button:hover,
+    .pagination a:hover,
+    .data-card-drag-handle:hover,
+    .weibo-feed-card.data-card:hover,
+    .weibo-feed-grid .data-card:hover {
         transform: none !important;
+        filter: none !important;
     }
 }
 
