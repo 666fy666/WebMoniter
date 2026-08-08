@@ -1,3 +1,4 @@
+{% from "partials/icon.html" import icon %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -6,6 +7,7 @@
     <title>{% block title %}{{ page_title }} - WebMoniter{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css?v=1">
+    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=1">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -18,15 +20,16 @@
     {% block head_extra %}{% endblock %}
 </head>
 <body{% block body_class %}{% endblock %}>
+    <a href="#mainContent" class="skip-link">跳到主要内容</a>
     {% include "partials/sidebar.html" %}
 
     <!-- 修改密码模态框 -->
-    <div id="changePasswordModal" class="modal">
+    <div id="changePasswordModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle" aria-hidden="true">
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h3>修改密码</h3>
-                <button class="modal-close" id="closePasswordModal">&times;</button>
+                <h3 id="changePasswordTitle">{{ icon('lock') }} 修改密码</h3>
+                <button class="modal-close" id="closePasswordModal" type="button" aria-label="关闭修改密码弹窗">{{ icon('close') }}</button>
             </div>
             <form id="changePasswordForm">
                 <div class="modal-body">
@@ -57,32 +60,39 @@
     <!-- 版本更新提示横幅 -->
     <div id="updateBanner" class="update-banner">
         <div class="update-banner-content">
-            <span class="update-banner-icon">🎉</span>
+            <span class="update-banner-icon">{{ icon('sparkles') }}</span>
             <span class="update-banner-text">
                 发现新版本 <strong id="latestVersion"></strong>！
                 <a id="releasesLink" href="#" target="_blank">前往更新</a>
             </span>
         </div>
-        <button id="dismissUpdateBanner" class="update-banner-close" title="关闭">&times;</button>
+        <button id="dismissUpdateBanner" class="update-banner-close" type="button" aria-label="关闭更新提示">{{ icon('close') }}</button>
     </div>
 
     <div class="main-content">
         <header class="page-topbar">
-            <button type="button" class="page-topbar-menu mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">
+            <button type="button" class="page-topbar-menu mobile-menu-btn" id="mobileMenuBtn" aria-label="打开账户与设置">
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
+                {{ icon('user', 'ui-icon mobile-account-icon') }}
             </button>
             <div class="page-title-group">
                 <span class="page-kicker">WebMoniter</span>
                 <h1 class="page-title">{{ page_title }}</h1>
             </div>
         </header>
-        <div class="content-body">
+        <main class="content-body" id="mainContent" tabindex="-1">
             {% block content %}{% endblock %}
-        </div>
+        </main>
     </div>
-    <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">↑</button>
+    <nav class="mobile-bottom-nav" aria-label="主要导航">
+        <a href="/config" class="mobile-bottom-nav-item"{% if active_nav == 'config' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>配置</span></a>
+        <a href="/tasks" class="mobile-bottom-nav-item"{% if active_nav == 'tasks' %} aria-current="page"{% endif %}>{{ icon('tasks') }}<span>任务</span></a>
+        <a href="/data" class="mobile-bottom-nav-item"{% if active_nav == 'data' %} aria-current="page"{% endif %}>{{ icon('chart') }}<span>数据</span></a>
+        <a href="/logs" class="mobile-bottom-nav-item"{% if active_nav == 'logs' %} aria-current="page"{% endif %}>{{ icon('logs') }}<span>日志</span></a>
+    </nav>
+    <button id="backToTopBtn" class="back-to-top" aria-label="返回顶部">{{ icon('arrow-up') }}</button>
     <script src="/static/js/common.js?v=1"></script>
     {% block scripts %}{% endblock %}
 </body>

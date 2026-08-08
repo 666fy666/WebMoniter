@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "partials/icon.html" import icon %}
 {% block extra_modals %}
 <!-- 查看任务日志弹窗 -->
-    <div id="taskLogModal" class="modal">
+    <div id="taskLogModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="taskLogModalTitle" aria-hidden="true">
         <div class="modal-overlay"></div>
         <div class="modal-content modal-wide">
             <div class="modal-header">
-                <h3 id="taskLogModalTitle">📝 任务日志</h3>
-                <button class="modal-close" id="closeTaskLogModal">&times;</button>
+                <h3 id="taskLogModalTitle">{{ icon('logs') }} 任务日志</h3>
+                <button class="modal-close" id="closeTaskLogModal" type="button" aria-label="关闭任务日志">{{ icon('close') }}</button>
             </div>
             <div class="modal-body modal-body-scroll">
                 <div id="taskLogModalContent" class="logs-container">
@@ -15,7 +16,7 @@
             </div>
             <div class="modal-footer">
                 <button id="refreshTaskLogBtn" class="btn btn-secondary">
-                    <span>🔄</span>
+                    {{ icon('refresh') }}
                     刷新
                 </button>
                 <button class="btn btn-secondary" id="closeTaskLogBtn">关闭</button>
@@ -25,10 +26,10 @@
 {% endblock %}
 {% block content %}
 <div class="tabs-scroll-wrap">
-                <div class="tabs">
-                    <button class="tab-btn active" data-filter="all">🔮 全部任务</button>
-                    <button class="tab-btn" data-filter="monitor">📡 监控任务</button>
-                    <button class="tab-btn" data-filter="task">⏰ 定时任务</button>
+                <div class="tabs" role="tablist" aria-label="任务类型筛选">
+                    <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-filter="all">{{ icon('module') }} 全部任务</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-filter="monitor">{{ icon('radar') }} 监控任务</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-filter="task">{{ icon('clock') }} 定时任务</button>
                 </div>
             </div>
             <div class="task-toolbar">
@@ -37,10 +38,10 @@
             </div>
             <div class="card fade-in">
                 <div class="card-header">
-                    <h2 id="tasksTitle">🔮 全部任务</h2>
+                    <h2 id="tasksTitle">{{ icon('module') }} <span>全部任务</span></h2>
                     <div class="card-actions">
                         <button id="refreshBtn" class="btn btn-secondary">
-                            <span>🔄</span>
+                            {{ icon('refresh') }}
                             刷新
                         </button>
                     </div>
@@ -52,7 +53,7 @@
                 </div>
             </div>
             <div class="help-box" style="margin-top: 24px;">
-                <h3>💡 说明</h3>
+                <h3>{{ icon('info') }} 说明</h3>
                 <ul>
                     <li><strong>监控任务</strong>：按固定时间间隔循环执行的任务，如微博监控、虎牙直播监控等</li>
                     <li><strong>定时任务</strong>：按 Cron 时间表执行的任务，如每日签到、日志清理等</li>

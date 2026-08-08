@@ -117,15 +117,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     tabButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const view = this.dataset.view;
-            tabButtons.forEach(b => b.classList.remove('active'));
+            tabButtons.forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
             
             if (view === 'table') {
                 tableView.style.display = 'block';
                 textView.style.display = 'none';
+                tableView.removeAttribute('hidden');
+                textView.setAttribute('hidden', '');
             } else {
                 tableView.style.display = 'none';
                 textView.style.display = 'block';
+                tableView.setAttribute('hidden', '');
+                textView.removeAttribute('hidden');
                 // 切换到文本视图时加载YAML内容
                 loadYamlConfig();
             }
@@ -158,6 +166,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     function toggleSectionCollapse(section) {
         const sectionName = section.dataset.section;
         const isCollapsed = section.classList.toggle('collapsed');
+        const header = section.querySelector('.card-header');
+        if (header) header.setAttribute('aria-expanded', String(!isCollapsed));
         
         // 更新 localStorage
         const collapsedSections = loadCollapsedState();
@@ -179,8 +189,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         const collapsedSections = loadCollapsedState();
         document.querySelectorAll('.config-section').forEach(section => {
             const sectionName = section.dataset.section;
+            const header = section.querySelector('.card-header');
             if (collapsedSections.includes(sectionName)) {
                 section.classList.add('collapsed');
+            }
+            if (header) {
+                header.setAttribute('role', 'button');
+                header.setAttribute('tabindex', '0');
+                header.setAttribute('aria-expanded', String(!section.classList.contains('collapsed')));
             }
         });
     }
@@ -196,6 +212,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (section) {
                 toggleSectionCollapse(section);
             }
+        });
+        header.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.target.closest('.btn') || e.target.closest('input, select, textarea')) return;
+            e.preventDefault();
+            const section = this.closest('.config-section');
+            if (section) toggleSectionCollapse(section);
         });
     });
 
@@ -217,6 +240,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const collapsedSections = loadCollapsedState();
             visibleSections.forEach(section => {
                 section.classList.add('collapsed');
+                const header = section.querySelector('.card-header');
+                if (header) header.setAttribute('aria-expanded', 'false');
                 const name = section.dataset.section;
                 if (name && !collapsedSections.includes(name)) collapsedSections.push(name);
             });
@@ -232,6 +257,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const collapsedSections = loadCollapsedState();
             visibleSections.forEach(section => {
                 section.classList.remove('collapsed');
+                const header = section.querySelector('.card-header');
+                if (header) header.setAttribute('aria-expanded', 'true');
                 const name = section.dataset.section;
                 if (name) {
                     const idx = collapsedSections.indexOf(name);
@@ -294,7 +321,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function setActiveModule(moduleName) {
         configModuleTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.module === moduleName);
+            const active = tab.dataset.module === moduleName;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', String(active));
         });
         if (configModuleSearch) {
             configModuleSearch.placeholder = MODULE_PLACEHOLDERS[moduleName] || '搜索...';
@@ -323,7 +352,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     setActiveModule('monitor');
 
     // 加载YAML配置
-    async function loadYamlConfig() {
+    async function loadYamlConfig(triggerButton = null) {
+        if (triggerButton) setButtonLoading(triggerButton, true, '加载中...');
         try {
             const response = await fetch('/api/config?format=yaml');
             const data = await response.json();
@@ -337,6 +367,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '加载YAML配置失败: ' + error.message, 'error');
             yamlEditor.value = '';
+        } finally {
+            if (triggerButton) setButtonLoading(triggerButton, false);
         }
     }
 
@@ -349,9 +381,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
+        setButtonLoading(saveYamlBtn, true, '保存中...');
         try {
-            saveYamlBtn.disabled = true;
-            saveYamlBtn.textContent = '保存中...';
 
             const response = await fetch('/api/config', {
                 method: 'POST',
@@ -382,14 +413,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '保存YAML配置失败: ' + error.message, 'error');
         } finally {
-            saveYamlBtn.disabled = false;
-            saveYamlBtn.textContent = '保存配置';
+            setButtonLoading(saveYamlBtn, false);
         }
     }
 
     // 绑定YAML编辑器按钮事件
     if (reloadYamlBtn) {
-        reloadYamlBtn.addEventListener('click', loadYamlConfig);
+        reloadYamlBtn.addEventListener('click', () => loadYamlConfig(reloadYamlBtn));
     }
     if (saveYamlBtn) {
         saveYamlBtn.addEventListener('click', saveYamlConfig);
@@ -510,9 +540,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function testMysqlConnection() {
         const button = document.getElementById('mysqlTestBtn');
         if (!button) return;
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.textContent = '测试中...';
+        setButtonLoading(button, true, '测试中...');
         try {
             const response = await fetch('/api/database/test', {
                 method: 'POST',
@@ -525,8 +553,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', error.message || 'MySQL 连接测试失败', 'error');
         } finally {
-            button.disabled = false;
-            button.innerHTML = originalText;
+            setButtonLoading(button, false);
         }
     }
 
@@ -2510,6 +2537,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 保存特定section的配置
     async function saveSectionConfig(section, btn) {
+        setButtonLoading(btn, true, '保存中...');
         try {
             // 先加载完整配置
             const response = await fetch('/api/config?format=json');
@@ -2527,9 +2555,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const mergedConfig = { ...fullConfig, ...sectionConfig };
 
             // 保存配置
-            btn.disabled = true;
-            btn.textContent = '保存中...';
-
             const saveResponse = await fetch('/api/config', {
                 method: 'POST',
                 headers: {
@@ -2552,17 +2577,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '保存配置失败: ' + error.message, 'error');
         } finally {
-            btn.disabled = false;
-            btn.textContent = '保存配置';
+            setButtonLoading(btn, false);
         }
     }
 
     // 加载特定section的配置
     async function loadSectionConfigFromServer(section, btn) {
+        setButtonLoading(btn, true, '加载中...');
         try {
-            btn.disabled = true;
-            btn.textContent = '加载中...';
-
             const response = await fetch('/api/config?format=json');
             const data = await response.json();
 
@@ -2577,20 +2599,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '加载配置失败: ' + error.message, 'error');
         } finally {
-            btn.disabled = false;
-            btn.textContent = '重新加载';
+            setButtonLoading(btn, false);
         }
     }
 
     // 重新加载单个通道配置
     async function reloadChannelConfig(channelDiv, index) {
+        const reloadBtn = channelDiv.querySelector('.reload-channel-btn');
+        if (reloadBtn) setButtonLoading(reloadBtn, true, '加载中...');
         try {
-            const reloadBtn = channelDiv.querySelector('.reload-channel-btn');
-            if (reloadBtn) {
-                reloadBtn.disabled = true;
-                reloadBtn.textContent = '加载中...';
-            }
-
             const response = await fetch('/api/config?format=json');
             const data = await response.json();
 
@@ -2619,20 +2636,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '重新加载通道配置失败: ' + error.message, 'error');
         } finally {
-            const reloadBtn = channelDiv.querySelector('.reload-channel-btn');
-            if (reloadBtn) {
-                reloadBtn.disabled = false;
-                reloadBtn.textContent = '重新加载';
-            }
+            if (reloadBtn) setButtonLoading(reloadBtn, false);
         }
     }
 
     // 保存单个通道配置
     async function saveChannelConfig(channelDiv, index, saveBtn) {
+        setButtonLoading(saveBtn, true, '保存中...');
         try {
-            saveBtn.disabled = true;
-            saveBtn.textContent = '保存中...';
-
             // 先加载完整配置
             const response = await fetch('/api/config?format=json');
             const data = await response.json();
@@ -2683,8 +2694,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showMessage('configMessage', '保存通道配置失败: ' + error.message, 'error');
         } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = '保存配置';
+            setButtonLoading(saveBtn, false);
         }
     }
 
@@ -3163,7 +3173,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             input.type = showing ? 'password' : 'text';
             this.setAttribute('aria-pressed', String(!showing));
             this.setAttribute('aria-label', showing ? '显示 MySQL 密码' : '隐藏 MySQL 密码');
-            this.textContent = showing ? '👁' : '🙈';
+            this.innerHTML = uiIcon(showing ? 'eye' : 'eye-off');
         });
     }
 

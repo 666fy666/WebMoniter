@@ -10,34 +10,34 @@
         </a>
     </div>
     <nav class="sidebar-nav">
-        <a href="/config" class="nav-item{% if active_nav == 'config' %} active{% endif %}">
-            <span class="nav-icon">⚙️</span>
+        <a href="/config" class="nav-item{% if active_nav == 'config' %} active{% endif %}"{% if active_nav == 'config' %} aria-current="page"{% endif %}>
+            <span class="nav-icon">{{ icon('settings') }}</span>
             <span class="nav-text">配置管理</span>
         </a>
-        <a href="/tasks" class="nav-item{% if active_nav == 'tasks' %} active{% endif %}">
-            <span class="nav-icon">📋</span>
+        <a href="/tasks" class="nav-item{% if active_nav == 'tasks' %} active{% endif %}"{% if active_nav == 'tasks' %} aria-current="page"{% endif %}>
+            <span class="nav-icon">{{ icon('tasks') }}</span>
             <span class="nav-text">任务管理</span>
         </a>
-        <a href="/data" class="nav-item{% if active_nav == 'data' %} active{% endif %}">
-            <span class="nav-icon">📊</span>
+        <a href="/data" class="nav-item{% if active_nav == 'data' %} active{% endif %}"{% if active_nav == 'data' %} aria-current="page"{% endif %}>
+            <span class="nav-icon">{{ icon('chart') }}</span>
             <span class="nav-text">数据展示</span>
         </a>
-        <a href="/logs" class="nav-item{% if active_nav == 'logs' %} active{% endif %}">
-            <span class="nav-icon">📝</span>
+        <a href="/logs" class="nav-item{% if active_nav == 'logs' %} active{% endif %}"{% if active_nav == 'logs' %} aria-current="page"{% endif %}>
+            <span class="nav-icon">{{ icon('logs') }}</span>
             <span class="nav-text">日志查看</span>
         </a>
     </nav>
     <div class="sidebar-footer">
         <button id="themeToggleBtn" class="btn btn-secondary">
-            <span id="themeIcon">☀️</span>
+            <span id="themeIcon">{{ icon('sun') }}</span>
             切换主题
         </button>
         <button id="changePasswordBtn" class="btn btn-secondary">
-            <span>🔐</span>
+            {{ icon('lock') }}
             修改密码
         </button>
         <button id="logoutBtn" class="btn btn-secondary">
-            <span>🚪</span>
+            {{ icon('logout') }}
             退出登录
         </button>
     </div>

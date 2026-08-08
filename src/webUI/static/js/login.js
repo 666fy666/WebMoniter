@@ -108,8 +108,9 @@ document.addEventListener('DOMContentLoaded', function() {
         passwordToggle.addEventListener('click', function() {
             const isHidden = passwordInput.type === 'password';
             passwordInput.type = isHidden ? 'text' : 'password';
-            passwordToggle.textContent = isHidden ? '🙈' : '👁';
+            passwordToggle.innerHTML = uiIcon(isHidden ? 'eye-off' : 'eye');
             passwordToggle.setAttribute('aria-label', isHidden ? '隐藏密码' : '显示密码');
+            passwordToggle.setAttribute('aria-pressed', String(isHidden));
         });
     }
 
@@ -123,6 +124,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 清空错误消息
         errorMessage.textContent = '';
         errorMessage.classList.remove('show');
+        const submitButton = loginForm.querySelector('button[type="submit"]');
+        setButtonLoading(submitButton, true, '登录中...');
 
         try {
             const formData = new FormData();
@@ -145,6 +148,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             errorMessage.textContent = '网络错误，请稍后重试';
             errorMessage.classList.add('show');
+        } finally {
+            setButtonLoading(submitButton, false);
         }
     });
 

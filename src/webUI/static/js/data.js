@@ -69,35 +69,41 @@ document.addEventListener('DOMContentLoaded', function () {
     let lazyObserverRaf = 0;
 
     const tableTitles = {
-        weibo: '📱 微博数据',
-        huya: '🐯 虎牙数据',
-        bilibili_live: '📺 哔哩哔哩直播',
-        bilibili_dynamic: '📺 哔哩哔哩动态',
-        douyin: '🎬 抖音直播',
-        douyu: '🐟 斗鱼直播',
-        xhs: '📕 小红书数据',
+        weibo: ['comment', '微博数据'],
+        huya: ['radar', '虎牙数据'],
+        bilibili_live: ['play', '哔哩哔哩直播'],
+        bilibili_dynamic: ['play', '哔哩哔哩动态'],
+        douyin: ['play', '抖音直播'],
+        douyu: ['play', '斗鱼直播'],
+        xhs: ['module', '小红书数据'],
     };
 
     // 切换标签页
     tabButtons.forEach((btn) => {
         btn.addEventListener('click', function () {
-            tabButtons.forEach((b) => b.classList.remove('active'));
+            tabButtons.forEach((b) => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
             currentTable = this.dataset.table;
             currentPage = 1;
-            tableTitle.textContent = tableTitles[currentTable] || currentTable;
+            const [icon, label] = tableTitles[currentTable] || ['module', currentTable];
+            tableTitle.innerHTML = `${uiIcon(icon)} <span>${label}</span>`;
             loadTableData();
         });
     });
 
     // 刷新数据
     refreshBtn.addEventListener('click', function () {
-        loadTableData();
+        loadTableData(refreshBtn);
     });
 
     // 加载数据（虎牙：先取基础数据，再异步加载封面/头像 URL）
-    async function loadTableData() {
+    async function loadTableData(triggerButton = null) {
         dataTableContainer.innerHTML = '<div class="loading">加载中...</div>';
+        if (triggerButton) setButtonLoading(triggerButton, true, '刷新中...');
 
         try {
             const isHuya = currentTable === 'huya';
@@ -131,6 +137,8 @@ document.addEventListener('DOMContentLoaded', function () {
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
                 error.message,
             )}</div>`;
+        } finally {
+            if (triggerButton) setButtonLoading(triggerButton, false);
         }
     }
 
@@ -244,6 +252,25 @@ document.addEventListener('DOMContentLoaded', function () {
             onEnd: function () {
                 saveCardOrder();
             },
+        });
+        grid.querySelectorAll('.data-card-drag-handle').forEach((handle) => {
+            handle.addEventListener('keydown', function (event) {
+                if (!['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'].includes(event.key)) return;
+                const card = this.closest('.data-card');
+                if (!card) return;
+                const moveBackward = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+                const sibling = moveBackward ? card.previousElementSibling : card.nextElementSibling;
+                if (!sibling) return;
+                event.preventDefault();
+                if (moveBackward) {
+                    grid.insertBefore(card, sibling);
+                } else {
+                    grid.insertBefore(sibling, card);
+                }
+                saveCardOrder();
+                this.focus();
+                showToast('卡片顺序已调整', 'info', 1800);
+            });
         });
     }
 
@@ -1364,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 html += `
 <article class="data-card weibo-feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <div class="weibo-feed-inner">
     <div class="weibo-feed-header">
       <img data-src="${escapeAttr(
@@ -1390,9 +1417,9 @@ document.addEventListener('DOMContentLoaded', function () {
       ${videoHtml}
     </div>
     <footer class="weibo-feed-footer">
-      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">↗</span> 转发</span>
-      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">💬</span> 评论</span>
-      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">❤</span> 点赞</span>
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">${uiIcon('refresh')}</span> 转发</span>
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">${uiIcon('comment')}</span> 评论</span>
+      <span class="weibo-feed-action"><span class="weibo-feed-action-icon">${uiIcon('heart')}</span> 点赞</span>
       <span class="weibo-feed-link-hint">点击卡片打开微博详情 →</span>
     </footer>
   </div>
@@ -1423,12 +1450,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     url = url || (row.room_id ? `https://live.bilibili.com/${row.room_id}` : '');
                 }
                 const isLive = row.is_live === '1' || row.is_live === 1 || row.is_live === true;
-                const statusText = isLive ? '🟢 直播中' : '⚪ 未开播';
+                const statusHtml = `${uiIcon(isLive ? 'radar' : 'module')} ${isLive ? '直播中' : '未开播'}`;
                 const name = row.name || row.uname || '';
 
                 html += `
 <article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(name)}</div>
@@ -1437,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <span class="platform-badge ${escapeAttr(platformBadgeClass)}">${escapeHtml(platformLabel)}</span>
   </header>
   <div class="feed-card-body">
-    <div class="feed-card-text">${escapeHtml(statusText)}</div>
+    <div class="feed-card-text">${statusHtml}</div>
   </div>
   <footer class="feed-card-footer">
     <span class="feed-card-link-hint">点击卡片打开直播间</span>
@@ -1480,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <article class="data-card live-card data-card-link ${
     isLive ? 'live-card-on' : 'live-card-off'
 }" data-id="${cardId}" data-href="${escapeAttr(url)}"${dataRoomAttr}>
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <div class="live-card-media">
     <div class="live-card-cover${
         coverUrl ? ' live-card-cover-has-img' : ''
@@ -1504,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <h3 class="live-anchor-name">${escapeHtml(row.name || row.uname || '')}</h3>
       </div>
       <div class="live-status-badge ${isLive ? 'status-live' : 'status-offline'}">
-        ${isLive ? '🟢 直播中' : '⚪ 未开播'}
+        ${uiIcon(isLive ? 'radar' : 'module')} ${isLive ? '直播中' : '未开播'}
       </div>
     </div>
     <div class="live-card-body">
@@ -1537,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 html += `
 <article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(row.uname || '')}</div>
@@ -1569,7 +1596,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 html += `
 <article class="data-card feed-card data-card-link" data-id="${cardId}" data-href="${escapeAttr(url)}">
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <header class="feed-card-header">
     <div class="feed-card-user">
       <div class="feed-card-name">${escapeHtml(row.user_name || '')}</div>
@@ -1595,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const cardId = escapeAttr(getCardId(row, idx));
                 html += `
 <article class="data-card feed-card" data-id="${cardId}">
-  <span class="data-card-drag-handle" title="拖拽调整顺序">⋮⋮</span>
+  <span class="data-card-drag-handle" role="button" tabindex="0" aria-label="拖拽或使用方向键调整顺序">${uiIcon('grip')}</span>
   <pre class="feed-card-raw">${escapeHtml(JSON.stringify(row, null, 2))}</pre>
 </article>`;
             });
@@ -1634,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let html = '';
 
         // 上一页
-        html += `<button ${
+        html += `<button aria-label="上一页" ${
             currentPage === 1 ? 'disabled' : ''
         } onclick="goToPage(${currentPage - 1})">上一页</button>`;
 
@@ -1642,7 +1669,7 @@ document.addEventListener('DOMContentLoaded', function () {
         html += `<span class="page-info">第 ${currentPage} / ${totalPages} 页 (共 ${total} 条)</span>`;
 
         // 下一页
-        html += `<button ${
+        html += `<button aria-label="下一页" ${
             currentPage === totalPages ? 'disabled' : ''
         } onclick="goToPage(${currentPage + 1})">下一页</button>`;
 

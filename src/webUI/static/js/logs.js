@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
             (data.all_tasks || []).forEach(function(t) {
                 const opt = document.createElement('option');
                 opt.value = t.job_id;
-                opt.textContent = (t.has_log_today ? '📝 ' : '📋 ') + t.job_id;
+                opt.textContent = (t.has_log_today ? '今日 · ' : '') + t.job_id;
                 logSourceSelect.appendChild(opt);
             });
         } catch (e) {
@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cacheAgeText = `${Math.floor(cacheAge / 3600)}小时前`;
             }
             html += `<div class="cache-notice">
-                <span>⚠️ 显示缓存数据</span>（${cacheAgeText}的数据，正在尝试刷新...）
+                <span>${uiIcon('warning')} 显示缓存数据</span>（${cacheAgeText}的数据，正在尝试刷新...）
             </div>`;
         }
         
@@ -326,9 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 刷新日志（手动刷新时强制刷新，并更新任务列表）
-    refreshLogsBtn.addEventListener('click', function() {
-        loadLogTasks();
-        loadLogs(true, true);
+    refreshLogsBtn.addEventListener('click', async function() {
+        setButtonLoading(refreshLogsBtn, true, '刷新中...');
+        try {
+            await Promise.all([loadLogTasks(), loadLogs(true, true)]);
+        } finally {
+            setButtonLoading(refreshLogsBtn, false);
+        }
     });
 
     // 清空显示

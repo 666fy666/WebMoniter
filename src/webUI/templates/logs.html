@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% from "partials/icon.html" import icon %}
 {% block body_class %} class="page-logs"{% endblock %}
 {% block content %}
 <div class="card fade-in">
                 <div class="card-header">
-                    <h2>📋 今日日志</h2>
+                    <h2>{{ icon('logs') }} 今日日志</h2>
                     <div class="card-actions logs-toolbar">
                         <label class="logs-toolbar-label">
                             <span>日志来源:</span>
                             <select id="logSourceSelect" class="form-input">
-                                <option value="">📋 今日总日志</option>
+                                <option value="">今日总日志</option>
                                 <!-- 任务选项由 JS 动态填充 -->
                             </select>
                         </label>
@@ -17,11 +18,11 @@
                             <span>自动滚动</span>
                         </label>
                         <button id="refreshLogsBtn" class="btn btn-secondary">
-                            <span>🔄</span>
+                            {{ icon('refresh') }}
                             刷新
                         </button>
                         <button id="clearLogsBtn" class="btn btn-secondary">
-                            <span>🗑️</span>
+                            {{ icon('trash') }}
                             清空显示
                         </button>
                     </div>

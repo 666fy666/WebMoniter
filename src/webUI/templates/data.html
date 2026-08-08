@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+{% from "partials/icon.html" import icon %}
 {% block content %}
 <div class="tabs-scroll-wrap">
-                <div class="tabs">
-                    <button class="tab-btn active" data-table="weibo">📱 微博数据</button>
-                    <button class="tab-btn" data-table="huya">🐯 虎牙数据</button>
-                    <button class="tab-btn" data-table="bilibili_live">📺 哔哩哔哩直播</button>
-                    <button class="tab-btn" data-table="bilibili_dynamic">📺 哔哩哔哩动态</button>
-                    <button class="tab-btn" data-table="douyin">🎬 抖音直播</button>
-                    <button class="tab-btn" data-table="douyu">🐟 斗鱼直播</button>
-                    <button class="tab-btn" data-table="xhs">📕 小红书数据</button>
+                <div class="tabs" role="tablist" aria-label="数据来源">
+                    <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-table="weibo">{{ icon('comment') }} 微博数据</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="huya">{{ icon('radar') }} 虎牙数据</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="bilibili_live">{{ icon('play') }} 哔哩哔哩直播</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="bilibili_dynamic">{{ icon('play') }} 哔哩哔哩动态</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="douyin">{{ icon('play') }} 抖音直播</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="douyu">{{ icon('play') }} 斗鱼直播</button>
+                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-table="xhs">{{ icon('module') }} 小红书数据</button>
                 </div>
             </div>
             <div class="card fade-in">
                 <div class="card-header">
-                    <h2 id="tableTitle">📱 微博数据</h2>
+                    <h2 id="tableTitle">{{ icon('comment') }} <span>微博数据</span></h2>
                     <div class="card-actions">
                         <button id="refreshBtn" class="btn btn-secondary">
-                            <span>🔄</span>
+                            {{ icon('refresh') }}
                             刷新
                         </button>
                     </div>

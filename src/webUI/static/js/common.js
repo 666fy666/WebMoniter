@@ -1,17 +1,79 @@
 // 通用JavaScript函数
 
+const UI_ICON_SPRITE = '/static/icons.svg';
+
+function uiIcon(name, className = 'ui-icon') {
+    return `<svg class="${className}" aria-hidden="true" focusable="false"><use href="${UI_ICON_SPRITE}#icon-${name}"></use></svg>`;
+}
+
+function setButtonLoading(button, loading, loadingText = '处理中...') {
+    if (!button) return;
+
+    if (loading) {
+        button.dataset.originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.classList.add('is-loading');
+        button.setAttribute('aria-busy', 'true');
+        button.innerHTML = `${uiIcon('refresh')}<span>${loadingText}</span>`;
+        return;
+    }
+
+    if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+    }
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    button.removeAttribute('aria-busy');
+}
+
+const modalOpeners = new WeakMap();
+
+function openAccessibleModal(modal, opener = document.activeElement) {
+    if (!modal) return;
+    modalOpeners.set(modal, opener);
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        const focusTarget = modal.querySelector('[autofocus], input:not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+        if (focusTarget) focusTarget.focus();
+    });
+}
+
+function closeAccessibleModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal.show')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+    }
+    const opener = modalOpeners.get(modal);
+    if (opener && document.contains(opener)) opener.focus();
+    modalOpeners.delete(modal);
+}
+
+window.uiIcon = uiIcon;
+window.setButtonLoading = setButtonLoading;
+window.openAccessibleModal = openAccessibleModal;
+window.closeAccessibleModal = closeAccessibleModal;
+
 // 根据当前路径高亮侧边栏导航
 function initActiveNav() {
     const path = window.location.pathname;
-    const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+    const navItems = document.querySelectorAll('.sidebar-nav .nav-item, .mobile-bottom-nav-item');
     if (!navItems.length) return;
 
     navItems.forEach(item => {
         item.classList.remove('active');
+        item.removeAttribute('aria-current');
         const href = item.getAttribute('href');
         if (!href) return;
         if (path === href || (path === '/' && href === '/config')) {
             item.classList.add('active');
+            item.setAttribute('aria-current', 'page');
         }
     });
 }
@@ -43,7 +105,7 @@ function toggleTheme() {
 function updateThemeIcon(theme) {
     const themeIcon = document.getElementById('themeIcon');
     if (themeIcon) {
-        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+        themeIcon.innerHTML = uiIcon(theme === 'dark' ? 'moon' : 'sun');
     }
 }
 
@@ -87,6 +149,8 @@ function ensureToastContainer() {
         container = document.createElement('div');
         container.id = 'toastContainer';
         container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'false');
         document.body.appendChild(container);
     }
     return container;
@@ -98,20 +162,29 @@ function showToast(message, type = 'success', duration = 3000) {
     
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     
     // 图标
     const icons = {
-        success: '✓',
-        error: '✕',
-        warning: '⚠',
-        info: 'ℹ'
+        success: 'check',
+        error: 'error',
+        warning: 'warning',
+        info: 'info'
     };
-    
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type] || icons.info}</span>
-        <span class="toast-message">${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-    `;
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.innerHTML = uiIcon(icons[type] || icons.info);
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = message;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', '关闭通知');
+    close.innerHTML = uiIcon('close');
+    close.addEventListener('click', () => toast.remove());
+    toast.append(icon, text, close);
     
     container.appendChild(toast);
     
@@ -188,12 +261,16 @@ function initMobileMenu() {
         document.body.classList.toggle('sidebar-collapsed', collapsed);
         localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? '1' : '0');
         mobileMenuBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        mobileMenuBtn.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
+        sidebar.toggleAttribute('inert', collapsed);
     }
 
     function initDesktopSidebarState() {
         if (isMobileViewport()) {
             document.body.classList.remove('sidebar-collapsed');
             sidebar.setAttribute('aria-hidden', 'true');
+            sidebar.setAttribute('inert', '');
+            mobileMenuBtn.setAttribute('aria-label', '打开账户与设置');
             return;
         }
 
@@ -212,7 +289,15 @@ function initMobileMenu() {
         mobileMenuBtn.classList.toggle('active', open);
         document.body.classList.toggle('mobile-sidebar-open', open);
         mobileMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        mobileMenuBtn.setAttribute('aria-label', open ? '关闭账户与设置' : '打开账户与设置');
         sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+        sidebar.toggleAttribute('inert', !open);
+        if (open) {
+            requestAnimationFrame(() => {
+                const firstControl = sidebar.querySelector('.sidebar-footer button');
+                if (firstControl) firstControl.focus();
+            });
+        }
     }
 
     function closeMobileMenu() {
@@ -250,6 +335,12 @@ function initMobileMenu() {
         });
     });
 
+    sidebar.querySelectorAll('.sidebar-footer button').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (isMobileViewport()) closeMobileMenu();
+        });
+    });
+
     let resizeTimer;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
@@ -284,14 +375,15 @@ function initChangePassword() {
 
     // 显示模态框
     function showModal() {
-        changePasswordModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+        const opener = window.innerWidth <= 768
+            ? document.getElementById('mobileMenuBtn')
+            : changePasswordBtn;
+        openAccessibleModal(changePasswordModal, opener);
     }
 
     // 隐藏模态框
     function hideModal() {
-        changePasswordModal.classList.remove('show');
-        document.body.style.overflow = '';
+        closeAccessibleModal(changePasswordModal);
         // 清空表单和消息
         if (changePasswordForm) {
             changePasswordForm.reset();
@@ -381,6 +473,27 @@ function initChangePassword() {
         }
     });
 }
+
+document.addEventListener('keydown', function(event) {
+    if (event.key !== 'Tab') return;
+    const openModals = Array.from(document.querySelectorAll('.modal.show'));
+    const modal = openModals[openModals.length - 1];
+    if (!modal) return;
+
+    const focusable = Array.from(modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+        .filter(element => element.getClientRects().length > 0);
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+});
 
 // ================= 版本检查功能 =================
 

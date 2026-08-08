@@ -9,9 +9,10 @@ let allTasks = [];
 const runningTasks = new Set();
 
 // 加载任务列表
-async function loadTasks() {
+async function loadTasks(triggerButton = null) {
     const container = document.getElementById('tasksContainer');
     container.innerHTML = '<div class="loading">加载中...</div>';
+    if (triggerButton) setButtonLoading(triggerButton, true, '刷新中...');
 
     try {
         const response = await fetch('/api/tasks');
@@ -32,6 +33,8 @@ async function loadTasks() {
             </div>
         `;
         updateTaskCount(0);
+    } finally {
+        if (triggerButton) setButtonLoading(triggerButton, false);
     }
 }
 
@@ -70,7 +73,7 @@ function renderTasks(tasks) {
 
     filteredTasks.forEach(task => {
         const isRunning = runningTasks.has(task.job_id);
-        const typeIcon = task.type === 'monitor' ? '📡' : '⏰';
+        const typeIcon = task.type === 'monitor' ? uiIcon('radar') : uiIcon('clock');
         const typeClass = task.type === 'monitor' ? 'task-type-monitor' : 'task-type-task';
         const taskTitle = escapeHtml(task.description || task.job_id);
         const taskId = escapeHtml(task.job_id);
@@ -94,7 +97,7 @@ function renderTasks(tasks) {
                         data-job-id="${taskId}"
                         ${isRunning ? 'disabled' : ''}
                     >
-                        <span class="btn-icon">${isRunning ? '⏳' : '▶️'}</span>
+                        <span class="btn-icon">${isRunning ? uiIcon('refresh') : uiIcon('play')}</span>
                         <span class="btn-text">${isRunning ? '运行中...' : '运行'}</span>
                     </button>
                     <button
@@ -102,7 +105,7 @@ function renderTasks(tasks) {
                         data-job-id="${taskId}"
                         title="查看今日日志"
                     >
-                        <span class="btn-icon">📝</span>
+                        <span class="btn-icon">${uiIcon('logs')}</span>
                         <span class="btn-text">查看日志</span>
                     </button>
                 </div>
@@ -137,8 +140,9 @@ function openTaskLogModal(jobId) {
     const modal = document.getElementById('taskLogModal');
     const titleEl = document.getElementById('taskLogModalTitle');
     if (modal && titleEl) {
-        titleEl.textContent = '📝 任务日志 - ' + jobId;
-        modal.classList.add('show');
+        titleEl.innerHTML = `${uiIcon('logs')} 任务日志 - <span></span>`;
+        titleEl.querySelector('span').textContent = jobId;
+        openAccessibleModal(modal, document.querySelector(`.view-log-btn[data-job-id="${jobId}"]`));
         loadTaskLogInModal(jobId);
     }
 }
@@ -147,7 +151,7 @@ function openTaskLogModal(jobId) {
 function closeTaskLogModal() {
     const modal = document.getElementById('taskLogModal');
     if (modal) {
-        modal.classList.remove('show');
+        closeAccessibleModal(modal);
     }
     currentTaskLogJobId = null;
 }
@@ -217,10 +221,8 @@ async function runTask(jobId) {
     if (!btn) return;
 
     runningTasks.add(jobId);
-    btn.disabled = true;
     btn.classList.add('running');
-    btn.querySelector('.btn-icon').textContent = '⏳';
-    btn.querySelector('.btn-text').textContent = '运行中...';
+    setButtonLoading(btn, true, '运行中...');
 
     try {
         const response = await fetch(`/api/tasks/${jobId}/run`, {
@@ -238,10 +240,8 @@ async function runTask(jobId) {
         showToast(`运行任务失败: ${error.message}`, 'error');
     } finally {
         runningTasks.delete(jobId);
-        btn.disabled = false;
         btn.classList.remove('running');
-        btn.querySelector('.btn-icon').textContent = '▶️';
-        btn.querySelector('.btn-text').textContent = '运行';
+        setButtonLoading(btn, false);
     }
 }
 
@@ -249,11 +249,12 @@ async function runTask(jobId) {
 function updateTitle(filter) {
     const titleEl = document.getElementById('tasksTitle');
     const titles = {
-        'all': '🔮 全部任务',
-        'monitor': '📡 监控任务',
-        'task': '⏰ 定时任务'
+        'all': ['module', '全部任务'],
+        'monitor': ['radar', '监控任务'],
+        'task': ['clock', '定时任务']
     };
-    titleEl.textContent = titles[filter] || titles['all'];
+    const [icon, label] = titles[filter] || titles.all;
+    titleEl.innerHTML = `${uiIcon(icon)} <span>${label}</span>`;
 }
 
 // 页面初始化
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadTasks);
+        refreshBtn.addEventListener('click', () => loadTasks(refreshBtn));
     }
 
     const taskSearch = document.getElementById('taskSearch');
@@ -279,8 +280,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
 
             currentFilter = this.dataset.filter;
             updateTitle(currentFilter);
@@ -309,4 +314,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && taskLogModal && taskLogModal.classList.contains('show')) {
+            closeTaskLogModal();
+        }
+    });
 });

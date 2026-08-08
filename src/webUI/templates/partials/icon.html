@@ -1,0 +1,5 @@
+{% macro icon(name, class_name='ui-icon') -%}
+<svg class="{{ class_name }}" aria-hidden="true" focusable="false">
+    <use href="/static/icons.svg#icon-{{ name }}"></use>
+</svg>
+{%- endmacro %}

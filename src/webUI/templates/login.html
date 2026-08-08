@@ -1,3 +1,4 @@
+{% from "partials/icon.html" import icon %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -6,6 +7,7 @@
     <title>登录 - WebMoniter</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css?v=1">
+    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=1">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -20,13 +22,13 @@
     <!-- 版本更新提示横幅 -->
     <div id="updateBanner" class="login-update-banner">
         <div class="update-banner-content">
-            <span class="update-banner-icon">🎉</span>
+            <span class="update-banner-icon">{{ icon('sparkles') }}</span>
             <span class="update-banner-text">
                 发现新版本 <strong id="latestVersion"></strong>！
                 <a id="releasesLink" href="#" target="_blank">前往更新</a>
             </span>
         </div>
-        <button id="dismissUpdateBanner" class="update-banner-close" title="关闭">&times;</button>
+        <button id="dismissUpdateBanner" class="update-banner-close" type="button" aria-label="关闭更新提示">{{ icon('close') }}</button>
     </div>
 
     <div class="login-container">
@@ -46,10 +48,10 @@
                     <label for="password">密码</label>
                     <div class="password-input-wrap">
                         <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="请输入密码">
-                        <button type="button" class="password-toggle" id="passwordToggle" aria-label="显示密码">👁</button>
+                        <button type="button" class="password-toggle" id="passwordToggle" aria-label="显示密码" aria-pressed="false">{{ icon('eye') }}</button>
                     </div>
                 </div>
-                <div id="errorMessage" class="error-message"></div>
+                <div id="errorMessage" class="error-message" role="alert" aria-live="assertive"></div>
                 <button type="submit" class="btn btn-primary login-submit">
                     登录系统
                 </button>
@@ -61,7 +63,7 @@
         </div>
     </div>
     <button id="themeToggleBtn" class="btn btn-secondary theme-toggle-fab" aria-label="切换主题">
-        <span id="themeIcon" style="font-size: 18px;">☀️</span>
+        <span id="themeIcon">{{ icon('sun') }}</span>
     </button>
     <script src="/static/js/common.js?v=1"></script>
     <script src="/static/js/login.js?v=1"></script>
