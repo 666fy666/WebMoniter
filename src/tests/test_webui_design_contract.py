@@ -20,8 +20,8 @@ def _read(path: Path) -> str:
 def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
-        assert "/static/css/style.css?v=5" in template
-        assert "/static/css/liquid-glass.css?v=5" in template
+        assert "/static/css/style.css?v=6" in template
+        assert "/static/css/liquid-glass.css?v=6" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -133,6 +133,10 @@ def test_surface_radius_and_log_viewer_use_shared_layout_tokens():
     assert "body.page-logs .content-body" in css
     assert "max-width: 1320px" in css
     assert "body.page-logs .logs-container" in css
+    assert "body.page-config.is-config-text-view #textView" in css
+    assert "body.page-config.is-config-text-view #yamlEditor" in css
+    assert 'class="page-config"' in _read(TEMPLATE_ROOT / "config.html")
+    assert "setConfigView" in _read(STATIC_ROOT / "js" / "config.js")
 
 
 def test_motion_transparency_and_keyboard_accessibility_have_fallbacks():

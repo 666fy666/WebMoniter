@@ -114,29 +114,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     const saveYamlBtn = document.getElementById('saveYamlBtn');
 
     // 视图切换
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const view = this.dataset.view;
-            tabButtons.forEach(b => {
-                b.classList.remove('active');
-                b.setAttribute('aria-selected', 'false');
-            });
-            this.classList.add('active');
-            this.setAttribute('aria-selected', 'true');
-            
-            if (view === 'table') {
-                tableView.style.display = 'block';
-                textView.style.display = 'none';
-                tableView.removeAttribute('hidden');
-                textView.setAttribute('hidden', '');
-            } else {
-                tableView.style.display = 'none';
-                textView.style.display = 'block';
-                tableView.setAttribute('hidden', '');
-                textView.removeAttribute('hidden');
-                // 切换到文本视图时加载YAML内容
-                loadYamlConfig();
-            }
+    function setConfigView(view) {
+        const isText = view === 'text';
+        tabButtons.forEach((button) => {
+            const active = button.dataset.view === view;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        document.body.classList.toggle('is-config-text-view', isText);
+        tableView.style.display = isText ? 'none' : 'block';
+        textView.style.display = isText ? 'flex' : 'none';
+        tableView.toggleAttribute('hidden', isText);
+        textView.toggleAttribute('hidden', !isText);
+
+        if (isText) {
+            loadYamlConfig();
+        }
+    }
+
+    tabButtons.forEach((btn) => {
+        btn.addEventListener('click', function () {
+            setConfigView(this.dataset.view);
         });
     });
 

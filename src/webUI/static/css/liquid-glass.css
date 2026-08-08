@@ -1519,6 +1519,75 @@ body.page-logs .logs-container {
     line-height: 1.65;
 }
 
+/* Config text view: keep the YAML editor card centered like the logs page. */
+body.page-config .config-view-tabs {
+    margin-bottom: 24px;
+}
+
+body.page-config.is-config-text-view .main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+body.page-config.is-config-text-view .content-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+}
+
+body.page-config.is-config-text-view .config-view-tabs {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+}
+
+body.page-config.is-config-text-view #textView {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+body.page-config.is-config-text-view #textView > .card {
+    flex: 0 1 auto;
+    width: 100%;
+    height: min(820px, calc(100dvh - 140px));
+    max-height: min(820px, calc(100dvh - 140px));
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+body.page-config.is-config-text-view #textView > .card:hover {
+    transform: none;
+}
+
+body.page-config.is-config-text-view #textView .card-header {
+    flex-shrink: 0;
+}
+
+body.page-config.is-config-text-view #textView .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+body.page-config.is-config-text-view #yamlEditor {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    resize: none;
+}
+
 [data-theme="dark"] body.page-data .data-card-drag-handle {
     background: rgba(255, 255, 255, 0.06);
 }
@@ -1816,6 +1885,20 @@ select.form-input {
     }
 
     body.page-logs .content-body > .card {
+        flex: 1 1 auto;
+        height: auto;
+        max-height: none;
+    }
+
+    body.page-config.is-config-text-view .main-content {
+        padding-bottom: calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom));
+    }
+
+    body.page-config.is-config-text-view #textView {
+        justify-content: flex-start;
+    }
+
+    body.page-config.is-config-text-view #textView > .card {
         flex: 1 1 auto;
         height: auto;
         max-height: none;
