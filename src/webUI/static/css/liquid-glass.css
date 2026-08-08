@@ -246,17 +246,50 @@ textarea {
 }
 
 .sidebar-collapse-handle {
+    /* Keep viewport-fixed: avoid transform centering (breaks fixed in some cases). */
+    position: fixed;
+    left: calc(12px + 256px);
+    top: 50vh;
+    width: 18px;
+    height: 72px;
+    margin-top: -36px;
+    z-index: 1200;
     border-color: var(--liquid-stroke);
+    border-radius: 0 14px 14px 0;
     background: var(--liquid-regular);
     backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
     -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
     box-shadow: var(--liquid-shadow-1);
+    transform: none;
 }
 
 .sidebar-collapse-handle:hover,
 .sidebar-collapse-handle:focus-visible {
     background: var(--liquid-strong);
     color: var(--primary-color);
+    transform: none;
+    filter: none;
+}
+
+.sidebar-collapse-handle.is-collapsed,
+body.sidebar-collapsed .sidebar-collapse-handle {
+    left: 0;
+    top: 50vh;
+    margin-top: -36px;
+    transform: none;
+}
+
+/*
+ * Floating sidebar uses margin: 12px. translateX(-100%) alone leaves a curved
+ * strip/shadow at the viewport edge that can look like a scrollable semicircle.
+ */
+@media (min-width: 769px) {
+    body.sidebar-collapsed .sidebar {
+        transform: translate3d(calc(-100% - 48px), 0, 0);
+        opacity: 0;
+        box-shadow: none;
+        pointer-events: none;
+    }
 }
 
 [data-theme="dark"] .sidebar-collapse-handle {
@@ -579,6 +612,10 @@ select.form-input:focus {
     /* 232 sidebar + 12*2 outer margins */
     .main-content {
         margin-left: 256px;
+    }
+
+    .sidebar-collapse-handle {
+        left: calc(12px + 232px);
     }
 
     body.sidebar-collapsed .main-content {
@@ -1517,11 +1554,26 @@ body.page-data.has-update-banner .tabs-scroll-wrap {
 }
 
 /* Bound long log lines to a comfortable reading area on large displays. */
+html:has(body.page-logs),
+body.page-logs {
+    height: 100%;
+    max-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body.page-logs .main-content {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 body.page-logs .content-body {
     width: 100%;
     max-width: 1320px;
     margin-inline: auto;
     justify-content: center;
+    min-height: 0;
+    overflow: hidden;
 }
 
 body.page-logs .content-body > .card {
@@ -1529,9 +1581,22 @@ body.page-logs .content-body > .card {
     width: 100%;
     height: min(820px, calc(100dvh - 40px));
     max-height: min(820px, calc(100dvh - 40px));
+    min-height: 0;
+    /* Avoid persistent transform from enter animation affecting scroll layers. */
+    animation: none;
+    transform: none;
+}
+
+body.page-logs .content-body > .card.fade-in {
+    animation: none;
 }
 
 body.page-logs .logs-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: clamp(14px, 1.4vw, 20px);
     font-size: clamp(12px, calc(11.5px + 0.15vw), 13.5px);
     line-height: 1.65;
