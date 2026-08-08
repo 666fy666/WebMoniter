@@ -28,6 +28,7 @@ from src.settings.config import AppConfig
 from src.settings.loader_specs import CONFIG_MAPPINGS
 from src.web.routers import config as config_router
 from src.web.routers import pages as pages_router
+from src.web.templating import STATIC_ASSET_VERSION, templates
 
 
 def test_metadata_drives_legacy_registry_exports() -> None:
@@ -80,7 +81,7 @@ def test_config_section_order_matches_frontend_template() -> None:
 
     assert template_sections == CONFIG_SECTION_ORDER
     assert "/api/config/metadata" in js
-    assert 'config.js?v={{ config_js_version }}' in html
+    assert 'config.js?v={{ static_version }}' in html
     assert "cookie_refresh_enable: weiboCookieRefreshEnable" in js
     assert "cookie_refresh_time:" in js
     assert 'data-module="system"' in html
@@ -89,12 +90,12 @@ def test_config_section_order_matches_frontend_template() -> None:
     assert "'/api/database/test'" in js
 
 
-def test_config_page_asset_version_tracks_config_script() -> None:
+def test_config_page_asset_uses_shared_static_version() -> None:
     context = pages_router._page_context(SimpleNamespace(), "配置管理", "config")
 
-    assert context["config_js_version"] == str(
-        pages_router._CONFIG_JS_PATH.stat().st_mtime_ns
-    )
+    assert "config_js_version" not in context
+    assert STATIC_ASSET_VERSION == "1"
+    assert templates.env.globals["static_version"] == STATIC_ASSET_VERSION
 
 
 def test_frontend_fallback_metadata_matches_backend() -> None:

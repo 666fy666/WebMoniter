@@ -5,6 +5,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from src.web.templating import STATIC_ASSET_VERSION
+
 WEBUI_ROOT = Path("src/webUI")
 TEMPLATE_ROOT = WEBUI_ROOT / "templates"
 STATIC_ROOT = WEBUI_ROOT / "static"
@@ -20,8 +22,8 @@ def _read(path: Path) -> str:
 def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
-        assert "/static/css/style.css?v=8" in template
-        assert "/static/css/liquid-glass.css?v=8" in template
+        assert "/static/css/style.css?v={{ static_version }}" in template
+        assert "/static/css/liquid-glass.css?v={{ static_version }}" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -227,7 +229,9 @@ def test_external_template_links_are_isolated_and_scripts_share_cache_version():
         (TEMPLATE_ROOT / "logs.html", "logs.js"),
         (TEMPLATE_ROOT / "data.html", "data.js"),
     ):
-        assert f"/static/js/{script_name}?v=8" in _read(path)
+        assert f"/static/js/{script_name}?v={{{{ static_version }}}}" in _read(path)
+
+    assert STATIC_ASSET_VERSION == "1"
 
     interactive_sources = [*template_paths, *sorted((STATIC_ROOT / "js").glob("*.js"))]
     for path in interactive_sources:
@@ -387,6 +391,7 @@ def test_all_frontend_templates_render_with_the_icon_macro():
         rendered = environment.get_template(template_name).render(
             page_title="测试页面",
             active_nav="config",
+            static_version=STATIC_ASSET_VERSION,
         )
         assert "icon-" in rendered
         assert "ui-icon" in rendered

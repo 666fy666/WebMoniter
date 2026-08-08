@@ -7,8 +7,8 @@
     <title>登录 - WebMoniter</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preload" href="/static/images/liquid-landscape.webp" as="image" type="image/webp">
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
-    <link rel="stylesheet" href="/static/css/liquid-glass.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v={{ static_version }}">
+    <link rel="stylesheet" href="/static/css/liquid-glass.css?v={{ static_version }}">
     <script>
         (function() {
             var savedTheme = localStorage.getItem('theme');
@@ -66,7 +66,7 @@
     <button id="themeToggleBtn" class="btn btn-secondary theme-toggle-fab" aria-label="切换主题">
         <span id="themeIcon">{{ icon('sun') }}</span>
     </button>
-    <script src="/static/js/common.js?v=8"></script>
-    <script src="/static/js/login.js?v=8"></script>
+    <script src="/static/js/common.js?v={{ static_version }}"></script>
+    <script src="/static/js/login.js?v={{ static_version }}"></script>
 </body>
 </html>
