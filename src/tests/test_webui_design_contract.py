@@ -114,6 +114,39 @@ def test_liquid_glass_preserves_shell_positioning():
         ), f"{selector} 应保持 {position} 定位"
 
 
+def test_back_to_top_keeps_fixed_position_and_hidden_state():
+    style_css = _read(STATIC_ROOT / "css" / "style.css")
+    liquid_css = _read(LIQUID_CSS)
+    liquid_rules = re.findall(r"([^{}]+)\{([^{}]*)\}", liquid_css)
+
+    assert re.search(
+        r"\.back-to-top\s*\{[^}]*position:\s*fixed;[^}]*display:\s*none;",
+        style_css,
+        flags=re.DOTALL,
+    )
+    assert re.search(
+        r"\.back-to-top\.show\s*\{[^}]*display:\s*flex;",
+        style_css,
+        flags=re.DOTALL,
+    )
+    assert re.search(
+        r"\.back-to-top\s*\{[^}]*overflow:\s*clip;",
+        liquid_css,
+        flags=re.DOTALL,
+    )
+    assert not any(
+        ".back-to-top" in selector
+        and not selector.strip().endswith("> *")
+        and re.search(r"position:\s*relative;", declarations)
+        for selector, declarations in liquid_rules
+    )
+    assert not any(
+        ".back-to-top" in selector
+        and re.search(r"display:\s*inline-grid;", declarations)
+        for selector, declarations in liquid_rules
+    )
+
+
 def test_surface_radius_and_log_viewer_use_shared_layout_tokens():
     css = _read(LIQUID_CSS)
 
