@@ -84,3 +84,12 @@ def test_weibo_mixed_media_places_images_before_video_cover():
         end = script.index("</div>", start)
         body = script[start:end]
         assert body.index("${mediaHtml}") < body.index("${videoHtml}")
+
+
+def test_weibo_repost_only_renders_original_video_cover():
+    script = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert "function hasRenderableWeiboVideoCover(status)" in script
+    assert "getSafeHttpUrl(status.video_cover_thumb)" in script
+    assert "getSafeHttpUrl(status.video_cover)" in script
+    assert "const videoHtml = hasRenderableWeiboVideoCover(row.retweeted_status)" in script

@@ -602,6 +602,13 @@ document.addEventListener('DOMContentLoaded', function () {
         </${tagName}>`;
     }
 
+    function hasRenderableWeiboVideoCover(status) {
+        if (!status || typeof status !== 'object') return false;
+        return Boolean(
+            getSafeHttpUrl(status.video_cover_thumb) || getSafeHttpUrl(status.video_cover),
+        );
+    }
+
     function renderWeiboRetweet(retweetedStatus) {
         if (!retweetedStatus || typeof retweetedStatus !== 'object') return '';
 
@@ -1341,11 +1348,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     .trim();
                 const mediaHtml = renderWeiboMedia(row.images, row.image_thumbs);
                 const retweetHtml = renderWeiboRetweet(row.retweeted_status);
-                const videoHtml = renderWeiboVideoCover(
-                    row.video_cover,
-                    row.video_cover_thumb,
-                    url,
-                );
+                const videoHtml = hasRenderableWeiboVideoCover(row.retweeted_status)
+                    ? ''
+                    : renderWeiboVideoCover(row.video_cover, row.video_cover_thumb, url);
                 const tagHtml = renderWeiboTags(row.tags);
                 const typeHtml = renderWeiboContentType(row.content_type);
                 const contentDisplay =
