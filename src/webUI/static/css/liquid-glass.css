@@ -1013,3 +1013,512 @@ select.form-input:focus {
         box-shadow: none;
     }
 }
+
+/* =======================================
+   iOS liquid landscape refinement
+   ======================================= */
+:root {
+    --liquid-clear: rgba(255, 255, 255, 0.34);
+    --liquid-regular: rgba(255, 255, 255, 0.5);
+    --liquid-strong: rgba(255, 255, 255, 0.78);
+    --liquid-content: rgba(255, 255, 255, 0.66);
+    --liquid-stroke: rgba(255, 255, 255, 0.72);
+    --liquid-stroke-soft: rgba(255, 255, 255, 0.42);
+    --liquid-highlight: linear-gradient(
+        138deg,
+        rgba(255, 255, 255, 0.78) 0%,
+        rgba(255, 255, 255, 0.28) 22%,
+        rgba(255, 255, 255, 0.06) 48%,
+        rgba(255, 255, 255, 0.18) 100%
+    );
+    --liquid-shadow-1:
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+        0 10px 30px rgba(52, 32, 68, 0.11);
+    --liquid-shadow-2:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.16),
+        0 24px 64px rgba(52, 32, 68, 0.18);
+    --liquid-surface-gradient: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.78) 0%,
+        rgba(255, 255, 255, 0.48) 48%,
+        rgba(255, 246, 251, 0.58) 100%
+    );
+    --liquid-subtle-gradient: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.5),
+        rgba(255, 255, 255, 0.25)
+    );
+    --liquid-scene-scrim: linear-gradient(
+        135deg,
+        rgba(247, 248, 251, 0.3),
+        rgba(255, 246, 250, 0.16) 48%,
+        rgba(243, 251, 252, 0.28)
+    );
+    --liquid-spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-theme="dark"] {
+    --liquid-clear: rgba(29, 27, 42, 0.42);
+    --liquid-regular: rgba(25, 24, 37, 0.58);
+    --liquid-strong: rgba(22, 21, 32, 0.82);
+    --liquid-content: rgba(28, 27, 40, 0.72);
+    --liquid-stroke: rgba(255, 255, 255, 0.16);
+    --liquid-stroke-soft: rgba(255, 255, 255, 0.09);
+    --liquid-highlight: linear-gradient(
+        138deg,
+        rgba(255, 255, 255, 0.17) 0%,
+        rgba(255, 255, 255, 0.045) 32%,
+        transparent 58%,
+        rgba(243, 18, 96, 0.055) 100%
+    );
+    --liquid-shadow-1:
+        inset 0 1px 0 rgba(255, 255, 255, 0.11),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+        0 12px 34px rgba(5, 6, 12, 0.3);
+    --liquid-shadow-2:
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+        0 28px 70px rgba(3, 4, 10, 0.48);
+    --liquid-surface-gradient: linear-gradient(
+        145deg,
+        rgba(43, 42, 58, 0.8) 0%,
+        rgba(26, 25, 38, 0.66) 52%,
+        rgba(34, 26, 42, 0.72) 100%
+    );
+    --liquid-subtle-gradient: linear-gradient(
+        145deg,
+        rgba(45, 43, 60, 0.56),
+        rgba(25, 24, 36, 0.4)
+    );
+    --liquid-scene-scrim: linear-gradient(
+        135deg,
+        rgba(8, 10, 18, 0.62),
+        rgba(20, 15, 28, 0.54) 48%,
+        rgba(7, 12, 20, 0.68)
+    );
+}
+
+body,
+.login-body {
+    background-color: var(--bg-color);
+    background-image:
+        var(--liquid-scene-scrim),
+        url('../images/liquid-landscape.webp');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+}
+
+/* Layered material: clear chrome, readable content, and a specular edge. */
+.sidebar,
+.page-topbar,
+.tabs,
+.config-module-tabs,
+.config-module-nav,
+.task-toolbar,
+.mobile-bottom-nav,
+.modal-content,
+.toast,
+.update-banner,
+.login-update-banner,
+.theme-toggle-fab {
+    background: var(--liquid-subtle-gradient);
+    border-color: var(--liquid-stroke);
+    box-shadow: var(--liquid-shadow-1);
+    backdrop-filter: blur(var(--liquid-blur)) saturate(1.34) contrast(1.02);
+    -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(1.34) contrast(1.02);
+}
+
+.sidebar {
+    position: fixed;
+}
+
+.page-topbar,
+.config-module-nav,
+.task-toolbar {
+    position: sticky;
+}
+
+.mobile-bottom-nav {
+    position: fixed;
+}
+
+.modal-content,
+.login-box,
+.card {
+    position: relative;
+}
+
+.sidebar::before,
+.page-topbar::before,
+.mobile-bottom-nav::before,
+.modal-content::before,
+.login-box::before {
+    background: var(--liquid-highlight);
+    opacity: 0.78;
+    transform: translate3d(-5%, -4%, 0) scale(1.1);
+    transition:
+        opacity var(--liquid-duration) var(--liquid-ease),
+        transform 420ms var(--liquid-spring);
+}
+
+.card,
+.welcome-card {
+    overflow: clip;
+    background: var(--liquid-surface-gradient);
+    background-size: 150% 150%;
+    border-color: var(--liquid-stroke);
+    box-shadow: var(--liquid-shadow-1);
+    backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
+    -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
+    animation: liquid-content-in 420ms var(--liquid-spring) both;
+}
+
+.content-body > :nth-child(2) {
+    animation-delay: 45ms;
+}
+
+.content-body > :nth-child(3) {
+    animation-delay: 90ms;
+}
+
+.content-body > :nth-child(4) {
+    animation-delay: 135ms;
+}
+
+@keyframes liquid-content-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.992);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+.card-header {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.22),
+        rgba(255, 255, 255, 0.05)
+    );
+    border-bottom-color: var(--liquid-stroke-soft);
+}
+
+[data-theme="dark"] .card-header {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.055),
+        rgba(255, 255, 255, 0.012)
+    );
+}
+
+.task-item,
+.data-card,
+.weibo-feed-card,
+.weibo-card,
+.live-card,
+.feed-card,
+.push-channel-item,
+.multi-account-row,
+.multi-cookie-row,
+.push-channel-checkbox,
+.table-container {
+    background: var(--liquid-content);
+    border-color: var(--liquid-stroke-soft);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 6px 20px rgba(52, 32, 68, 0.07);
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+}
+
+[data-theme="dark"] .task-item,
+[data-theme="dark"] .data-card,
+[data-theme="dark"] .weibo-feed-card,
+[data-theme="dark"] .weibo-card,
+[data-theme="dark"] .live-card,
+[data-theme="dark"] .feed-card,
+[data-theme="dark"] .push-channel-item,
+[data-theme="dark"] .multi-account-row,
+[data-theme="dark"] .multi-cookie-row,
+[data-theme="dark"] .push-channel-checkbox,
+[data-theme="dark"] .table-container {
+    background: var(--liquid-content);
+}
+
+.form-input,
+.form-textarea,
+.form-group input,
+.form-group textarea,
+.code-editor,
+.yaml-editor,
+select.form-input {
+    background: rgba(255, 255, 255, 0.54);
+    border-color: var(--liquid-stroke-soft);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.58),
+        0 1px 0 rgba(52, 32, 68, 0.04);
+    backdrop-filter: blur(10px) saturate(1.12);
+    -webkit-backdrop-filter: blur(10px) saturate(1.12);
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-textarea,
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group textarea,
+[data-theme="dark"] .code-editor,
+[data-theme="dark"] .yaml-editor,
+[data-theme="dark"] select.form-input {
+    background: rgba(16, 16, 27, 0.52);
+}
+
+.btn,
+.tab-btn,
+.config-module-tab,
+.mobile-bottom-nav-item,
+.nav-item {
+    will-change: transform;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.34);
+    border-color: var(--liquid-stroke-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(10px) saturate(1.18);
+    -webkit-backdrop-filter: blur(10px) saturate(1.18);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: rgba(255, 255, 255, 0.065);
+}
+
+.nav-item.active,
+.nav-item[aria-current="page"],
+.tab-btn.active,
+.tab-btn[aria-selected="true"],
+.config-module-tab.active,
+.config-module-tab[aria-selected="true"],
+.mobile-bottom-nav-item[aria-current="page"] {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 8px 22px rgba(255, 127, 172, 0.2);
+}
+
+.login-box {
+    background: var(--liquid-surface-gradient);
+    border-color: var(--liquid-stroke);
+    box-shadow: var(--liquid-shadow-2);
+    animation: liquid-login-in 460ms var(--liquid-spring) both;
+}
+
+@keyframes liquid-login-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(0.975);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+.modal.show .modal-content {
+    animation: liquid-modal-in 280ms var(--liquid-spring) both;
+}
+
+@keyframes liquid-modal-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0) scale(0.975);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .card:hover,
+    .welcome-card:hover {
+        background-position: 100% 100%;
+        border-color: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--liquid-shadow-2);
+        transform: translate3d(0, -2px, 0) scale(1.002);
+    }
+
+    [data-theme="dark"] .card:hover,
+    [data-theme="dark"] .welcome-card:hover {
+        border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .sidebar:hover::before,
+    .page-topbar:hover::before,
+    .mobile-bottom-nav:hover::before,
+    .modal-content:hover::before,
+    .login-box:hover::before {
+        opacity: 1;
+        transform: translate3d(1%, 1%, 0) scale(1.12);
+    }
+
+    .task-item:hover,
+    .data-card:hover,
+    .weibo-feed-card:hover,
+    .weibo-card:hover,
+    .live-card:hover,
+    .feed-card:hover,
+    .push-channel-item:hover {
+        background: var(--liquid-strong);
+        border-color: rgba(255, 127, 172, 0.26);
+        box-shadow: var(--liquid-shadow-1);
+        transform: translate3d(0, -1px, 0);
+    }
+}
+
+@media (max-width: 768px) {
+    body,
+    .login-body {
+        font-size: 16px;
+        background-attachment: scroll;
+        background-position: 54% center;
+    }
+
+    .main-content,
+    body.sidebar-collapsed .main-content {
+        padding-inline:
+            max(10px, env(safe-area-inset-left))
+            max(10px, env(safe-area-inset-right));
+    }
+
+    .page-topbar,
+    .mobile-bottom-nav,
+    .sidebar {
+        backdrop-filter: blur(24px) saturate(1.38);
+        -webkit-backdrop-filter: blur(24px) saturate(1.38);
+    }
+
+    .card,
+    .welcome-card {
+        background: var(--liquid-surface-gradient);
+        transform: none;
+    }
+
+    .mobile-bottom-nav {
+        border-radius: 26px;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.58),
+            0 18px 44px rgba(35, 21, 48, 0.2);
+    }
+
+    .mobile-bottom-nav-item[aria-current="page"] {
+        background: linear-gradient(
+            145deg,
+            rgba(255, 205, 217, 0.58),
+            rgba(255, 127, 172, 0.3)
+        );
+    }
+
+    [data-theme="dark"] .mobile-bottom-nav-item[aria-current="page"] {
+        background: linear-gradient(
+            145deg,
+            rgba(243, 18, 96, 0.24),
+            rgba(219, 54, 148, 0.14)
+        );
+    }
+
+    .sidebar.show {
+        animation: liquid-sheet-in var(--liquid-duration) var(--liquid-spring) both;
+    }
+
+    .content-body > * {
+        animation-duration: 360ms;
+    }
+}
+
+@media (max-height: 540px) and (orientation: landscape) and (max-width: 932px) {
+    body,
+    .login-body {
+        background-position: center 42%;
+    }
+
+    .mobile-bottom-nav {
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+    }
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --liquid-regular: rgba(255, 255, 255, 0.82);
+        --liquid-content: rgba(255, 255, 255, 0.9);
+        --liquid-stroke: rgba(32, 33, 42, 0.34);
+    }
+
+    [data-theme="dark"] {
+        --liquid-regular: rgba(18, 18, 28, 0.9);
+        --liquid-content: rgba(20, 20, 31, 0.94);
+        --liquid-stroke: rgba(255, 255, 255, 0.32);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .welcome-card,
+    .login-box,
+    .modal.show .modal-content,
+    .sidebar.show,
+    .content-body > * {
+        animation: none !important;
+    }
+
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .mobile-bottom-nav-item,
+    .nav-item {
+        will-change: auto;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    body,
+    .login-body {
+        background-image: var(--gradient-page);
+    }
+
+    .sidebar,
+    .page-topbar,
+    .tabs,
+    .config-module-tabs,
+    .config-module-nav,
+    .task-toolbar,
+    .mobile-bottom-nav,
+    .modal-content,
+    .toast,
+    .login-box,
+    .card,
+    .welcome-card {
+        background: var(--liquid-strong);
+    }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .sidebar,
+    .page-topbar,
+    .tabs,
+    .config-module-tabs,
+    .config-module-nav,
+    .task-toolbar,
+    .mobile-bottom-nav,
+    .modal-content,
+    .toast,
+    .login-box,
+    .card,
+    .welcome-card {
+        background: var(--liquid-strong);
+    }
+}

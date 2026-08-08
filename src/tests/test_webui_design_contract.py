@@ -10,6 +10,7 @@ TEMPLATE_ROOT = WEBUI_ROOT / "templates"
 STATIC_ROOT = WEBUI_ROOT / "static"
 LIQUID_CSS = STATIC_ROOT / "css" / "liquid-glass.css"
 ICON_SPRITE = STATIC_ROOT / "icons.svg"
+LANDSCAPE_BACKGROUND = STATIC_ROOT / "images" / "liquid-landscape.webp"
 
 
 def _read(path: Path) -> str:
@@ -20,12 +21,15 @@ def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
         assert "/static/css/style.css?v=1" in template
-        assert "/static/css/liquid-glass.css?v=1" in template
+        assert "/static/css/liquid-glass.css?v=3" in template
+        assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
     assert "--liquid-regular" in css
     assert "backdrop-filter:" in css
     assert "@supports not ((backdrop-filter:" in css
+    assert "../images/liquid-landscape.webp" in css
+    assert LANDSCAPE_BACKGROUND.stat().st_size > 0
 
 
 def test_svg_sprite_and_template_macro_cover_structural_icons():
@@ -75,6 +79,23 @@ def test_mobile_navigation_has_four_routes_and_safe_area_spacing():
     assert "env(safe-area-inset-bottom)" in css
     assert "--mobile-nav-height" in css
     assert "min-height: 44px" in css
+
+
+def test_liquid_glass_preserves_shell_positioning():
+    css = _read(LIQUID_CSS)
+
+    for selector, position in (
+        (".sidebar", "fixed"),
+        (".page-topbar", "sticky"),
+        (".config-module-nav", "sticky"),
+        (".task-toolbar", "sticky"),
+        (".mobile-bottom-nav", "fixed"),
+    ):
+        assert re.search(
+            rf"{re.escape(selector)}[^{{]*\{{[^}}]*position:\s*{position};",
+            css,
+            flags=re.DOTALL,
+        ), f"{selector} 应保持 {position} 定位"
 
 
 def test_motion_transparency_and_keyboard_accessibility_have_fallbacks():
