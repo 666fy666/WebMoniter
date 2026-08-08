@@ -96,9 +96,11 @@ mysql:
   pool_max_size: 5
 ```
 
-数据库和账号需提前创建，并具备建表、改表和数据读写权限。首次连接空 MySQL 时会导入现有 SQLite 数据；若 MySQL 已有业务数据，则以 MySQL 为准刷新 SQLite。密码直接保存在被 Git 忽略的 `config.yml`，请限制文件权限且不要提交该文件。
+数据库和账号需提前创建，并具备读取 `information_schema`、建表、改表和数据读写权限。启动时会创建缺失表，并为旧版 MySQL 表补齐历史版本新增的微博、虎牙和小红书字段；多实例同时启动遇到“字段已存在”时可安全继续。首次连接的 MySQL 若所有业务表均为空，会导入现有 SQLite 数据；只要任一业务表已有数据，则以 MySQL 为准刷新 SQLite。密码直接保存在被 Git 忽略的 `config.yml`，请限制文件权限且不要提交该文件。
 
-Web 配置页的「系统设置」支持测试未保存的连接参数，并显示当前权威后端、SQLite 健康度和待回放数量。应用自身写入会即时双写，MySQL 在线时还会每 60 秒校准一次 SQLite，以同步其他客户端直接写入 MySQL 的变更。
+MySQL 在线时，应用先提交 MySQL，再同步本地 SQLite；若镜像写入失败，状态会标记为降级并由后续校准修复。连接类错误会触发 SQLite 回退：离线写入在 SQLite 事务中同时记录到 `mysql_sync_outbox`，恢复连接后按主键幂等回放新增/更新、删除或整表清空事件，再用 MySQL 权威数据刷新镜像。该 outbox 是 SQLite 内部同步表，不会镜像到 MySQL。
+
+SQLite 连接使用 WAL、`synchronous=NORMAL` 和 30 秒 busy timeout。后台维护循环每 30 秒检查连接；MySQL 在线时每两个周期（约 60 秒）校准一次 SQLite，以同步其他客户端直接写入 MySQL 的变更。Web 配置页的「系统设置」支持测试尚未保存的连接参数，并显示当前权威后端、SQLite 健康度和待回放数量。
 
 ## 任务级推送通道选择
 

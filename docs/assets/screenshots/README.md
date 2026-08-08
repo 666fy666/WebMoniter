@@ -1,5 +1,10 @@
 # 截图目录
 
-构建文档站时，`.github/workflows/docs.yml` 会将 `src/webUI/static/*.png`、`src/webUI/static/*.jpg` 同步到此目录。
+此目录是项目文档截图的**唯一来源**。更新界面截图时直接替换这里的同名文件；不要在 `src/webUI/static/` 或其他目录保存副本。GitHub Pages 构建会直接读取本目录，无需额外同步步骤。
 
-若本地预览时图片缺失，可将截图放入 `src/webUI/static/` 目录（如 `配置管理.png` 等），或直接放入本目录后执行 `uv run mkdocs serve` 预览。
+本地可执行 `uv run mkdocs serve -f docs/mkdocs.yml` 预览更新结果。
+
+当前文档截图使用真实前端模板、CSS 和 JavaScript，通过脱敏演示接口渲染，禁止使用包含 Cookie、Token、数据库密码或真实账号的数据截图。
+
+- 桌面端：`配置管理.png`、`密码修改.png`、`任务管理.png`、`数据展示.png`、`日志查看.png`，尺寸为 2148 × 1242（CSS 视口 1432 × 828，DPR 1.5）。
+- 移动端：`移动端配置.png`、`移动端账户.png`，尺寸为 780 × 1688（CSS 视口 390 × 844，DPR 2）。

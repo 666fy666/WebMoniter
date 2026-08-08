@@ -44,7 +44,7 @@ WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，�
 - 平台监控：虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书。
 - 定时任务：微博 Cookie 刷新、iKuuu、贴吧、微博超话、雨云、阿里云盘、Freenom、天气推送等 **30 个**签到/提醒任务（见 `src/jobs/registry.py`）。
 - 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 **18 种** type。
-- Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理；桌面端无顶栏，用侧边栏拉手收起/展开导航，手机端底部导航含账户入口。界面统一为 iOS 液态玻璃风格（PC/移动端一致）：可点击控件悬停时控件本身轻微放大，高光仅在控件区域内跟随指针；微博数据卡用上浮/光泽反馈、不做缩放以免丢圆角。
+- Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理；桌面端无顶栏，用侧边栏拉手收起/展开导航，手机端底部导航含账户入口。导航、工具栏、弹窗与交互控件采用 iOS 液态玻璃风格，内容区域保持清晰易读；PC 与移动端共用统一设计规范，支持键盘标签切换、可见焦点、44px 触控目标及减少动效/透明度偏好。细节见 [Web 管理界面](docs/guides/web-ui.md)。
 
 配置支持热重载，修改 `config.yml` 后通常约 5 秒内生效。
 
@@ -267,12 +267,12 @@ uv run pytest -q
 | `src/core/` | 运行时（`runtime.py` 12 秒退出 watchdog）、路径（`paths.py`）、版本、HTTP 工具 |
 | `src/settings/` | 配置模型（`config.py`）、YAML 映射（`loader_specs.py`）、热重载（`watcher.py`）、DB 同步（`db_sync.py`） |
 | `src/jobs/` | 任务元数据（`metadata.py`）、调度（`scheduler.py`）、注册（`registry.py`）、启用映射（`enable_fields.py`）、执行结果（`task_outcome.py`）、生命周期（`lifecycle.py`）、日志（`log_manager.py`）、运行记录（`tracker.py`） |
-| `src/storage/` | SQLite（`database.py`）、Cookie 缓存（`cookie_cache.py`） |
+| `src/storage/` | MySQL 权威主库（可选）、SQLite 镜像/故障回退（`database.py`、`mysql_backend.py`）、Cookie 缓存（`cookie_cache.py`） |
 | `src/monitors/` | 6 个平台监控（interval 触发，清单由 `metadata.MONITOR_SPECS` 生成） |
 | `src/tasks/` | 30 个定时/签到任务（Cron 触发，含 `rainyun/` 子包，清单由 `metadata.TASK_SPECS` 生成） |
 | `src/push_channel/` | 18 种推送 type（企业微信、钉钉、Telegram 等，含 `demo`、`qlapi`） |
 | `src/web/` | FastAPI 应用（`app.py`）、路由（`routers/`）、认证/配置/数据辅助、`templating.py`、`static_files.py` |
-| `src/webUI/` | 前端静态资源与 Jinja2 模板（微博卡片悬停不放大） |
+| `src/webUI/` | 响应式前端静态资源与 Jinja2 模板（液态玻璃功能层、键盘/触控无障碍交互） |
 | `src/ql/` | 青龙 CLI（`python -m src.ql <task_id>`，环境变量兼容见 `compat.py`） |
 | `src/tests/` | pytest 单元与 smoke 测试 |
 

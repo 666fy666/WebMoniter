@@ -313,38 +313,19 @@ class BaseMonitor(ABC):
 - `AsyncDatabase`：保持兼容接口的混合数据库门面
 
 **关键特性**：
-- **共享连接模式**：多个实例共享同一个数据库连接（提高性能）
-- **WAL模式**：启用Write-Ahead Logging，提高并发性能
-- **连接健康检查**：自动检测连接失效并重连
-- **重试机制**：数据库锁定时的指数退避重试
-- **SQL兼容**：支持MySQL风格的参数占位符转换
+- **混合后端**：MySQL 可作为权威主库，SQLite 始终作为本地镜像与断线回退
+- **共享连接模式**：多个实例复用 SQLite 连接与 MySQL 连接池
+- **SQLite 并发设置**：启用 WAL、`synchronous=NORMAL` 和 30 秒 busy timeout
+- **连接健康检查**：自动检测 MySQL 连接失效，回退后定期重连
+- **离线回放**：SQLite outbox 按表主键记录新增/更新、删除和整表清空事件
+- **SQL 兼容**：兼容 `%(name)s` / `:name` 参数，并将 `INSERT OR REPLACE` 转为 MySQL `REPLACE`
 
-**表结构**：
-```sql
--- 微博表
-CREATE TABLE weibo (
-    UID TEXT PRIMARY KEY,
-    用户名 TEXT NOT NULL,
-    认证信息 TEXT,
-    简介 TEXT,
-    粉丝数 TEXT,
-    微博数 TEXT,
-    文本 TEXT,
-    mid TEXT
-);
-
--- 虎牙表
-CREATE TABLE huya (
-    room TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    is_live TEXT
-);
-```
+**同步表**：`weibo`、`huya`、`bilibili_dynamic`、`bilibili_live`、`douyin`、`douyu`、`xhs`、`task_run_history`。表名、主键、字段顺序和 MySQL DDL 统一登记在 `src/storage/mysql_backend.py` 的 `TABLE_SPECS`；完整字段见[数据库设计](#database-design)。`mysql_sync_outbox` 仅存在于 SQLite，不参与镜像。
 
 **连接管理**：
-- 全局单例连接（`_shared_connection`）
+- SQLite 使用共享连接（`_shared_connection`），MySQL 使用共享连接池（`_mysql_pool`）
 - 引用计数机制（`_connection_ref_count`）
-- 线程安全的连接管理（`_connection_lock`）
+- 异步锁保护连接切换、回退和同步状态
 
 ---
 
@@ -941,7 +922,8 @@ WebMoniter/
 │   │   ├── tracker.py      # task_run_history 读写 API 再导出
 │   │   └── enable_fields.py # 任务启用开关映射（registry + 青龙 compat 共用）
 │   ├── storage/            # 持久化
-│   │   ├── database.py     # AsyncDatabase（SQLite WAL）
+│   │   ├── database.py     # AsyncDatabase（MySQL/SQLite 门面、镜像与回退）
+│   │   ├── mysql_backend.py # MySQL 连接池、表规格与同步原语
 │   │   └── cookie_cache.py # Cookie 过期状态缓存
 │   ├── monitors/           # 平台监控（interval 触发）
 │   │   ├── base.py
@@ -986,7 +968,7 @@ WebMoniter/
 │   └── guides/             # config、tasks、web-ui、push-channels 等
 │
 ├── data/                   # 运行时数据（gitignore）
-│   ├── data.db             # SQLite（监控数据 + task_run_history）
+│   ├── data.db             # SQLite 镜像/回退（监控数据、运行记录、同步 outbox）
 │   ├── cookie_cache.json
 │   ├── auth.json           # Web 登录凭据
 │   ├── session_secret      # Web Session 密钥（持久化，避免重启掉线）
@@ -1022,7 +1004,7 @@ WebMoniter/
 ### 3. 单例模式
 
 **实现**：
-- 数据库连接：全局 `_shared_connection`
+- 数据库资源：全局共享 SQLite 连接和 MySQL 连接池
 - Cookie缓存：全局 `cookie_cache` 实例
 
 **优势**：
@@ -1100,8 +1082,19 @@ push_channel:
 
 - **MySQL（可选）**：配置完整且可连接时作为权威数据源
 - **SQLite**：始终保留本地镜像；MySQL 未配置或断连时接管读写
-- **WAL模式**：提高并发性能
-- **异步操作**：使用 `aiosqlite` 支持异步IO
+- **SQLite 并发策略**：WAL、`synchronous=NORMAL`、30 秒 busy timeout
+- **异步操作**：使用 `aiomysql` 连接池和共享 `aiosqlite` 连接
+
+启动时会创建缺失的 MySQL 表，并根据 `MYSQL_COLUMN_MIGRATIONS` 为旧表补齐历史版本新增字段。迁移先查询 `information_schema`，并容忍多实例竞争时 MySQL 1060“字段已存在”错误，因此 MySQL 账号需要建表、改表、查询元数据和数据读写权限。
+
+### 同步与故障回退
+
+1. MySQL 在线时先提交 MySQL，再把同一写入同步到 SQLite；镜像失败会标记降级，后续校准负责恢复一致性。
+2. MySQL 出现连接类错误时切换到 SQLite。离线写入与 `mysql_sync_outbox` 事件在同一个 SQLite 事务中提交，避免业务数据与待回放记录分离。
+3. 恢复连接时，若所有 MySQL 业务表均为空，则从 SQLite 初始化 MySQL；否则先按主键幂等回放 outbox，再以 MySQL 数据完整刷新 SQLite。
+4. 后台维护循环每 30 秒运行一次；MySQL 在线时每两个周期（约 60 秒）执行一次镜像校准，以接收其他客户端直接写入 MySQL 的变更。
+
+离线可回放写入仅支持 `TABLE_SPECS` 注册表。条件更新/删除必须在参数字典中包含该表主键（可以使用实际主键名或通用 `pk`）；整表清空仅识别不带条件的 `DELETE FROM <table>`。这使 outbox 可以明确记录为 `upsert`、`delete` 或 `clear`，而不依赖不可重放的任意 SQL。
 
 ### 表结构
 
@@ -1114,12 +1107,14 @@ push_channel:
 - `微博数`：微博数量
 - `文本`：最新微博内容
 - `mid`：微博ID
+- `图片`、`视频封面`：媒体资源信息
+- `转发微博`、`正文结构`、`标签`、`内容类型`：结构化微博内容
 
 **huya表**：
 - `room`：房间号（主键）
 - `name`：主播名称
 - `is_live`：直播状态（"1"=直播中，"0"=未开播）
-- `room_pic`、`avatar_url`：封面与头像 URL（旧库通过 ALTER TABLE 迁移追加，可选）
+- `room_pic`、`avatar_url`：封面与头像 URL（旧库在启动时通过增量迁移自动补齐）
 
 **bilibili_dynamic表**（B 站动态）：
 - `uid`：UP 主 UID（主键）
@@ -1147,19 +1142,24 @@ push_channel:
 - `profile_id`：用户 profile_id（主键）
 - `user_name`：用户名
 - `latest_note_title`：最近一条笔记标题
+- `note_id`：最近一条笔记 ID
 
 **task_run_history表**（定时任务运行记录）：
 - `job_id`：任务ID（主键）
 - `last_run_date`：最后运行日期（ISO格式，如 "2025-02-04"）
 
-> 该表在 `src/storage/database.py` 的 `_init_tables()` 中创建；读写 API 由同模块提供，`src/jobs/tracker.py` 对其再导出。用于实现"当天已运行则跳过"功能。`register_task` 包装层仅在 `run_func` 返回 `TASK_SUCCESS` 时写入记录；返回 `TASK_FAILED` 或抛出未捕获异常时不写入，允许当天重试。Web「立即运行」使用 `original_run_func`，不经过此检查。
+**mysql_sync_outbox表**（仅 SQLite）：
+- 保存事件编号、业务表名、主键值、操作类型、行快照和创建时间
+- 用于 MySQL 断线期间的写入回放，不属于 `TABLE_SPECS`，不会同步到 MySQL
+
+> `task_run_history` 由 SQLite `_init_tables()` 与 MySQL `TABLE_SPECS` 同时定义；读写 API 由 `src/storage/database.py` 提供，`src/jobs/tracker.py` 对其再导出。该表用于实现“当天已运行则跳过”。`register_task` 包装层仅在 `run_func` 返回 `TASK_SUCCESS` 时写入记录；返回 `TASK_FAILED` 或抛出未捕获异常时不写入，允许当天重试。Web「立即运行」使用 `original_run_func`，不经过此检查。
 
 ### 连接管理
 
-- **共享连接**：多个 `AsyncDatabase` 实例共享同一连接
-- **引用计数**：跟踪连接使用情况
-- **健康检查**：自动检测连接失效
-- **自动重连**：连接失效时自动重建
+- **共享资源**：多个 `AsyncDatabase` 实例共享 SQLite 连接和 MySQL 连接池
+- **引用计数**：跟踪数据库门面使用情况，最后一个实例关闭时释放资源
+- **健康状态**：记录当前权威后端、SQLite 镜像是否健康、待回放事件数量和最近错误
+- **自动重连**：回退期间由维护循环尝试恢复 MySQL，连接参数热更新后会重建后端
 
 ---
 

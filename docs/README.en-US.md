@@ -40,7 +40,7 @@ WebMoniter is a task system built with Python, FastAPI, and APScheduler. It prov
 - Platform monitoring for Huya, Weibo, Bilibili, Douyin, Douyu, and Xiaohongshu.
 - **30 scheduled check-in and reminder tasks**, including Weibo cookie refresh, iKuuu, Tieba, Weibo Super Topic, Rainyun, Aliyun Drive, Freenom, and weather notifications (see `src/jobs/registry.py`).
 - **18 notification channel types**, including WeCom, DingTalk, Feishu, Telegram, Bark, WxPusher, and email.
-- Web-based configuration editing, task management, data views, logs, and password management.
+- A responsive Web UI for configuration, tasks, data, logs, and passwords. Its navigation, toolbars, dialogs, and controls use a Liquid Glass style, with desktop side navigation, mobile bottom navigation, keyboard interaction, and accessible motion/transparency fallbacks.
 
 Configuration supports hot reload. Changes to `config.yml` usually take effect within about five seconds.
 

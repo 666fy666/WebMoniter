@@ -439,7 +439,7 @@ MONITOR_MODULES: list[str] = [
 
 ## 五、监控任务需要数据库时该怎么办
 
-很多监控任务需要**持久化上一次状态**（例如上次是否在播、上次微博内容），以便本次轮询时对比、仅在变化时推送。本项目的做法是：**继承 BaseMonitor 即自带数据库与推送**，数据库使用项目内统一的 SQLite（`data/data.db`），由 `AsyncDatabase` 封装。
+很多监控任务需要**持久化上一次状态**（例如上次是否在播、上次微博内容），以便本次轮询时对比、仅在变化时推送。本项目的做法是：**继承 BaseMonitor 即自带数据库与推送**。`AsyncDatabase` 统一封装可选的 MySQL 权威主库，以及始终存在的 SQLite 本地镜像与故障回退；业务代码不应自行判断当前后端。
 
 ### 5.1 继承 BaseMonitor 即获得 self.db
 
@@ -460,18 +460,20 @@ MONITOR_MODULES: list[str] = [
 | `execute_insert(sql, params=None)` | 同 execute_update，语义上用于插入 | `bool` |
 | `is_table_empty(table_name)` | 判断表是否为空（可用于“首次运行”逻辑） | `bool` |
 
-- **SQL 占位符**：写 `%(name)s`、`%(room)s` 等，params 传字典如 `{"name": "xx", "room": "123"}`。模块内部会转换为 SQLite 的 `:name` 格式，无需改 SQL。
-- **连接**：默认使用全局共享连接（单进程内复用），重试与重连已在 `execute_*` 内处理。
+- **SQL 占位符**：可写 `%(name)s` 或 `:name`，params 传字典如 `{"name": "xx", "room": "123"}`。模块会按当前后端转换参数格式；`INSERT OR REPLACE` 在 MySQL 中转换为 `REPLACE`。
+- **跨库兼容**：优先使用项目现有的 `SELECT`、`INSERT`、`INSERT OR REPLACE`、按主键 `UPDATE` / `DELETE` 形式，避免只在单一数据库方言中存在的函数或语法。
+- **连接**：SQLite 连接与 MySQL 连接池均由模块共享，重试、回退、恢复和镜像同步由 `AsyncDatabase` 处理。
+- **离线写入约束**：条件更新/删除的 params 必须包含表的实际主键名（或通用 `pk`）；整表删除只使用精确的 `DELETE FROM table_name`。不要通过该接口执行无法按单行主键重放的任意批量条件写入。
 
-### 5.3 新监控需要新表时：在 database.py 中加表
+### 5.3 新监控需要新表时：同时登记 SQLite 与 MySQL
 
-当前所有表结构都在 `src/storage/database.py` 的 `_init_tables()` 里统一创建（`CREATE TABLE IF NOT EXISTS ...`）。  
-若你的监控需要**自己的表**（例如 `my_monitor`），在 **`src/storage/database.py`** 的 **`_init_tables()`** 中增加一段即可，与现有 `weibo`、`huya` 表并列，例如：
+若监控需要**自己的表**（例如 `my_monitor`），必须同时完成以下两处定义，否则 MySQL 模式下不会创建/同步该表，断线回退也会拒绝未注册表的写入：
+
+1. 在 `src/storage/database.py` 的 `_init_tables()` 中增加 SQLite `CREATE TABLE IF NOT EXISTS`。
+2. 在 `src/storage/mysql_backend.py` 的 `TABLE_SPECS` 中登记表名、主键、字段顺序和 MySQL DDL。
 
 ```python
-# 在 _init_tables(self, conn) 末尾、await conn.commit() 前增加：
-
-# 创建 my_monitor 表（示例）
+# database.py：SQLite 表
 await conn.execute(
     """
     CREATE TABLE IF NOT EXISTS my_monitor (
@@ -482,10 +484,28 @@ await conn.execute(
     )
     """
 )
-await conn.commit()
 ```
 
-表名、字段名按你的业务设计即可；主键建议能唯一标识一条监控对象（如房间号、用户 ID）。
+在 `mysql_backend.py` 的 `TABLE_SPECS` 字典中加入：
+
+```python
+# mysql_backend.py：与 SQLite 字段顺序保持一致
+"my_monitor": TableSpec(
+    "my_monitor",
+    "id",
+    ("id", "name", "status", "updated_at"),
+    """
+    CREATE TABLE IF NOT EXISTS `my_monitor` (
+        `id` VARCHAR(255) COLLATE utf8mb4_bin PRIMARY KEY,
+        `name` LONGTEXT,
+        `status` LONGTEXT,
+        `updated_at` LONGTEXT
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    """,
+),
+```
+
+主键必须能唯一标识一条监控对象（如房间号、用户 ID），且所有写入参数都应携带它。若给已有表增加字段，还要同时更新 SQLite 增量迁移、`TABLE_SPECS` 的字段/DDL 和 `MYSQL_COLUMN_MIGRATIONS`，保证历史 SQLite、历史 MySQL 与全新安装三种场景结构一致。多实例并发执行 MySQL 增量迁移时，重复字段错误会被安全忽略。
 
 ### 5.4 虎牙监控中的用法示例（对照代码）
 
@@ -524,9 +544,9 @@ await self.db.execute_insert(sql, data)
 ### 5.5 小结：监控 + 数据库的步骤
 
 1. **继承 BaseMonitor**，在 `initialize()` 里 `await super().initialize()` 后加载旧数据到内存（如 `load_old_info`）。
-2. 在 **`src/storage/database.py` 的 `_init_tables()`** 里为你的监控**增加 CREATE TABLE IF NOT EXISTS**（若需要新表）。
+2. 若需要新表，在 SQLite `_init_tables()` 与 MySQL `TABLE_SPECS` 中同时定义，并为已有表的新增字段补充两种后端的增量迁移。
 3. 在 `run()` 里：拉取当前数据 → 与旧数据对比 → 有变化则 `execute_update` / `execute_insert` 更新 DB，并调用 `self.push.send_news(...)`；无变化则只打日志。
-4. SQL 使用 **`%(key)s` + dict 参数**，通过 `self.db.execute_query` / `execute_update` / `execute_insert` 访问；连接与重试由 AsyncDatabase 统一处理。
+4. SQL 使用命名占位符 + dict 参数，通过 `self.db.execute_query` / `execute_update` / `execute_insert` 访问；写入参数必须包含注册主键，连接、回退与同步由 `AsyncDatabase` 统一处理。
 
 ---
 
@@ -581,7 +601,7 @@ await self.db.execute_insert(sql, data)
 - [ ] 在 `AppConfig` 中增加扁平字段，在 `src/settings/loader_specs.py` 中补充映射规格；可选：提供 `get_my_monitor_config()` 返回结构化配置。热重载通过 `model_dump()` 自动覆盖所有字段，无需手动维护比较列表。
 - [ ] 若监控使用 uid/room 类列表且需配置删除时同步清理 DB：在 `db_sync.sync_rules` 中增加对应规则（配置属性名 → 表名 + 主键列名）。
 - [ ] 新建 `src/monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。
-- [ ] **若监控需要数据库**：在 `src/storage/database.py` 的 `_init_tables()` 中增加 `CREATE TABLE IF NOT EXISTS your_table (...)`；在监控类 `initialize()` 里加载旧数据，在 `run()` 里用 `self.db.execute_query` / `execute_update` / `execute_insert` 读写（参见 **五、监控任务需要数据库时该怎么办**）。
+- [ ] **若监控需要数据库**：在 SQLite `_init_tables()` 与 MySQL `TABLE_SPECS` 中定义相同字段顺序和主键；已有表新增字段时同时补齐两种后端的增量迁移。写入参数必须带主键，并增加 SQLite、MySQL SQL 转换、回退/outbox 与恢复同步测试（参见 **五、监控任务需要数据库时该怎么办**）。
 - [ ] 在模块末尾调用 `register_monitor("job_id", run_xxx_monitor, _get_xxx_trigger_kwargs)`。
 - [ ] 在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/push 字段）。
 
