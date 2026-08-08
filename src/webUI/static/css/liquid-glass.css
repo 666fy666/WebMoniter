@@ -12,11 +12,12 @@
     --liquid-blur: 20px;
     --liquid-blur-strong: 30px;
     --liquid-radius-control: 14px;
-    --liquid-radius-panel: 24px;
-    --liquid-radius-sheet: 30px;
+    --liquid-radius-card: 18px;
+    --liquid-radius-panel: 22px;
+    --liquid-radius-sheet: 26px;
     --liquid-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-    --liquid-duration-fast: 160ms;
-    --liquid-duration: 240ms;
+    --liquid-duration-fast: 180ms;
+    --liquid-duration: 280ms;
     --mobile-nav-height: 72px;
 }
 
@@ -1021,9 +1022,9 @@ select.form-input:focus {
     --liquid-clear: rgba(255, 255, 255, 0.34);
     --liquid-regular: rgba(255, 255, 255, 0.5);
     --liquid-strong: rgba(255, 255, 255, 0.78);
-    --liquid-content: rgba(255, 255, 255, 0.66);
-    --liquid-data: rgba(255, 255, 255, 0.4);
-    --liquid-data-hover: rgba(255, 255, 255, 0.58);
+    --liquid-content: rgba(255, 255, 255, 0.92);
+    --liquid-data: rgba(255, 255, 255, 0.9);
+    --liquid-data-hover: rgba(255, 255, 255, 0.96);
     --liquid-data-sheen: linear-gradient(
         145deg,
         rgba(255, 255, 255, 0.3),
@@ -1049,9 +1050,9 @@ select.form-input:focus {
         0 24px 64px rgba(52, 32, 68, 0.18);
     --liquid-surface-gradient: linear-gradient(
         145deg,
-        rgba(255, 255, 255, 0.78) 0%,
-        rgba(255, 255, 255, 0.48) 48%,
-        rgba(255, 246, 251, 0.58) 100%
+        rgba(255, 255, 255, 0.96) 0%,
+        rgba(255, 255, 255, 0.9) 48%,
+        rgba(255, 246, 251, 0.93) 100%
     );
     --liquid-subtle-gradient: linear-gradient(
         145deg,
@@ -1071,9 +1072,9 @@ select.form-input:focus {
     --liquid-clear: rgba(29, 27, 42, 0.42);
     --liquid-regular: rgba(25, 24, 37, 0.58);
     --liquid-strong: rgba(22, 21, 32, 0.82);
-    --liquid-content: rgba(28, 27, 40, 0.72);
-    --liquid-data: rgba(24, 23, 36, 0.48);
-    --liquid-data-hover: rgba(34, 32, 48, 0.68);
+    --liquid-content: rgba(28, 27, 40, 0.9);
+    --liquid-data: rgba(24, 23, 36, 0.88);
+    --liquid-data-hover: rgba(34, 32, 48, 0.94);
     --liquid-data-sheen: linear-gradient(
         145deg,
         rgba(255, 255, 255, 0.1),
@@ -1099,9 +1100,9 @@ select.form-input:focus {
         0 28px 70px rgba(3, 4, 10, 0.48);
     --liquid-surface-gradient: linear-gradient(
         145deg,
-        rgba(43, 42, 58, 0.8) 0%,
-        rgba(26, 25, 38, 0.66) 52%,
-        rgba(34, 26, 42, 0.72) 100%
+        rgba(43, 42, 58, 0.95) 0%,
+        rgba(26, 25, 38, 0.9) 52%,
+        rgba(34, 26, 42, 0.93) 100%
     );
     --liquid-subtle-gradient: linear-gradient(
         145deg,
@@ -1162,6 +1163,62 @@ body,
     position: fixed;
 }
 
+/* One rounded-corner scale for controls, cards, chrome, and overlays. */
+:is(
+    .btn,
+    .tab-btn,
+    .config-module-tab,
+    .form-input,
+    .form-textarea,
+    .form-group input,
+    .form-group textarea,
+    select.form-input,
+    .nav-item,
+    .mobile-bottom-nav-item,
+    .pagination button,
+    .pagination a
+) {
+    border-radius: var(--liquid-radius-control);
+}
+
+:is(
+    .card,
+    .welcome-card,
+    .task-item,
+    .data-card,
+    .weibo-feed-card,
+    .weibo-card,
+    .live-card,
+    .feed-card,
+    .push-channel-item,
+    .multi-account-row,
+    .multi-cookie-row,
+    .push-channel-checkbox,
+    .table-container,
+    .logs-container,
+    .empty-state,
+    .error-message.show,
+    .toast
+) {
+    border-radius: var(--liquid-radius-card);
+}
+
+:is(
+    .sidebar,
+    .page-topbar,
+    .tabs,
+    .config-module-tabs,
+    .config-module-nav,
+    .task-toolbar,
+    .mobile-bottom-nav
+) {
+    border-radius: var(--liquid-radius-panel);
+}
+
+:is(.modal-content, .login-box) {
+    border-radius: var(--liquid-radius-sheet);
+}
+
 .modal-content,
 .login-box,
 .card {
@@ -1190,7 +1247,7 @@ body,
     box-shadow: var(--liquid-shadow-1);
     backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
     -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(1.2);
-    animation: liquid-content-in 420ms var(--liquid-spring) both;
+    animation: liquid-content-in 380ms var(--liquid-spring) both;
 }
 
 .content-body > :nth-child(2) {
@@ -1208,7 +1265,7 @@ body,
 @keyframes liquid-content-in {
     from {
         opacity: 0;
-        transform: translate3d(0, 10px, 0) scale(0.992);
+        transform: translate3d(0, 16px, 0) scale(0.98);
     }
     to {
         opacity: 1;
@@ -1271,6 +1328,9 @@ body,
 .data-card {
     position: relative;
     z-index: 0;
+    overflow: hidden;
+    border-radius: var(--liquid-radius-card);
+    background-clip: padding-box;
     background-color: var(--liquid-data);
     background-image: var(--liquid-data-sheen);
     background-position: 0 0;
@@ -1372,6 +1432,10 @@ body.page-data .data-card-grid {
 }
 
 body.page-data .data-card {
+    overflow: hidden;
+    border-radius: var(--liquid-radius-card);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.45),
         0 2px 10px rgba(52, 32, 68, 0.08);
@@ -1381,6 +1445,38 @@ body.page-data .data-card-drag-handle {
     background: rgba(255, 255, 255, 0.24);
     border-color: var(--liquid-stroke-soft);
     box-shadow: none;
+}
+
+/* Keep the data source switcher reachable while the data grid scrolls. */
+body.page-data .tabs-scroll-wrap {
+    position: sticky;
+    top: 76px;
+    z-index: 19;
+    width: fit-content;
+    max-width: 100%;
+    padding-block: 4px;
+    border-radius: var(--liquid-radius-panel);
+    isolation: isolate;
+}
+
+body.page-data.has-update-banner .tabs-scroll-wrap {
+    top: calc(var(--update-banner-height) + var(--topbar-height) + 22px);
+}
+
+/* Bound long log lines to a comfortable reading area on large displays. */
+body.page-logs .content-body {
+    width: 100%;
+    max-width: 1320px;
+}
+
+body.page-logs .content-body > .card {
+    max-height: min(820px, calc(100dvh - 96px));
+}
+
+body.page-logs .logs-container {
+    padding: clamp(14px, 1.4vw, 20px);
+    font-size: clamp(12px, calc(11.5px + 0.15vw), 13.5px);
+    line-height: 1.65;
 }
 
 [data-theme="dark"] body.page-data .data-card-drag-handle {
@@ -1449,13 +1545,13 @@ select.form-input {
     background: var(--liquid-surface-gradient);
     border-color: var(--liquid-stroke);
     box-shadow: var(--liquid-shadow-2);
-    animation: liquid-login-in 460ms var(--liquid-spring) both;
+    animation: liquid-login-in 400ms var(--liquid-spring) both;
 }
 
 @keyframes liquid-login-in {
     from {
         opacity: 0;
-        transform: translate3d(0, 18px, 0) scale(0.975);
+        transform: translate3d(0, 22px, 0) scale(0.97);
     }
     to {
         opacity: 1;
@@ -1484,7 +1580,7 @@ select.form-input {
         background-position: 100% 100%;
         border-color: rgba(255, 255, 255, 0.88);
         box-shadow: var(--liquid-shadow-2);
-        transform: translate3d(0, -3px, 0) scale(1.008);
+        transform: translate3d(0, -4px, 0) scale(1.012);
     }
 
     [data-theme="dark"] .card:hover,
@@ -1511,6 +1607,7 @@ select.form-input {
 
     .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
         z-index: 5;
+        border-radius: var(--liquid-radius-card);
         background-color: var(--liquid-data-hover);
         background-position: 100% 100%;
         border-color: rgba(255, 255, 255, 0.82);
@@ -1558,10 +1655,11 @@ select.form-input {
     }
 
     body.page-data .data-card:not(.data-card-dragging):not(.data-card-chosen):hover {
+        border-radius: var(--liquid-radius-card);
         box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.62),
             0 10px 28px rgba(52, 32, 68, 0.14);
-        transform: translate3d(0, -4px, 0) scale(1.018);
+        transform: translate3d(0, -5px, 0) scale(1.025);
     }
 }
 
@@ -1594,7 +1692,7 @@ select.form-input {
     }
 
     .mobile-bottom-nav {
-        border-radius: 26px;
+        border-radius: var(--liquid-radius-panel);
         box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.58),
             0 18px 44px rgba(35, 21, 48, 0.2);
@@ -1634,6 +1732,22 @@ select.form-input {
 
     body.page-data .data-card-grid {
         gap: 10px;
+    }
+
+    body.page-data .tabs-scroll-wrap {
+        top: calc(70px + env(safe-area-inset-top));
+    }
+
+    body.page-data.has-update-banner .tabs-scroll-wrap {
+        top: calc(var(--update-banner-height) + 70px + env(safe-area-inset-top));
+    }
+
+    body.page-logs .main-content {
+        padding-bottom: calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom));
+    }
+
+    body.page-logs .content-body > .card {
+        max-height: none;
     }
 }
 

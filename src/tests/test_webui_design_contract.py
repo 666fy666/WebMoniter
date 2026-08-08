@@ -21,7 +21,7 @@ def test_liquid_glass_assets_are_loaded_on_app_and_login_pages():
     for template_name in ("base.html", "login.html"):
         template = _read(TEMPLATE_ROOT / template_name)
         assert "/static/css/style.css?v=1" in template
-        assert "/static/css/liquid-glass.css?v=5" in template
+        assert "/static/css/liquid-glass.css?v=1" in template
         assert '<link rel="preload" href="/static/images/liquid-landscape.webp"' in template
 
     css = _read(LIQUID_CSS)
@@ -89,6 +89,7 @@ def test_liquid_glass_preserves_shell_positioning():
         (".page-topbar", "sticky"),
         (".config-module-nav", "sticky"),
         (".task-toolbar", "sticky"),
+        ("body.page-data .tabs-scroll-wrap", "sticky"),
         (".mobile-bottom-nav", "fixed"),
     ):
         assert re.search(
@@ -96,6 +97,27 @@ def test_liquid_glass_preserves_shell_positioning():
             css,
             flags=re.DOTALL,
         ), f"{selector} 应保持 {position} 定位"
+
+
+def test_surface_radius_and_log_viewer_use_shared_layout_tokens():
+    css = _read(LIQUID_CSS)
+
+    for token in (
+        "--liquid-radius-control:",
+        "--liquid-radius-card:",
+        "--liquid-radius-panel:",
+        "--liquid-radius-sheet:",
+    ):
+        assert token in css
+
+    assert ":is(" in css
+    assert "border-radius: var(--liquid-radius-card)" in css
+    assert "--liquid-content: rgba(255, 255, 255, 0.92);" in css
+    assert "--liquid-data: rgba(255, 255, 255, 0.9);" in css
+    assert "--liquid-data: rgba(24, 23, 36, 0.88);" in css
+    assert "body.page-logs .content-body" in css
+    assert "max-width: 1320px" in css
+    assert "body.page-logs .logs-container" in css
 
 
 def test_motion_transparency_and_keyboard_accessibility_have_fallbacks():
@@ -122,6 +144,16 @@ def test_data_cards_use_translucent_glass_and_pointer_hover_magnification():
     assert "--liquid-data:" in css
     assert "--liquid-data-hover:" in css
     assert "--liquid-data-sheen:" in css
+    assert re.search(
+        r"\.data-card\s*\{[^}]+overflow:\s*hidden;[^}]+border-radius:\s*var\(--liquid-radius-card\);",
+        css,
+        flags=re.DOTALL,
+    )
+    assert re.search(
+        r"body\.page-data \.data-card\s*\{[^}]+backdrop-filter:\s*none;[^}]+-webkit-backdrop-filter:\s*none;",
+        css,
+        flags=re.DOTALL,
+    )
     assert "@media (hover: hover) and (pointer: fine)" in css
     assert re.search(
         r"\.data-card:not\([^}]+:hover\s*\{[^}]+scale\(1\.025\)",
