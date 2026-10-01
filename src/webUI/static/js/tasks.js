@@ -7,16 +7,25 @@ let allTasks = [];
 
 // 任务运行状态
 const runningTasks = new Set();
+let taskListRequestId = 0;
+let taskListRequestController = null;
+let taskListTriggerButton = null;
 
 // 加载任务列表
 async function loadTasks(triggerButton = null) {
+    taskListRequestController?.abort();
+    if (taskListTriggerButton) setButtonLoading(taskListTriggerButton, false);
+    taskListTriggerButton = triggerButton;
+    const controller = new AbortController();
+    taskListRequestController = controller;
+    const requestId = ++taskListRequestId;
     const container = document.getElementById('tasksContainer');
     container.innerHTML = '<div class="loading">加载中...</div>';
     if (triggerButton) setButtonLoading(triggerButton, true, '刷新中...');
 
     try {
-        const response = await fetch('/api/tasks');
-        const data = await response.json();
+        const { response, data } = await fetchJSON('/api/tasks', { signal: controller.signal });
+        if (requestId !== taskListRequestId || controller.signal.aborted) return;
 
         if (!response.ok) {
             throw new Error(data.error || '加载任务失败');
@@ -25,6 +34,7 @@ async function loadTasks(triggerButton = null) {
         allTasks = data.tasks || [];
         renderTasks(allTasks);
     } catch (error) {
+        if (requestId !== taskListRequestId || controller.signal.aborted) return;
         console.error('加载任务失败:', error);
         container.innerHTML = `
             <div class="error-state">
@@ -35,7 +45,11 @@ async function loadTasks(triggerButton = null) {
         container.querySelector('.retry-tasks-btn')?.addEventListener('click', () => loadTasks());
         updateTaskCount(0);
     } finally {
-        if (triggerButton) setButtonLoading(triggerButton, false);
+        if (taskListRequestController === controller) taskListRequestController = null;
+        if (requestId === taskListRequestId) {
+            if (triggerButton) setButtonLoading(triggerButton, false);
+            taskListTriggerButton = null;
+        }
     }
 }
 
@@ -175,10 +189,9 @@ async function loadTaskLogInModal(jobId) {
     container.innerHTML = '<div class="loading">加载中...</div>';
 
     try {
-        const response = await fetch('/api/logs?lines=200&task=' + encodeURIComponent(jobId), {
+        const { data } = await fetchJSON('/api/logs?lines=200&task=' + encodeURIComponent(jobId), {
             signal: controller.signal,
         });
-        const data = await response.json();
         if (!isCurrent()) return;
 
         if (data.error) {
@@ -342,6 +355,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && taskLogModal && taskLogModal.classList.contains('show')) {
             closeTaskLogModal();
+        }
+    });
+    window.addEventListener('pagehide', () => {
+        taskListRequestController?.abort();
+        taskLogRequestController?.abort();
+    });
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            loadTasks();
+            if (currentTaskLogJobId) loadTaskLogInModal(currentTaskLogJobId);
         }
     });
 });

@@ -6,6 +6,35 @@ function uiIcon(name, className = 'ui-icon') {
     return `<svg class="${className}" aria-hidden="true" focusable="false"><use href="${UI_ICON_SPRITE}#icon-${name}"></use></svg>`;
 }
 
+// 读取请求的截止时间覆盖响应体；调用方取消与超时分别处理，不重试写操作。
+async function fetchJSON(url, options = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const signal = options.signal;
+    const forwardAbort = () => controller.abort(signal.reason);
+    let timedOut = false;
+    if (signal?.aborted) forwardAbort();
+    else signal?.addEventListener('abort', forwardAbort, { once: true });
+    const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        const data = await response.json();
+        return { response, data };
+    } catch (error) {
+        if (timedOut) {
+            const timeout = new Error('请求超时，请重试');
+            timeout.name = 'TimeoutError';
+            throw timeout;
+        }
+        throw error;
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', forwardAbort);
+    }
+}
+
 function setButtonLoading(button, loading, loadingText = '处理中...') {
     if (!button) return;
 
@@ -692,9 +721,19 @@ function canUseLiquidLensPointer() {
     return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 }
 
-function setLiquidLensPoint(el, clientX, clientY) {
-    if (!el || typeof clientX !== 'number' || typeof clientY !== 'number') return;
+const pointerRects = new WeakMap();
+
+function getPointerRect(el, frameTime) {
+    const cached = pointerRects.get(el);
+    if (cached?.frameTime === frameTime) return cached.rect;
     const rect = el.getBoundingClientRect();
+    pointerRects.set(el, { frameTime, rect });
+    return rect;
+}
+
+function setLiquidLensPoint(el, clientX, clientY, measuredRect = null) {
+    if (!el || typeof clientX !== 'number' || typeof clientY !== 'number') return;
+    const rect = measuredRect || el.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
@@ -718,19 +757,23 @@ function initLiquidGlassLens() {
 
     let frameId = 0;
     let pending = null;
+    let activeElement = null;
 
-    const flush = () => {
+    const flush = (frameTime) => {
         frameId = 0;
         if (!pending) return;
         const { el, clientX, clientY } = pending;
         pending = null;
-        setLiquidLensPoint(el, clientX, clientY);
+        if (!el.isConnected) return;
+        setLiquidLensPoint(el, clientX, clientY, getPointerRect(el, frameTime));
         if (el.matches('.btn, .tab-btn, .config-module-tab, .nav-item, .mobile-bottom-nav-item, .pagination button, .pagination a, .page-topbar-menu, .password-toggle, .modal-close, .back-to-top, .theme-toggle-fab, .data-card-drag-handle')) {
             el.style.setProperty('--lg-spot-opacity', '1');
         }
     };
 
     const schedule = (el, clientX, clientY) => {
+        if (activeElement && activeElement !== el) clearLiquidLensPoint(activeElement);
+        activeElement = el;
         pending = { el, clientX, clientY };
         if (!frameId) {
             frameId = requestAnimationFrame(flush);
@@ -746,7 +789,10 @@ function initLiquidGlassLens() {
 
     document.addEventListener('pointerleave', (event) => {
         const el = event.target.closest?.(LIQUID_LENS_SELECTOR);
-        if (el) clearLiquidLensPoint(el);
+        if (el) {
+            if (pending?.el === el) pending = null;
+            clearLiquidLensPoint(el);
+        }
     }, true);
 
     document.addEventListener('pointerout', (event) => {
@@ -754,8 +800,22 @@ function initLiquidGlassLens() {
         if (!el) return;
         const related = event.relatedTarget;
         if (related && el.contains(related)) return;
+        if (pending?.el === el) pending = null;
         clearLiquidLensPoint(el);
     }, true);
+
+    const stopLens = () => {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        pending = null;
+        clearLiquidLensPoint(activeElement);
+        activeElement = null;
+    };
+    window.addEventListener('blur', stopLens);
+    window.addEventListener('pagehide', stopLens);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopLens();
+    });
 }
 
 window.initLiquidGlassLens = initLiquidGlassLens;
@@ -840,7 +900,7 @@ function initCustomCursorExperience() {
         if (pendingPointer) {
             const { target, clientX, clientY } = pendingPointer;
             pendingPointer = null;
-            if (target.isConnected) syncTargetEffects(target, clientX, clientY);
+            if (target.isConnected) syncTargetEffects(target, clientX, clientY, time);
         }
         const frameScale = Math.min(2, Math.max(0.25, (time - lastFrameTime) / (1000 / 60)));
         lastFrameTime = time;
@@ -870,13 +930,14 @@ function initCustomCursorExperience() {
 
     const clearTilt = () => {
         if (!tiltTarget) return;
+        tiltTarget.classList.remove('cursor-reactive-card');
         tiltTarget.style.removeProperty('--cursor-tilt-x');
         tiltTarget.style.removeProperty('--cursor-tilt-y');
         clearLiquidLensPoint(tiltTarget);
         tiltTarget = null;
     };
 
-    const syncTargetEffects = (target, clientX, clientY) => {
+    const syncTargetEffects = (target, clientX, clientY, frameTime) => {
         const interactive = target.closest(CUSTOM_CURSOR_HOVER_SELECTOR);
         const isText = Boolean(target.closest(CUSTOM_CURSOR_TEXT_SELECTOR));
         const isDisabled = isDisabledControl(interactive);
@@ -890,7 +951,7 @@ function initCustomCursorExperience() {
         if (nextMagnet !== magnetTarget) clearMagnet();
         magnetTarget = nextMagnet;
         if (magnetTarget) {
-            const rect = magnetTarget.getBoundingClientRect();
+            const rect = getPointerRect(magnetTarget, frameTime);
             const pullX = Math.max(-4, Math.min(4, (clientX - rect.left - rect.width / 2) * 0.08));
             const pullY = Math.max(-3, Math.min(3, (clientY - rect.top - rect.height / 2) * 0.08));
             magnetTarget.style.setProperty('--cursor-pull-x', `${pullX.toFixed(2)}px`);
@@ -902,13 +963,13 @@ function initCustomCursorExperience() {
         if (nextTilt !== tiltTarget) clearTilt();
         tiltTarget = nextTilt;
         if (tiltTarget) {
-            const rect = tiltTarget.getBoundingClientRect();
+            const rect = getPointerRect(tiltTarget, frameTime);
             const localX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
             const localY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
             tiltTarget.classList.add('cursor-reactive-card');
             tiltTarget.style.setProperty('--cursor-tilt-x', `${((0.5 - localY) * 2.4).toFixed(2)}deg`);
             tiltTarget.style.setProperty('--cursor-tilt-y', `${((localX - 0.5) * 3.2).toFixed(2)}deg`);
-            setLiquidLensPoint(tiltTarget, clientX, clientY);
+            setLiquidLensPoint(tiltTarget, clientX, clientY, rect);
         }
     };
 
@@ -940,17 +1001,19 @@ function initCustomCursorExperience() {
     }, { passive: true });
     document.addEventListener('pointerup', () => ring.classList.remove('is-pressed'), { passive: true });
     document.addEventListener('pointercancel', () => ring.classList.remove('is-pressed'), { passive: true });
-    document.addEventListener('mouseleave', () => {
+    const stopCursor = () => {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
         pendingPointer = null;
         setVisible(false);
         clearMagnet();
         clearTilt();
-    });
-    window.addEventListener('blur', () => {
-        pendingPointer = null;
-        setVisible(false);
-        clearMagnet();
-        clearTilt();
+    };
+    document.addEventListener('mouseleave', stopCursor);
+    window.addEventListener('blur', stopCursor);
+    window.addEventListener('pagehide', stopCursor);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopCursor();
     });
 }
 

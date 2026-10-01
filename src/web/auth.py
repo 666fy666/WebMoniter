@@ -1,9 +1,13 @@
 """Web 认证状态与凭据读写。"""
 
 import hashlib
+import hmac
 import json
 import logging
+import os
+import tempfile
 import time
+from pathlib import Path
 from threading import RLock
 
 from src.core.paths import AUTH_FILE, WEB_SESSION_FILE
@@ -17,6 +21,8 @@ WEB_SESSION_RENEW_WITHIN_SECONDS = 30 * 24 * 60 * 60
 # 当前进程内的登录会话缓存；权威数据持久化在 data/web_sessions.json。
 active_sessions: set[str] = set()
 _session_lock = RLock()
+_session_file_fingerprint: tuple | None = None
+_session_file_payload: object = None
 
 
 def _now_ts() -> int:
@@ -44,19 +50,34 @@ def load_auth() -> dict:
 
 def save_auth(auth_data: dict) -> bool:
     """保存认证信息到文件。"""
+    temp_path: Path | None = None
     try:
         AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(AUTH_FILE, "w", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=AUTH_FILE.parent, delete=False
+        ) as f:
+            temp_path = Path(f.name)
             json.dump(auth_data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, AUTH_FILE)
         return True
     except Exception as e:
         logger.error("保存认证文件失败: %s", e)
         return False
+    finally:
+        if temp_path is not None:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError as exc:
+                logger.warning("清理认证临时文件失败: %s", type(exc).__name__)
 
 
-def verify_password(password: str, password_hash: str) -> bool:
+def verify_password(password: str, password_hash: object) -> bool:
     """验证密码。"""
-    return hash_password(password) == password_hash
+    if not isinstance(password_hash, str) or not password_hash.isascii():
+        return False
+    return hmac.compare_digest(hash_password(password), password_hash)
 
 
 def _session_expires_at(now: int | None = None) -> int:
@@ -93,6 +114,7 @@ def _normalize_session_records(raw_data: object, now: int) -> dict[str, dict[str
 
 
 def _save_session_records_locked(records: dict[str, dict[str, int]]) -> None:
+    global _session_file_fingerprint
     WEB_SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
@@ -102,17 +124,40 @@ def _save_session_records_locked(records: dict[str, dict[str, int]]) -> None:
     temp_file = WEB_SESSION_FILE.with_suffix(WEB_SESSION_FILE.suffix + ".tmp")
     temp_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     temp_file.replace(WEB_SESSION_FILE)
+    _session_file_fingerprint = None
 
 
 def _load_session_records_locked(*, persist_purge: bool = True) -> dict[str, dict[str, int]]:
+    global _session_file_fingerprint, _session_file_payload
     now = _now_ts()
-    if not WEB_SESSION_FILE.is_file():
+    try:
+        file_stat = WEB_SESSION_FILE.stat()
+    except FileNotFoundError:
+        _session_file_fingerprint = None
+        _session_file_payload = None
+        active_sessions.clear()
+        return {}
+    except OSError as e:
+        logger.error("读取 Web 登录会话状态失败: %s", e)
         active_sessions.clear()
         return {}
 
     try:
-        raw_data = json.loads(WEB_SESSION_FILE.read_text(encoding="utf-8"))
+        fingerprint = (
+            str(WEB_SESSION_FILE),
+            file_stat.st_dev,
+            file_stat.st_ino,
+            file_stat.st_size,
+            file_stat.st_mtime_ns,
+            file_stat.st_ctime_ns,
+        )
+        if fingerprint != _session_file_fingerprint:
+            _session_file_payload = json.loads(WEB_SESSION_FILE.read_text(encoding="utf-8"))
+            _session_file_fingerprint = fingerprint
+        raw_data = _session_file_payload
     except Exception as e:
+        _session_file_fingerprint = None
+        _session_file_payload = None
         logger.error("加载 Web 登录会话失败: %s", e)
         active_sessions.clear()
         return {}

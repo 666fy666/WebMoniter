@@ -1,5 +1,6 @@
 """Monitoring data API routes."""
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -15,12 +16,38 @@ from src.web.data_support import (
     PLATFORM_CONFIG,
     PLATFORM_PRIMARY_KEY,
     VALID_PLATFORMS,
-    _parse_weibo_created_at,
     _row_to_item,
+    _weibo_page_ids,
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _list_response(platform: str, rows: list[tuple], **metadata) -> JSONResponse:
+    return JSONResponse({"data": [_row_to_item(platform, row) for row in rows], **metadata})
+
+
+async def _get_weibo_page(
+    db: AsyncDatabase, where_clause: str, filter_params: dict, page: int, page_size: int
+) -> tuple[list[tuple], int]:
+    # 排序只读取主键和正文；图片及转发等大字段仅按主键批量读取当前页。
+    index_rows = await db.execute_query(
+        f"SELECT UID, 文本 FROM weibo{where_clause}", filter_params or None
+    )
+    page_ids = await asyncio.to_thread(
+        _weibo_page_ids, index_rows, (page - 1) * page_size, page_size
+    )
+    rows_by_id = {}
+    for start in range(0, len(page_ids), 500):
+        batch = page_ids[start : start + 500]
+        params = {f"pk{i}": uid for i, uid in enumerate(batch)}
+        placeholders = ", ".join(f":pk{i}" for i in range(len(batch)))
+        rows = await db.execute_query(
+            f"{_PLATFORM_LIST_SQL['weibo']} WHERE UID IN ({placeholders})", params
+        )
+        rows_by_id.update((row[0], row) for row in rows)
+    return [rows_by_id[uid] for uid in page_ids if uid in rows_by_id], len(index_rows)
 
 
 @router.get("/api/data/huya/images")
@@ -30,16 +57,19 @@ async def get_huya_images(request: Request, rooms: str = ""):
     if not check_login(session_id):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    room_ids = [r.strip() for r in rooms.split(",") if r.strip()]
+    room_ids = list(dict.fromkeys(r.strip() for r in rooms.split(",") if r.strip()))
     if not room_ids:
         return JSONResponse({"data": {}})
 
     try:
         async with AsyncDatabase() as db:
-            placeholders = ", ".join([f":r{i}" for i in range(len(room_ids))])
-            params = {f"r{i}": rid for i, rid in enumerate(room_ids)}
-            sql = f"SELECT room, room_pic, avatar_url FROM huya WHERE room IN ({placeholders})"
-            rows = await db.execute_query(sql, params)
+            rows = []
+            for start in range(0, len(room_ids), 500):
+                batch = room_ids[start : start + 500]
+                placeholders = ", ".join(f":r{i}" for i in range(len(batch)))
+                params = {f"r{i}": rid for i, rid in enumerate(batch)}
+                sql = f"SELECT room, room_pic, avatar_url FROM huya WHERE room IN ({placeholders})"
+                rows.extend(await db.execute_query(sql, params))
 
         data = {
             row[0]: {
@@ -127,10 +157,7 @@ async def get_table_data(
                 params["filter_val"] = filter_param
 
             table_name = PLATFORM_CONFIG[platform][0]
-            count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
             count_params = {k: v for k, v in params.items() if k in ("filter_val",)}
-            count_result = await db.execute_query(count_sql, count_params if count_params else None)
-            total = count_result[0][0] if count_result else 0
 
             base_sql = (
                 _PLATFORM_LIST_SQL_HUYA_BASIC
@@ -138,35 +165,22 @@ async def get_table_data(
                 else _PLATFORM_LIST_SQL[platform]
             )
             if platform == "weibo":
-                sql = f"{_PLATFORM_LIST_SQL[platform]}{where_clause}"
-                fetch_params = {k: v for k, v in params.items() if k == "filter_val"}
-                rows = await db.execute_query(sql, fetch_params if fetch_params else None)
+                rows, total = await _get_weibo_page(db, where_clause, count_params, page, page_size)
             else:
+                count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
+                count_result = await db.execute_query(count_sql, count_params or None)
+                total = count_result[0][0] if count_result else 0
                 sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
                 rows = await db.execute_query(sql, params)
 
-        if platform == "weibo" and rows:
-
-            def sort_key(row: tuple):
-                dt = _parse_weibo_created_at(row[6])
-                if dt is None:
-                    return 0.0
-                return dt.timestamp()
-
-            rows.sort(key=sort_key, reverse=True)
-            offset = (page - 1) * page_size
-            rows = rows[offset : offset + page_size]
-
-        data = [_row_to_item(platform, row) for row in rows]
-
-        return JSONResponse(
-            {
-                "data": data,
-                "total": total,
-                "page": page,
-                "page_size": page_size,
-                "total_pages": (total + page_size - 1) // page_size if total else 0,
-            }
+        return await asyncio.to_thread(
+            _list_response,
+            platform,
+            rows,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=(total + page_size - 1) // page_size if total else 0,
         )
     except Exception as e:
         logger.error("获取表数据失败: %s", e)
@@ -217,14 +231,12 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
         async with AsyncDatabase() as db:
             rows = await db.execute_query(_PLATFORM_LIST_SQL[platform])
 
-        data = [_row_to_item(platform, row) for row in rows]
-
-        return JSONResponse(
-            {
-                "success": True,
-                "data": data,
-                "timestamp": datetime.now().isoformat(),
-            }
+        return await asyncio.to_thread(
+            _list_response,
+            platform,
+            rows,
+            success=True,
+            timestamp=datetime.now().isoformat(),
         )
     except Exception as e:
         logger.error("获取监控状态失败: %s", e)
@@ -242,17 +254,20 @@ async def get_monitor_status(request: Request):
             for platform, base_sql in _PLATFORM_LIST_SQL.items():
                 try:
                     rows = await db.execute_query(base_sql)
-                    all_data[platform] = [_row_to_item(platform, row) for row in rows]
+                    all_data[platform] = await asyncio.to_thread(
+                        lambda p=platform, r=rows: [_row_to_item(p, row) for row in r]
+                    )
                 except Exception as e:
                     logger.error("获取平台 %s 监控状态失败: %s", platform, e, exc_info=True)
                     all_data[platform] = []
 
-        return JSONResponse(
+        return await asyncio.to_thread(
+            JSONResponse,
             {
                 "success": True,
                 "data": all_data,
                 "timestamp": datetime.now().isoformat(),
-            }
+            },
         )
     except Exception as e:
         logger.error("获取监控状态失败: %s", e)

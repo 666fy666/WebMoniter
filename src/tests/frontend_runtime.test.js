@@ -86,6 +86,9 @@ class Element extends Events {
         this.attributes.delete(name);
         if (name.startsWith('data-')) delete this.dataset[this.dataKey(name)];
     }
+    toggleAttribute(name, force) {
+        if (force) this.setAttribute(name, ''); else this.removeAttribute(name);
+    }
     dataKey(name) { return name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); }
     append(...children) {
         children.forEach(child => { child.parent = this; this.children.push(child); });
@@ -169,7 +172,8 @@ function runtime(script, fetchImpl) {
     const storage = new Map();
     const context = vm.createContext({
         document, window, Element, AbortController, DOMException, Event,
-        CustomEvent: class { constructor(type) { this.type = type; } },
+        CustomEvent: class { constructor(type, options = {}) { this.type = type; this.detail = options.detail; } },
+        navigator: { onLine: true },
         MutationObserver: class { observe() {} },
         Node: { ELEMENT_NODE: 1 },
         console: { log() {}, warn() {}, error() {} },
@@ -205,7 +209,7 @@ function runtime(script, fetchImpl) {
         assert.fail('预期的回调未被调度');
     };
     return {
-        context, document, window, el, all, requests, timers, idles, toasts,
+        context, document, window, el, all, requests, timers, frames, idles, toasts,
         start: () => document.emit('DOMContentLoaded'),
         reply: (record, body) => record.resolve(response(body)),
         timer: delay => fire(timers, value => value.delay === delay),
@@ -213,6 +217,55 @@ function runtime(script, fetchImpl) {
         frame: () => fire(frames, undefined, 216),
     };
 }
+
+test('配置控件保留标签关联与 ARIA 名称，并为缺失名称提供原有回退', () => {
+    const r = runtime('config.js');
+    const controlSelector = 'input:not([type="hidden"]), select, textarea';
+    const root = new Element();
+    const row = new Element('tr');
+    const labelCell = new Element('td');
+    labelCell.textContent = '原有表格标签';
+    const rowControl = new Element('input');
+    const labelledControl = new Element('input');
+    const ariaControl = new Element('input');
+    const fallbackControl = new Element('input');
+    const emptyLabelControl = new Element('input');
+    const controls = [rowControl, labelledControl, ariaControl, fallbackControl, emptyLabelControl];
+    controls.forEach(control => {
+        Object.defineProperty(control, 'labels', { get() { assert.fail('不应逐控件扫描 labels'); } });
+    });
+    const label = new Element('label');
+    label.control = labelledControl;
+    label.textContent = '已有 HTML 标签';
+    const emptyLabel = new Element('label');
+    emptyLabel.control = emptyLabelControl;
+    emptyLabel.textContent = ' ';
+    r.all.label = [label, emptyLabel];
+    row.queries['.config-label'] = [labelCell];
+    row.queries[controlSelector] = [rowControl, labelledControl, ariaControl];
+    root.queries.tr = [row];
+    root.queries[controlSelector] = controls;
+    ariaControl.setAttribute('aria-label', '自定义 ARIA 名称');
+    fallbackControl.setAttribute('placeholder', '原有占位文字');
+    emptyLabelControl.setAttribute('placeholder', '空标签回退');
+    r.context.ensureConfigControlAccessibleNames(root);
+    assert.equal(rowControl.getAttribute('aria-labelledby'), labelCell.id);
+    assert.equal(labelledControl.getAttribute('aria-labelledby'), null);
+    assert.equal(labelledControl.getAttribute('aria-label'), null);
+    assert.equal(ariaControl.getAttribute('aria-label'), '自定义 ARIA 名称');
+    assert.equal(fallbackControl.getAttribute('aria-label'), '原有占位文字');
+    assert.equal(emptyLabelControl.getAttribute('aria-label'), '空标签回退');
+
+    const dynamicRoot = new Element();
+    const dynamicControl = new Element('input');
+    const dynamicLabel = new Element('label');
+    dynamicLabel.control = dynamicControl;
+    dynamicLabel.textContent = '新插入的标签';
+    r.all.label.push(dynamicLabel);
+    dynamicRoot.queries[controlSelector] = [dynamicControl];
+    r.context.ensureConfigControlAccessibleNames(dynamicRoot);
+    assert.equal(dynamicControl.getAttribute('aria-label'), null);
+});
 
 test('数据页只渲染最新平台和页码的响应', async () => {
     const r = runtime('data.js');
@@ -406,7 +459,178 @@ test('高频指针事件在一帧内合并布局读取，离开页面清理待�
     assert.equal(button.rectReads, 1);
     await r.document.emit('pointermove', { target: button, clientX: 30, clientY: 30 });
     await r.window.emit('blur');
-    r.frame();
+    assert.equal(r.frames.size, 0);
     assert.equal(button.rectReads, 1);
     assert.equal(button.style['--cursor-pull-x'], undefined);
+});
+
+test('玻璃高光与光标共用一帧内的几何读取，隐藏时停止动效', async () => {
+    const r = runtime('common.js');
+    r.context.initLiquidGlassLens();
+    r.context.initCustomCursorExperience();
+    const button = new Element('button'); button.className = 'btn btn-primary';
+    await r.document.emit('pointermove', { target: button, clientX: 20, clientY: 20 });
+    r.frame();
+    r.frame();
+    assert.equal(button.rectReads, 1);
+    await r.document.emit('pointermove', { target: button, clientX: 35, clientY: 35 });
+    r.document.hidden = true;
+    await r.document.emit('visibilitychange');
+    assert.equal(r.frames.size, 0);
+    assert.equal(button.style['--lg-x'], undefined);
+});
+
+test('卡片倾斜复用几何读取并在离开时释放合成层提示', async () => {
+    const r = runtime('common.js');
+    r.context.initCustomCursorExperience();
+    const card = new Element(); card.className = 'card';
+    await r.document.emit('pointermove', { target: card, clientX: 20, clientY: 20 });
+    r.frame();
+    assert.equal(card.rectReads, 1);
+    assert.equal(card.classList.contains('cursor-reactive-card'), true);
+    await r.document.emit('mouseleave');
+    assert.equal(card.classList.contains('cursor-reactive-card'), false);
+    assert.equal(card.style['--cursor-tilt-x'], undefined);
+});
+
+test('读取超时覆盖响应头和响应体，数据页允许重试恢复', async () => {
+    for (const phase of ['headers', 'body']) {
+        const r = runtime('data.js');
+        await r.start();
+        const request = r.requests.at(-1);
+        const abort = () => new DOMException('aborted', 'AbortError');
+        if (phase === 'headers') {
+            request.options.signal.addEventListener('abort', () => request.reject(abort()));
+        } else {
+            const body = deferred();
+            request.options.signal.addEventListener('abort', () => body.reject(abort()));
+            request.resolve({ ok: true, json: () => body.promise });
+            await settle();
+        }
+        r.timer(30000);
+        await settle();
+        assert.equal(request.options.signal.aborted, true);
+        assert.match(r.el('dataTableContainer').innerHTML, /请求超时/);
+        assert.equal(r.el('dataTableContainer').getAttribute('aria-busy'), null);
+        const retry = r.el('dataTableContainer').querySelector('.retry-data-btn').emit('click');
+        r.reply(r.requests.at(-1), { data: [], total: 0, total_pages: 0 });
+        await retry;
+        await settle();
+        assert.doesNotMatch(r.el('dataTableContainer').innerHTML, /请求超时/);
+    }
+});
+
+test('任务列表并发刷新取消旧请求并恢复刷新按钮', async () => {
+    const r = runtime('tasks.js');
+    const button = new Element('button');
+    button.innerHTML = '刷新';
+    const first = r.context.loadTasks(button);
+    const old = r.requests.at(-1);
+    const latest = r.context.loadTasks();
+    const tasks = [{ job_id: 'new', type: 'task', description: '最新任务' }];
+    r.reply(r.requests.at(-1), { tasks });
+    await latest;
+    r.reply(old, { tasks: [{ job_id: 'old', type: 'task', description: '旧任务' }] });
+    await first;
+    assert.equal(old.options.signal.aborted, true);
+    assert.equal(button.disabled, false);
+    assert.match(r.el('tasksContainer').innerHTML, /最新任务/);
+    assert.doesNotMatch(r.el('tasksContainer').innerHTML, /旧任务/);
+});
+
+test('日志在隐藏及离线时停止自动轮询，恢复后继续', async () => {
+    const r = runtime('logs.js', url => Promise.resolve(response(url.includes('/tasks')
+        ? { all_tasks: [] } : { logs: ['INFO 初始日志'] })));
+    await r.start();
+    await settle();
+    const refreshTimers = () => [...r.timers.values()].filter(timer => timer.delay === 5000);
+    assert.equal(refreshTimers().length, 1);
+    r.document.hidden = true;
+    await r.document.emit('visibilitychange');
+    assert.equal(refreshTimers().length, 0);
+    r.context.navigator.onLine = false;
+    r.document.hidden = false;
+    await r.document.emit('visibilitychange');
+    await settle();
+    assert.equal(refreshTimers().length, 0);
+    r.context.navigator.onLine = true;
+    await r.window.emit('online');
+    await settle();
+    assert.equal(refreshTimers().length, 1);
+    await r.window.emit('pagehide');
+    assert.equal(refreshTimers().length, 0);
+});
+
+test('局部保存不覆盖其他分区或保存期间的新编辑，首屏读取并发启动', async () => {
+    const r = runtime('config.js');
+    const app = new Element(), button = new Element('button');
+    app.dataset.section = 'app';
+    app.queries['.section-save-btn'] = [button];
+    r.all['.config-section'] = [app];
+    const start = r.start();
+    assert.deepEqual(r.requests.map(request => request.url), [
+        '/api/config/metadata', '/api/config?format=json', '/api/database/status',
+    ]);
+    for (const request of r.requests) r.reply(request, request.url.includes('format=json')
+        ? { config: { app: { base_url: 'http://initial' }, huya: { rooms: 'initial-room' } } }
+        : {});
+    await start;
+    r.el('app_base_url').value = 'http://submitted';
+    r.el('huya_rooms').value = 'unsaved-room';
+    const saving = button.emit('click');
+    const submit = r.requests.at(-1);
+    r.el('app_base_url').value = 'http://new-edit';
+    const target = { closest: () => app };
+    await r.el('mainContent').emit('input', { target });
+    r.reply(submit, { success: true });
+    await saving;
+    const reload = r.requests.findLast(request => request.url.includes('format=json'));
+    r.reply(reload, { config: { app: { base_url: 'http://submitted' }, huya: { rooms: 'server-room' } } });
+    r.reply(r.requests.findLast(request => request.url.includes('database/status')), {});
+    await settle();
+    assert.equal(r.el('app_base_url').value, 'http://new-edit');
+    assert.equal(r.el('huya_rooms').value, 'unsaved-room');
+});
+
+test('YAML 忽略旧响应，切换视图和保存期间均保留新编辑', async () => {
+    const reads = [], writes = [];
+    const r = runtime('config.js', (url, options) => {
+        if (url.includes('format=yaml')) {
+            const pending = deferred(); reads.push(pending); return pending.promise;
+        }
+        if (options.method === 'POST') {
+            const pending = deferred(); writes.push(pending); return pending.promise;
+        }
+        return Promise.resolve(response(url.includes('format=json') ? { config: {} } : {}));
+    });
+    const table = new Element('button'), text = new Element('button');
+    table.dataset.view = 'table'; text.dataset.view = 'text';
+    r.all['.tab-btn'] = [table, text];
+    await r.start();
+    await text.emit('click');
+    const old = r.requests.at(-1);
+    const reload = r.el('reloadYamlBtn').emit('click');
+    reads[1].resolve(response({ content: 'latest: true' }));
+    await reload;
+    reads[0].resolve(response({ content: 'old: true' }));
+    await settle();
+    assert.equal(old.options.signal.aborted, true);
+    assert.equal(r.el('yamlEditor').value, 'latest: true');
+    r.el('yamlEditor').value = 'draft: one';
+    await r.el('yamlEditor').emit('input');
+    await table.emit('click'); await text.emit('click');
+    assert.equal(reads.length, 2);
+    const refreshing = r.el('reloadYamlBtn').emit('click');
+    r.el('yamlEditor').value = 'draft: two';
+    await r.el('yamlEditor').emit('input');
+    reads[2].resolve(response({ content: 'server: true' }));
+    await refreshing;
+    assert.equal(r.el('yamlEditor').value, 'draft: two');
+    const saving = r.el('saveYamlBtn').emit('click');
+    r.el('yamlEditor').value = 'draft: three';
+    await r.el('yamlEditor').emit('input');
+    writes[0].resolve(response({ success: true }));
+    await saving; await settle();
+    assert.equal(r.el('yamlEditor').value, 'draft: three');
+    assert.equal(reads.length, 3);
 });

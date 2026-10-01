@@ -30,14 +30,22 @@ let configMetadata = {
 
 let generatedConfigLabelId = 0;
 
-function hasProgrammaticControlName(control) {
+function getControlsWithLabels() {
+    const controls = new Set();
+    document.querySelectorAll('label').forEach((label) => {
+        if (label.control && label.textContent.trim()) controls.add(label.control);
+    });
+    return controls;
+}
+
+function hasProgrammaticControlName(control, controlsWithLabels) {
     if (control.getAttribute('aria-label')?.trim()) return true;
     if (control.getAttribute('aria-labelledby')?.trim()) return true;
     if (control.getAttribute('title')?.trim()) return true;
-    return Array.from(control.labels || []).some((label) => label.textContent.trim());
+    return controlsWithLabels.has(control);
 }
 
-function ensureConfigControlAccessibleNames(root) {
+function ensureConfigControlAccessibleNames(root, controlsWithLabels = getControlsWithLabels()) {
     if (!root?.querySelectorAll) return;
     const controlSelector = 'input:not([type="hidden"]), select, textarea';
     const rows = [];
@@ -53,7 +61,7 @@ function ensureConfigControlAccessibleNames(root) {
             labelCell.id = `config-control-label-${generatedConfigLabelId}`;
         }
         row.querySelectorAll(controlSelector).forEach((control) => {
-            if (!hasProgrammaticControlName(control)) {
+            if (!hasProgrammaticControlName(control, controlsWithLabels)) {
                 control.setAttribute('aria-labelledby', labelCell.id);
             }
         });
@@ -63,7 +71,7 @@ function ensureConfigControlAccessibleNames(root) {
     if (root.matches?.(controlSelector)) controls.push(root);
     root.querySelectorAll(controlSelector).forEach((control) => controls.push(control));
     controls.forEach((control) => {
-        if (hasProgrammaticControlName(control)) return;
+        if (hasProgrammaticControlName(control, controlsWithLabels)) return;
         const placeholder = control.getAttribute('placeholder')?.trim();
         if (placeholder) control.setAttribute('aria-label', placeholder);
     });
@@ -71,15 +79,29 @@ function ensureConfigControlAccessibleNames(root) {
 
 document.addEventListener('DOMContentLoaded', async function() {
     const accessibilityRoot = document.getElementById('mainContent') || document.body;
+    const dirtySections = new Set();
+    const sectionEditVersions = new Map();
+    const markSectionEdited = (event) => {
+        const name = event.target.closest?.('.config-section')?.dataset.section;
+        if (name) {
+            dirtySections.add(name);
+            sectionEditVersions.set(name, (sectionEditVersions.get(name) || 0) + 1);
+        }
+    };
+    accessibilityRoot.addEventListener('input', markSectionEdited);
+    accessibilityRoot.addEventListener('change', markSectionEdited);
     ensureConfigControlAccessibleNames(accessibilityRoot);
     const configAccessibilityObserver = new MutationObserver((mutations) => {
+        const addedElements = new Set();
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    ensureConfigControlAccessibleNames(node);
-                }
+                if (node.nodeType === Node.ELEMENT_NODE) addedElements.add(node);
             });
         });
+        if (!addedElements.size) return;
+        // 每批扫描一次标签关联，避免每个控件的 labels 属性重复遍历整页标签。
+        const controlsWithLabels = getControlsWithLabels();
+        addedElements.forEach((node) => ensureConfigControlAccessibleNames(node, controlsWithLabels));
     });
     configAccessibilityObserver.observe(accessibilityRoot, { childList: true, subtree: true });
 
@@ -166,6 +188,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     const yamlEditor = document.getElementById('yamlEditor');
     const reloadYamlBtn = document.getElementById('reloadYamlBtn');
     const saveYamlBtn = document.getElementById('saveYamlBtn');
+    let yamlEditVersion = 0;
+    let yamlDirty = false;
+    let yamlRequestId = 0;
+    let yamlRequestController = null;
+    yamlEditor?.addEventListener('input', () => {
+        yamlEditVersion += 1;
+        yamlDirty = true;
+    });
 
     // 视图切换
     function setConfigView(view) {
@@ -182,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         tableView.toggleAttribute('hidden', isText);
         textView.toggleAttribute('hidden', !isText);
 
-        if (isText) {
+        if (isText && !yamlDirty) {
             loadYamlConfig();
         }
     }
@@ -329,6 +359,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const configModuleTabs = document.querySelectorAll('.config-module-tab');
     const configModuleSearch = document.getElementById('configModuleSearch');
     const configSections = document.querySelectorAll('.config-section[data-module]');
+    const cardSearchTexts = new Map(Array.from(configSections, card => [card, getCardSearchText(card)]));
 
     const MODULE_PLACEHOLDERS = {
         monitor: '在监控任务中搜索（如：微博、bilibili、虎牙...）',
@@ -364,7 +395,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         configSections.forEach(card => {
             const cardModule = card.dataset.module || '';
             const matchesModule = cardModule === currentModule;
-            const searchText = getCardSearchText(card);
+            const searchText = cardSearchTexts.get(card);
             const matchesSearch = fuzzyMatch(searchText, searchQuery);
 
             const hide = !matchesModule || !matchesSearch;
@@ -392,7 +423,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     if (configModuleSearch) {
-        configModuleSearch.addEventListener('input', applyConfigModuleFilter);
+        let searchFrame = 0;
+        configModuleSearch.addEventListener('input', () => {
+            if (searchFrame) return;
+            searchFrame = requestAnimationFrame(() => {
+                searchFrame = 0;
+                applyConfigModuleFilter();
+            });
+        });
         configModuleSearch.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 this.value = '';
@@ -403,24 +441,31 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     setActiveModule('monitor');
+    document.body.classList.add('config-modules-ready');
 
     // 加载YAML配置
     async function loadYamlConfig(triggerButton = null) {
+        yamlRequestController?.abort();
+        const controller = new AbortController();
+        yamlRequestController = controller;
+        const requestId = ++yamlRequestId;
+        const editVersion = yamlEditVersion;
         if (triggerButton) setButtonLoading(triggerButton, true, '加载中...');
         try {
-            const response = await fetch('/api/config?format=yaml');
-            const data = await response.json();
+            const { data } = await fetchJSON('/api/config?format=yaml', { signal: controller.signal });
+            if (requestId !== yamlRequestId || controller.signal.aborted) return;
             
             if (data.error) {
                 showMessage('configMessage', data.error, 'error');
-                yamlEditor.value = '';
-            } else {
+            } else if (editVersion === yamlEditVersion) {
                 yamlEditor.value = data.content || '';
+                yamlDirty = false;
             }
         } catch (error) {
+            if (requestId !== yamlRequestId || controller.signal.aborted) return;
             showMessage('configMessage', '加载YAML配置失败: ' + error.message, 'error');
-            yamlEditor.value = '';
         } finally {
+            if (yamlRequestController === controller) yamlRequestController = null;
             if (triggerButton) setButtonLoading(triggerButton, false);
         }
     }
@@ -428,6 +473,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 保存YAML配置
     async function saveYamlConfig() {
         const yamlContent = yamlEditor.value.trim();
+        const editVersion = yamlEditVersion;
         
         if (!yamlContent) {
             showMessage('configMessage', '配置内容不能为空', 'error');
@@ -451,17 +497,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showMessage('configMessage', data.error, 'error');
             } else {
                 showMessage('configMessage', data.message || '配置保存成功并已热重载', 'success');
+                if (editVersion === yamlEditVersion) yamlDirty = false;
+                dirtySections.clear();
                 document.dispatchEvent(new CustomEvent('config-saved'));
-                // 更新原始配置
-                try {
-                    const configResponse = await fetch('/api/config?format=json');
-                    const configData = await configResponse.json();
-                    if (configData.config) {
-                        originalConfig = JSON.parse(JSON.stringify(configData.config));
-                    }
-                } catch (e) {
-                    console.error('更新原始配置失败:', e);
-                }
             }
         } catch (error) {
             showMessage('configMessage', '保存YAML配置失败: ' + error.message, 'error');
@@ -512,8 +550,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function loadConfigMetadata() {
         try {
-            const response = await fetch('/api/config/metadata');
-            const data = await response.json();
+            const { response, data } = await fetchJSON('/api/config/metadata');
             if (!response.ok || data.error) {
                 throw new Error(data.error || '加载配置元数据失败');
             }
@@ -550,7 +587,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         const updateLabel = () => {
             label.textContent = input.checked ? '开启' : '关闭';
         };
-        input.addEventListener('change', updateLabel);
+        if (!input.dataset.switchLabelBound) {
+            input.addEventListener('change', updateLabel);
+            input.dataset.switchLabelBound = 'true';
+        }
         updateLabel();
     }
 
@@ -558,12 +598,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         getSwitchIdsFromMetadata().forEach(bindSwitchLabel);
     }
 
+    let databaseStatusRequestId = 0;
     async function refreshDatabaseStatus() {
+        const requestId = ++databaseStatusRequestId;
         const badge = document.getElementById('databaseStatusBadge');
         if (!badge) return;
         try {
-            const response = await fetch('/api/database/status', { cache: 'no-store' });
-            const status = await response.json();
+            const { response, data: status } = await fetchJSON('/api/database/status', { cache: 'no-store' });
+            if (requestId !== databaseStatusRequestId) return;
             if (!response.ok || status.error) throw new Error(status.error || '状态读取失败');
 
             const labels = {
@@ -583,6 +625,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const syncTime = status.last_sync_at ? ` 最近同步：${status.last_sync_at}` : '';
             document.getElementById('databaseStatusMessage').textContent = `${status.message || ''}${syncTime}`;
         } catch (error) {
+            if (requestId !== databaseStatusRequestId) return;
             badge.textContent = '状态不可用';
             badge.className = 'database-status-badge is-error';
             const message = document.getElementById('databaseStatusMessage');
@@ -611,10 +654,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // 加载配置
-    async function loadConfig() {
+    let configLoadRequestId = 0;
+    async function loadConfig(configRequest = null, sections = null) {
+        const requestId = ++configLoadRequestId;
         try {
-            const response = await fetch('/api/config?format=json');
-            const data = await response.json();
+            const [{ data }] = await Promise.all([
+                configRequest || fetchJSON('/api/config?format=json'),
+                refreshDatabaseStatus(),
+            ]);
+            if (requestId !== configLoadRequestId) return;
 
             if (data.error) {
                 showMessage('configMessage', data.error, 'error');
@@ -624,13 +672,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             const config = data.config;
             originalConfig = JSON.parse(JSON.stringify(config)); // 深拷贝
 
-            getConfigSectionOrder().forEach(section => {
-                loadSectionConfig(section, config);
-            });
-            await refreshDatabaseStatus();
+            let batchStarted = performance.now();
+            for (const section of (sections || getConfigSectionOrder())) {
+                if (requestId !== configLoadRequestId) return;
+                if (!dirtySections.has(section)) loadSectionConfig(section, config);
+                if (performance.now() - batchStarted >= 8) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    batchStarted = performance.now();
+                }
+            }
 
-            showMessage('configMessage', '配置加载成功', 'success');
+            if (sections === null) showMessage('configMessage', '配置加载成功', 'success');
         } catch (error) {
+            if (requestId !== configLoadRequestId) return;
             showMessage('configMessage', '加载配置失败: ' + error.message, 'error');
         }
     }
@@ -725,7 +779,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const containerId = `${section}_push_channels`;
             renderTaskPushChannelSelect(
                 containerId,
-                originalConfig?.[section]?.push_channels || []
+                dirtySections.has(section)
+                    ? getTaskPushChannels(containerId)
+                    : originalConfig?.[section]?.push_channels || []
             );
         });
     }
@@ -2591,6 +2647,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 保存特定section的配置
     async function saveSectionConfig(section, btn) {
         setButtonLoading(btn, true, '保存中...');
+        const editVersion = sectionEditVersions.get(section) || 0;
         try {
             const sectionConfig = collectSectionConfig(section);
 
@@ -2612,7 +2669,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     Object.assign(originalConfig, sectionConfig);
                 }
                 showMessage('configMessage', saveData.message || '配置保存成功并已热重载', 'success');
-                document.dispatchEvent(new CustomEvent('config-saved'));
+                if ((sectionEditVersions.get(section) || 0) === editVersion) dirtySections.delete(section);
+                document.dispatchEvent(new CustomEvent('config-saved', { detail: { sections: [section] } }));
             }
         } catch (error) {
             showMessage('configMessage', '保存配置失败: ' + error.message, 'error');
@@ -2625,8 +2683,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function loadSectionConfigFromServer(section, btn) {
         setButtonLoading(btn, true, '加载中...');
         try {
-            const response = await fetch('/api/config?format=json');
-            const data = await response.json();
+            const { data } = await fetchJSON('/api/config?format=json');
 
             if (data.error) {
                 showMessage('configMessage', data.error, 'error');
@@ -2634,6 +2691,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             const config = data.config;
+            dirtySections.delete(section);
             loadSectionConfig(section, config);
             showMessage('configMessage', '配置加载成功', 'success');
         } catch (error) {
@@ -2648,8 +2706,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const reloadBtn = channelDiv.querySelector('.reload-channel-btn');
         if (reloadBtn) setButtonLoading(reloadBtn, true, '加载中...');
         try {
-            const response = await fetch('/api/config?format=json');
-            const data = await response.json();
+            const { data } = await fetchJSON('/api/config?format=json');
 
             if (data.error) {
                 showMessage('configMessage', data.error, 'error');
@@ -2685,8 +2742,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         setButtonLoading(saveBtn, true, '保存中...');
         try {
             // 先加载完整配置
-            const response = await fetch('/api/config?format=json');
-            const data = await response.json();
+            const { data } = await fetchJSON('/api/config?format=json');
 
             if (data.error) {
                 showMessage('configMessage', data.error, 'error');
@@ -2716,7 +2772,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ config: fullConfig })
+                body: JSON.stringify({ config: { push_channel: channels } })
             });
 
             const saveData = await saveResponse.json();
@@ -2725,7 +2781,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 showMessage('configMessage', saveData.error, 'error');
             } else {
                 showMessage('configMessage', '通道配置已保存并应用', 'success');
-                document.dispatchEvent(new CustomEvent('config-saved'));
+                document.dispatchEvent(new CustomEvent('config-saved', { detail: { sections: [] } }));
                 // 更新原始配置
                 if (originalConfig) {
                     originalConfig.push_channel = channels;
@@ -3218,15 +3274,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // 初始加载配置
-    await loadConfigMetadata();
     bindSwitchLabelsFromMetadata();
-    await loadConfig();
+    const initialConfigRequest = Promise.all([
+        loadConfigMetadata(), fetchJSON('/api/config?format=json'),
+    ]).then(([, result]) => result);
+    await loadConfig(initialConfigRequest);
+    bindSwitchLabelsFromMetadata();
 
     // 监听 config-saved 事件，刷新配置表单以反映最新状态
-    document.addEventListener('config-saved', async function () {
-        await loadConfig();
-        if (textView && textView.style.display !== 'none') {
+    document.addEventListener('config-saved', async function (event) {
+        await loadConfig(null, event.detail?.sections || null);
+        if (textView && textView.style.display !== 'none' && !yamlDirty) {
             await loadYamlConfig();
         }
     });
+    window.addEventListener('pagehide', () => yamlRequestController?.abort());
 });

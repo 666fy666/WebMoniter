@@ -7,6 +7,7 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 import aiosqlite
@@ -72,6 +73,19 @@ async def _configure_sqlite_connection(conn: aiosqlite.Connection) -> None:
     await conn.commit()
 
 
+async def _open_sqlite_connection(db_path: Path) -> aiosqlite.Connection:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = await aiosqlite.connect(str(db_path.resolve()), timeout=30.0)
+    try:
+        await _configure_sqlite_connection(conn)
+        await AsyncDatabase()._init_tables(conn)
+    except BaseException:
+        # 初始化失败或被取消时，不能发布半初始化连接或留下 SQLite 工作线程。
+        await conn.close()
+        raise
+    return conn
+
+
 class AsyncDatabase:
     """兼容原 API 的异步数据库门面。"""
 
@@ -90,18 +104,7 @@ class AsyncDatabase:
             # 使用共享连接
             async with _connection_lock:
                 if _shared_connection is None:
-                    # 确保数据库文件目录存在
-                    self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-                    # 创建数据库连接，启用 WAL 模式提高并发性能
-                    # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
-                    _shared_connection = await aiosqlite.connect(
-                        str(self.db_path.resolve()), timeout=30.0  # 增加超时时间
-                    )
-                    await _configure_sqlite_connection(_shared_connection)
-
-                    # 初始化表结构
-                    await self._init_tables(_shared_connection)
+                    _shared_connection = await _open_sqlite_connection(self.db_path)
 
                     _logger.debug("数据库连接已创建（WAL模式）")
 
@@ -114,11 +117,7 @@ class AsyncDatabase:
         else:
             # 使用独立连接（不推荐，仅用于特殊场景）
             if self._conn is None:
-                self.db_path.parent.mkdir(parents=True, exist_ok=True)
-                # 确保使用绝对路径，避免因工作目录不同导致在根目录创建数据库文件
-                self._conn = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
-                await _configure_sqlite_connection(self._conn)
-                await self._init_tables(self._conn)
+                self._conn = await _open_sqlite_connection(self.db_path)
 
         await _ensure_hybrid_runtime()
 
@@ -285,15 +284,15 @@ class AsyncDatabase:
             return False
 
         try:
-            # 执行一个简单的查询来检查连接
-            async with self._conn.execute("SELECT 1") as cursor:
-                await cursor.fetchone()
+            # 驱动公开属性会拒绝已关闭的连接，不必为每条业务 SQL 排队额外的 SELECT 1。
+            _ = self._conn.in_transaction
             return True
         except (
             aiosqlite.OperationalError,
             aiosqlite.ProgrammingError,
             AttributeError,
             RuntimeError,
+            ValueError,
         ) as e:
             _logger.debug("数据库连接健康检查失败: %s", e)
             return False
@@ -318,8 +317,13 @@ class AsyncDatabase:
             await self.initialize()
             return
 
-        # 共享连接模式
+        # 共享连接模式：等待锁期间若已被另一个调用者恢复，复用新连接。
+        previous_connection = self._conn
         async with _connection_lock:
+            if _shared_connection is not previous_connection and _shared_connection is not None:
+                self._conn = _shared_connection
+                if await self._check_connection_health():
+                    return
             _logger.warning("检测到数据库连接失效，正在重新连接...")
 
             # 关闭旧连接
@@ -332,11 +336,7 @@ class AsyncDatabase:
                     _shared_connection = None
 
             # 重新创建连接
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            _shared_connection = await aiosqlite.connect(str(self.db_path.resolve()), timeout=30.0)
-            await _configure_sqlite_connection(_shared_connection)
-
-            await self._init_tables(_shared_connection)
+            _shared_connection = await _open_sqlite_connection(self.db_path)
 
             for db in list(_active_shared_databases):
                 db._conn = _shared_connection
@@ -877,10 +877,7 @@ async def _ensure_shared_connection() -> aiosqlite.Connection:
 
     async with _connection_lock:
         if _shared_connection is None:
-            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-            _shared_connection = await aiosqlite.connect(str(DB_PATH.resolve()), timeout=30.0)
-            await _configure_sqlite_connection(_shared_connection)
-            await AsyncDatabase()._init_tables(_shared_connection)
+            _shared_connection = await _open_sqlite_connection(DB_PATH)
 
     return _shared_connection
 

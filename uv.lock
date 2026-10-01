@@ -1397,7 +1397,7 @@ wheels = [
 
 [[package]]
 name = "web-monitor"
-version = "2.4.8"
+version = "2.4.9"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

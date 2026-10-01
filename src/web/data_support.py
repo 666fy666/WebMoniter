@@ -3,6 +3,7 @@
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from urllib.parse import urlsplit
 
 # 平台配置：table_name, primary_key, filter_query_param
@@ -194,6 +195,11 @@ def _parse_weibo_created_at(text: str | None) -> datetime | None:
     从微博文本中解析发布时间。文本格式为 "...\n\n{created_at}"。
     支持格式：Thu Feb 12 17:35:47 +0800 2026 等。
     """
+    raw = _weibo_timestamp_text(text)
+    return _parse_weibo_timestamp(raw) if raw is not None else None
+
+
+def _weibo_timestamp_text(text: str | None) -> str | None:
     if not text or not isinstance(text, str):
         return None
     raw = None
@@ -206,6 +212,12 @@ def _parse_weibo_created_at(text: str | None) -> datetime | None:
     if not raw or len(raw) > 80:
         return None
 
+    return raw
+
+
+@lru_cache(maxsize=2048)
+def _parse_weibo_timestamp(raw: str) -> datetime | None:
+    # 只缓存短时间字段，避免持有完整正文；新时间自然生成新缓存键。
     formats = [
         "%a %b %d %H:%M:%S %z %Y",
         "%Y-%m-%d %H:%M:%S",
@@ -258,6 +270,29 @@ def _parse_weibo_created_at(text: str | None) -> datetime | None:
         except (ValueError, KeyError, IndexError):
             pass
     return None
+
+
+def _sort_weibo_index(index: tuple[tuple[object, str | None], ...]) -> tuple[object, ...]:
+    def sort_key(row: tuple) -> float:
+        created_at = _parse_weibo_timestamp(row[1]) if row[1] is not None else None
+        return created_at.timestamp() if created_at is not None else 0.0
+
+    return tuple(row[0] for row in sorted(index, key=sort_key, reverse=True))
+
+
+@lru_cache(maxsize=2)
+def _cached_weibo_order(index: tuple[tuple[object, str | None], ...]) -> tuple[object, ...]:
+    return _sort_weibo_index(index)
+
+
+def _weibo_page_ids(rows: list[tuple], offset: int, page_size: int) -> list[object]:
+    index = tuple((row[0], _weibo_timestamp_text(row[1])) for row in rows)
+    # 键来自每次权威查询的 UID、时间和原始顺序；不保留正文，限制两份 4096 行索引。
+    can_cache = len(index) <= 4096 and all(
+        isinstance(uid, str) and len(uid) <= 255 for uid, _ in index
+    )
+    order = _cached_weibo_order(index) if can_cache else _sort_weibo_index(index)
+    return list(order[offset : offset + page_size])
 
 
 def _weibo_row_to_item(row: tuple) -> dict:

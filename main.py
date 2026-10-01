@@ -74,6 +74,7 @@ async def main() -> None:
 
     # Web 延后 import，避免在未使用 Web 的测试/脚本场景里提前加载 FastAPI 栈
     from src.web.app import create_web_app
+    from src.web.warmup import stop_web_warmup, warmup_web_resources
 
     web_app = create_web_app()
     attach_uvicorn_noise_filter()
@@ -84,6 +85,7 @@ async def main() -> None:
     setup_main_file_logging()
 
     config_watcher: ConfigWatcher | None = None
+    web_warmup_task: asyncio.Task | None = None
     try:
         await cookie_cache.reset_all()
         await reconfigure_database(config)
@@ -112,6 +114,7 @@ async def main() -> None:
             on_config_changed=on_config_changed,
         )
         await config_watcher.start()
+        web_warmup_task = asyncio.create_task(warmup_web_resources(), name="web-resource-warmup")
         try:
             await scheduler.run_forever()
         finally:
@@ -124,6 +127,7 @@ async def main() -> None:
         logger.error("程序运行出错: %s", e)
         raise
     finally:
+        await _shutdown_step("Web资源预热", stop_web_warmup(web_warmup_task), logger)
         # start() 之后、进入 run_forever 之前若失败，此处仍会 stop 已启动的 watcher
         await _stop_config_watcher(config_watcher, logger)
         await _shutdown_step("Web服务器", shutdown_web_server(server, web_task), logger)

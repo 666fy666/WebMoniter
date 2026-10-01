@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import signal
+from types import SimpleNamespace
 
 import pytest
 
@@ -108,3 +110,104 @@ async def test_initial_pass_skips_jobs_opted_out_of_startup() -> None:
     await _run_initial_pass(jobs)
 
     assert calls == ["regular"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["normal", "startup_stop", "watcher_failure"])
+async def test_main_warmup_runs_after_initialization_and_stops_before_database_close(
+    monkeypatch, mode
+):
+    import main as entry
+    from src.jobs import lifecycle, scheduler
+    from src.settings import config, watcher
+    from src.storage import cookie_cache, database
+    from src.web import app, warmup
+
+    events = []
+
+    async def reset_cookie_cache():
+        events.append("cookies")
+
+    async def configure_database(cfg):
+        events.append("database_ready")
+
+    async def prime_jobs(*args):
+        events.append("jobs_ready")
+
+    async def close_database():
+        events.append("database_closed")
+
+    async def stop_web(*args):
+        events.append("web_stopped")
+
+    async def warm():
+        events.append("warmup_started")
+        try:
+            await asyncio.Event().wait()
+        finally:
+            events.append("warmup_stopped")
+
+    class Scheduler:
+        def __init__(self, cfg):
+            self.shutdown_requested = mode == "startup_stop"
+            self.scheduler = SimpleNamespace(get_jobs=lambda: [])
+
+        def install_signal_handlers(self):
+            pass
+
+        def shutdown(self, **kwargs):
+            pass
+
+        async def run_forever(self):
+            await asyncio.sleep(0)
+            assert events[:5] == [
+                "cookies",
+                "database_ready",
+                "jobs_ready",
+                "watcher_started",
+                "warmup_started",
+            ]
+
+    class Watcher:
+        def __init__(self, **kwargs):
+            pass
+
+        async def start(self):
+            events.append("watcher_started")
+            if mode == "watcher_failure":
+                raise RuntimeError("watcher failed")
+
+        async def stop(self):
+            events.append("watcher_stopped")
+
+    monkeypatch.setattr(config, "get_config", lambda: AppConfig())
+    monkeypatch.setattr(
+        cookie_cache, "get_cookie_cache", lambda: SimpleNamespace(reset_all=reset_cookie_cache)
+    )
+    monkeypatch.setattr(database, "reconfigure_database", configure_database)
+    monkeypatch.setattr(database, "close_shared_connection", close_database)
+    monkeypatch.setattr(scheduler, "TaskScheduler", Scheduler)
+    monkeypatch.setattr(watcher, "ConfigWatcher", Watcher)
+    monkeypatch.setattr(app, "create_web_app", lambda: None)
+    monkeypatch.setattr(warmup, "warmup_web_resources", warm)
+    monkeypatch.setattr(lifecycle, "register_and_prime_jobs", prime_jobs)
+    monkeypatch.setattr(lifecycle, "shutdown_web_server", stop_web)
+    monkeypatch.setattr(
+        lifecycle,
+        "build_uvicorn_server",
+        lambda _: SimpleNamespace(config=SimpleNamespace(host="127.0.0.1", port=0)),
+    )
+    monkeypatch.setattr(lifecycle, "start_uvicorn_background", lambda *args: None)
+    for name in ("setup_logging", "setup_main_file_logging", "attach_uvicorn_noise_filter"):
+        monkeypatch.setattr(lifecycle, name, lambda **kwargs: None)
+
+    if mode == "watcher_failure":
+        with pytest.raises(RuntimeError, match="watcher failed"):
+            await entry.main()
+    else:
+        await entry.main()
+    assert events[-2:] == ["web_stopped", "database_closed"]
+    if mode == "normal":
+        assert events.index("warmup_stopped") < events.index("database_closed")
+    else:
+        assert "warmup_started" not in events

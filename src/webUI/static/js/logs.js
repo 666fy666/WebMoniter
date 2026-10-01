@@ -92,8 +92,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 加载日志
+    let retryTimer = null;
     async function loadLogs(showLoading = true, forceRefresh = false) {
         if (isRequestInProgress && !forceRefresh) return;
+        clearTimeout(retryTimer);
+        retryTimer = null;
         if (currentRequestController) currentRequestController.abort();
         const requestId = ++lastRequestId;
 
@@ -187,9 +190,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.warn(`日志加载失败（网络错误），${retryDelay/1000}秒后自动重试 (${retryCount}/${MAX_RETRIES})...`);
                     
                     // 延迟后重试
-                    setTimeout(() => {
+                    retryTimer = setTimeout(() => {
+                        retryTimer = null;
                         // 检查是否仍然是最新的请求ID
-                        if (requestId === lastRequestId && !isRequestInProgress) {
+                        if (requestId === lastRequestId && !isRequestInProgress
+                            && !document.hidden && navigator.onLine !== false) {
                             loadLogs(false, false);
                         }
                     }, retryDelay);
@@ -308,6 +313,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 定期刷新日志（智能间隔）
     // 使用智能刷新：根据网络状况和失败次数动态调整刷新间隔
     function scheduleNextRefresh() {
+        clearTimeout(refreshInterval);
+        refreshInterval = null;
+        if (document.hidden || navigator.onLine === false) return;
         // 根据连续失败次数调整刷新间隔
         // 连续失败越多，刷新间隔越长，避免频繁失败
         let refreshDelay = 5000; // 默认5秒
@@ -347,6 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 页面可见性变化时重新加载（移动端切换应用后回来时）
     document.addEventListener('visibilitychange', function() {
+        scheduleNextRefresh();
         if (!document.hidden) {
             // 页面变为可见时，重置失败计数并立即刷新
             consecutiveFailures = 0;
@@ -355,11 +364,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isRequestInProgress) {
                 loadLogs(true, false);
             }
+        } else {
+            clearTimeout(retryTimer);
+            retryTimer = null;
         }
     });
 
     // 页面卸载时清除定时器和取消请求
-    window.addEventListener('beforeunload', function() {
+    function stopLogRequests() {
         if (refreshInterval) {
             clearTimeout(refreshInterval);
             refreshInterval = null;
@@ -370,6 +382,16 @@ document.addEventListener('DOMContentLoaded', function() {
             currentRequestController = null;
         }
         isRequestInProgress = false;
+        clearTimeout(retryTimer);
+        retryTimer = null;
+    }
+    window.addEventListener('beforeunload', stopLogRequests);
+    window.addEventListener('pagehide', stopLogRequests);
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            loadLogs(true, false);
+            scheduleNextRefresh();
+        }
     });
 
     // 网络状态变化时重新加载
@@ -378,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 重置所有错误计数
         retryCount = 0;
         consecutiveFailures = 0;
+        scheduleNextRefresh();
         // 如果请求不在进行，立即刷新
         if (!isRequestInProgress) {
             loadLogs(true, false);
@@ -388,5 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('网络已断开');
         // 网络断开时，增加失败计数，延长刷新间隔
         consecutiveFailures++;
+        scheduleNextRefresh();
     });
 });

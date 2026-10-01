@@ -76,7 +76,9 @@ async def test_weibo_paginates_before_conversion_and_keeps_stable_order(web_requ
             pass
 
         async def execute_query(self, sql, params):
-            return [(len(rows),)] if "COUNT(*)" in sql else rows[:]
+            if sql.startswith("SELECT UID, 文本"):
+                return [(row[0], row[6]) for row in rows]
+            return [row for row in reversed(rows) if row[0] in params.values()]
 
     converted = []
 
@@ -96,6 +98,81 @@ async def test_weibo_paginates_before_conversion_and_keeps_stable_order(web_requ
         "total_pages": 3,
     }
     assert converted == ["tie-b", "old"]
+
+
+@pytest.mark.asyncio
+async def test_weibo_large_page_filters_and_refreshes_updated_data(
+    web_request, monkeypatch, tmp_path
+):
+    from src.storage import database
+
+    await database.close_shared_connection()
+    monkeypatch.setattr(database, "DB_PATH", tmp_path / "data.db")
+    try:
+        async with database.AsyncDatabase() as db:
+            async with db.get_connection() as conn:
+                await conn.executemany(
+                    "INSERT INTO weibo (UID, 用户名, 文本, 图片) VALUES (?, ?, ?, ?)",
+                    [
+                        (str(i), "test", "正文\n\n2026-01-01 10:00:00", '["/image.jpg"]')
+                        for i in range(600)
+                    ],
+                )
+                await conn.commit()
+            response = await data.get_table_data(web_request, "weibo", page_size=600)
+            body = json.loads(response.body)
+            assert body["total"] == 600
+            assert [row["UID"] for row in body["data"]] == [str(i) for i in range(600)]
+            assert body["data"][0]["images"] == ["/image.jpg"]
+
+            assert await db.execute_update(
+                "UPDATE weibo SET 文本=:text WHERE UID=:pk",
+                {"text": "更新正文\n\n2026-12-01 10:00:00", "pk": "599"},
+            )
+            response = await data.get_table_data(web_request, "weibo", page_size=1)
+            assert json.loads(response.body)["data"][0]["UID"] == "599"
+            import aiosqlite
+
+            async with aiosqlite.connect(str(database.DB_PATH)) as external:
+                await external.execute(
+                    "UPDATE weibo SET 文本=? WHERE UID=?", ("外部更新\n\n2027-01-01 10:00:00", "1")
+                )
+                await external.commit()
+            external_response = await data.get_table_data(web_request, "weibo", page_size=1)
+            assert json.loads(external_response.body)["data"][0]["UID"] == "1"
+            filtered = json.loads((await data.get_table_data(web_request, "weibo", uid="5")).body)
+            assert filtered["total"] == 1
+            assert [row["UID"] for row in filtered["data"]] == ["5"]
+            empty = json.loads(
+                (await data.get_table_data(web_request, "weibo", page=601, page_size=1)).body
+            )
+            assert empty["data"] == []
+            assert empty["total"] == 600
+    finally:
+        await database.close_shared_connection()
+
+
+@pytest.mark.asyncio
+async def test_huya_images_batches_many_ids_without_changing_response(web_request, monkeypatch):
+    batches = []
+
+    class Database:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def execute_query(self, sql, params):
+            batches.append(len(params))
+            return [(room, " cover ", " avatar ") for room in params.values()]
+
+    monkeypatch.setattr(data, "AsyncDatabase", Database)
+    rooms = ",".join(str(i) for i in range(1200)) + ",0,1"
+    body = json.loads((await data.get_huya_images(web_request, rooms)).body)
+    assert len(body["data"]) == 1200
+    assert body["data"]["1199"] == {"room_pic": "cover", "avatar_url": "avatar"}
+    assert batches == [500, 500, 200]
 
 
 @pytest.mark.asyncio

@@ -109,16 +109,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const url = isHuya
                 ? `/api/data/${table}?page=${page}&page_size=${currentPageSize}&include_media=false`
                 : `/api/data/${table}?page=${page}&page_size=${currentPageSize}`;
-            const response = await fetch(url, { signal: controller.signal });
-            const data = await response.json();
+            const { response, data } = await fetchJSON(url, { signal: controller.signal });
             if (!isCurrent()) return;
 
-            if (data.error) {
-                dataTableContainer.innerHTML = `<div class="error-message show">${escapeHtml(
-                    data.error,
-                )}</div>`;
-                return;
-            }
+            if (!response.ok || data.error) throw new Error(data.error || '加载数据失败');
 
             let rows = data.data || [];
             // 微博按发布时间排序，不使用拖拽保存的顺序
@@ -136,7 +130,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!isCurrent() || error.name === 'AbortError') return;
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
                 error.message,
-            )}</div>`;
+            )}</div><button type="button" class="btn btn-secondary retry-data-btn">重试</button>`;
+            dataTableContainer.querySelector('.retry-data-btn')?.addEventListener('click', loadTableData);
         } finally {
             if (isCurrent()) dataTableContainer.removeAttribute('aria-busy');
         }
@@ -147,11 +142,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const rooms = rows.map((r) => r.room).filter(Boolean);
         if (rooms.length === 0) return;
         try {
-            const resp = await fetch(
+            const { data: json } = await fetchJSON(
                 `/api/data/huya/images?rooms=${encodeURIComponent(rooms.join(','))}`,
                 { signal: controller.signal },
             );
-            const json = await resp.json();
             if (!isCurrent()) return;
             if (json.error || !json.data) return;
             const images = json.data;
@@ -205,17 +199,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const saved = localStorage.getItem(key);
             if (!saved) return rows;
             const order = JSON.parse(saved);
+            if (!Array.isArray(order)) return rows;
             const idToRow = new Map();
             rows.forEach((r, i) => idToRow.set(getCardId(r, i), r));
             const result = [];
             for (const id of order) {
                 const row = idToRow.get(id);
-                if (row) result.push(row);
+                if (row) {
+                    result.push(row);
+                    idToRow.delete(id);
+                }
             }
             // 若有新数据（ID 不在保存顺序中），追加到末尾
             rows.forEach((r, i) => {
                 const id = getCardId(r, i);
-                if (!order.includes(id)) result.push(r);
+                if (idToRow.has(id)) result.push(r);
             });
             return result.length > 0 ? result : rows;
         } catch {
@@ -1762,5 +1760,18 @@ document.addEventListener('DOMContentLoaded', function () {
     loadTableData();
     window.addEventListener('beforeunload', () => {
         if (dataRequestController) dataRequestController.abort();
+    });
+    window.addEventListener('pagehide', () => {
+        if (dataRequestController) dataRequestController.abort();
+        if (sortableInstance) sortableInstance.destroy();
+        sortableInstance = null;
+        lazyImageGeneration += 1;
+        lazyImageObserver?.disconnect();
+        lazyImageQueue = [];
+        if (lazyObserverRaf) cancelAnimationFrame(lazyObserverRaf);
+        lazyObserverRaf = 0;
+    });
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) loadTableData();
     });
 });

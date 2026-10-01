@@ -3,13 +3,14 @@
 import secrets
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.core.paths import SESSION_SECRET_FILE, WEB_UI_STATIC_DIR, WEIBO_IMG_DIR
 from src.web.auth import WEB_SESSION_MAX_AGE_SECONDS
+from src.web.middleware import WebGZipMiddleware, WebPerformanceMiddleware
 from src.web.routers import auth, config, data, logs, pages, tasks
-from src.web.static_files import CachedStaticFiles
+from src.web.static_files import CachedStaticFiles, VersionedStaticFiles
+from src.web.templating import STATIC_ASSET_VERSION
 
 
 def _get_or_create_session_secret() -> str:
@@ -30,6 +31,8 @@ SECRET_KEY = _get_or_create_session_secret()
 def create_web_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(title="Web任务系统", description="Web任务系统管理界面")
+    app.add_middleware(WebGZipMiddleware, minimum_size=1024, compresslevel=5)
+    app.add_middleware(WebPerformanceMiddleware)
     app.add_middleware(
         SessionMiddleware,
         secret_key=SECRET_KEY,
@@ -37,7 +40,11 @@ def create_web_app() -> FastAPI:
         same_site="lax",
     )
 
-    app.mount("/static", StaticFiles(directory=str(WEB_UI_STATIC_DIR)), name="static")
+    app.mount(
+        "/static",
+        VersionedStaticFiles(directory=str(WEB_UI_STATIC_DIR), asset_version=STATIC_ASSET_VERSION),
+        name="static",
+    )
 
     WEIBO_IMG_DIR.mkdir(parents=True, exist_ok=True)
     app.mount(

@@ -1183,6 +1183,10 @@ input:focus + .slider {
     display: none !important;
 }
 
+body.page-config:not(.config-modules-ready) .config-section:not([data-module="monitor"]) {
+    display: none;
+}
+
 .config-table {
     width: 100%;
     border-collapse: collapse;

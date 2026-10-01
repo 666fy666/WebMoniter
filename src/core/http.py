@@ -2,6 +2,7 @@
 
 import logging
 import ssl
+from functools import lru_cache
 
 import aiohttp
 import certifi
@@ -9,10 +10,15 @@ import certifi
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=1)
+def get_certifi_ssl_context() -> ssl.SSLContext:
+    """复用只读 TLS 配置，避免每个连接器重复加载 CA 文件。"""
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 def create_certifi_connector(**kwargs) -> aiohttp.TCPConnector:
     """Create an aiohttp connector that verifies TLS with certifi's CA bundle."""
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    return aiohttp.TCPConnector(ssl=ssl_context, **kwargs)
+    return aiohttp.TCPConnector(ssl=get_certifi_ssl_context(), **kwargs)
 
 
 async def fetch_hitokoto_quote(

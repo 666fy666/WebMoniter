@@ -81,3 +81,41 @@ async def test_double_initialize_does_not_inflate_ref_count(isolated_db):
         assert db_module._connection_ref_count == 0
     finally:
         await _reset_shared_db_state()
+
+
+@pytest.mark.asyncio
+async def test_closed_connection_recovers_without_redundant_health_sql(isolated_db):
+    db = AsyncDatabase()
+    try:
+        await db.initialize()
+        statements = []
+        await db._conn.set_trace_callback(statements.append)
+        assert await db.execute_query("SELECT 42") == [(42,)]
+        assert statements == ["SELECT 42"]
+        await db._conn.close()
+        assert await db.execute_query("SELECT 43") == [(43,)]
+        assert db_module._connection_ref_count == 1
+    finally:
+        await db.close()
+        await _reset_shared_db_state()
+
+
+@pytest.mark.asyncio
+async def test_failed_schema_initialization_does_not_publish_connection(isolated_db, monkeypatch):
+    original = AsyncDatabase._init_tables
+
+    async def fail_schema(self, conn):
+        raise RuntimeError("schema failed")
+
+    monkeypatch.setattr(AsyncDatabase, "_init_tables", fail_schema)
+    db = AsyncDatabase()
+    try:
+        with pytest.raises(RuntimeError, match="schema failed"):
+            await db.initialize()
+        assert db_module._shared_connection is None
+        assert db_module._connection_ref_count == 0
+        monkeypatch.setattr(AsyncDatabase, "_init_tables", original)
+        assert await db.execute_query("SELECT 1") == [(1,)]
+    finally:
+        await db.close()
+        await _reset_shared_db_state()
