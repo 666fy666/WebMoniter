@@ -66,9 +66,7 @@ def _write_text_with_bind_mount_fallback(config_path: Path, yaml_content: str) -
     config_path = config_path.resolve()
     config_path.parent.mkdir(parents=True, exist_ok=True)
     original_text = config_path.read_text(encoding="utf-8") if config_path.exists() else None
-    original_mode = (
-        stat.S_IMODE(config_path.stat().st_mode) if config_path.exists() else 0o600
-    )
+    original_mode = stat.S_IMODE(config_path.stat().st_mode) if config_path.exists() else 0o600
 
     fd, temp_name = tempfile.mkstemp(
         prefix=f".{config_path.name}.",

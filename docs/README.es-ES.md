@@ -7,7 +7,7 @@
 <sub>Monitoreo · Registro · Avisos de Vivo · Notificaciones · Tareas Programadas · Recarga Dinámica de Configuración</sub>
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](../LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![APScheduler](https://img.shields.io/badge/APScheduler-scheduler-blueviolet?style=flat-square)](https://apscheduler.readthedocs.io/)
@@ -253,10 +253,11 @@ Para más información sobre los elementos de configuración, consulte:
 <summary><strong>Notas de Desarrollo</strong></summary>
 
 ```bash
-uv sync --extra dev --extra rainyun
+uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q
+node --test src/tests/frontend_runtime.test.js
 ```
 
 Para agregar nuevos monitoreos o tareas programadas, consulte la [Guía de Desarrollo Secundario](SECONDARY_DEVELOPMENT.md). En `src/tests/` hay pruebas de consistencia para metadata, registro y mapeo de habilitación; `uv run pytest` fallará si falta alguna configuración. Para una descripción completa de la arquitectura, vea [ARCHITECTURE.md](ARCHITECTURE.md). El proyecto utiliza actualmente una estructura modular:
@@ -301,7 +302,7 @@ Algunas ideas de registro y notificaciones se basaron en los siguientes proyecto
 
 ## Licencia
 
-[MIT License](../LICENSE)
+[MIT License](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 
 <div align="center">
 

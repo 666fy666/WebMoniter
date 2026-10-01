@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeLazyImageLoads = 0;
     let pendingLazyObserverEntries = [];
     let lazyObserverRaf = 0;
+    let lazyImageGeneration = 0;
+    let dataRequestId = 0;
+    let dataRequestController = null;
 
     // 切换标签页
     tabButtons.forEach((btn) => {
@@ -83,16 +86,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 加载数据（虎牙：先取基础数据，再异步加载封面/头像 URL）
     async function loadTableData() {
+        if (dataRequestController) dataRequestController.abort();
+        const controller = new AbortController();
+        dataRequestController = controller;
+        const requestId = ++dataRequestId;
+        const table = currentTable;
+        const page = currentPage;
+        const currentPageSize = getPageSize();
+        const isCurrent = () => requestId === dataRequestId && !controller.signal.aborted
+            && table === currentTable && page === currentPage;
+        if (sortableInstance) {
+            sortableInstance.destroy();
+            sortableInstance = null;
+        }
         dataTableContainer.innerHTML = '<div class="loading">加载中...</div>';
+        dataTableContainer.setAttribute('aria-busy', 'true');
+        pagination.innerHTML = '';
+        initLazyImages();
 
         try {
-            const isHuya = currentTable === 'huya';
-            const currentPageSize = getPageSize();
+            const isHuya = table === 'huya';
             const url = isHuya
-                ? `/api/data/${currentTable}?page=${currentPage}&page_size=${currentPageSize}&include_media=false`
-                : `/api/data/${currentTable}?page=${currentPage}&page_size=${currentPageSize}`;
-            const response = await fetch(url);
+                ? `/api/data/${table}?page=${page}&page_size=${currentPageSize}&include_media=false`
+                : `/api/data/${table}?page=${page}&page_size=${currentPageSize}`;
+            const response = await fetch(url, { signal: controller.signal });
             const data = await response.json();
+            if (!isCurrent()) return;
 
             if (data.error) {
                 dataTableContainer.innerHTML = `<div class="error-message show">${escapeHtml(
@@ -103,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let rows = data.data || [];
             // 微博按发布时间排序，不使用拖拽保存的顺序
-            if (currentTable !== 'weibo') {
+            if (table !== 'weibo') {
                 rows = applySavedOrder(rows);
             }
             renderCards(rows);
@@ -111,24 +130,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 虎牙：异步加载封面和头像 URL，再更新卡片
             if (isHuya && rows.length > 0) {
-                loadHuyaImages(rows);
+                loadHuyaImages(rows, controller, isCurrent);
             }
         } catch (error) {
+            if (!isCurrent() || error.name === 'AbortError') return;
             dataTableContainer.innerHTML = `<div class="error-message show">加载失败: ${escapeHtml(
                 error.message,
             )}</div>`;
+        } finally {
+            if (isCurrent()) dataTableContainer.removeAttribute('aria-busy');
         }
     }
 
     // 虎牙：异步获取封面/头像 URL 并更新卡片
-    async function loadHuyaImages(rows) {
+    async function loadHuyaImages(rows, controller, isCurrent) {
         const rooms = rows.map((r) => r.room).filter(Boolean);
         if (rooms.length === 0) return;
         try {
             const resp = await fetch(
                 `/api/data/huya/images?rooms=${encodeURIComponent(rooms.join(','))}`,
+                { signal: controller.signal },
             );
             const json = await resp.json();
+            if (!isCurrent()) return;
             if (json.error || !json.data) return;
             const images = json.data;
             rooms.forEach((room) => {
@@ -150,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         } catch (e) {
+            if (!isCurrent() || e.name === 'AbortError') return;
             console.warn('虎牙图片 URL 加载失败:', e);
         }
     }
@@ -320,8 +345,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!src) return;
         activeLazyImageLoads += 1;
         img.dataset.lazyLoading = '1';
+        const generation = lazyImageGeneration;
+        let finished = false;
 
         const finish = () => {
+            if (finished || generation !== lazyImageGeneration) return;
+            finished = true;
             activeLazyImageLoads = Math.max(0, activeLazyImageLoads - 1);
             img.removeAttribute('data-lazy-loading');
             scheduleLazyImageQueue();
@@ -363,9 +392,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function scheduleLazyImageQueue() {
-        if (lazyImageQueueScheduled || lazyImageQueue.length === 0) return;
+        if (lazyImageQueueScheduled || lazyImageQueue.length === 0
+            || activeLazyImageLoads >= MAX_LAZY_IMAGE_LOADS) return;
         lazyImageQueueScheduled = true;
-        runWhenIdle(processLazyImageQueue);
+        const generation = lazyImageGeneration;
+        runWhenIdle((deadline) => {
+            if (generation === lazyImageGeneration) processLazyImageQueue(deadline);
+        });
     }
 
     function processLazyImageQueue(deadline) {
@@ -396,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function initLazyImages() {
+        lazyImageGeneration += 1;
         if (lazyImageObserver) {
             lazyImageObserver.disconnect();
             lazyImageObserver = null;
@@ -405,7 +439,8 @@ document.addEventListener('DOMContentLoaded', function () {
             lazyObserverRaf = 0;
         }
         pendingLazyObserverEntries = [];
-        lazyImageQueue = lazyImageQueue.filter((img) => img.isConnected);
+        lazyImageQueue = [];
+        lazyImageQueueScheduled = false;
         activeLazyImageLoads = 0;
 
         const lazyImages = Array.from(dataTableContainer.querySelectorAll('img[data-src]'));
@@ -416,8 +451,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        const generation = lazyImageGeneration;
         lazyImageObserver = new IntersectionObserver(
             (entries) => {
+                if (generation !== lazyImageGeneration) return;
                 pendingLazyObserverEntries.push(...entries);
                 if (!lazyObserverRaf) {
                     lazyObserverRaf = requestAnimationFrame(flushLazyObserverEntries);
@@ -1723,4 +1760,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始加载
     loadTableData();
+    window.addEventListener('beforeunload', () => {
+        if (dataRequestController) dataRequestController.abort();
+    });
 });

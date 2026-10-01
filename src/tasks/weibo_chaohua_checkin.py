@@ -187,9 +187,7 @@ def _run_weibo_chaohua_sign_sync(
             collected = []
 
         params = {"tabid": "231093_-_chaohua", "page": page, "uid": login_uid}
-        headers = {
-            "Referer": f"https://weibo.com/u/page/follow/{login_uid}/231093_-_chaohua"
-        }
+        headers = {"Referer": f"https://weibo.com/u/page/follow/{login_uid}/231093_-_chaohua"}
 
         try:
             response = session.get(

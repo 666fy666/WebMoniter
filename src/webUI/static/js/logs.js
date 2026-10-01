@@ -11,10 +11,8 @@ const BASE_RETRY_DELAY = 1000; // 基础重试延迟1秒
 // 请求控制：防止并发请求
 let currentRequestController = null;
 let isRequestInProgress = false;
-let requestStartTime = 0; // 记录请求开始时间，用于判断是否可以安全取消
 let lastRequestId = 0; // 请求ID，用于去重
 let consecutiveFailures = 0; // 连续失败次数
-let lastSuccessTime = Date.now(); // 上次成功请求的时间
 let cachedLogs = null; // 缓存上一次成功加载的日志内容
 let cachedLogsTime = null; // 缓存日志的时间戳
 
@@ -57,76 +55,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 带超时的fetch请求，支持AbortController
-    function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT, abortSignal = null) {
-        // 使用传入的 signal 或创建新的
-        const controller = abortSignal ? null : new AbortController();
-        const signal = abortSignal || controller.signal;
-        
+    async function fetchWithTimeout(url, controller, timeout = REQUEST_TIMEOUT) {
+        let timedOut = false;
         const timeoutId = setTimeout(() => {
-            if (controller) {
-                controller.abort();
-            }
+            timedOut = true;
+            controller.abort();
         }, timeout);
 
         // 添加请求时间戳，避免缓存问题（特别是手机端）
         const separator = url.includes('?') ? '&' : '?';
         const urlWithTimestamp = url + separator + '_t=' + Date.now() + '&_r=' + Math.random();
 
-        const fetchPromise = fetch(urlWithTimestamp, {
-            ...options,
-            signal: signal,
-            // 添加更多请求头，提高兼容性
-            headers: {
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-                ...options.headers,
-            },
-        }).finally(() => {
+        try {
+            const response = await fetch(urlWithTimestamp, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                },
+            });
+            if (!response.ok) throw new Error(`HTTP错误: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            if (timedOut) {
+                const timeoutError = new Error('请求超时，请稍后重试');
+                timeoutError.name = 'TimeoutError';
+                throw timeoutError;
+            }
+            throw error;
+        } finally {
             clearTimeout(timeoutId);
-        });
-
-        return { promise: fetchPromise, controller: controller };
+        }
     }
 
     // 加载日志
     async function loadLogs(showLoading = true, forceRefresh = false) {
+        if (isRequestInProgress && !forceRefresh) return;
+        if (currentRequestController) currentRequestController.abort();
         const requestId = ++lastRequestId;
-        
-        // 如果已有请求在进行中
-        if (isRequestInProgress) {
-            if (forceRefresh) {
-                // 强制刷新时，检查是否可以安全取消
-                // 如果请求刚开始（<100ms），可以安全取消
-                // 如果请求已经开始一段时间，等待完成后再刷新，避免产生无效请求
-                const requestAge = Date.now() - requestStartTime;
-                if (requestAge < 100 && currentRequestController) {
-                    // 请求刚开始，可以安全取消
-                    currentRequestController.abort();
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                } else {
-                    // 请求已经开始，等待完成后再刷新
-                    console.log('请求已开始，等待完成后再刷新');
-                    // 标记需要刷新，等当前请求完成后刷新
-                    setTimeout(() => {
-                        if (requestId === lastRequestId) {
-                            loadLogs(showLoading, false);
-                        }
-                    }, 500);
-                    return;
-                }
-            } else {
-                // 非强制刷新时，直接跳过，避免并发
-                return;
-            }
-        }
 
         // 创建新的AbortController
         const controller = new AbortController();
         currentRequestController = controller;
         isRequestInProgress = true;
-        requestStartTime = Date.now();
 
         if (showLoading && retryCount === 0) {
             // 如果有缓存的日志，先显示缓存，然后尝试刷新
@@ -141,22 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ? '/api/logs?lines=500&task=' + encodeURIComponent(currentLogTask)
             : '/api/logs?lines=500';
         try {
-            const { promise: fetchPromise } = fetchWithTimeout(logsUrl, {
-                method: 'GET',
-            }, REQUEST_TIMEOUT, controller.signal);
-
-            const response = await fetchPromise;
-
-            // 检查请求是否被取消或已被新请求替代
-            if (controller.signal.aborted || requestId !== lastRequestId) {
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`HTTP错误: ${response.status}`);
-            }
-
-            const data = await response.json();
+            const data = await fetchWithTimeout(logsUrl, controller);
             
             // 再次检查请求是否被取消或已被新请求替代
             if (controller.signal.aborted || requestId !== lastRequestId) {
@@ -166,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 请求成功，重置所有错误计数
             retryCount = 0;
             consecutiveFailures = 0;
-            lastSuccessTime = Date.now();
 
             if (data.error) {
                 // 如果有缓存的日志，显示缓存而不是错误
@@ -191,7 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             // 如果请求被取消或已被新请求替代，不处理错误（静默失败）
-            if (error.name === 'AbortError' || controller.signal.aborted || requestId !== lastRequestId) {
+            if (requestId !== lastRequestId || (error.name !== 'TimeoutError'
+                && (error.name === 'AbortError' || controller.signal.aborted))) {
                 return;
             }
 
@@ -232,9 +191,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         // 检查是否仍然是最新的请求ID
                         if (requestId === lastRequestId && !isRequestInProgress) {
                             loadLogs(false, false);
-                        } else {
-                            console.log('重试时发现已有新请求，跳过重试');
-                            retryCount = 0; // 重置重试计数
                         }
                     }, retryDelay);
                     return;
@@ -267,8 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 清除请求状态（仅当这是当前请求时）
             if (currentRequestController === controller && requestId === lastRequestId) {
                 currentRequestController = null;
-            }
-            if (requestId === lastRequestId) {
                 isRequestInProgress = false;
             }
         }
@@ -312,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div class="${className}">${escapeHtml(trimmedLine)}</div>`;
         });
 
-        logsContainer.innerHTML = html;
+        if (logsContainer.innerHTML !== html) logsContainer.innerHTML = html;
 
         // 自动滚动到底部
         if (autoScrollEnabled) {

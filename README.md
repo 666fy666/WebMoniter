@@ -101,91 +101,21 @@ WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，�
 
 ### Docker
 
-精简镜像 `latest` 适合大多数监控和 HTTP 签到任务；完整镜像 `full` 额外包含浏览器与浏览器签到依赖，适用于微博 Cookie 刷新、iKuuu、雨云等需要网页登录的任务。full 镜像在 amd64 上使用 Google Chrome 稳定版 + 同版本 chromedriver。
-
-**Compose 精简镜像启动（推荐）**
+精简镜像 `latest` 适合监控、推送和大多数 HTTP 签到；微博 Cookie 刷新、iKuuu、雨云等浏览器任务使用 `full`。
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 cp config/config.yml.sample config.yml
 
-# 精简镜像：启动
 docker compose -f docker/docker-compose.yml pull
 docker compose -f docker/docker-compose.yml up -d
-
-# 精简镜像：查看、停止、再次启动、重启、删除容器/网络
 docker compose -f docker/docker-compose.yml logs -f
-docker compose -f docker/docker-compose.yml stop
-docker compose -f docker/docker-compose.yml start
-docker compose -f docker/docker-compose.yml restart
-docker compose -f docker/docker-compose.yml down
 ```
 
-访问 `http://localhost:8866`，默认账号 `admin` / `123`。首次登录后请修改密码。
+访问 `http://localhost:8866`，默认账号 `admin` / `123`，首次登录后修改密码。需要完整镜像时，将上述 Compose 文件换为 `docker/docker-compose.full.yml`；两套 Compose 二选一运行。
 
-微博 Cookie 刷新、iKuuu、雨云等浏览器任务请使用完整镜像：
-
-```bash
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-
-docker compose -f docker/docker-compose.full.yml logs -f
-docker compose -f docker/docker-compose.full.yml stop
-docker compose -f docker/docker-compose.full.yml start
-docker compose -f docker/docker-compose.full.yml restart
-docker compose -f docker/docker-compose.full.yml down
-```
-
-<details>
-<summary><strong>单容器 · 精简镜像</strong></summary>
-
-```bash
-docker pull fengyu666/webmoniter:latest
-docker run -d --name webmoniter --restart unless-stopped \
-  -p 8866:8866 --shm-size=128m \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:latest
-
-docker stop webmoniter
-docker start webmoniter
-docker restart webmoniter
-# 删除容器；容器运行中可改用 docker rm -f webmoniter
-docker rm webmoniter
-docker image rm fengyu666/webmoniter:latest
-```
-
-</details>
-
-<details>
-<summary><strong>单容器 · 完整镜像</strong></summary>
-
-```bash
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped \
-  -p 8866:8866 --shm-size=256m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
-
-docker stop webmoniter-full
-docker start webmoniter-full
-docker restart webmoniter-full
-# 删除容器；容器运行中可改用 docker rm -f webmoniter-full
-docker rm webmoniter-full
-docker image rm fengyu666/webmoniter:full
-```
-
-Windows PowerShell 如遇挂载路径问题，可把 `$(pwd)` 改成当前目录的绝对路径。更多端口、挂载、更新与数据保留说明见 [安装与运行](docs/installation.md) 和 [docker/README.md](docker/README.md)。
-
-</details>
+单容器命令、停止与更新、端口及数据挂载统一见 [安装与运行](docs/installation.md)，镜像差异与本地构建见 [Docker 说明](docker/README.md)。
 
 ### 本地运行
 
@@ -253,28 +183,15 @@ cp config/config.yml.sample config.yml
 <summary><strong>开发说明</strong></summary>
 
 ```bash
-uv sync --extra dev --extra rainyun
+uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
-uv run black --check .
 uv run pytest -q
+node --test src/tests/frontend_runtime.test.js
 ```
 
-新增监控或定时任务请参考 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)。任务/推送/配置节清单以 `src/jobs/metadata.py` 为单一真相源；文档描述与该文件及运行时代码对齐。`src/tests/` 中有 metadata、注册表与 enable 映射一致性测试，漏配时 `uv run pytest` 会失败。完整架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。项目当前采用模块化结构：
+Black 检查修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`。Node 仅用于前端测试，服务运行无需 Node 或 npm。
 
-| 模块 | 职责 |
-|------|------|
-| `main.py` | 应用入口：Web、调度器、配置热重载、优雅关闭 |
-| `src/core/` | 运行时（`runtime.py` 12 秒退出 watchdog）、路径（`paths.py`）、版本、HTTP 工具 |
-| `src/settings/` | 配置模型（`config.py`）、YAML 映射（`loader_specs.py`）、热重载（`watcher.py`）、DB 同步（`db_sync.py`） |
-| `src/jobs/` | 任务元数据（`metadata.py`）、调度（`scheduler.py`）、注册（`registry.py`）、启用映射（`enable_fields.py`）、执行结果（`task_outcome.py`）、生命周期（`lifecycle.py`）、日志（`log_manager.py`）、运行记录（`tracker.py`） |
-| `src/storage/` | MySQL 权威主库（可选）、SQLite 镜像/故障回退（`database.py`、`mysql_backend.py`）、Cookie 缓存（`cookie_cache.py`） |
-| `src/monitors/` | 6 个平台监控（interval 触发，清单由 `metadata.MONITOR_SPECS` 生成） |
-| `src/tasks/` | 30 个业务定时/签到任务 + `demo_task` 示例（Cron 触发，含 `rainyun/` 子包；`TASK_SPECS` 共 31 项） |
-| `src/push_channel/` | 18 种推送 type（企业微信、钉钉、Telegram 等，含 `demo`、`qlapi`） |
-| `src/web/` | FastAPI 应用（`app.py`）、路由（`routers/`）、认证/配置/数据辅助、`templating.py`、`static_files.py` |
-| `src/webUI/` | 响应式前端静态资源与 Jinja2 模板（液态玻璃功能层、键盘/触控无障碍交互） |
-| `src/ql/` | 青龙 CLI（`python -m src.ql <task_id>`，环境变量兼容见 `compat.py`） |
-| `src/tests/` | pytest 单元与 smoke 测试 |
+新增监控、定时任务或推送通道见 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)，模块边界、数据流和存储恢复见 [架构说明](docs/ARCHITECTURE.md)。任务、通道和配置节以 `src/jobs/metadata.py` 及运行时代码为准，关键测试检查注册完整性、配置映射及执行行为。
 
 </details>
 

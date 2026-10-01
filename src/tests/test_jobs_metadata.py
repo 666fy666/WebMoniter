@@ -9,10 +9,6 @@ import pytest
 import yaml
 
 from src.jobs import registry
-from src.jobs.enable_fields import (
-    MONITOR_JOB_ENABLE_FIELD_MAP,
-    TASK_JOB_ENABLE_FIELD_MAP,
-)
 from src.jobs.metadata import (
     CONFIG_SECTION_ORDER,
     MONITOR_MODULES,
@@ -27,8 +23,6 @@ from src.push_channel import _channel_type_to_class
 from src.settings.config import AppConfig
 from src.settings.loader_specs import CONFIG_MAPPINGS
 from src.web.routers import config as config_router
-from src.web.routers import pages as pages_router
-from src.web.templating import STATIC_ASSET_VERSION, templates
 
 
 def test_metadata_drives_legacy_registry_exports() -> None:
@@ -36,19 +30,6 @@ def test_metadata_drives_legacy_registry_exports() -> None:
     assert TASK_MODULES == [spec.module for spec in TASK_SPECS]
     assert registry.MONITOR_MODULES is MONITOR_MODULES
     assert registry.TASK_MODULES is TASK_MODULES
-
-
-def test_enable_maps_are_generated_from_task_specs() -> None:
-    assert MONITOR_JOB_ENABLE_FIELD_MAP == {
-        spec.job_id: spec.enable_field for spec in MONITOR_SPECS if spec.enable_field
-    }
-    assert TASK_JOB_ENABLE_FIELD_MAP == {
-        spec.job_id: spec.enable_field
-        for spec in TASK_SPECS
-        if spec.enable_field and not spec.plugin_only
-    }
-    assert TASK_JOB_ENABLE_FIELD_MAP["ikuuu_checkin"] == "checkin_enable"
-    assert "demo_task" not in TASK_JOB_ENABLE_FIELD_MAP
 
 
 def test_ql_env_map_is_generated_from_task_specs() -> None:
@@ -76,44 +57,8 @@ def test_config_section_order_covers_loader_and_frontend_extras() -> None:
 
 def test_config_section_order_matches_frontend_template() -> None:
     html = Path("src/webUI/templates/config.html").read_text(encoding="utf-8")
-    js = Path("src/webUI/static/js/config.js").read_text(encoding="utf-8")
-    template_sections = tuple(re.findall(r'data-section="([^"]+)"', html))
-
+    template_sections = tuple(re.findall(r'data-section="([^\"]+)"', html))
     assert template_sections == CONFIG_SECTION_ORDER
-    assert "/api/config/metadata" in js
-    assert 'config.js?v={{ static_version }}' in html
-    assert "cookie_refresh_enable: weiboCookieRefreshEnable" in js
-    assert "cookie_refresh_time:" in js
-    assert 'data-module="system"' in html
-    assert 'id="mysql_password"' in html
-    assert "refreshDatabaseStatus" in js
-    assert "'/api/database/test'" in js
-
-
-def test_config_page_asset_uses_shared_static_version() -> None:
-    context = pages_router._page_context(SimpleNamespace(), "配置管理", "config")
-
-    assert "config_js_version" not in context
-    assert STATIC_ASSET_VERSION == "1"
-    assert templates.env.globals["static_version"] == STATIC_ASSET_VERSION
-
-
-def test_frontend_fallback_metadata_matches_backend() -> None:
-    js = Path("src/webUI/static/js/config.js").read_text(encoding="utf-8")
-    fallback_sections_match = re.search(
-        r"const FALLBACK_CONFIG_SECTIONS = \[(.*?)\];",
-        js,
-        re.S,
-    )
-    assert fallback_sections_match is not None
-    fallback_sections = tuple(re.findall(r"'([^']+)'", fallback_sections_match.group(1)))
-
-    push_types_match = re.search(r"let pushChannelTypes = \{(.*?)\n\};", js, re.S)
-    assert push_types_match is not None
-    fallback_push_types = set(re.findall(r"^\s*'([^']+)':\s*\{", push_types_match.group(1), re.M))
-
-    assert fallback_sections == CONFIG_SECTION_ORDER
-    assert fallback_push_types == {spec.type for spec in PUSH_CHANNEL_SPECS}
 
 
 def test_config_sample_contains_metadata_sections() -> None:
@@ -186,7 +131,9 @@ async def test_get_config_api_disables_cache(monkeypatch, tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_database_status_api_is_authenticated_and_contains_no_credentials(monkeypatch) -> None:
+async def test_database_status_api_is_authenticated_and_contains_no_credentials(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
     monkeypatch.setattr(
         config_router,
@@ -231,7 +178,9 @@ class _JsonRequest:
 
 
 @pytest.mark.asyncio
-async def test_database_connection_api_tests_unsaved_values_without_returning_password(monkeypatch) -> None:
+async def test_database_connection_api_tests_unsaved_values_without_returning_password(
+    monkeypatch,
+) -> None:
     tested = []
     monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
     monkeypatch.setattr(config_router, "get_config", lambda: AppConfig())

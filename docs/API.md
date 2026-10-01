@@ -54,7 +54,7 @@ GET /api/version
 
 ```json
 {
-  "version": "2.4.7",
+  "version": "2.4.8",
   "github_api_url": "https://api.github.com/repos/666fy666/WebMoniter/tags",
   "tags_url": "https://github.com/666fy666/WebMoniter/tags"
 }
@@ -109,6 +109,10 @@ Content-Type: application/json
 
 保存成功后会调用 `reconfigure_database`，响应中可能包含 `database` 状态字段。
 
+`content` 保存完整 YAML 文本，会替换整份配置；`config` 可只包含需要更新的分区或字段，后端在配置锁内读取最新文件、递归合并、校验后保存，保留未提交字段及已有注释和引号。配置页的分区保存仅提交该分区。
+
+列表通常按提交值替换；非空 `push_channel` 按 `name` 对应并整项替换通道，同时移除未提交的命名通道，空列表清空通道。空 `accounts`、`cookies` 用于移除已有的可选列表字段。
+
 #### 数据库状态
 
 ```http
@@ -123,12 +127,14 @@ GET /api/database/status
   "active_backend": "sqlite",
   "mysql_reachable": false,
   "sqlite_healthy": true,
-  "sync_state": "idle",
+  "sync_state": "sqlite_only",
   "pending_changes": 0,
   "last_sync_at": null,
   "message": "..."
 }
 ```
+
+数据库 `sync_state` 为 `sqlite_only`（仅 SQLite）、`in_sync`（已同步）、`fallback`（MySQL 故障回退）、`replaying`（恢复回放）或 `mirror_degraded`（SQLite 镜像降级）。同步关系见 [数据库设计](ARCHITECTURE.md#database-design)。
 
 #### 测试 MySQL 连接（不写盘）
 
@@ -179,11 +185,34 @@ GET /api/data/douyin?id=ASOULjiaran&page=1&page_size=20
 
 - `platform`：见上表中 `platform` 列
 - `page`：页码，从 1 开始（默认 1）
-- `page_size`：每页条数（默认 100）
+- `page_size`：每页条数（默认 100）；Web 微博页使用 25
 - `uid`：当 `platform` 为 `weibo`、`bilibili_live`、`bilibili_dynamic` 时按 UID 过滤
 - `room`：当 `platform` 为 `huya`、`douyu` 时按房间号过滤
 - `id`：当 `platform` 为 `douyin`、`xhs` 时按抖音号 / profile_id 过滤
-- `include_media`：当 `platform` 为 `huya` 时有效；设为 `false` 则不返回 `room_pic`、`avatar_url`，前端可再调用 `/api/data/huya/images` 异步获取
+- `include_media`：当 `platform` 为 `huya` 时有效；设为 `false` 时 `room_pic`、`avatar_url` 仍存在，但值为空字符串，前端可再调用 `/api/data/huya/images` 异步获取
+
+`page`、`page_size` 必须为正整数，非正数返回 HTTP 400 和 `error` 字段；无法解析为整数时由 FastAPI 返回 HTTP 422。微博按正文中的发布时间稳定排序后分页，时间无法解析的记录排在最后。
+
+返回示例：
+
+```json
+{
+  "data": [
+    {
+      "room": "123456",
+      "name": "示例主播",
+      "is_live": 1,
+      "url": "https://www.huya.com/123456",
+      "room_pic": "",
+      "avatar_url": ""
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 1
+}
+```
 
 #### 虎牙封面/头像 URL（异步加载，需登录）
 
@@ -192,18 +221,6 @@ GET /api/data/huya/images?rooms=123,456,789
 ```
 
 用于数据展示页异步加载虎牙封面图和头像，减少首屏请求体积。返回 `{"data": {"123": {"room_pic": "...", "avatar_url": "..."}, ...}}`。
-
-返回示例：
-
-```json
-{
-  "data": [...],
-  "total": 100,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 5
-}
-```
 
 #### 单条：按平台 + 主键 ID
 
@@ -299,10 +316,15 @@ GET /api/logs?lines=100&task=ikuuu_checkin
 ```
 
 参数：
-- `lines`：返回最近 N 行日志，默认 100
+
+- `lines`：返回最近 N 行日志，默认 100，必须为正整数；非正数返回 HTTP 400，无法解析为整数时返回 HTTP 422
 - `task`：（可选）指定任务 ID 时，返回该任务的今日专属日志；不传则返回今日总日志
 
 不传 `task` 时读取 `main_YYYYMMDD.log`；传 `task` 时读取 `task_{job_id}_YYYYMMDD.log`。
+
+文件存在时返回 `logs` 与 `total_lines`。文件不足 N 行时返回已有行；大文件从尾部逐步扩大窗口，避免长行导致不足 N 行。`total_lines` 在小文件中为完整行数，在大文件中为读取窗口行数，不应当作全文件的精确计数。今日没有文件时返回空 `logs` 和 `message`；读取超时返回 HTTP 504。
+
+Web 日志页通过定期 HTTP 轮询刷新，失败时重试并延长轮询间隔，不使用 WebSocket。
 
 #### 获取任务日志列表
 
@@ -373,7 +395,16 @@ POST /api/tasks/{task_id}/run
 }
 ```
 
-失败返回：
+任务明确返回 `False`（失败或未执行）时仍返回 HTTP 200：
+
+```json
+{
+  "success": false,
+  "message": "任务 ikuuu_checkin 未成功完成，请查看任务日志"
+}
+```
+
+业务返回 `True`、监控入口返回 `None` 时报告成功。调用方必须检查 `success`，不能只检查 HTTP 状态。未捕获异常返回 HTTP 500：
 
 ```json
 {
@@ -382,7 +413,7 @@ POST /api/tasks/{task_id}/run
 }
 ```
 
-**注意**：手动触发执行时会绕过"当天已运行则跳过"检查，确保任务被强制执行。
+任务不存在返回 HTTP 404，未登录返回 HTTP 401。手动触发使用原始函数，绕过"当天已有成功记录则跳过"检查；业务内部的禁用或缺参校验仍有效，也不会经过每日成功记录包装层。
 
 ---
 

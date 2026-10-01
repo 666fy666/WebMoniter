@@ -134,6 +134,8 @@ function updateTaskCount(count) {
 
 // 当前查看日志的任务ID（用于弹窗）
 let currentTaskLogJobId = null;
+let taskLogRequestId = 0;
+let taskLogRequestController = null;
 
 // 打开任务日志弹窗
 function openTaskLogModal(jobId) {
@@ -150,6 +152,9 @@ function openTaskLogModal(jobId) {
 
 // 关闭任务日志弹窗
 function closeTaskLogModal() {
+    if (taskLogRequestController) taskLogRequestController.abort();
+    taskLogRequestController = null;
+    taskLogRequestId += 1;
     const modal = document.getElementById('taskLogModal');
     if (modal) {
         closeAccessibleModal(modal);
@@ -161,11 +166,20 @@ function closeTaskLogModal() {
 async function loadTaskLogInModal(jobId) {
     const container = document.getElementById('taskLogModalContent');
     if (!container) return;
+    if (taskLogRequestController) taskLogRequestController.abort();
+    const controller = new AbortController();
+    taskLogRequestController = controller;
+    const requestId = ++taskLogRequestId;
+    const isCurrent = () => requestId === taskLogRequestId && currentTaskLogJobId === jobId
+        && !controller.signal.aborted;
     container.innerHTML = '<div class="loading">加载中...</div>';
 
     try {
-        const response = await fetch('/api/logs?lines=200&task=' + encodeURIComponent(jobId));
+        const response = await fetch('/api/logs?lines=200&task=' + encodeURIComponent(jobId), {
+            signal: controller.signal,
+        });
         const data = await response.json();
+        if (!isCurrent()) return;
 
         if (data.error) {
             container.innerHTML = '<div class="error-message show">' + escapeHtml(data.error) + '</div>';
@@ -191,7 +205,10 @@ async function loadTaskLogInModal(jobId) {
         container.innerHTML = html;
         container.scrollTop = container.scrollHeight;
     } catch (error) {
+        if (!isCurrent() || error.name === 'AbortError') return;
         container.innerHTML = '<div class="error-message show">加载失败: ' + escapeHtml(error.message) + '</div>';
+    } finally {
+        if (taskLogRequestController === controller) taskLogRequestController = null;
     }
 }
 
@@ -241,8 +258,14 @@ async function runTask(jobId) {
         showToast(`运行任务失败: ${error.message}`, 'error');
     } finally {
         runningTasks.delete(jobId);
-        btn.classList.remove('running');
-        setButtonLoading(btn, false);
+        const currentBtn = document.querySelector(`.run-task-btn[data-job-id="${jobId}"]`);
+        if (currentBtn) {
+            currentBtn.classList.remove('running');
+            setButtonLoading(currentBtn, false);
+            if (currentBtn !== btn) {
+                currentBtn.innerHTML = `<span class="btn-icon">${uiIcon('play')}</span><span class="btn-text">运行</span>`;
+            }
+        }
     }
 }
 

@@ -16,8 +16,9 @@ COPY pyproject.toml uv.lock ./
 # 2) 删除运行时无用文件：类型存根 .pyi、C 头文件 .h、静态库 .a、语言包 .mo
 # 3) strip 共享库调试符号（--strip-unneeded 对 .so 安全，不影响运行）
 RUN uv sync --frozen --no-dev --no-install-project && \
-    rm -rf /root/.cache/uv && \
-    find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    rm -rf /root/.cache/uv
+
+RUN find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find /app/.venv -type d \( -name tests -o -name test -o -name examples \) -exec rm -rf {} + 2>/dev/null || true && \
     find /app/.venv -type f \( -name "*.pyc" -o -name "*.pyo" -o -name "*.pyi" -o -name "*.h" -o -name "*.a" \) -delete 2>/dev/null || true && \
     find /app/.venv -path "*/locale/*" -name "*.mo" -delete 2>/dev/null || true && \

@@ -15,9 +15,7 @@ from src.storage.mysql_backend import (
 
 
 def test_mysql_sql_conversion_supports_both_project_placeholder_styles() -> None:
-    sql = convert_mysql_sql(
-        "INSERT OR REPLACE INTO task_run_history (job_id) VALUES (:job_id)"
-    )
+    sql = convert_mysql_sql("INSERT OR REPLACE INTO task_run_history (job_id) VALUES (:job_id)")
 
     assert sql.startswith("REPLACE INTO")
     assert "%(job_id)s" in sql
@@ -144,9 +142,7 @@ async def test_sqlite_fallback_delete_records_idempotent_delete(tmp_path) -> Non
     async with aiosqlite.connect(tmp_path / "fallback.db") as conn:
         conn.row_factory = aiosqlite.Row
         await db_module.AsyncDatabase()._init_tables(conn)
-        await conn.execute(
-            "INSERT INTO douyu (room, name, is_live) VALUES ('1', '主播', '1')"
-        )
+        await conn.execute("INSERT INTO douyu (room, name, is_live) VALUES ('1', '主播', '1')")
         await conn.commit()
 
         await db_module._sqlite_update_with_outbox(
@@ -165,9 +161,7 @@ async def test_sqlite_fallback_rejects_untracked_conditional_delete(tmp_path) ->
     async with aiosqlite.connect(tmp_path / "fallback.db") as conn:
         conn.row_factory = aiosqlite.Row
         await db_module.AsyncDatabase()._init_tables(conn)
-        await conn.execute(
-            "INSERT INTO douyu (room, name, is_live) VALUES ('1', '主播', '1')"
-        )
+        await conn.execute("INSERT INTO douyu (room, name, is_live) VALUES ('1', '主播', '1')")
         await conn.commit()
 
         with pytest.raises(ValueError, match="缺少主键参数"):

@@ -539,7 +539,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
 
-        return switchIds.size > 2 ? Array.from(switchIds) : FALLBACK_SWITCH_IDS;
+        return switchIds.size > 3 ? Array.from(switchIds) : FALLBACK_SWITCH_IDS;
     }
 
     function bindSwitchLabel(inputId) {
@@ -2592,28 +2592,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function saveSectionConfig(section, btn) {
         setButtonLoading(btn, true, '保存中...');
         try {
-            // 先加载完整配置
-            const response = await fetch('/api/config?format=json');
-            const data = await response.json();
-
-            if (data.error) {
-                showMessage('configMessage', data.error, 'error');
-                return;
-            }
-
-            const fullConfig = data.config;
             const sectionConfig = collectSectionConfig(section);
-            
-            // 合并配置
-            const mergedConfig = { ...fullConfig, ...sectionConfig };
 
-            // 保存配置
+            // 后端在配置锁内合并最新文件，避免覆盖其他分区的并发更新。
             const saveResponse = await fetch('/api/config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ config: mergedConfig })
+                body: JSON.stringify({ config: sectionConfig })
             });
 
             const saveData = await saveResponse.json();
@@ -3238,7 +3225,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 监听 config-saved 事件，刷新配置表单以反映最新状态
     document.addEventListener('config-saved', async function () {
         await loadConfig();
-        await refreshDatabaseStatus();
         if (textView && textView.style.display !== 'none') {
             await loadYamlConfig();
         }

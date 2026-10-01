@@ -98,6 +98,7 @@ async def get_config_api(request: Request, format: str = "json"):
             return JSONResponse({"error": "配置文件不存在"}, status_code=404)
 
         if format == "yaml":
+
             def _read_config_text():
                 with config_file_lock():
                     return config_path.read_text(encoding="utf-8")

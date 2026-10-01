@@ -385,82 +385,6 @@ class AsyncDatabase:
         await self._ensure_connection()
         yield self._conn
 
-    async def _execute_with_retry(self, operation, max_retries=5, initial_delay=0.1):
-        """
-        执行数据库操作，带重试机制和连接恢复
-
-        Args:
-            operation: 要执行的异步操作函数
-            max_retries: 最大重试次数
-            initial_delay: 初始延迟（秒），每次重试会指数退避
-
-        Returns:
-            操作结果
-        """
-        delay = initial_delay
-        last_exception = None
-
-        for attempt in range(max_retries):
-            try:
-                # 在执行前确保连接有效
-                await self._ensure_connection()
-                return await operation()
-            except aiosqlite.OperationalError as e:
-                error_str = str(e).lower()
-                if "database is locked" in error_str or "locked" in error_str:
-                    last_exception = e
-                    if attempt < max_retries - 1:
-                        _logger.warning(
-                            "数据库锁定，重试 %d/%d (延迟 %.2f秒)",
-                            attempt + 1,
-                            max_retries,
-                            delay,
-                        )
-                        await asyncio.sleep(delay)
-                        delay *= 2
-                    else:
-                        _logger.error("数据库操作失败，已达到最大重试次数: %s", e)
-                        raise
-                elif "no such table" in error_str or "unable to open" in error_str:
-                    _logger.warning("检测到数据库结构问题，尝试重新连接: %s", e)
-                    try:
-                        await self._reconnect()
-                        # 重连后立即重试
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(0.1)
-                            continue
-                    except Exception as reconnect_error:
-                        _logger.error("重新连接失败: %s", reconnect_error)
-                        raise
-                    raise
-                else:
-                    if attempt == 0:
-                        _logger.warning("数据库操作错误，尝试重新连接: %s", e)
-                        try:
-                            await self._reconnect()
-                            await asyncio.sleep(0.1)
-                            continue
-                        except Exception as reconnect_error:
-                            _logger.debug("重新连接失败: %s", reconnect_error)
-                    raise
-            except (AttributeError, RuntimeError) as e:
-                if attempt == 0:
-                    _logger.warning("检测到连接对象异常，尝试重新连接: %s", e)
-                    try:
-                        await self._reconnect()
-                        await asyncio.sleep(0.1)
-                        continue
-                    except Exception as reconnect_error:
-                        _logger.error("重新连接失败: %s", reconnect_error)
-                        raise
-                raise
-            except Exception as e:
-                _logger.error("数据库操作异常: %s", e)
-                raise
-
-        if last_exception:
-            raise last_exception
-
     async def execute_query(self, sql: str, params: dict | None = None) -> list[tuple]:
         """从当前权威后端查询；MySQL 断连时自动回退 SQLite。"""
         sqlite_sql = self._convert_sql(sql)
@@ -621,9 +545,7 @@ async def _sqlite_update_with_outbox(
     param_values = params or {}
     pk_value_raw = param_values.get(spec.primary_key, param_values.get("pk"))
     if not is_clear and pk_value_raw is None:
-        raise ValueError(
-            f"MySQL 回退模式写入 {table_name} 时缺少主键参数 {spec.primary_key}"
-        )
+        raise ValueError(f"MySQL 回退模式写入 {table_name} 时缺少主键参数 {spec.primary_key}")
 
     try:
         await conn.execute("BEGIN IMMEDIATE")
@@ -681,9 +603,7 @@ async def _fetch_sqlite_tables(
         quoted_columns = ", ".join(f'"{column}"' for column in spec.columns)
         async with conn.execute(f'SELECT {quoted_columns} FROM "{spec.name}"') as cursor:
             rows = await cursor.fetchall()
-        tables[spec.name] = [
-            dict(zip(spec.columns, tuple(row), strict=True)) for row in rows
-        ]
+        tables[spec.name] = [dict(zip(spec.columns, tuple(row), strict=True)) for row in rows]
     return tables
 
 

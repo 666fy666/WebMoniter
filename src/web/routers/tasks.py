@@ -79,12 +79,16 @@ async def run_task_api(request: Request, task_id: str):
         logger.info("手动触发任务: %s", task_id)
         try:
             run_func = target_job.original_run_func or target_job.run_func
-            await run_task_with_logging(task_id, run_func)
+            result = await run_task_with_logging(task_id, run_func)
             logger.info("任务 %s 手动执行完成", task_id)
             return JSONResponse(
                 {
-                    "success": True,
-                    "message": f"任务 {task_id} 执行成功",
+                    "success": result is not False,
+                    "message": (
+                        f"任务 {task_id} 未成功完成，请查看任务日志"
+                        if result is False
+                        else f"任务 {task_id} 执行成功"
+                    ),
                 }
             )
         except Exception as e:

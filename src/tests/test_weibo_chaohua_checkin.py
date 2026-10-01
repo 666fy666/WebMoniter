@@ -44,9 +44,7 @@ def test_anonymous_ok_response_is_not_reported_as_success(monkeypatch) -> None:
     )
     monkeypatch.setattr(chaohua.requests, "Session", lambda: session)
 
-    result = chaohua._run_weibo_chaohua_sign_sync(
-        f"SUB={secret}; XSRF-TOKEN=token"
-    )
+    result = chaohua._run_weibo_chaohua_sign_sync(f"SUB={secret}; XSRF-TOKEN=token")
 
     assert result[0] is False
     assert "未识别到完整微博登录账号" in result[1]
@@ -64,16 +62,12 @@ def test_valid_login_with_no_followed_topics_is_a_real_empty_success(monkeypatch
     )
     monkeypatch.setattr(chaohua.requests, "Session", lambda: session)
 
-    result = chaohua._run_weibo_chaohua_sign_sync(
-        "SUB=valid; XSRF-TOKEN=token"
-    )
+    result = chaohua._run_weibo_chaohua_sign_sync("SUB=valid; XSRF-TOKEN=token")
 
     assert result == (True, "UID 12***90", 0, 0, 0, 0)
     list_call = session.calls[1][1]
     assert list_call["params"]["uid"] == "1234567890"
-    assert list_call["headers"]["Referer"].endswith(
-        "/1234567890/231093_-_chaohua"
-    )
+    assert list_call["headers"]["Referer"].endswith("/1234567890/231093_-_chaohua")
 
 
 def test_followed_topic_is_parsed_and_signed(monkeypatch) -> None:
@@ -96,9 +90,7 @@ def test_followed_topic_is_parsed_and_signed(monkeypatch) -> None:
     )
     monkeypatch.setattr(chaohua.requests, "Session", lambda: session)
 
-    result = chaohua._run_weibo_chaohua_sign_sync(
-        "SUB=valid; XSRF-TOKEN=token"
-    )
+    result = chaohua._run_weibo_chaohua_sign_sync("SUB=valid; XSRF-TOKEN=token")
 
     assert result == (True, "UID 12***90", 0, 1, 0, 1)
     sign_call = session.calls[2][1]
@@ -115,9 +107,7 @@ def test_nonzero_total_with_empty_list_is_rejected(monkeypatch) -> None:
     )
     monkeypatch.setattr(chaohua.requests, "Session", lambda: session)
 
-    result = chaohua._run_weibo_chaohua_sign_sync(
-        "SUB=valid; XSRF-TOKEN=token"
-    )
+    result = chaohua._run_weibo_chaohua_sign_sync("SUB=valid; XSRF-TOKEN=token")
 
     assert result[0] is False
     assert "总数非零但列表为空" in result[1]

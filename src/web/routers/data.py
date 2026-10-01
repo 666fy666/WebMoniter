@@ -109,6 +109,9 @@ async def get_table_data(
             status_code=400,
         )
 
+    if page < 1 or page_size < 1:
+        return JSONResponse({"error": "page 和 page_size 必须为正整数"}, status_code=400)
+
     _, _, filter_param_name = PLATFORM_CONFIG[platform]
     filter_param = (
         uid if filter_param_name == "uid" else (room if filter_param_name == "room" else id)
@@ -142,19 +145,19 @@ async def get_table_data(
                 sql = f"{base_sql}{where_clause} LIMIT :limit OFFSET :offset"
                 rows = await db.execute_query(sql, params)
 
-        data = [_row_to_item(platform, row) for row in rows]
+        if platform == "weibo" and rows:
 
-        if platform == "weibo" and data:
-
-            def sort_key(item: dict):
-                dt = _parse_weibo_created_at(item.get("文本"))
+            def sort_key(row: tuple):
+                dt = _parse_weibo_created_at(row[6])
                 if dt is None:
                     return 0.0
                 return dt.timestamp()
 
-            data.sort(key=sort_key, reverse=True)
+            rows.sort(key=sort_key, reverse=True)
             offset = (page - 1) * page_size
-            data = data[offset : offset + page_size]
+            rows = rows[offset : offset + page_size]
+
+        data = [_row_to_item(platform, row) for row in rows]
 
         return JSONResponse(
             {

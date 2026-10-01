@@ -31,12 +31,12 @@ class JobDescriptor:
     """任务描述：用于调度器注册与热重载时更新触发参数"""
 
     job_id: str
-    run_func: Callable[[], Awaitable[TaskOutcome]]
+    run_func: Callable[[], Awaitable[TaskOutcome | None]]
     trigger: str  # "interval" | "cron"
     get_trigger_kwargs: Callable[[AppConfig], dict[str, Any]]
     description: str = ""
     # 原始执行函数（未包装），用于手动触发时绕过"当天已运行则跳过"检查
-    original_run_func: Callable[[], Awaitable[TaskOutcome]] | None = field(default=None)
+    original_run_func: Callable[[], Awaitable[TaskOutcome | None]] | None = field(default=None)
     # 是否参与项目启动后的首轮执行；监控与既有任务默认保持原行为
     run_on_startup: bool = True
 
@@ -76,12 +76,14 @@ async def _task_logging_context(job_id: str):
             logger.debug("移除任务日志处理器时出错（可忽略）: %s", e)
 
 
-async def run_task_with_logging(job_id: str, run_func: Callable[[], Awaitable[None]]) -> None:
+async def run_task_with_logging(
+    job_id: str, run_func: Callable[[], Awaitable[TaskOutcome | None]]
+) -> TaskOutcome | None:
     """
     在任务专属日志支持下执行任务。用于手动触发时确保也写入任务专属日志文件。
     """
     async with _task_logging_context(job_id):
-        await run_func()
+        return await run_func()
 
 
 def monitor_job_enabled(job_id: str, config: AppConfig) -> bool:

@@ -304,39 +304,6 @@ def _huya_row_to_item(row: tuple) -> dict:
     }
 
 
-def _weibo_row_to_status_item(row: tuple) -> dict:
-    images = _parse_weibo_images(row[8] if len(row) > 8 else None)
-    retweeted_status = _parse_weibo_retweeted_status(row[9] if len(row) > 9 else None)
-    video_cover = str(row[13] or "") if len(row) > 13 else ""
-    return {
-        "UID": row[0],
-        "用户名": row[1],
-        "认证信息": row[2],
-        "简介": row[3],
-        "粉丝数": row[4],
-        "微博数": row[5],
-        "文本": row[6],
-        "mid": row[7],
-        "images": images,
-        "image_thumbs": [_weibo_thumb_url(image) for image in images],
-        "retweeted_status": retweeted_status,
-        "content_segments": _parse_weibo_content_segments(row[10] if len(row) > 10 else None),
-        "tags": _parse_weibo_tags(row[11] if len(row) > 11 else None),
-        "content_type": _parse_weibo_content_type(
-            row[12] if len(row) > 12 else None,
-            has_repost=bool(retweeted_status),
-            has_video=bool(video_cover),
-            has_images=bool(images),
-        ),
-        "video_cover": video_cover,
-        "video_cover_thumb": _weibo_thumb_url(video_cover) if video_cover else "",
-    }
-
-
-def _huya_row_to_status_item(row: tuple) -> dict:
-    return {"room": row[0], "name": row[1], "is_live": row[2]}
-
-
 def _bilibili_live_row_to_item(row: tuple) -> dict:
     return {
         "uid": row[0],

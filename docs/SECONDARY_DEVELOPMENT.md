@@ -1,644 +1,148 @@
 # 二次开发指南：新增监控任务与定时任务
 
-本文档说明如何在不改动项目核心逻辑的前提下，用最少改动接入新的**监控任务**或**定时任务**，并支持配置热重载与统一推送。  
-下文以项目内已实现的**虎牙监控**（监控任务）和 **iKuuu 签到 / Demo 任务**（定时任务）为例，按步骤对照真实代码说明。
+本页说明当前扩展契约。模块边界和存储恢复原理见 [架构文档](ARCHITECTURE.md)，使用参数见 [配置说明](guides/config.md)、[任务指南](guides/tasks.md) 和 [推送通道](guides/push-channels.md)。
 
----
+## 开发环境与关键检查
 
-## 零、开发环境与代码规范
-
-### 代码检测
-
-项目使用 `black` 和 `ruff` 进行代码格式化和检查。
-
-#### 安装开发依赖
+在仓库根目录使用 Python 3.11：
 
 ```bash
-uv sync --extra dev
-```
-
-本地开发与调试 **iKuuu、雨云签到**（`src/tasks/ikuuu_checkin.py`、`src/tasks/rainyun`）时，还需安装 optional 依赖：`uv sync --locked --extra rainyun`（可与 `dev` 同时指定：`uv sync --locked --extra dev --extra rainyun`）。
-
-#### 代码格式化
-
-使用 `black` 格式化代码：
-
-```bash
-# 格式化所有代码
-uv run black .
-
-# 检查代码格式（不修改文件）
-uv run black --check .
-```
-
-#### 代码检查
-
-使用 `ruff` 检查代码：
-
-```bash
-# 检查代码并自动修复
-uv run ruff check --fix .
-
-# 仅检查代码（不修复）
+uv python install 3.11
+uv venv --python 3.11
+uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
+uv run pytest -q
+node --test src/tests/frontend_runtime.test.js
 ```
 
-#### 运行测试
+浏览器任务需要 `rainyun` 可选依赖及本地 Chrome/Chromium、chromedriver；安装和预检见 [安装与运行](installation.md)。Node 仅用于前端测试，服务运行不依赖 Node，也无需 npm 安装步骤。
+
+Black 检查本轮修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`；需要格式化时对同一文件去掉 `--check`。修改静态脚本后用 `node --check` 检查相应文件。文档检查为：
 
 ```bash
-uv run pytest
-# 或指定目录：uv run pytest src/tests/ -q
+uv sync --locked --extra dev --extra rainyun --extra docs
+uv run mkdocs build --strict --config-file docs/mkdocs.yml
 ```
 
-`src/tests/test_jobs_metadata.py` 与 `src/tests/test_registry_integrity.py` 会在新增任务时校验 `TaskSpec`、兼容模块清单与 enable 映射是否一致；漏配时测试失败。
+Python 测试在收集前将配置、数据库、Cookie、会话和默认日志隔离到临时目录。注册完整性检查只对明确缺失的可选包允许跳过，其他导入错误应失败。前端回归执行真实脚本，使用内存 DOM、fetch、时钟及空闲回调，不调用真实平台。
 
----
+只为结果、边界和一致性增加必要测试。配置合并、鉴权、调度结果、数据库恢复、监控去重、推送格式及请求竞态属于关键回归；颜色、CSS 字符串、固定资源版本、文案措辞和视觉细节不做源码断言。实际图片、触屏、主题和滚动检查见 [Web 自测清单](guides/web-ui.md#manual-checks)。
 
-## 一、架构简述
+## 定时任务
 
-| 类型       | 触发方式     | 配置来源示例                          | 项目内示例           |
-|------------|--------------|---------------------------------------|----------------------|
-| 监控任务   | 固定间隔轮询 | `huya.monitor_interval_seconds`、`weibo.monitor_interval_seconds` | 虎牙监控、微博监控   |
-| 定时任务   | Cron 每日定点 | `checkin.time`、`tieba.time`、`plugins.xxx.time` | iKuuu 签到、贴吧签到、Demo 任务 |
+### 配置、业务与注册
 
-新增任务时只需：
+1. 在示例配置中定义参数。顶层配置同时补充 `AppConfig` 和 `src/settings/loader_specs.py` 的字段映射；多账号及 Cookie/Token 列表使用已有规格。`plugins` 配置可参考 `demo_task`，无需为每个插件参数新增扁平字段。
+2. 在 `src/tasks/` 实现异步业务入口和触发参数函数。任务内读取最新配置，校验启用状态及必填项；真正完成返回 `TASK_SUCCESS`，失败、未启用或未执行返回 `TASK_FAILED`。不要用无返回值代表定时任务成功。
+3. 在模块末尾调用 `register_task()`，并在 `TASK_SPECS` 登记同一任务 ID、模块路径、描述及配置字段。
 
-1. **新增配置**：在 `config.yml` 中增加节点；若用顶层配置，还需在 `src/settings/config.py` 中补充字段与解析。
-2. **补充配置映射**：若用顶层配置，在 `src/settings/config.py` 中增加 `AppConfig` 字段，并在 `src/settings/loader_specs.py` 中补充 YAML 到扁平字段的映射规格。
-3. **实现任务逻辑**：一个无参的 async 入口函数（内部 `get_config(reload=True)`、业务逻辑、可选推送），返回 `TASK_SUCCESS` 或 `TASK_FAILED`（见 `src/jobs/task_outcome.py`）。
-4. **注册与元数据**：在任务模块末尾调用 `register_monitor` 或 `register_task`，并在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` / `TASK_SPECS` 中添加对应 `TaskSpec`。
-
-主入口 `main.py` 通过 `src.jobs.registry.discover_and_import()` 加载所有列出的模块并注册到调度器，**无需再改 main.py**。
-
-Web 后端统一放在 `src/web/`，按“应用组装 → 路由模块 → 辅助逻辑”分层，新增 Web 功能时优先复用：
-
-- `src/web/app.py`：FastAPI 应用创建、SessionMiddleware、静态资源挂载、router 注册。
-- `src/web/routers/`：页面、认证、任务、配置、数据、日志等 APIRouter。
-- `src/web/auth.py`：登录会话、认证文件读写、密码哈希。
-- `src/web/config_io.py`：配置合并、配置保存前校验与热重载。
-- `src/web/data_support.py`：数据 API 的平台元数据、SQL 模板、数据库行到 JSON 的转换。
-- `src/web/templating.py`、`src/web/static_files.py`：Jinja 模板环境与带 Cache-Control 的静态文件处理。
-- `register_monitor` / `register_task` 的 `description` 参数：Web 任务列表展示文案。
-- `src/settings/loader_specs.py`：`config.yml` 节点到 `AppConfig` 扁平字段的映射，以及多账号、多 Cookie/Token 字段规格。
-
----
-
-## 二、定时任务示例一：iKuuu 签到（顶层配置）
-
-iKuuu 签到使用**顶层配置**（与贴吧签到一致）：在 `config.yml` 中有独立节点 `checkin`，在 `AppConfig` 中有对应扁平字段，适合需要强类型、与现有风格统一的场景。
-
-> **域名自动发现**：iKuuu 的可用域名会自动从 `ikuuu.club` 提取，无需在配置中手动填写 URL。系统在每次签到时会访问 `ikuuu.club`，通过多种正则匹配和 HTTP 探测从其混淆 JS 中提取可用域名（如 `ikuuu.nl`、`ikuuu.fyi` 等），并随机选择一个使用。
-
-### 2.1 配置：config.yml
-
-在 `config.yml` 中增加与 `tieba` 同级的 `checkin` 节点（参见 `config/config.yml.sample`）。
-
-**单账号示例：**
-
-```yaml
-checkin:
-  enable: false
-  email: your@email.com
-  password: your_password
-  time: "08:00"   # 每日执行时间 HH:MM
-```
-
-**多账号示例（`accounts` 非空时优先于单账号 `email`/`password`）：**
-
-```yaml
-checkin:
-  enable: true
-  time: "08:00"
-  accounts:
-    - email: user1@example.com
-      password: pass1
-    - email: user2@example.com
-      password: pass2
-```
-
-### 2.2 配置：src/settings/config.py
-
-在 `AppConfig` 中增加扁平字段（与 YAML 的 `checkin` 一一对应）：
+当前 Demo 的核心契约如下；完整业务、资源释放和推送代码以 `src/tasks/demo_task.py` 为准：
 
 ```python
-# 每日签到配置（域名自动从 ikuuu.club 发现，无需手动配置 URL）
-checkin_enable: bool = False
-checkin_email: str = ""
-checkin_password: str = ""
-checkin_time: str = "08:00"
-```
-
-在 `src/settings/loader_specs.py` 的 `CONFIG_MAPPINGS` 中补充 `checkin` 节点到 `AppConfig` 扁平字段的映射；如果支持 `accounts` 多账号，再在 `MULTI_ACCOUNT_SPECS` 中补充对应规格。`load_config_from_yml()` 会统一按这些规格写入 `config_dict`。
-
-### 2.3 任务实现：src/tasks/ikuuu_checkin.py
-
-**① 配置校验与入口**
-
-- 使用 dataclass 从 `AppConfig` 转成任务用配置，并做 `validate()`（未启用或缺少必填项则直接 return）：
-- 域名通过 `_extract_ikuuu_domain()` 自动从 `ikuuu.club` 提取，URL 由域名自动构建（`@property`）：
-
-```python
-@dataclass
-class CheckinConfig:
-    enable: bool
-    domain: str    # 自动发现的域名，如 ikuuu.nl
-    email: str
-    password: str
-    time: str
-
-    @property
-    def login_url(self) -> str:
-        return f"https://{self.domain}/auth/login"
-
-    @property
-    def checkin_url(self) -> str:
-        return f"https://{self.domain}/user/checkin"
-
-    @property
-    def user_page_url(self) -> str:
-        return f"https://{self.domain}/user"
-
-    @classmethod
-    def from_app_config(cls, config: AppConfig, domain: str) -> CheckinConfig:
-        return cls(
-            enable=config.checkin_enable,
-            domain=domain,
-            # ...
-            time=config.checkin_time.strip() or "08:00",
-        )
-
-async def run_checkin_once() -> None:
-    app_config = get_config(reload=True)
-    if not app_config.checkin_enable:
-        return
-    # 自动发现 ikuuu 可用域名
-    domain = await _extract_ikuuu_domain()
-    if not domain:
-        logger.error("ikuuu签到：无法自动发现可用域名，跳过本次执行")
-        return
-    cfg = CheckinConfig.from_app_config(app_config, domain=domain)
-    if not cfg.validate():
-        return
-    # 业务逻辑：登录 → 签到 → 获取流量信息
-    async with aiohttp.ClientSession(...) as session:
-        push_manager = await build_push_manager(
-            app_config.push_channel_list, session, logger, init_fail_prefix="ikuuu签到：",
-            channel_names=cfg.push_channels if cfg.push_channels else None,  # 指定使用的通道
-        )
-        cookie = await _login_and_get_cookie(session, cfg)
-        if not cookie:
-            await _send_checkin_push(push_manager, title="ikuuu签到失败：登录失败", ...)
-            return
-        ok = await _checkin(session, cfg, cookie)
-        traffic_info = await _get_user_traffic(session, cfg, cookie)
-        await _send_checkin_push(push_manager, title=..., msg=..., success=ok, traffic_info=traffic_info)
-        if push_manager:
-            await push_manager.close()
-```
-
-**② 推送逻辑**
-
-- 推送前用 `is_in_quiet_hours(app_cfg)` 判断免打扰，在免打扰时段内只打日志不推送：
-
-```python
-async def _send_checkin_push(push_manager, title, msg, success, cfg, traffic_info=None):
-    if push_manager is None:
-        return
-    app_cfg = get_config()
-    if is_in_quiet_hours(app_cfg):
-        logger.debug("ikuuu签到：免打扰时段，不发送推送")
-        return
-    await push_manager.send_news(
-        title=f"{title}（{masked_email}）",
-        description=...,
-        to_url=cfg.user_page_url,
-        picurl="...",
-        btntxt="查看账户",
-    )
-```
-
-**③ 注册：Cron 触发参数 + register_task**
-
-- 执行时间由 `checkin.time` 决定，使用公共方法 `parse_checkin_time` 得到 cron 的 `hour`、`minute`，并在模块末尾注册：
-
-```python
-from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
-from src.jobs.registry import register_task
-
-def _get_checkin_trigger_kwargs(config: AppConfig) -> dict:
-    hour, minute = parse_checkin_time(config.checkin_time)
-    return {"minute": minute, "hour": hour}
-
-register_task("ikuuu_checkin", run_checkin_once, _get_checkin_trigger_kwargs)
-```
-
-**④ 当天已运行则跳过（默认行为）**
-
-`register_task` 默认启用 `skip_if_run_today=True`，任务在执行前会检查当天是否已经运行过：
-- 如果已运行：输出日志 `{job_id}: 当天已经运行过了，跳过该任务`，然后跳过执行
-- 如果未运行：正常执行任务；**仅当返回值 `is TASK_SUCCESS` 时**才写入 `task_run_history`
-- 返回 `TASK_FAILED` 或抛出未捕获异常：不记录运行日期，允许后续重试
-- 任务内部自行捕获错误后若返回 `TASK_FAILED`，不会记为已运行；若误返回 `TASK_SUCCESS` 则会记为已运行
-
-若某个任务需要每次触发都执行（不检查当天是否已运行），可在注册时禁用：
-
-```python
-register_task("always_run_task", run_task, _get_trigger_kwargs, skip_if_run_today=False)
-```
-
-**⑤ 手动触发执行**
-
-通过 Web 管理界面的「任务管理」页面手动触发任务时，会使用 `JobDescriptor.original_run_func`（原始执行函数），绕过"当天已运行则跳过"检查，确保任务被强制执行。这对于调试或需要立即重新执行的场景非常有用。
-
-### 2.4 任务元数据：src/jobs/metadata.py
-
-在 `TASK_SPECS` 中已包含该模块，主程序启动时会根据元数据生成兼容的 `TASK_MODULES`，再导入并执行上述 `register_task`：
-
-```python
-TaskSpec(
-    "ikuuu_checkin",
-    "src.tasks.ikuuu_checkin",
-    "iKuuu 签到",
-    "task",
-    "checkin",
-    enable_field="checkin_enable",
-    time_field="checkin_time",
-    default_time="08:00",
-    push_field="checkin_push_channels",
-    ql_prefix="CHECKIN",
-    ql_extra_env={
-        "EMAIL": "checkin_email",
-        "PASSWORD": "checkin_password",
-        "TIME": "checkin_time",
-    },
-)
-```
-
-小结：顶层定时任务 = **config.yml 节点 → AppConfig + loader_specs 映射 → 任务模块（run_xxx_once + 推送 + _get_xxx_trigger_kwargs）→ register_task → TaskSpec 一项**。
-
----
-
-## 三、定时任务示例二：Demo 任务（plugins 配置）
-
-Demo 任务使用 **plugins** 配置：无需改 `AppConfig` 和 `load_config_from_yml()`，只需在 `config.yml` 的 `plugins` 下增加一个 key，适合快速扩展、字段灵活的场景。
-
-### 3.1 配置：config.yml
-
-```yaml
-plugins:
-  demo_task:
-    enable: false
-    time: "08:00"
-    message: "Demo 定时任务执行完成"
-```
-
-### 3.2 任务实现：src/tasks/demo_task.py
-
-- 从 `config.plugins.get("demo_task", {})` 读配置；未启用则直接 return。
-- 使用 `parse_checkin_time(plug.get("time", "08:00"))` 得到 cron 的 hour/minute。
-- 推送前用 `is_in_quiet_hours(config)` 判断免打扰。
-
-核心片段：
-
-```python
-PLUGIN_KEY = "demo_task"
-
-def _get_plugin_config(config: AppConfig) -> dict:
-    return config.plugins.get(PLUGIN_KEY) or {}
+from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
+from src.settings.config import get_config, parse_checkin_time
 
 async def run_demo_task_once() -> bool:
     config = get_config(reload=True)
-    plug = _get_plugin_config(config)
+    plug = config.plugins.get("demo_task") or {}
     if not plug.get("enable", False):
         return TASK_FAILED
-    # ... 业务与推送 ...
+    # 完成实际业务；失败路径返回 TASK_FAILED。
     return TASK_SUCCESS
 
-def _get_demo_task_trigger_kwargs(config: AppConfig) -> dict:
-    plug = _get_plugin_config(config)
+def _get_demo_task_trigger_kwargs(config) -> dict:
+    plug = config.plugins.get("demo_task") or {}
     hour, minute = parse_checkin_time((plug.get("time") or "08:00").strip())
-    return {"minute": minute, "hour": hour}
-
-register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs)
+    return {"hour": hour, "minute": minute}
 ```
 
-在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中需包含对应 `TaskSpec`（`plugin_only=True`；`TASK_MODULES` 由元数据生成，当前已包含）。  
-完整代码见 `src/tasks/demo_task.py`。
+模块注册使用 `register_task("demo_task", run_demo_task_once, _get_demo_task_trigger_kwargs, description="二次开发示例任务")`。
 
----
+| 注册选项 | 默认值与行为 |
+|---|---|
+| `skip_if_run_today` | `True`：跳过当天已有成功记录的任务；仅业务返回 `TASK_SUCCESS` 时写入成功记录 |
+| `run_on_startup` | `True`：参与启动首轮；设为 `False` 后仅按触发器执行 |
+| `description` | Web 展示文案，与元数据保持一致 |
 
-## 四、监控任务示例：虎牙直播监控
+Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业务内部的禁用或缺参校验仍有效。明确返回 `False` 时 HTTP 200、`success: false`，异常为 HTTP 500。手动执行不会经过每日记录包装层。
 
-虎牙监控按**固定间隔**轮询房间状态，使用顶层配置 + 继承 `BaseMonitor`，是典型的监控任务写法。
+### 元数据与配置映射
 
-### 4.1 配置：config.yml
+`TaskSpec` 位于 `src/jobs/metadata.py`。维护以下字段即可由元数据生成发现名单和兼容映射：
 
-```yaml
-huya:
-  enable: true                  # 是否启用该监控，默认 true；设为 false 时任务暂停
-  rooms: 991108,333003,518518   # 逗号分隔的房间号
-  concurrency: 7
-  monitor_interval_seconds: 65   # 轮询间隔（秒）
-```
+| 字段 | 用途 |
+|---|---|
+| `job_id`、`module`、`description`、`kind`、`config_section` | 注册身份、导入路径和界面展示；`kind` 为 `monitor` 或 `task` |
+| `enable_field` | `AppConfig` 中的启用字段；有字段时需保证映射存在 |
+| `time_field`、`default_time` | Cron 任务的时间字段及默认值 |
+| `interval_field` | 监控间隔字段 |
+| `push_field` | 通道名称列表字段，同时用于配置页通道控件关联 |
+| `ql_prefix`、`ql_extra_env` | 青龙环境变量映射 |
+| `plugin_only` | 插件配置任务标记，如 Demo |
 
-### 4.2 配置：src/settings/config.py
+不要手动再维护 `MONITOR_MODULES`、`TASK_MODULES` 或 enable 映射。新增配置字段通过模型比较参与热重载，无需添加第二份字段比较清单。
 
-- **AppConfig** 中增加扁平字段：`huya_enable`、`huya_rooms`、`huya_concurrency`、`huya_monitor_interval_seconds`。
-- **src/settings/loader_specs.py**：在 `CONFIG_MAPPINGS["huya"]` 中声明从 `yml_config["huya"]` 到 `AppConfig` 扁平字段的映射，`load_config_from_yml()` 会统一处理。
-- 提供 **get_huya_config()** 返回结构化配置（列表 + 并发数），供监控类使用：
+### 真实示例
 
-```python
-class HuyaConfig(BaseModel):
-    rooms: list[str]
-    concurrency: int = 7
+| 示例 | 源码入口与重点 |
+|---|---|
+| Demo | `src/tasks/demo_task.py`：插件配置、布尔结果、Cron 和统一推送 |
+| iKuuu | `src/tasks/ikuuu_checkin.py`：`run_checkin_once()`、多账号、浏览器登录；域名入口为 `_extract_ikuuu_domain_with_retry()` |
+| Freenom | `src/tasks/freenom_checkin.py`：多账号续期任务 |
+| 天气 | `src/tasks/weather_push.py`：配置映射及消息构造 |
+| 微博 Cookie 刷新 | `src/tasks/weibo_cookie_refresh.py`：浏览器执行、字段冲突检查和配置写回 |
 
-def get_huya_config(self) -> HuyaConfig:
-    rooms = [r.strip() for r in self.huya_rooms.split(",") if r.strip()]
-    return HuyaConfig(rooms=rooms, concurrency=self.huya_concurrency)
-```
+示例中的平台流程会随网站变化，不在本文复制整段登录、签到或验证码实现。
 
-见 `src/settings/config.py` 中 `HuyaConfig`、`AppConfig.get_huya_config`，以及 `src/settings/loader_specs.py` 中的 huya 映射段落。
+## 监控任务
 
-### 4.3 监控实现：src/monitors/huya_monitor.py
+1. 在配置、`AppConfig` 和映射中增加目标列表、启用状态、间隔及通道字段。
+2. 继承 `BaseMonitor`，实现 `run()`、`monitor_name`、`platform_name`，需要筛选通道时实现 `push_channel_names`。
+3. 在入口中初始化监控器，并在 `finally` 中关闭资源；参考 `src/monitors/huya_monitor.py`。基类提供 `self.config`、HTTP 会话、`self.db`、`self.push` 和 Cookie 失效通知，未配置推送时可通过 `send_push_news()` 安全跳过。
+4. 实现当前状态与旧快照的对比、首次运行和去重规则；保持有界并发，不在异步函数中直接执行浏览器或阻塞请求。
+5. 调用 `register_monitor()`，在 `MONITOR_SPECS` 登记对应 `TaskSpec`；触发参数函数返回 `{"seconds": ...}`。
+6. 若目标删除需同步清理存储，维护 `src/settings/db_sync.py` 的规则；若需 Web 数据展示，维护 `src/web/data_support.py` 的平台 SQL、主键和行转换，并增加模板/脚本中的平台展示。
 
-**① 继承 BaseMonitor**
+监控入口允许返回 `None`，与必须返回布尔结果的定时任务区分。
 
-- `BaseMonitor` 负责：`config`、`session`、`db`、`push`、`initialize()`（数据库 + 推送）、`close()`。子类只需实现 `run()` 和 `monitor_name`，以及可选的 `_get_session` 重写（如固定 User-Agent/Cookie）。
+## 持久化与兼容迁移
 
-```python
-from src.monitors.base import BaseMonitor
+`BaseMonitor.initialize()` 初始化数据库与推送。业务使用 `AsyncDatabase`，不自行切换 MySQL/SQLite，也不绕过镜像和离线队列直接写底层连接。
 
-class HuyaMonitor(BaseMonitor):
-    def __init__(self, config: AppConfig, session=None):
-        super().__init__(config, session)
-        self.huya_config = config.get_huya_config()
-        self.old_data_dict = {}
-        self._is_first_time = False
+| 方法 | 契约 |
+|---|---|
+| `execute_query(sql, params=None)` | 返回 `list[tuple]` |
+| `execute_update(sql, params=None)` | 执行 INSERT/UPDATE/DELETE，返回 `bool`；异常由调用方处理 |
+| `execute_insert(sql, params=None)` | 插入的语义入口，返回 `bool` |
+| `is_table_empty(table_name)` | 返回表是否为空 |
 
-    async def initialize(self):
-        await super().initialize()
-        await self.load_old_info()   # 从 DB 加载旧状态
+参数使用字典及命名占位符，如 `%(room)s` 或 `:room`；现有转换处理两个后端及 `INSERT OR REPLACE`。条件更新/删除参数必须携带实际主键或通用 `pk`。离线回放只支持注册表和可还原到主键的操作，不能依赖任意批量条件 SQL 自动重放。
 
-    async def run(self):
-        new_config = get_config(reload=False)
-        self.config = new_config
-        self.huya_config = new_config.get_huya_config()
-        # 并发轮询房间，比对 old_data_dict，有变化则更新 DB 并 push_notification
-        semaphore = asyncio.Semaphore(self.huya_config.concurrency)
-        tasks = [process_with_semaphore(rid) for rid in self.huya_config.rooms]
-        await asyncio.gather(*tasks, return_exceptions=True)
+新增表需同时维护 SQLite `_init_tables()` 和 MySQL `TABLE_SPECS`，保证主键和字段顺序一致。已有表增字段还需同步两种后端的增量迁移及 `MYSQL_COLUMN_MIGRATIONS`。至少验证旧 SQLite、旧 MySQL、新安装、断线写入和恢复回放；权威数据关系见 [数据库设计](ARCHITECTURE.md#database-design)。
 
-    @property
-    def monitor_name(self) -> str:
-        return "虎牙直播监控🐯  🐯  🐯"
-```
+## 推送与任务日志
 
-**② 推送**
+- 从 `config.push_channel_list` 创建 `build_push_manager()`；`channel_names` 非空时按名称筛选，空或 `None` 使用所有已配置通道。无有效通道时返回 `None`。
+- 调用 `send_news(title=..., description=..., to_url=..., picurl=..., btntxt=...)`；推送前由业务判断 `is_in_quiet_hours(config)`，免打扰不应使已完成业务被误报为失败。
+- 富文本使用 `RichTextBuilder`，由通道管理器渲染和限制 UTF-8 字节长度；不要自己拼接不安全链接。
+- 通道管理器在 HTTP 会话生命周期内关闭，监控由基类收尾；初始化和单通道失败不阻断其他通道。
+- 新增通道需实现 `PushChannel`，加入 `src/push_channel/__init__.py` 工厂和 `PUSH_CHANNEL_SPECS`，并补充必要的参数说明。
 
-- 在业务逻辑里调用 `self.push.send_news(...)`；推送前用 `is_in_quiet_hours(self.config)` 判断免打扰，若在免打扰时段则只打日志不推送。见 `huya_monitor.py` 中 `push_notification`。
+注册包装器及 Web 手动执行会挂载任务日志，文件名为 `task_{job_id}_YYYYMMDD.log`，通过 ContextVar 过滤并发任务的日志。直接绕开这些入口执行函数时，不会自动获得这一层日志包装。
 
-**③ 对外入口与注册**
+## Web 配置与静态资源
 
-- 对外暴露一个无参的 async 函数，内部 `get_config(reload=True)` 后 `async with HuyaMonitor(config) as monitor: await monitor.run()`。
-- 提供 `_get_huya_trigger_kwargs(config)` 返回 `{"seconds": config.huya_monitor_interval_seconds}`，并在模块末尾 `register_monitor`：
+YAML 文本视图可编辑完整配置；表单保存由后端合并，分区保存仅提交该分区字段。完整 YAML 仍是整份替换，推送通道列表和空账号列表的语义见 [配置 API](API.md)。
 
-```python
-async def run_huya_monitor() -> None:
-    config = get_config(reload=True)
-    async with HuyaMonitor(config) as monitor:
-        await monitor.run()
+元数据提供配置节顺序和字段关联，不会自动生成新业务表单。新增表单卡片需维护 `config.html` 与 `config.js` 中的加载、收集和保存逻辑；保留 `data-section`、配置模块及通道控件关联。未提供独立表单的顶层字段仍可用 YAML 编辑，插件参数可通过插件 JSON 区块编辑。
 
-def _get_huya_trigger_kwargs(config: AppConfig) -> dict:
-    return {"seconds": config.huya_monitor_interval_seconds}
+修改 CSS 或 JavaScript 时递增 `src/web/templating.py` 的 `STATIC_ASSET_VERSION`，所有页面资源共用这一版本。不要把测试固定在某个版本字符串，也不要为了测试把生产脚本改成另一套框架。
 
-from src.jobs.registry import register_monitor
-register_monitor("huya_monitor", run_huya_monitor, _get_huya_trigger_kwargs)
-```
-
-见 `src/monitors/huya_monitor.py` 末尾。
-
-### 4.4 任务元数据：src/jobs/metadata.py
-
-在 `MONITOR_SPECS` 中添加对应 `TaskSpec` 后，`MONITOR_MODULES` 会由元数据自动生成并在 `src/jobs/registry.py` 兼容导出。当前监控模块包括：
-
-```python
-# 由 MONITOR_SPECS 生成（示意）
-MONITOR_MODULES = [
-    "src.monitors.huya_monitor",
-    "src.monitors.weibo_monitor",
-    "src.monitors.bilibili_monitor",
-    "src.monitors.douyin_monitor",
-    "src.monitors.douyu_monitor",
-    "src.monitors.xhs_monitor",
-]
-```
-
-### 4.5 配置热重载与数据库同步
-
-项目已对所有 `AppConfig` 字段做完整覆盖，修改后约 5 秒内热重载生效。`config_watcher` 通过 Pydantic `model_dump()` 自动对比所有字段，**新增字段无需手动维护比较列表**。
-
-**新增监控任务时**，若新监控使用 uid/room 类列表且需要从配置中删除时同步清理数据库，需在 `src/settings/db_sync.py` 的 `sync_rules` 中增加对应规则（配置属性名 → 表名 + 主键列名）。
-
-**新增定时任务时**：只要在 `AppConfig` 中添加了对应字段，热重载即自动覆盖，无需额外操作。
-
-小结：监控任务 = **config.yml（业务节点含 enable + scheduler 间隔）→ AppConfig + loader_specs 映射 + get_xxx_config → 继承 BaseMonitor 实现 run + 推送 → run_xxx_monitor + _get_xxx_trigger_kwargs → register_monitor → TaskSpec 一项**。`enable: false` 时任务会被暂停，热重载生效。
-
----
-
-## 五、监控任务需要数据库时该怎么办
-
-很多监控任务需要**持久化上一次状态**（例如上次是否在播、上次微博内容），以便本次轮询时对比、仅在变化时推送。本项目的做法是：**继承 BaseMonitor 即自带数据库与推送**。`AsyncDatabase` 统一封装可选的 MySQL 权威主库，以及始终存在的 SQLite 本地镜像与故障回退；业务代码不应自行判断当前后端。
-
-### 5.1 继承 BaseMonitor 即获得 self.db
-
-在 `src/monitors/base.py` 中，`BaseMonitor.initialize()` 会：
-
-- 创建 `self.db = AsyncDatabase()` 并 `await self.db.initialize()`；
-- 创建 `self.push`（统一推送）；
-- 可选 `self.session`（HTTP）。
-
-因此你的监控类**只需继承 BaseMonitor**，在 `initialize()` 里可先 `await super().initialize()`，再加载本监控需要的“旧数据”；在 `run()` 里用 `self.db` 做查询/更新/插入即可。无需自己 new AsyncDatabase 或管理连接。
-
-### 5.2 AsyncDatabase 常用 API（src/storage/database.py）
-
-| 方法 | 说明 | 返回值 |
-|------|------|--------|
-| `execute_query(sql, params=None)` | 查询，占位符用 `%(key)s`，params 为 dict | `list[tuple]`，每行一个元组 |
-| `execute_update(sql, params=None)` | 执行 UPDATE/INSERT/DELETE | `bool`（是否成功） |
-| `execute_insert(sql, params=None)` | 同 execute_update，语义上用于插入 | `bool` |
-| `is_table_empty(table_name)` | 判断表是否为空（可用于“首次运行”逻辑） | `bool` |
-
-- **SQL 占位符**：可写 `%(name)s` 或 `:name`，params 传字典如 `{"name": "xx", "room": "123"}`。模块会按当前后端转换参数格式；`INSERT OR REPLACE` 在 MySQL 中转换为 `REPLACE`。
-- **跨库兼容**：优先使用项目现有的 `SELECT`、`INSERT`、`INSERT OR REPLACE`、按主键 `UPDATE` / `DELETE` 形式，避免只在单一数据库方言中存在的函数或语法。
-- **连接**：SQLite 连接与 MySQL 连接池均由模块共享，重试、回退、恢复和镜像同步由 `AsyncDatabase` 处理。
-- **离线写入约束**：条件更新/删除的 params 必须包含表的实际主键名（或通用 `pk`）；整表删除只使用精确的 `DELETE FROM table_name`。不要通过该接口执行无法按单行主键重放的任意批量条件写入。
-
-### 5.3 新监控需要新表时：同时登记 SQLite 与 MySQL
-
-若监控需要**自己的表**（例如 `my_monitor`），必须同时完成以下两处定义，否则 MySQL 模式下不会创建/同步该表，断线回退也会拒绝未注册表的写入：
-
-1. 在 `src/storage/database.py` 的 `_init_tables()` 中增加 SQLite `CREATE TABLE IF NOT EXISTS`。
-2. 在 `src/storage/mysql_backend.py` 的 `TABLE_SPECS` 中登记表名、主键、字段顺序和 MySQL DDL。
-
-```python
-# database.py：SQLite 表
-await conn.execute(
-    """
-    CREATE TABLE IF NOT EXISTS my_monitor (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        status TEXT,
-        updated_at TEXT
-    )
-    """
-)
-```
-
-在 `mysql_backend.py` 的 `TABLE_SPECS` 字典中加入：
-
-```python
-# mysql_backend.py：与 SQLite 字段顺序保持一致
-"my_monitor": TableSpec(
-    "my_monitor",
-    "id",
-    ("id", "name", "status", "updated_at"),
-    """
-    CREATE TABLE IF NOT EXISTS `my_monitor` (
-        `id` VARCHAR(255) COLLATE utf8mb4_bin PRIMARY KEY,
-        `name` LONGTEXT,
-        `status` LONGTEXT,
-        `updated_at` LONGTEXT
-    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
-    """,
-),
-```
-
-主键必须能唯一标识一条监控对象（如房间号、用户 ID），且所有写入参数都应携带它。若给已有表增加字段，还要同时更新 SQLite 增量迁移、`TABLE_SPECS` 的字段/DDL 和 `MYSQL_COLUMN_MIGRATIONS`，保证历史 SQLite、历史 MySQL 与全新安装三种场景结构一致。多实例并发执行 MySQL 增量迁移时，重复字段错误会被安全忽略。
-
-### 5.4 虎牙监控中的用法示例（对照代码）
-
-- **加载旧数据**（在 `initialize()` 里调用，或 `run()` 开头）：  
-  用 `execute_query` 把上一轮存的状态读进内存，供本轮对比：
-
-```python
-async def load_old_info(self):
-    sql = "SELECT room, name, is_live FROM huya"
-    results = await self.db.execute_query(sql)
-    self.old_data_dict = {row[0]: row for row in results}
-    self._is_first_time = len(self.old_data_dict) == 0
-```
-
-- **有变化时更新**：  
-  用 `execute_update`，占位符与字典一一对应：
-
-```python
-sql = "UPDATE huya SET name=%(name)s, is_live=%(is_live)s WHERE room=%(room)s"
-await self.db.execute_update(sql, data)
-```
-
-- **新对象首次写入**：  
-  用 `execute_insert`：
-
-```python
-sql = "INSERT INTO huya (room, name, is_live) VALUES (%(room)s, %(name)s, %(is_live)s)"
-await self.db.execute_insert(sql, data)
-```
-
-- **首次建表/首次运行**：  
-  虎牙用 `_is_first_time` 标记“表里之前没有数据”。首次跑满一轮时只写入 DB、不推送，避免历史数据被当成“新变化”刷屏；从第二轮开始才按变化推送。你可按同样思路处理。
-
-完整实现见 `src/monitors/huya_monitor.py`（`load_old_info`、`process_room` 中的 SQL 与 `self.db` 调用）。
-
-### 5.5 小结：监控 + 数据库的步骤
-
-1. **继承 BaseMonitor**，在 `initialize()` 里 `await super().initialize()` 后加载旧数据到内存（如 `load_old_info`）。
-2. 若需要新表，在 SQLite `_init_tables()` 与 MySQL `TABLE_SPECS` 中同时定义，并为已有表的新增字段补充两种后端的增量迁移。
-3. 在 `run()` 里：拉取当前数据 → 与旧数据对比 → 有变化则 `execute_update` / `execute_insert` 更新 DB，并调用 `self.push.send_news(...)`；无变化则只打日志。
-4. SQL 使用命名占位符 + dict 参数，通过 `self.db.execute_query` / `execute_update` / `execute_insert` 访问；写入参数必须包含注册主键，连接、回退与同步由 `AsyncDatabase` 统一处理。
-
----
-
-## 六、推送逻辑（统一说明）
-
-- 推送通道统一来自 `config.push_channel_list`（即 `config.yml` 的 `push_channel`），无需在任务里新增通道类型。
-- **通道选择机制**：每个任务可以在配置中通过 `push_channels` 字段指定使用哪些推送通道（按名称匹配）。为空时使用全部已配置的通道。
-- 在任务/监控内：
-  1. 使用 `await build_push_manager(config.push_channel_list, session, logger, init_fail_prefix="任务名：", channel_names=["通道1", "通道2"])` 得到 `UnifiedPushManager`。`channel_names` 参数可选，用于指定仅初始化哪些通道（按 `name` 字段匹配），为空或 None 时使用全部通道。
-  2. 需要推送时调用 `await push_manager.send_news(title=..., description=..., to_url=..., picurl=..., btntxt=...)`。
-  3. 遵守免打扰：推送前 `if is_in_quiet_hours(config): return`（或只打日志），再调用 `send_news`。
-  4. 使用完毕后 `await push_manager.close()`。
-
-虎牙在类内使用 `self.push`（BaseMonitor 在 `initialize` 里已创建，会自动读取任务配置的 `push_channels`）；iKuuu/Demo 在 async 函数内自己创建 `push_manager` 并在同一 session 生命周期内 close。  
-推送失败建议用 `logger.error(..., exc_info=True)` 记录，不中断主流程。
-
-**任务专属日志**：新增任务无需额外处理，系统会在执行时自动将输出写入 `task_{job_id}_YYYYMMDD.log`。Handler 挂载在 root logger，可捕获任务内所有 logger（模块、类、推送通道等）的输出。
-
----
-
-## 七、示例文件与代码位置一览
-
-| 类型     | 示例       | 配置文件 | 配置解析 | 任务/监控实现 | 注册 |
-|----------|------------|----------|----------|----------------|------|
-| 定时任务 | iKuuu 签到 | `config.yml` → `checkin` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/ikuuu_checkin.py`（`run_checkin_once`、`_send_checkin_push`、`_get_checkin_trigger_kwargs`） | `register_task("ikuuu_checkin", ...)`，`TASK_SPECS` 含 `src.tasks.ikuuu_checkin` |
-| 定时任务 | Demo 任务  | `config.yml` → `plugins.demo_task` | 无需改 config.py，用 `config.plugins.get("demo_task")` | `src/tasks/demo_task.py` | `register_task("demo_task", ...)`，`TASK_SPECS` 含 `src.tasks.demo_task` |
-| 定时任务 | Freenom 续期 | `config.yml` → `freenom` | `AppConfig` + `CONFIG_MAPPINGS` / `MULTI_ACCOUNT_SPECS` | `src/tasks/freenom_checkin.py`（`run_freenom_checkin_once`、`_get_freenom_trigger_kwargs`） | `register_task("freenom_checkin", ...)`，`TASK_SPECS` 含 `src.tasks.freenom_checkin` |
-| 定时任务 | 天气推送   | `config.yml` → `weather` | `AppConfig` + `CONFIG_MAPPINGS` | `src/tasks/weather_push.py`（`run_weather_push_once`、`_get_weather_trigger_kwargs`） | `register_task("weather_push", ...)`，`TASK_SPECS` 含 `src.tasks.weather_push` |
-| 监控任务 | 虎牙监控   | `config.yml` → `huya`（含 `monitor_interval_seconds`） | `AppConfig`、`HuyaConfig`、`get_huya_config`、`CONFIG_MAPPINGS` | `src/monitors/huya_monitor.py`（`HuyaMonitor`、`run_huya_monitor`、`_get_huya_trigger_kwargs`） | `register_monitor("huya_monitor", ...)`，`MONITOR_SPECS` 含 `src.monitors.huya_monitor` |
-
-- **parse_checkin_time**：`src/settings/config.py`，将 `"HH:MM"` 解析为 `(hour, minute)` 字符串元组，供 Cron 使用。
-- **BaseMonitor**：`src/monitors/base.py`，提供 `config`、`db`、`push`、`initialize`、`close`，子类实现 `run`、`monitor_name`。
-
----
-
-## 八、检查清单：新增定时任务
-
-- [ ] 在 `config.yml` 中增加配置（顶层节点或 `plugins.xxx`）。
-- [ ] 若用顶层配置：在 `AppConfig` 中补充字段，并在 `src/settings/loader_specs.py` 中补充映射规格；若用 `plugins`，无需改 config.py。
-- [ ] 新建 `src/tasks/xxx.py`，实现 `run_xxx_once()`（内部 `get_config(reload=True)`、校验、业务、推送，成功返回 `TASK_SUCCESS`、失败或未执行返回 `TASK_FAILED`）、`_get_xxx_trigger_kwargs(config)`（返回 `{"minute": m, "hour": h}`，可用 `parse_checkin_time`）。
-- [ ] 在模块末尾调用 `register_task("job_id", run_xxx_once, _get_xxx_trigger_kwargs)`。
-  - 默认启用 `skip_if_run_today=True`，当天已运行则跳过
-  - 若需每次触发都执行，设置 `skip_if_run_today=False`
-- [ ] 在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/time/push 字段；plugins 任务标记 `plugin_only=True`）。
-- [ ] 若该任务支持青龙环境变量：在同一个 `TaskSpec` 中配置 `ql_prefix` 与 `ql_extra_env`。
-
----
-
-## 九、检查清单：新增监控任务
-
-- [ ] 在 `config.yml` 中增加业务节点（如 `my_monitor`），并在该节点下增加 `monitor_interval_seconds` 字段（例如 `my_monitor.monitor_interval_seconds`）。
-- [ ] 在 `AppConfig` 中增加扁平字段，在 `src/settings/loader_specs.py` 中补充映射规格；可选：提供 `get_my_monitor_config()` 返回结构化配置。热重载通过 `model_dump()` 自动覆盖所有字段，无需手动维护比较列表。
-- [ ] 若监控使用 uid/room 类列表且需配置删除时同步清理 DB：在 `db_sync.sync_rules` 中增加对应规则（配置属性名 → 表名 + 主键列名）。
-- [ ] 新建 `src/monitors/xxx.py`，继承 `BaseMonitor` 实现 `run()`、`monitor_name`，以及 `run_xxx_monitor()`、`_get_xxx_trigger_kwargs(config)`（返回 `{"seconds": config.xxx_interval_seconds}`）。
-- [ ] **若监控需要数据库**：在 SQLite `_init_tables()` 与 MySQL `TABLE_SPECS` 中定义相同字段顺序和主键；已有表新增字段时同时补齐两种后端的增量迁移。写入参数必须带主键，并增加 SQLite、MySQL SQL 转换、回退/outbox 与恢复同步测试（参见 **五、监控任务需要数据库时该怎么办**）。
-- [ ] 在模块末尾调用 `register_monitor("job_id", run_xxx_monitor, _get_xxx_trigger_kwargs)`。
-- [ ] 在 `src/jobs/metadata.py` 的 `MONITOR_SPECS` 中添加 `TaskSpec`（包含模块路径、`job_id`、描述、配置节、enable/push 字段）。
-
-完成以上步骤后，新任务会被主程序自动加载、按配置调度，并在配置变更时通过 ConfigWatcher 热重载。
-
----
-
-## 十、Web 前端对新增配置的响应
-
-- **文本视图**：直接读写整份 `config.yml`，新增的任意 key（如 `plugins`、`freenom`、`weather` 等）都会完整显示、可编辑，保存后整份写回，**会正确响应**。
-- **表格视图**：当前展示微博、虎牙、各类签到任务（iKuuu、贴吧、雨云、恩山、阿里云盘、什么值得买、Freenom、夸克、科技玩家、帆软、999、zgfc、双色球等）、调度器、免打扰、推送通道以及**插件配置**等固定区块。
-  - 在表格视图中修改并保存时，后端会**合并**写回，因此文件中已有的 `plugins` 或其他顶层节点不会丢失。  
-  - 插件配置可在配置页底部的「插件/扩展配置」中以 JSON 形式编辑 `config.plugins`；尚未在表格中单独列出的顶层 key 需使用文本视图编辑。
-
-若你新增了与现有区块同级的配置（例如新的顶层节点），并希望在表格中编辑，需在 Web 前端增加对应卡片及 `loadSectionConfig` / `collectSectionConfig` / `collectConfig` 的处理（可参考本文档中已集成的 `freenom`/`weather`/`kuake`/`kjwj` 等实现方式）。
-
----
-
-## 十一、青龙面板 CLI（python -m src.ql）
-
-青龙环境下，主程序不运行，而是由青龙按 Cron 执行：
+## 青龙 CLI
 
 ```bash
-cd /path/to/WebMoniter && python -m src.ql <task_id>
+python -m src.ql --list
+python -m src.ql demo_task
 ```
 
-- `src/ql/__main__.py` 通过 `discover_and_import_tasks_only()` 加载 `TASK_MODULES`，再调用 `_runner.run_task()`
-- 配置来自**环境变量**（`WEBMONITER_*` 前缀），由 `src/ql/compat.py` 的 `load_config_from_env()` / `inject_ql_config()` 解析
-- 推送通过 **qlapi** 通道，调用青龙内置的 `QLAPI.systemNotify`
-- 与 `src/tasks/*`、`src/monitors/*` 主流程解耦，共用同一套业务逻辑（如签到、监控 API 调用）
-
-**新增青龙任务**：在 `src/tasks/` 实现任务并在 `src/jobs/metadata.py` 的 `TASK_SPECS` 添加 `TaskSpec` 后，即可通过 `python -m src.ql <job_id>` 运行。详见 [青龙面板兼容指南](QINGLONG.md)。
+CLI 通过任务元数据和注册表复用业务函数，配置来自 `WEBMONITER_*` 环境变量，使用 `qlapi` 通道发送系统通知；不会启动 Web 或常驻调度器。只有声明对应 `ql_prefix` 的任务会出现在 CLI 清单。新增支持时在同一 `TaskSpec` 维护环境变量映射，操作说明见 [青龙兼容指南](QINGLONG.md)。

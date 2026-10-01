@@ -217,7 +217,21 @@ class MySQLSettings:
 _COLON_PARAM = re.compile(r"(?<!:):([A-Za-z_\u4e00-\u9fff][\w\u4e00-\u9fff]*)")
 _MYSQL_NAMED_PARAM = re.compile(r"%\(([A-Za-z_\u4e00-\u9fff][\w\u4e00-\u9fff]*)\)s")
 _INSERT_OR_REPLACE = re.compile(r"\bINSERT\s+OR\s+REPLACE\s+INTO\b", re.IGNORECASE)
-_CONNECTION_ERROR_CODES = {0, 1040, 1042, 1043, 1047, 1158, 1159, 1160, 1161, 2002, 2003, 2006, 2013}
+_CONNECTION_ERROR_CODES = {
+    0,
+    1040,
+    1042,
+    1043,
+    1047,
+    1158,
+    1159,
+    1160,
+    1161,
+    2002,
+    2003,
+    2006,
+    2013,
+}
 
 
 def convert_mysql_sql(sql: str) -> str:

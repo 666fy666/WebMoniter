@@ -70,11 +70,6 @@ class CookieCache:
         except Exception as e:
             logger.error("保存Cookie缓存失败: %s", e)
 
-    async def _save_cache_async(self):
-        """异步保存缓存到文件（带锁保护，在线程池执行避免阻塞事件循环）"""
-        async with self._lock:
-            await asyncio.to_thread(self._save_cache)
-
     def is_valid(self, platform: str) -> bool:
         """
         检查指定平台的Cookie是否有效

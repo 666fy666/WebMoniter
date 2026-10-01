@@ -7,7 +7,7 @@
 <sub>Monitoring · Check-ins · Live Alerts · Push Notifications · Scheduled Tasks · Hot Configuration Reload</sub>
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](../LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![APScheduler](https://img.shields.io/badge/APScheduler-scheduler-blueviolet?style=flat-square)](https://apscheduler.readthedocs.io/)
@@ -228,10 +228,11 @@ Related documentation:
 <summary><strong>Development</strong></summary>
 
 ```bash
-uv sync --extra dev --extra rainyun
+uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q
+node --test src/tests/frontend_runtime.test.js
 ```
 
 See the [secondary development guide](SECONDARY_DEVELOPMENT.md) when adding monitors or scheduled tasks. Consistency tests under `src/tests/` verify metadata, registries, and enable mappings. See [Architecture](ARCHITECTURE.md) for the complete module layout.
@@ -251,7 +252,7 @@ Some check-in and notification ideas were inspired by:
 
 ## License
 
-[MIT License](../LICENSE)
+[MIT License](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 
 <div align="center">
 

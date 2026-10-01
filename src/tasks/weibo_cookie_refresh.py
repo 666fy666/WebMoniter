@@ -161,7 +161,9 @@ def _merge_cookie_string(
 def _ensure_localhost_proxy_bypass() -> None:
     """避免 HTTP(S)_PROXY 截获 Selenium 到本机 chromedriver 的连接。"""
     for env_name in ("NO_PROXY", "no_proxy"):
-        existing = [item.strip() for item in os.environ.get(env_name, "").split(",") if item.strip()]
+        existing = [
+            item.strip() for item in os.environ.get(env_name, "").split(",") if item.strip()
+        ]
         lowered = {item.lower() for item in existing}
         for host in _LOCAL_PROXY_BYPASS:
             if host.lower() not in lowered:
@@ -326,9 +328,7 @@ def _validate_cookie_sync(
             return error
 
     if requirements.validate_chaohua:
-        follow_referer = (
-            f"https://weibo.com/u/page/follow/{login_uid}/231093_-_chaohua"
-        )
+        follow_referer = f"https://weibo.com/u/page/follow/{login_uid}/231093_-_chaohua"
         payload, error = _request_validation_payload(
             cookie_string,
             WEIBO_CHAOHUA_LIST_URL,
@@ -442,9 +442,7 @@ def _renew_cookie_sync(
                 validation_uid,
             )
             if fallback_error is None:
-                logger.warning(
-                    "微博 Cookie 刷新：浏览器旋转的 SUB 未通过接口校验，已保留原 SUB"
-                )
+                logger.warning("微博 Cookie 刷新：浏览器旋转的 SUB 未通过接口校验，已保留原 SUB")
                 refreshed = fallback
                 candidate_error = None
         if candidate_error:
@@ -557,7 +555,9 @@ def _build_config_updates(
         for index, original in enumerate(snapshot.values()):
             normalized = str(original or "").strip()
             item_label = (
-                f"{snapshot.label}[{index + 1}]" if isinstance(snapshot.value, list) else snapshot.label
+                f"{snapshot.label}[{index + 1}]"
+                if isinstance(snapshot.value, list)
+                else snapshot.label
             )
             if not normalized:
                 proposed.append(original)

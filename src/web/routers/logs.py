@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 
 from fastapi import APIRouter, Request, status
@@ -17,30 +18,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list, int]:
-    """同步读取日志文件最后 N 行。处理文件写入时的读取冲突，带重试。返回 (最近行列表, 总行数)。"""
+def _read_log_file_sync(file_path: Path, num_lines: int) -> tuple[list[str], int]:
+    """读取最后 N 行并重试文件冲突；大文件的行数为实际读取窗口的行数。"""
 
-    def _do_read() -> tuple[list, int]:
-        with open(file_path, encoding="utf-8", errors="ignore") as f:
+    def _do_read() -> tuple[list[str], int]:
+        with open(file_path, "rb") as f:
             f.seek(0, os.SEEK_END)
             file_size = f.tell()
-
-            if file_size < 1024 * 1024:
-                f.seek(0)
-                all_lines = f.readlines()
-            else:
-                estimated_bytes = num_lines * 200
-                read_start = max(0, file_size - estimated_bytes)
+            window_size = file_size if file_size < 1024 * 1024 else max(num_lines * 200, 4096)
+            while True:
+                read_start = max(0, file_size - window_size)
                 f.seek(read_start)
-                if read_start > 0:
-                    f.readline()
-                all_lines = f.readlines()
-
-            if len(all_lines) > num_lines:
-                recent_lines = all_lines[-num_lines:]
-            else:
-                recent_lines = all_lines
-            return recent_lines, len(all_lines)
+                content = f.read(file_size - read_start)
+                with StringIO(content.decode("utf-8", errors="ignore"), newline=None) as buffer:
+                    # 丢弃窗口开头的残行，保持文本读取的通用换行语义。
+                    if read_start > 0:
+                        buffer.readline()
+                    all_lines = buffer.readlines()
+                if len(all_lines) >= num_lines or read_start == 0:
+                    return all_lines[-num_lines:], len(all_lines)
+                window_size *= 2
 
     def _do_read_binary() -> tuple[list, int]:
         with open(file_path, "rb") as f:
@@ -80,6 +77,9 @@ async def get_logs(request: Request, lines: int = 100, task: str | None = None):
     session_id = request.session.get("session_id")
     if not check_login(session_id):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    if lines < 1:
+        return JSONResponse({"error": "lines 必须为正整数"}, status_code=400)
 
     try:
         from src.jobs.log_manager import LogManager

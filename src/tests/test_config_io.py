@@ -11,7 +11,7 @@ from src.settings.config_writer import (
     apply_config_updates,
     run_write_transaction,
 )
-from src.web.config_io import merge_config_to_yaml
+from src.web.config_io import _merge_and_validate_and_save_config, merge_config_to_yaml
 
 
 def test_merge_config_to_yaml_preserves_existing_fields_and_removes_empty_accounts(tmp_path):
@@ -158,6 +158,23 @@ async def test_apply_config_updates_detects_conflict_without_writing(tmp_path):
     assert result.wrote_file is False
     assert result.conflict_paths == ("weibo.cookie",)
     assert config_path.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.asyncio
+async def test_section_save_preserves_cookie_refresh_and_unsubmitted_fields(tmp_path):
+    config_path = tmp_path / "config.yml"
+    config_path.write_text(
+        'weibo:\n  cookie: "old-cookie"\n  uids: "123"\nhuya:\n  enable: false\n',
+        encoding="utf-8",
+    )
+    await apply_config_updates(
+        config_path, [ConfigValueUpdate(("weibo", "cookie"), "old-cookie", "refreshed-cookie")]
+    )
+    error = await _merge_and_validate_and_save_config(config_path, {"huya": {"enable": True}})
+    assert error is None
+    saved = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert saved["weibo"] == {"cookie": "refreshed-cookie", "uids": "123"}
+    assert saved["huya"]["enable"] is True
 
 
 @pytest.mark.asyncio

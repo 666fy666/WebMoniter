@@ -7,7 +7,7 @@
 <sub>監視 · チェックイン · 配信通知 · プッシュ通知 · 定期タスク · 設定のホットリロード</sub>
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](../LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web%20UI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/fengyu666/webmoniter)
 [![APScheduler](https://img.shields.io/badge/APScheduler-scheduler-blueviolet?style=flat-square)](https://apscheduler.readthedocs.io/)
@@ -225,10 +225,11 @@ cp config/config.yml.sample config.yml
 <summary><strong>開発</strong></summary>
 
 ```bash
-uv sync --extra dev --extra rainyun
+uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q
+node --test src/tests/frontend_runtime.test.js
 ```
 
 監視または定期タスクを追加する場合は[二次開発ガイド](SECONDARY_DEVELOPMENT.md)を参照してください。`src/tests/` のテストはメタデータ、レジストリ、enable マッピングの整合性を検証します。モジュール構成の詳細は[アーキテクチャ](ARCHITECTURE.md)にあります。
@@ -248,7 +249,7 @@ uv run pytest -q
 
 ## ライセンス
 
-[MIT License](../LICENSE)
+[MIT License](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)
 
 <div align="center">
 

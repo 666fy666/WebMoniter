@@ -74,12 +74,10 @@ def test_merge_cookie_preserves_original_fields_order_and_equals() -> None:
             {"name": "OTHER", "value": "ignored", "domain": ".example.com"},
             {"name": "SUB", "value": "new==", "domain": "weibo.com"},
             {"name": "XSRF-TOKEN", "value": "xsrf", "domain": ".weibo.com"},
-        ]
+        ],
     )
 
-    assert result == (
-        "LEGACY=keep; SUB=new==; WBPSESS=old-session; XSRF-TOKEN=xsrf"
-    )
+    assert result == ("LEGACY=keep; SUB=new==; WBPSESS=old-session; XSRF-TOKEN=xsrf")
 
 
 def test_renew_cookie_uses_isolated_driver_and_always_quits(monkeypatch) -> None:
@@ -150,9 +148,7 @@ def test_renew_cookie_rejects_injected_sub_when_server_rejects_candidate(monkeyp
 
 def test_renew_cookie_preserves_original_sub_when_fallback_is_valid(monkeypatch) -> None:
     driver = _RotatingSubDriver()
-    validation_results = iter(
-        [None, "微博监控接口拒绝当前登录态（HTTP 403）", None]
-    )
+    validation_results = iter([None, "微博监控接口拒绝当前登录态（HTTP 403）", None])
     monkeypatch.setattr(refresh, "_create_webdriver", lambda: driver)
     monkeypatch.setattr(refresh.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(
@@ -232,9 +228,7 @@ def test_validate_cookie_checks_monitor_and_chaohua_with_shared_user_agent(
         refresh.WEIBO_MONITOR_URL,
         refresh.WEIBO_CHAOHUA_LIST_URL,
     ]
-    assert all(
-        call["headers"]["User-Agent"] == refresh.WEIBO_DESKTOP_USER_AGENT for call in calls
-    )
+    assert all(call["headers"]["User-Agent"] == refresh.WEIBO_DESKTOP_USER_AGENT for call in calls)
     assert [call["trust_env"] for call in calls] == [True, False, True]
     assert "X-XSRF-TOKEN" not in calls[0]["headers"]
     assert "X-XSRF-TOKEN" not in calls[1]["headers"]

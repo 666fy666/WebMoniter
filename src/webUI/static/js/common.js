@@ -828,6 +828,7 @@ function initCustomCursorExperience() {
     let lastFrameTime = performance.now();
     let magnetTarget = null;
     let tiltTarget = null;
+    let pendingPointer = null;
 
     const setVisible = (visible) => {
         ring.classList.toggle('is-visible', visible);
@@ -836,6 +837,11 @@ function initCustomCursorExperience() {
     };
 
     const animate = (time) => {
+        if (pendingPointer) {
+            const { target, clientX, clientY } = pendingPointer;
+            pendingPointer = null;
+            if (target.isConnected) syncTargetEffects(target, clientX, clientY);
+        }
         const frameScale = Math.min(2, Math.max(0.25, (time - lastFrameTime) / (1000 / 60)));
         lastFrameTime = time;
         const ringEase = 1 - Math.pow(0.8, frameScale);
@@ -920,7 +926,7 @@ function initCustomCursorExperience() {
             dot.style.translate = `${targetPoint.x}px ${targetPoint.y}px`;
             setVisible(true);
         }
-        syncTargetEffects(target, event.clientX, event.clientY);
+        pendingPointer = { target, clientX: event.clientX, clientY: event.clientY };
         if (!frameId) {
             lastFrameTime = performance.now();
             frameId = requestAnimationFrame(animate);
@@ -935,11 +941,13 @@ function initCustomCursorExperience() {
     document.addEventListener('pointerup', () => ring.classList.remove('is-pressed'), { passive: true });
     document.addEventListener('pointercancel', () => ring.classList.remove('is-pressed'), { passive: true });
     document.addEventListener('mouseleave', () => {
+        pendingPointer = null;
         setVisible(false);
         clearMagnet();
         clearTilt();
     });
     window.addEventListener('blur', () => {
+        pendingPointer = null;
         setVisible(false);
         clearMagnet();
         clearTilt();

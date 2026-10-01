@@ -29,7 +29,7 @@
 | 精简镜像 | `fengyu666/webmoniter:latest` | `docker/docker-compose.yml` | 默认推荐。适合监控、推送和大多数 HTTP 类签到 |
 | 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 运行微博 Cookie 刷新、雨云等浏览器任务时使用 |
 
-`latest` 与 semver 主标签（如 `2.4.7`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
+`latest` 与 semver 主标签（如 `2.4.8`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
 
 !!! warning "二选一运行"
     两个 Compose 文件的默认容器名都是 `webmoniter`，请根据需要选择精简镜像或完整镜像，不要同时启动两套 Compose。
@@ -238,7 +238,7 @@ uv run python main.py &
 
 ```
 
-源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu/雨云时的 Chrome/本地 chromedriver 状态。若不满足，终端会直接给出修复命令。默认不会启动 WebDriver 或触发 Selenium Manager 下载；如需启动前实际烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。Docker full 镜像默认启用该烟测，便于提前发现容器内 Chrome/Chromium 崩溃问题。
+源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu、雨云或微博 Cookie 刷新时的 Chrome/本地 chromedriver 状态。若不满足，终端会直接给出修复命令。默认不会启动 WebDriver 或触发 Selenium Manager 下载；如需启动前实际烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。Docker full 镜像默认启用该烟测，便于提前发现容器内 Chrome/Chromium 崩溃问题。
 
 !!! tip "停止程序"
     在终端按 `Ctrl+C` 会触发优雅关闭：停止调度器、关闭 Web 服务、配置监控器和数据库连接。项目会为同步网络请求、浏览器任务等阻塞场景设置兜底，通常会在数秒内退出；如果仍在等待，再按一次 `Ctrl+C` 会立即强制退出。
@@ -251,10 +251,10 @@ uv run python main.py &
 |:--------:|:--------|
 | Docker 精简镜像 | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d` |
 | Docker 完整镜像 | `docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d` |
-| Windows | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`） |
-| 本地 | `git pull` → `uv sync --locked` → 重启应用 |
+| Windows | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`、`data/`） |
+| 本地 | `git pull` → `uv sync --locked --extra dev --extra rainyun` → 重启应用；不使用浏览器任务时可省略 `--extra rainyun` |
 
 !!! tip "提示"
-    配置支持热重载，多数更新无需重启。更新前建议备份 `config.yml`、`data/`。
+    配置编辑支持热重载，通常无需重启；代码、依赖或镜像更新后需要重启或重建容器。更新前备份 `config.yml`、`data/`。
 
 **版本更新提醒**：登录 Web 管理界面后，侧边栏底部显示当前版本号；若检测到新版本，页面顶部会显示更新提示横幅，可跳转至 [GitHub Releases](https://github.com/666fy666/WebMoniter/releases) 查看。

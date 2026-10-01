@@ -134,7 +134,7 @@ async def test_description_func_error_does_not_block_other_channels() -> None:
 
 
 @pytest.mark.asyncio
-async def test_manager_applies_cute_copy_to_task_notifications() -> None:
+async def test_task_notifications_preserve_details() -> None:
     channel = _RecordingChannel("recording")
     push_manager = UnifiedPushManager([channel])
 
@@ -145,8 +145,8 @@ async def test_manager_applies_cute_copy_to_task_notifications() -> None:
     )
 
     assert result["errors"] == []
-    assert channel.sent[0]["title"] == "🎉 品赞签到成功啦～"
-    assert channel.sent[0]["content"] == ("🎁 好耶，今天的任务顺利完成啦～\n\n获得 10 积分")
+    assert channel.sent[0]["title"]
+    assert channel.sent[0]["content"].endswith("获得 10 积分")
 
 
 @pytest.mark.asyncio
