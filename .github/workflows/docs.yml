@@ -7,17 +7,22 @@ on:
       - main
     paths:
       - 'docs/**'
-      - 'docs/mkdocs.yml'
       - 'pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -30,10 +35,17 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: "latest"
+          version: '0.11.26'
+          enable-cache: true
+          cache-suffix: docs
+          cache-dependency-glob: uv.lock
 
       - name: Install dependencies
-        run: uv sync --extra docs --locked
+        run: |
+          uv export --frozen --extra docs --no-dev --no-emit-project --no-hashes -o "$RUNNER_TEMP/docs-constraints.txt"
+          python -c 'import tomllib; from pathlib import Path; print("\n".join(tomllib.loads(Path("pyproject.toml").read_text())["project"]["optional-dependencies"]["docs"]))' > "$RUNNER_TEMP/docs-requirements.txt"
+          uv venv
+          uv pip install -r "$RUNNER_TEMP/docs-requirements.txt" -c "$RUNNER_TEMP/docs-constraints.txt"
 
       - name: Deploy to GitHub Pages
-        run: uv run mkdocs gh-deploy --force -f docs/mkdocs.yml
+        run: .venv/bin/mkdocs gh-deploy --force -f docs/mkdocs.yml

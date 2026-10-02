@@ -4,7 +4,7 @@ ARG PYTHON_IMAGE=python:3.11.15-slim-bookworm@sha256:d29f48a31a8b408ed19272ca1e7
 FROM node:24.14.0-bookworm-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS frontend
 WORKDIR /ui
 COPY frontend/package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
@@ -24,7 +24,8 @@ FROM dependencies AS full-dependencies
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project --no-editable --extra rainyun
 RUN sh /tmp/prune-dependencies.sh
 RUN /app/.venv/bin/python -c "import numpy, onnxruntime, cv2, ddddocr"
-FROM full-dependencies AS downloaded-models
+# Model downloads use only the standard library and do not depend on Python wheels.
+FROM ${PYTHON_IMAGE} AS downloaded-models
 COPY src/tasks/ikuuu_models.py /tmp/ikuuu_models.py
 RUN python /tmp/ikuuu_models.py --directory /app/models/ikuuu
 
@@ -44,17 +45,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && mkdir -p /app/data /app/logs /app/config \
     && chown webmoniter:webmoniter /app/data /app/logs /app/config
 WORKDIR /app
-COPY --chown=webmoniter:webmoniter main.py pyproject.toml ./
-COPY --chown=webmoniter:webmoniter src/ ./src/
-COPY --chown=webmoniter:webmoniter config/config.yml.sample ./config/config.yml.sample
-COPY --from=frontend --chown=webmoniter:webmoniter /ui/dist ./frontend/dist
-COPY --chmod=755 docker/docker-entrypoint.sh ./docker-entrypoint.sh
 EXPOSE 8866
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8866/health/ready', timeout=3)"
 CMD ["/app/docker-entrypoint.sh"]
 
-FROM runtime AS slim
+# Keep application changes out of the expensive browser installation layers.
+FROM runtime AS application
+COPY --chown=webmoniter:webmoniter main.py pyproject.toml ./
+COPY --chown=webmoniter:webmoniter src/ ./src/
+COPY --chown=webmoniter:webmoniter config/config.yml.sample ./config/config.yml.sample
+COPY --from=frontend --chown=webmoniter:webmoniter /ui/dist ./frontend/dist
+COPY --chmod=755 docker/docker-entrypoint.sh ./docker-entrypoint.sh
+
+FROM application AS slim
 COPY --from=slim-dependencies /app/.venv /app/.venv
 USER webmoniter
 
@@ -83,6 +87,7 @@ COPY --from=chrome-download /browser/ /opt/browser/
 RUN if [ -f /opt/browser/chrome-linux64/chrome ]; then \
     ln -s /opt/browser/chrome-linux64/chrome /usr/bin/chromium \
     && ln -s /opt/browser/chromedriver-linux64/chromedriver /usr/bin/chromedriver; fi
+COPY --from=application /app/ /app/
 COPY --from=full-dependencies /app/.venv /app/.venv
 COPY --from=model-assets /app/models /app/models
 RUN /app/.venv/bin/python -c "from pathlib import Path; from src.tasks.ikuuu_models import MODELS, verified_model; [verified_model(Path('/app/models/ikuuu'), name) for name in MODELS]"

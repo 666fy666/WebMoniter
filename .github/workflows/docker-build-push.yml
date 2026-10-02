@@ -6,6 +6,15 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
+# Serialize releases because every version updates the shared latest/full tags.
+concurrency:
+  group: docker-release
+  cancel-in-progress: false
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: fengyu666/webmoniter
@@ -13,182 +22,164 @@ env:
 jobs:
   validate:
     uses: ./.github/workflows/quality.yml
-  # 精简与完整分两个 job，避免同一 runner 上连续 build-push 时 Buildx/GHA 缓存层被错误复用，导致 latest 与 full digest 相同
-  docker-slim:
-    needs: validate
-    runs-on: ubuntu-latest
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
 
-      - uses: docker/setup-qemu-action@v3
-
-      - uses: docker/setup-buildx-action@v4
-
-      - name: Verify Docker Hub secrets
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
-            echo "::error::DOCKER_USERNAME / DOCKER_PASSWORD secrets must be set"
-            exit 1
-          fi
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Extract metadata (slim)
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
-
-      - name: Build and push slim
-        id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./docker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=webmoniter-slim
-          cache-to: type=gha,mode=max,scope=webmoniter-slim
-          platforms: linux/amd64,linux/arm64
-
-      - name: Digest (slim)
-        run: echo "slim digest ${{ steps.build.outputs.digest }}"
-
-  docker-full:
-    needs: validate
-    runs-on: ubuntu-latest
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: docker/setup-qemu-action@v3
-
-      - uses: docker/setup-buildx-action@v4
-
-      - name: Verify Docker Hub secrets
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
-            echo "::error::DOCKER_USERNAME / DOCKER_PASSWORD secrets must be set"
-            exit 1
-          fi
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Extract metadata (full)
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}},suffix=-full
-            type=semver,pattern={{major}}.{{minor}},suffix=-full
-            type=semver,pattern={{major}},suffix=-full
-            type=raw,value=full
-
-      - name: Build and push full
-        id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./docker/Dockerfile
-          target: full
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=webmoniter-full
-          cache-to: type=gha,mode=max,scope=webmoniter-full
-          platforms: linux/amd64,linux/arm64
-
-      - name: Digest (full)
-        run: echo "full digest ${{ steps.build.outputs.digest }}"
-
-  verify-hub-tags:
+  # Push by digest only; public version/latest tags are updated after all checks.
+  build:
     strategy:
       fail-fast: false
       matrix:
-        architecture: [amd64, arm64]
-    needs: [docker-slim, docker-full]
-    runs-on: ubuntu-latest
+        variant: [slim, full]
+        platform:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Verify Docker Hub secrets
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "::error::DOCKER_USERNAME / DOCKER_PASSWORD secrets must be set"
+            exit 1
+          fi
+
       - uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Wait for Hub manifests (eventual consistency)
-        run: sleep 30
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Pull and assert slim ≠ full (Chromium)
-        env:
-          # 仅验证时指定目标架构；QEMU 安装镜像必须使用 runner 原生架构。
-          DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
-          IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
-          FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
-        run: |
-          set -eux
-          test -n "$SLIM_DIGEST"
-          test -n "$FULL_DIGEST"
-          if [ "$SLIM_DIGEST" = "$FULL_DIGEST" ]; then
-            echo "::error::slim and full push digests are identical (this run); check Dockerfile paths, cache scopes, and Hub tags"
-            exit 1
-          fi
-          # 按本次构建 digest 校验，避免 Hub 上 latest/full 标签误指同一 manifest
-          docker pull "$IMG@$SLIM_DIGEST"
-          docker pull "$IMG@$FULL_DIGEST"
-          # 精简镜像不应带系统 Chromium
-          docker run --rm --entrypoint sh "$IMG@$SLIM_DIGEST" -c 'if test -x /usr/bin/chromium; then echo "::error::slim image incorrectly contains /usr/bin/chromium"; exit 1; fi'
-          # 完整镜像必须带 Chromium
-          docker run --rm --entrypoint sh "$IMG@$FULL_DIGEST" -c 'test -x /usr/bin/chromium'
+      - name: Build and push native image by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: ${{ matrix.variant }}
+          platforms: linux/${{ matrix.platform.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          # Registry caches are reusable across version tags; GHA caches are ref-scoped.
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.variant }}-${{ matrix.platform.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.variant }}-${{ matrix.platform.arch }},mode=max,image-manifest=true,oci-mediatypes=true
 
-      - name: Application and browser smoke
+      - name: Pull and verify the native image
         env:
-          DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
-          IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
-          FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          VARIANT: ${{ matrix.variant }}
+          ARCH: ${{ matrix.platform.arch }}
         run: |
-          python scripts/container_benchmark.py --image "$IMG@$SLIM_DIGEST" --seconds 5 --smoke-only --output slim-smoke.json
-          python scripts/container_benchmark.py --image "$IMG@$FULL_DIGEST" --seconds 5 --smoke-only --output full-smoke.json
-          docker image inspect --format '{{.Architecture}} {{.Size}}' "$IMG@$SLIM_DIGEST" "$IMG@$FULL_DIGEST" > image-store-sizes.txt
-          docker history --no-trunc --format '{{.ID}} {{.Size}}' "$IMG@$SLIM_DIGEST" > slim-layers.txt
-          docker history --no-trunc --format '{{.ID}} {{.Size}}' "$IMG@$FULL_DIGEST" > full-layers.txt
+          # Retry only on registry propagation errors instead of always sleeping.
+          for attempt in 1 2 3 4 5; do
+            if docker pull "$IMAGE"; then break; fi
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep "$((attempt * 3))"
+          done
+          test "$(docker image inspect --format '{{.Architecture}}' "$IMAGE")" = "$ARCH"
+          docker run --rm --entrypoint sh "$IMAGE" -c '
+            if [ "$1" = full ]; then
+              test -x /usr/bin/chromium
+            else
+              test ! -x /usr/bin/chromium
+            fi' sh "$VARIANT"
+          python scripts/container_benchmark.py --image "$IMAGE" --seconds 5 --smoke-only --output image-smoke.json
+          docker image inspect --format '{{.Architecture}} {{.Size}}' "$IMAGE" > image-store-sizes.txt
+          docker history --no-trunc --format '{{.ID}} {{.Size}}' "$IMAGE" > image-layers.txt
+
+      - name: Export verified digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: image-digests-${{ matrix.variant }}-${{ matrix.platform.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: image-smoke-${{ matrix.architecture }}
+          name: image-smoke-${{ matrix.variant }}-${{ matrix.platform.arch }}
           path: |
-            *-smoke.json
-            *-sizes.txt
-            *-layers.txt
+            image-smoke.json
+            image-store-sizes.txt
+            image-layers.txt
+          retention-days: 7
+
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: slim
+            suffix: ''
+            rolling-tag: latest
+          - variant: full
+            suffix: '-full'
+            rolling-tag: full
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: image-digests-${{ matrix.variant }}-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},suffix=${{ matrix.suffix }}
+            type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.suffix }}
+            type=semver,pattern={{major}},suffix=${{ matrix.suffix }}
+            type=raw,value=${{ matrix.rolling-tag }}
+
+      - name: Publish multi-platform manifest
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          digests=(*)
+          test "${#digests[@]}" -eq 2
+          sources=()
+          for digest in "${digests[@]}"; do
+            [[ "$digest" =~ ^[a-f0-9]{64}$ ]]
+            sources+=("$IMAGE@sha256:$digest")
+          done
+          tags=()
+          while IFS= read -r tag; do
+            tags+=(--tag "$tag")
+          done <<< "$TAGS"
+          docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+          while IFS= read -r tag; do
+            docker buildx imagetools inspect --raw "$tag" | jq -e '
+              [.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64", "arm64"]'
+          done <<< "$TAGS"
