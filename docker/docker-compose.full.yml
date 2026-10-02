@@ -4,7 +4,3 @@ services:
     extends:
       file: ../compose.yaml
       service: web-monitor
-volumes:
-  config:
-  data:
-  logs:

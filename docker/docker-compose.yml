@@ -5,7 +5,3 @@ services:
       file: ../compose.yaml
       service: web-monitor
     image: ${WEBMONITER_IMAGE:-fengyu666/webmoniter:latest}
-volumes:
-  config:
-  data:
-  logs:

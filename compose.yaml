@@ -14,9 +14,13 @@ services:
     ports:
       - "0.0.0.0:8866:8866"
     volumes:
-      - config:/app/config
-      - data:/app/data
-      - logs:/app/logs
+      - type: bind
+        source: ./config.yml
+        target: /app/config/config.yml
+        bind:
+          create_host_path: false
+      - ./data:/app/data
+      - ./logs:/app/logs
     environment:
       WEBMONITER_ADMIN_USERNAME: ${WEBMONITER_ADMIN_USERNAME:-admin}
       WEBMONITER_ADMIN_PASSWORD: ${WEBMONITER_ADMIN_PASSWORD:-123}
@@ -32,7 +36,3 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-volumes:
-  config:
-  data:
-  logs:
