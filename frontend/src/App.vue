@@ -88,10 +88,14 @@ onUnmounted(() => {
         ><RouterLink class="avatar" to="/account" aria-label="账户设置">W</RouterLink>
       </header>
       <main id="main" tabindex="-1">
-        <RouterView v-slot="{ Component }"
-          ><Transition name="page" mode="out-in"
-            ><component :is="Component" :key="route.path" /></Transition
-        ></RouterView>
+        <RouterView v-slot="{ Component, route: viewRoute }">
+          <Transition name="page" mode="out-in">
+            <!-- Keep a DOM transition target even when a view has multiple roots. -->
+            <div v-if="Component" :key="viewRoute.path">
+              <component :is="Component" />
+            </div>
+          </Transition>
+        </RouterView>
       </main>
       <footer>WebMoniter <span>你的任务，有序发生。</span></footer>
     </div>
