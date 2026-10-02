@@ -1,0 +1,2365 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="多平台监控签到 · 开播提醒 · 多渠道推送 — 使用指南与二次开发">
+      
+      
+        <meta name="author" content="FY">
+      
+      
+        <link rel="canonical" href="https://666fy666.github.io/WebMoniter/REFACTOR_AUDIT/">
+      
+      
+        <link rel="prev" href="../ARCHITECTURE/">
+      
+      
+        <link rel="next" href="../SECONDARY_DEVELOPMENT/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>重构审查与实测 - WebMoniter 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="WebMoniter 文档" class="md-header__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WebMoniter 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              重构审查与实测
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+  
+  快速开始
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/config/" class="md-tabs__link">
+          
+  
+  
+  使用指南
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ARCHITECTURE/" class="md-tabs__link">
+          
+  
+  
+  二次开发
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+  帮助与支持
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../README.en-US/" class="md-tabs__link">
+          
+  
+  
+  其他语言
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WebMoniter 文档" class="md-nav__button md-logo" aria-label="WebMoniter 文档" data-md-component="logo">
+      
+  <img src="../assets/favicon.svg" alt="logo">
+
+    </a>
+    WebMoniter 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/666fy666/WebMoniter" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    666fy666/WebMoniter
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速开始
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    安装与运行
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker 部署与维护
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QINGLONG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    青龙面板部署
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    使用指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置与设置
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    配置与设置
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置说明
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web 管理界面
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务管理
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    任务管理
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    任务概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/monitors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    监控任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/tasks/checkin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    定时任务详解
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送与通知
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    推送与通知
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/push-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    推送通道配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    二次开发
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    重构审查与实测
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    重构审查与实测
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#2026-10-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        本轮稳定性与精简审查（2026-10-02）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="本轮稳定性与精简审查（2026-10-02）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        项目理解与取舍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        问题、证据与处理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改文件与文档整理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        测试精简与验证
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        风险、人工验收与未实施建议
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        历史重构记录
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        审查证据与处理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        功能与回归
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        前端体验与性能
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        容器资源实测
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        镜像体积口径
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        待完成验收与复现
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        功能注册清单
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-10-02_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        安装入口简化验证（2026-10-02）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改文件清单
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SECONDARY_DEVELOPMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    二次开发指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 参考
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    帮助与支持
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    帮助与支持
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    常见问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他语言
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他语言
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../README.en-US/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../README.es-ES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Español
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../README.ja-JP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    日本語
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../README.ko-KR/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    한국어
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#2026-10-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        本轮稳定性与精简审查（2026-10-02）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="本轮稳定性与精简审查（2026-10-02）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        项目理解与取舍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        问题、证据与处理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改文件与文档整理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        测试精简与验证
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        风险、人工验收与未实施建议
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        历史重构记录
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        审查证据与处理
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        功能与回归
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        前端体验与性能
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        容器资源实测
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        镜像体积口径
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        待完成验收与复现
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        功能注册清单
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-10-02_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        安装入口简化验证（2026-10-02）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修改文件清单
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">全栈审查与验收记录<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h2 id="2026-10-02">本轮稳定性与精简审查（2026-10-02）<a class="headerlink" href="#2026-10-02" title="Permanent link">&para;</a></h2>
+<p>范围为当前仓库，优先保持现有功能、接口、存储结构和第三方任务流程。审查了启动／退出、配置热重载、认证、队列、数据与日志 API、SQLite／MySQL、监控与签到公共执行方式、推送、青龙、前端交互、部署检查和文档。没有执行真实账号签到、推送或部署；外部服务和生产负载的完整可用性仍需人工验收。</p>
+<h3 id="_2">项目理解与取舍<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<p>Vue 3／TypeScript／Pinia 按路由加载页面，通过 <code>/api/v1</code> 访问 FastAPI；任务元数据贯穿配置、注册、调度与青龙。APScheduler、启动和手动入口共用 4 worker／100 容量队列，浏览器任务单独进程隔离且并发为 1。业务默认 SQLite WAL，可启用 MySQL 权威写入、SQLite 镜像和离线 outbox；执行记录独立保存在 <code>runs.db</code>。配置带版本与密钥保留标记，日志采用有界增量读取，生产只有一个 Python Web／调度进程。</p>
+<p>保留已有有界并发、线程池、浏览器隔离、分页与缓存策略。仅并行配置页两项独立读取，避免等待时间叠加；没有引入请求聚合 API、共享敏感缓存或新基础设施。参考 <a href="https://vuejs.org/guide/essentials/computed">Vue 响应式计算</a>、<a href="https://fastapi.tiangolo.com/async/">FastAPI 异步边界</a>及同类监控项目 <a href="https://github.com/louislam/uptime-kuma/blob/master/.github/workflows/auto-test.yml">Uptime Kuma 的 CI</a>，借鉴职责分层，不照搬其跨系统／Node 版本矩阵。</p>
+<h3 id="_3">问题、证据与处理<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>问题与证据</th>
+<th>影响</th>
+<th>最小处理／验证</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Config.vue::save</code> 在响应后读取可变的 <code>selected</code>、<code>yamlMode</code>，并把当前 YAML 当已保存基线</td>
+<td>慢请求期间切换模块或继续输入可能丢失编辑／误报已保存</td>
+<td>固定提交上下文，保留请求期间编辑，YAML 基线使用提交文本；延迟响应浏览器回归</td>
+</tr>
+<tr>
+<td>配置与元数据读取串行，YAML 展示和保存可重叠</td>
+<td>增加初次等待，旧响应可覆盖新编辑模式</td>
+<td><code>Promise.all</code> 并行独立读取，复用 busy 状态阻止重叠操作；类型检查与真实后端配置回归</td>
+</tr>
+<tr>
+<td><code>stores.ts</code> 的 computed 直接读 <code>MediaQueryList.matches</code></td>
+<td>完整效果／触屏模式下系统减少动效变化不触发更新</td>
+<td>独立响应式偏好；桌面与移动端动态切换回归</td>
+</tr>
+<tr>
+<td><code>Logs.vue</code> 切换来源时 <code>refresh</code> 因请求在途被忽略；空增量仍复制整窗</td>
+<td>新日志额外等待轮询／退避，重复数组分配和列表更新</td>
+<td>请求结束后补一次刷新，恢复更新立即请求，空增量不替换数组，补加载反馈；慢响应切换回归</td>
+</tr>
+<tr>
+<td>SQLite 三个事务辅助函数仅捕获 <code>Exception</code>；外层在释放操作锁后再次回滚</td>
+<td><code>CancelledError</code> 可遗留未提交事务，锁外回滚可能影响下个调用者</td>
+<td>事务内覆盖取消并回滚后向上传播，移除外层重复回滚；普通写入／outbox／镜像三个真实 SQLite 取消用例</td>
+</tr>
+<tr>
+<td><code>watcher.py</code> 只接受修改时间递增，回调失败仍确认配置</td>
+<td>旧时间戳恢复漏应用，部分失败后不再重试</td>
+<td>文件身份／大小／纳秒时间指纹；成功才确认，失败下轮读取最新文件重试</td>
+</tr>
+<tr>
+<td><code>db_sync.py</code> 忽略删除返回值，调度回调吞异常；重复恢复／更新触发器重算运行时间</td>
+<td>部分清理失败被误报成功；重试可能推迟任务</td>
+<td>删除与调度失败向上传播，主键删除可重复执行，相同触发器与已运行任务不重置</td>
+</tr>
+<tr>
+<td>MySQL 读取保留事务，aiomysql 在归还仍有事务的连接时会关闭连接；种入逐行写、outbox 全量读取</td>
+<td>重建连接、重复往返和大离线日志内存开销</td>
+<td>结束读事务，500 条分批读取／批量写入，全部批次同事务；ID 范围确认避免超大 IN 参数列表</td>
+</tr>
+<tr>
+<td>镜像读取依赖服务器默认隔离级别</td>
+<td>READ COMMITTED 下各表可能读取不同时点</td>
+<td>显式只读可重复读快照；真实 MySQL 并发写入实验</td>
+</tr>
+<tr>
+<td><code>data_support.py</code> 的旧内存排序与 LRU 仅被测试引用</td>
+<td>维护不再参与实际分页的逻辑</td>
+<td>删除三个死函数及对应测试，保留 SQL 索引分页与现有 API 回归</td>
+</tr>
+<tr>
+<td>三个视口重复运行全部检查，导航测试两两组合，截图与 LCP 门槛依赖机器</td>
+<td>重复安装／构建及维护成本</td>
+<td>前端单 job，桌面关键回归加四项移动冒烟，导航单次遍历；视觉与弱网转人工</td>
+</tr>
+<tr>
+<td>文档引用已删除的配置模板，并描述拖拽、账户底部面板和不存在的数据库状态展示</td>
+<td>用户／开发者按错误路径操作</td>
+<td>文档对齐 Vue、实际 API 和页面，不为旧文档增加功能</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">修改文件与文档整理<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>原因与改动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frontend/src/views/Config.vue</code></td>
+<td>保存竞态、并行读取与 busy 防重入</td>
+</tr>
+<tr>
+<td><code>frontend/src/views/Logs.vue</code>、<code>frontend/src/stores.ts</code></td>
+<td>日志刷新与动效响应式修复</td>
+</tr>
+<tr>
+<td><code>src/storage/database.py</code>、<code>src/storage/mysql_backend.py</code></td>
+<td>事务取消回滚、outbox 分批与确认、种入批量写入、读事务释放、跨表一致快照</td>
+</tr>
+<tr>
+<td><code>src/settings/watcher.py</code>、<code>src/settings/db_sync.py</code>、<code>src/monitors/kuaishou_targets.py</code></td>
+<td>文件指纹、失败重试、目标清理失败向上传播</td>
+</tr>
+<tr>
+<td><code>src/jobs/lifecycle.py</code>、<code>src/jobs/scheduler.py</code></td>
+<td>调度失败向上传播，同值重试不重置下次执行时间</td>
+</tr>
+<tr>
+<td><code>src/web/data_support.py</code></td>
+<td>删除无生产调用的内存分页缓存</td>
+</tr>
+<tr>
+<td><code>src/tests/test_mysql_backend.py</code>、<code>test_main_lifecycle.py</code></td>
+<td>增加事务取消、分页确认、跨批失败／取消、配置重试及调度幂等关键回归</td>
+</tr>
+<tr>
+<td><code>src/tests/test_web_performance.py</code>、<code>test_weibo_media.py</code></td>
+<td>删除死缓存测试和六项纯标题措辞断言，保留去重、媒体及富文本安全测试</td>
+</tr>
+<tr>
+<td><code>frontend/tests/api.test.ts</code>、<code>tests/e2e/{data,navigation,workspace}.spec.ts</code>、<code>fixtures.ts</code></td>
+<td>删除无关键价值／重复检查，共用登录夹具，覆盖保存与日志竞态；配置修改基于当前值避免视口间相互依赖</td>
+</tr>
+<tr>
+<td><code>frontend/playwright.config.ts</code>、<code>.github/workflows/quality.yml</code></td>
+<td>精简视口范围和重复安装，保留单 worker 与失败截图／trace，CI 加入已有 Ruff 检查</td>
+</tr>
+<tr>
+<td><code>frontend/tests/e2e/workspace.spec.ts-snapshots/</code> 三张 PNG</td>
+<td>删除停止使用的像素基线</td>
+</tr>
+<tr>
+<td><code>docs/SECONDARY_DEVELOPMENT.md</code>、<code>.github/CI.md</code></td>
+<td>检查命令集中到开发指南；CI 文档只描述流程与取舍，修正 Vue/Vite、数据库返回值契约</td>
+</tr>
+<tr>
+<td><code>README.md</code>、<code>docs/index.md</code>、<code>docs/README.*.md</code></td>
+<td>精简重复开发步骤与架构表，补快手平台；首页删除旧界面能力描述</td>
+</tr>
+<tr>
+<td><code>docs/API.md</code>、<code>docs/guides/config.md</code>、<code>docs/guides/web-ui.md</code>、<code>docs/guides/tasks.md</code></td>
+<td>补返回字段、虎牙图片接口、记录保留边界，纠正页面与热重载说明，集中人工自测</td>
+</tr>
+<tr>
+<td><code>docs/ARCHITECTURE.md</code>、<code>docs/assets/screenshots/README.md</code>、本报告</td>
+<td>链接统一检查／验收入口；标记历史截图和数据，合并重复注册表</td>
+</tr>
+</tbody>
+</table>
+<p>没有删除部署备份步骤、多语言使用说明或平台参数文档；它们具有不同使用场景。没有修改依赖版本、锁文件、数据库 schema、平台登录／验证码／签到流程或公开 API 路径。</p>
+<h3 id="_5">测试精简与验证<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Python：基线 421 项，移除六项标题措辞断言与一项死缓存检查，首轮增加三个事务取消和一个配置恢复用例；追加九项数据库批次及配置重试必要用例，当前 <strong>427 项通过（2.66 秒）</strong>。保留鉴权／CSRF／会话、配置冲突与密钥、队列去重、日志轮转、数据库回退、平台去重／重试、媒体／富文本安全、安装与发布门禁等关键保障；不按数量盲目删减，原全套只需数秒。</li>
+<li>Vitest：删除空日期占位符测试，保留 CSRF 传播与错误状态，<strong>2 项通过</strong>。</li>
+<li>Playwright：原 57 个视口执行项（其中 4 项按条件跳过）缩减为 <strong>21 项全部通过（最终复跑 36.7 秒）</strong>，含新增的保存与日志竞态。删除重复后端 CSRF／分页断言、像素比较、单次 LCP／CLS 阈值和窄屏主题全排列；保留真实后端配置、任务终态与图片、导航等关键交互。未测远程 CI 墙钟收益。</li>
+<li>Ruff、前端 Prettier、TypeScript 与 Vite 生产构建通过；全部 JS/CSS gzip <strong>74.6 KiB</strong>，项目预算 250 KiB。此数据为本轮体积，不是新增性能基准。</li>
+<li>
+<p>shell 语法和根目录／slim／full 三份 Compose 配置检查通过；修改的 Python 文件 Black 检查通过，MkDocs 严格构建与 <code>git diff --check</code> 通过。未安装 actionlint，未运行远程 Actions。</p>
+</li>
+<li>
+<p>当前源码已重新构建 Linux amd64 slim 镜像 <code>webmoniter:audit-20261002</code>。临时容器使用 <code>--init</code>、禁用外网且无生产挂载：UID 10001，存活／就绪／前端页面返回 200，未登录数据库 API 返回 401；停止耗时 0.31 秒，按现有信号退出约定返回 130。构建的离线与默认网络尝试因缺少缓存／Docker DNS 失败，使用主机网络后成功；未改锁文件或 Dockerfile，未重建 full 或其他架构镜像，未推送／部署。</p>
+</li>
+</ul>
+<p>追加真实数据库验证：使用自动删除、仅回环绑定的临时 MySQL 8.4 容器，验证 1,500 行种入、第二批故障整体回滚、505 条 outbox 的跨批失败与取消回滚、upsert／clear／delete 顺序、提交 ID 确认、读连接复用，以及 READ COMMITTED 默认级别下另一连接提交写入时的跨表快照。最近一次单次实验中，逐行写入 0.3081 秒，分批替换（含清空表）0.0212 秒；这是本机小数据集测量，不代表生产吞吐或长事务锁等待。参考 <a href="https://aiomysql.readthedocs.io/en/stable/cursors.html#aiomysql.Cursor.executemany">aiomysql 批量写入</a> 和 <a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html">MySQL 一致性读取</a>，未引入额外并发。</p>
+<p>环境说明：沙箱内单独的 <code>aiosqlite.connect(':memory:')</code> 查询也无法完成跨线程唤醒；获准使用正常线程环境后全套快速通过。没有为通过测试更改数据库驱动或跳过数据库测试。浏览器运行仅访问隔离后端与模拟响应，未操作真实账号。</p>
+<h3 id="_6">风险、人工验收与未实施建议<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>影响涉及配置编辑与热重载、日志显示、外观偏好、MySQL 同步和异常清理。正常数据格式和任务执行语义保持原状；事务保证要求 InnoDB，取消发生在数据库已经提交之后不能撤销该提交，跨库没有原子提交。配置应用也不是原子事务，重试不会撤销已完成的目标删除；平台快照由后续正常监控继续维护。缩减自动视觉覆盖后，人工验收责任见 <a href="../guides/web-ui/#manual-checks">完整用户自测清单</a>。</p>
+<p>以下只建议，不在这轮扩大实现：</p>
+<ul>
+<li>全表镜像流式化与跨批提交：outbox 分批及种入批量化已完成；镜像仍保留全量数据集和整体 SQLite 事务。进一步缩减峰值内存需要真实大表规模、锁等待和恢复压测，不能直接并行写镜像。</li>
+<li>MySQL 8.4 提示旧 <code>VALUES(column)</code> upsert 语法弃用：现有语法仍能执行；未确定最低 MySQL／MariaDB 兼容范围前不直接替换为新别名语法。</li>
+<li>更细粒度任务并发、多进程 Web、全局敏感数据缓存：现有任务与浏览器已经限流，扩大并发会增加重复副作用和内存风险，目前无收益证据。</li>
+<li>旧未挂载路由模块仍有内部测试／兼容调用，未整批删除；只删除已确认无生产调用的排序缓存，避免扩大接口风险。</li>
+<li>真实手机弱网／滚动、真实 MySQL 断线恢复、arm64／Windows、24 小时稳定性及外部签到与推送：保留手动／专用环境验收，不能从本地模拟回归推断全部在线可用。</li>
+</ul>
+<h2 id="_7">历史重构记录<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
+<p>以下为仓库原有记录及其原始证据，<strong>不是本轮重新运行的容器、平台或性能测量</strong>；旧测试数量与界面基线仅描述当时版本。当前检查入口和结果以上节为准。</p>
+<p>日期：2026-10-02。范围：全新部署，保留 7 类监控、31 类任务（含维护与示例任务）、18 个推送适配器、MySQL 与青龙。实现与短时本地验证已完成；真实平台综合负载、arm64 实机、真实手机和 24 小时长测尚未完成，不能据此宣称全部验收通过。未修改真实服务器、未执行真实签到、未推送镜像。</p>
+<h2 id="_8">审查证据与处理<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>原问题／证据</th>
+<th>实施结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>普通 SHA-256 摘要</td>
+<td>Argon2id、失败关闭、登录限流、CSRF、会话轮换；按当前部署偏好默认 admin/123，环境覆盖可选</td>
+</tr>
+<tr>
+<td>P0</td>
+<td>手动接口等待任务完成；手动与定时未共用并发限制</td>
+<td><code>/api/v1</code> 提交返回 202；4 worker、100 队列、任务去重，SQLite 持久运行记录</td>
+</tr>
+<tr>
+<td>P0</td>
+<td>浏览器/OCR 主进程驻留；默认线程池 32</td>
+<td>账号级子进程按需导入，浏览器并发 1、180 秒尝试超时、进程组回收，线程池 4</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>两套 CSS 共 9,404 行；配置 JS 3,321 行</td>
+<td>删除旧模板和叠加样式；Vue 路由组件、Pinia、类型化 API、统一材质与字段组件</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>配置明文读取、无版本保护</td>
+<td>默认遮蔽、密钥保留标记、分区保存、冲突 409、显式 YAML 查看，不持久缓存凭据</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>列表/日志缺少上限，微博扫描正文排序</td>
+<td>页大小 50/200，日志 1,000 行/256 KiB 游标，图片批量上限 200，微博时间入库索引</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>容器 root 与递归 chmod 777</td>
+<td>UID/GID 10001、必要目录检查、命名卷、init、健康检查与资源限制</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>模型和浏览器体积难区分</td>
+<td>共享构建阶段、依赖裁剪与导入检查、模型保留校验、OCI 压缩/展开层报告</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>文档仍写旧 API、弱口令、旧 Dockerfile</td>
+<td>更新 API、架构、安装、服务器部署、开发与界面文档；翻译版标记更新状态</td>
+</tr>
+</tbody>
+</table>
+<p>回归中实际发现并修复：配置加载忽略容器环境路径、模型文件非 root 不可读、Cookie 刷新开关和时间被错误遮蔽。裁剪数值库 ELF 调试符号曾破坏 NumPy/OpenBLAS 加载，已将 auditwheel <code>.libs</code>、NumPy、OpenCV、ONNX Runtime 排除在 strip 之外，并增加构建时导入检查。不是所有 <code>.so</code> 都可安全一刀切裁剪。</p>
+<p>SQLite WAL、配置原子写入、压缩、缓存、OCR 单线程以及 MySQL 权威写入／镜像／outbox 回退顺序保留。媒体图片仍可被推送渠道读取，管理 API 统一鉴权；旧无界监控状态 API 不再挂载。</p>
+<h2 id="_9">功能与回归<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>验证</th>
+<th>结果／边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python 全套</td>
+<td>381 项通过；含注册完整性、配置映射、平台关键行为、推送、MySQL 回退、安全与执行服务</td>
+</tr>
+<tr>
+<td>前端</td>
+<td>TypeScript、Prettier、Vitest 3 项、Vite 生产构建通过</td>
+</tr>
+<tr>
+<td>Playwright</td>
+<td>桌面／移动端 9 项通过；移动端 CDP 专用性能项按设计跳过 1 项</td>
+</tr>
+<tr>
+<td>视觉</td>
+<td>深色账户桌面／移动端截图基线比较；概览、任务、配置、日志保存截图人工检查</td>
+</tr>
+<tr>
+<td>调度</td>
+<td>手动/定时同任务合并、容量上限、终态、重启中断、不重放、最近任务记录</td>
+</tr>
+<tr>
+<td>浏览器</td>
+<td>模拟超时杀进程组、异常类型隔离、雨云超时重试；full 镜像本地浏览器与所有模型加载</td>
+</tr>
+<tr>
+<td>配置</td>
+<td>账号重排后密钥保留、清除、跨分区保留、版本冲突、嵌套敏感头遮蔽、开关与时间不遮蔽</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>增量追加、半行等待、截断轮转、字节上限、保留活动文件的总量清理</td>
+</tr>
+</tbody>
+</table>
+<p>外部平台副作用通过模拟测试验证；不保证外部平台当前在线、验证码识别率或真实账号成功率。青龙沿用原有单次 CLI，Web 统一队列限制不跨不同容器／青龙进程共享。</p>
+<p>此前 aiosqlite 测试超时在独立内存查询中同样出现；在允许异步线程正常工作的执行环境中，完整测试约 2.5 秒完成。该现象不能归因于业务 SQLite 查询。</p>
+<h2 id="_10">前端体验与性能<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<p>生产全部 JS/CSS gzip 合计约 <strong>67.3 KiB</strong>，包括所有懒加载页面，低于首屏 250 KiB 预算。使用系统字体、代码内 SVG 图标，无新增远程字体、分析服务或持续全屏渲染。CSS 高光、柔和粉紫材质与弹性过渡属于 Web 近似效果；表单和日志优先可读性。</p>
+<p>本次冷加载 LCP <strong>884 ms</strong>，CLS <strong>0.00965</strong>。性能测试使用 Chromium、1440×1000、5 Mbps、100 ms 延迟、4 倍 CPU 降速，禁用浏览器缓存。LCP 与 CLS 数据保存在 <code>assets/validation/refactor-web-vitals.json</code>。这是本地测试后端上的单次实验室测量，不等同于真实手机 INP 或生产网络分位数。</p>
+<table>
+<thead>
+<tr>
+<th>桌面概览</th>
+<th>移动端概览</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="桌面概览" src="../assets/screenshots/refactor-overview-desktop.png" /></td>
+<td><img alt="移动端概览" src="../assets/screenshots/refactor-overview-mobile.png" /></td>
+</tr>
+</tbody>
+</table>
+<p><a href="../assets/screenshots/refactor-config-desktop.png">配置页</a> · <a href="../assets/screenshots/refactor-logs-desktop.png">日志页</a> · <a href="../assets/screenshots/refactor-account-dark-desktop.png">深色账户</a></p>
+<h2 id="_11">容器资源实测<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<p>同一 amd64 开发宿主机，容器限制 1.75 CPU、1,536 MiB RAM、256 MiB shm、256 PID，<strong>禁用容器 Swap</strong>。测试创建 50 条本地监控快照，3 个访问者循环请求任务、数据和日志；full 同时执行 5 轮串行浏览器与模型加载，浏览器访问本地 data URL。原始结果保存为 <code>assets/validation/refactor-slim-benchmark.json</code> 与 <code>refactor-full-benchmark.json</code>。</p>
+<table>
+<thead>
+<tr>
+<th>镜像</th>
+<th>时长</th>
+<th>请求数</th>
+<th>API P95</th>
+<th>峰值 RAM</th>
+<th>启动就绪</th>
+<th>浏览器／模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>refactor-slim</td>
+<td>30 s</td>
+<td>684</td>
+<td>43.2 ms</td>
+<td>167.9 MiB</td>
+<td>2.31 s</td>
+<td>不包含</td>
+</tr>
+<tr>
+<td>refactor-full</td>
+<td>60 s</td>
+<td>1342</td>
+<td>64.7 ms</td>
+<td>531.5 MiB</td>
+<td>2.00 s</td>
+<td>通过</td>
+</tr>
+</tbody>
+</table>
+<p>两种镜像请求错误均为 0，OOM 均为 false。</p>
+<p>这是管理 API、静态数据和浏览器模型加载的合成负载，尚未模拟 50 个真实平台监控目标的持续抓取、真实验证码推理和网络波动。短测无 OOM 不能替代 24 小时长期稳定性；开发宿主机也不是目标 EPYC VPS。</p>
+<h2 id="_12">镜像体积口径<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p>比较本地 <code>validation-slim/full</code>（本轮前已有 amd64 基线镜像）与 <code>refactor-slim/full</code>。原始镜像 ID、逐层 digest、压缩字节和展开字节保存在 <code>assets/validation/refactor-image-sizes.json</code>。压缩体积为 OCI 分发层大小之和，展开体积为同一组层解压后的 tar 字节之和；不是 <code>docker image ls</code> 的共享层磁盘占用，也未伪装成远端镜像仓库实际传输流量。</p>
+<table>
+<thead>
+<tr>
+<th>镜像</th>
+<th>优化前压缩层</th>
+<th>优化后压缩层</th>
+<th>变化</th>
+<th>优化前展开层</th>
+<th>优化后展开层</th>
+<th>变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>slim</td>
+<td>68.3 MiB</td>
+<td>66.6 MiB</td>
+<td>-2.5%</td>
+<td>187.8 MiB</td>
+<td>191.8 MiB</td>
+<td>+2.1%</td>
+</tr>
+<tr>
+<td>full</td>
+<td>625.7 MiB</td>
+<td>590.2 MiB</td>
+<td>-5.7%</td>
+<td>1392.5 MiB</td>
+<td>1299.1 MiB</td>
+<td>-6.7%</td>
+</tr>
+</tbody>
+</table>
+<p>slim 展开体积略增，未达到展开体积下降；主要来自固定 bookworm 基础层与新增认证依赖，删除旧前端和文档后压缩分发体积仍略降。full 的主要层（Docker history 显示值）为 Python 依赖约 467 MB、浏览器/驱动约 422 MB、系统浏览器库约 244 MB、iKuuu 模型约 99.2 MB。ddddocr 自带模型位于 Python 依赖层，未删除或转移到卷。</p>
+<p>运行层移除旧前端、文档截图、测试与构建工具；保留包元数据、许可证和全部推理模型。基础发行版从旧未固定 slim 变为固定 bookworm，因此总体变化同时包含基础层差异，不能把所有差值归因于应用代码。浏览器、OCR 和模型仍占 full 的主要体积。</p>
+<h2 id="_13">待完成验收与复现<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
+<ul>
+<li>真实手机：指定机型/系统后测交互延迟、滚动帧率、软键盘和后台恢复。</li>
+<li>目标服务器：50 个模拟持续抓取目标、5 个浏览器账号、3 个访问者的完整并发负载与网络扰动。</li>
+<li>24 小时：运行 <code>scripts/container_benchmark.py --seconds 86400</code>，检查内存曲线、任务去重、子进程及停止行为；当前脚本长测每约 5 分钟重复浏览器加载，仍需补平台模拟流量。</li>
+<li>amd64/arm64：当前 CI 在原生架构 runner 构建并做启动／浏览器冒烟，不再使用 QEMU；本地审查不替代远端 CI 或 arm64 实机验收。</li>
+<li>Windows：发布流程已接入前端构建，尚未验证实际发行包。</li>
+<li>CI 发布前执行新增工作流，远程标签当前不能当作本次修改的交付镜像。</li>
+</ul>
+<p>常规检查统一见 <a href="../SECONDARY_DEVELOPMENT/#development-checks">开发指南</a>。以下仅为复现历史容器测量的命令，需自行准备对应镜像：</p>
+<div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>scripts/container_benchmark.py<span class="w"> </span>--image<span class="w"> </span>webmoniter:refactor-full<span class="w"> </span>--seconds<span class="w"> </span><span class="m">60</span><span class="w"> </span>--output<span class="w"> </span>/tmp/full.json
+.venv/bin/python<span class="w"> </span>scripts/image_report.py<span class="w"> </span>webmoniter:validation-full<span class="w"> </span>webmoniter:refactor-full<span class="w"> </span>--output<span class="w"> </span>/tmp/sizes.json
+</code></pre></div>
+<p>参考依据：<a href="https://vuejs.org/guide/best-practices/performance">Vue 性能建议</a>、<a href="https://developer.apple.com/videos/play/wwdc2025/219/">Apple Liquid Glass</a>、<a href="https://www.oppo.com/en/coloros16/">ColorOS</a>、<a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a>、<a href="https://docs.docker.com/build/building/best-practices/">Docker 构建最佳实践</a>、<a href="https://docs.docker.com/engine/containers/resource_constraints/">Docker 资源限制</a>。</p>
+<h2 id="_14">功能注册清单<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<p>当前注册为 7 类监控、31 类定时／维护／示例任务、18 种推送适配器。清单统一见 <a href="../guides/tasks/">任务指南</a>、<a href="../guides/push-channels/">推送指南</a> 和 <code>src/jobs/metadata.py</code>，不在审查记录重复维护另一份逐项表。注册与配置映射由关键测试核对。</p>
+<h2 id="2026-10-02_1">安装入口简化验证（2026-10-02）<a class="headerlink" href="#2026-10-02_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Docker 入口统一为 <code>bash install.sh docker</code>；根目录 Compose 默认 full，并复用原有资源限制、项目名和三个命名卷。三个 Compose 配置解析结果已对比一致（slim 仅镜像不同）。</li>
+<li>源码入口为 <code>bash install.sh source</code>；自动准备工具、依赖、前端及浏览器模型，首次配置与 Docker 共用初始化逻辑。保留 YAML 时间字符串的引号，避免后端按整数解析；现有配置不覆盖。</li>
+<li>独立临时源码副本实跑 <code>--no-browser --prepare-only</code>，完成依赖安装、前端类型检查与生产构建；随后两次运行 <code>--no-browser</code>，健康检查、静态页面、默认登录和任务接口均通过，已有配置字节保持不变，复用前端产物。</li>
+<li>安装测试覆盖并发配置创建、下载摘要失败、前端失败缓存、带空格路径、Docker 失败退出、浏览器归档安装及复用、full/HTTP 模式分支。浏览器下载与系统库安装使用模拟；本轮没有在空白 Ubuntu 上实装 apt 软件包，也未重新构建或发布镜像。此前容器体积与性能测量的版本及边界保持不变。</li>
+</ul>
+<h2 id="_15">修改文件清单<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<p>历史重构的新增、修改和删除路径见 <a href="../assets/validation/refactor-changed-files.txt">文件清单</a>。新前端位于 <code>frontend/</code>；原 <code>src/webUI/templates</code>、<code>static/js</code>、<code>static/css</code> 已移除，图标和图片资源保留。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; FY · MIT License
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/666fy666/WebMoniter" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

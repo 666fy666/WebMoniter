@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-02",
+  "status": "integration_passed_real_stream_transitions_not_verified",
+  "official_sources": [
+    {
+      "url": "https://p2-game.kskwai.com/udata/pkg/KS-GAME-WEB/pc-live-next/js/app.1241f9804c38413b871f.js",
+      "sha256": "81ce1d2eaf0a3924d3466eeb4657578a9367a150e9e0ded6f5b3933ac9c40f77"
+    },
+    {
+      "url": "https://p2-game.kskwai.com/udata/pkg/KS-GAME-WEB/pc-live-next/js/liveRoom.1241f9804c38413b871f.js",
+      "sha256": "c08d40e4f4dcad97094adf575612b170273092077e1bc82c2a5df20d56d3dc26"
+    }
+  ],
+  "status_contract": {
+    "path": "liveroom.playList[0].status.forbiddenState",
+    "accepted": {
+      "1": "SUCCESS",
+      "671": "LIVE_AUTHOR_NOT_ON_LIVE"
+    },
+    "rejected_examples": {
+      "2": "OPERATE_TOO_FAST",
+      "606": "BE_TICK_OUT",
+      "69101": "BE_BANNED",
+      "67601": "SECRET_ROOM"
+    },
+    "requires_boolean_isLiving": true,
+    "requires_matching_author_and_name": true,
+    "contradictory_status_rejected": true
+  },
+  "real_site_checks": {
+    "room_pages": "Public room pages returned request-too-fast errors, not usable offline evidence.",
+    "detail_api": {
+      "url": "https://live.kuaishou.com/live_api/liveroom/livedetail?principalId=XFZ11200",
+      "http_status": 200,
+      "data.result": 2,
+      "accepted_as_offline": false
+    },
+    "listing_living_field": "Not used as offline evidence: false can coexist with current live content.",
+    "trusted_offline_sample_obtained": false,
+    "complete_live_offline_transition_observed": false,
+    "short_links": [
+      {
+        "url": "https://v.kuaishou.com/JCgShg",
+        "principal_id": "qiuqianjieshuo"
+      },
+      {
+        "url": "https://v.kuaishou.com/dzXtEg",
+        "principal_id": "Chili020202"
+      }
+    ]
+  },
+  "mysql_integration": {
+    "mysql_version": "8.4.11",
+    "image": "mysql:8.4",
+    "sqlite_file_scope": "temporary isolated validation database",
+    "checks": [
+      "schema creation",
+      "utf8mb4 name",
+      "initial baseline silent",
+      "online transition once",
+      "sqlite mirror",
+      "actual MySQL shutdown and SQLite fallback",
+      "offline update journal",
+      "shared target reference retained",
+      "configuration-triggered reconnect and outbox replay",
+      "last target deletion on both backends"
+    ],
+    "pushes_captured_locally": 2,
+    "external_notifications_sent": false,
+    "status": "passed",
+    "image_digest": "sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242"
+  },
+  "regression_tests": {
+    "kuaishou_cases": 41,
+    "python_full_suite_passed": 359,
+    "frontend_cases_passed": 19,
+    "ruff": "passed"
+  },
+  "scope": "Real database and network probes; database transition inputs and regression HTTP responses are synthetic. No real account login or external notification.",
+  "container_validation": {
+    "architecture": "amd64",
+    "full_image": "webmoniter:validation-full",
+    "full_image_id": "sha256:fdec3f4457761ecac30b1ac1c601e4931946feca7af831babbaebd717c88106e",
+    "slim_image": "webmoniter:validation-slim",
+    "slim_image_id": "sha256:96d061b5440972a42bf30b80eb83f931a69181212e914801a0a65403756be925",
+    "mysql_rsa_dependency_imports": "passed in both images",
+    "full_browser_version": "150.0.7871.100",
+    "full_models_samples": 60,
+    "predictions_identical_to_previous": 60,
+    "memory_limit_bytes": 1610612736,
+    "peak_bytes": 794140672,
+    "network": "none for runtime verification",
+    "build_note": "Full build direct GitHub download timed out twice; build succeeded with inherited HTTP_PROXY/HTTPS_PROXY build arguments. Proxy values are not recorded.",
+    "remote_image_published": false
+  }
+}

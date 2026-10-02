@@ -1,0 +1,4646 @@
+{
+  "date": "2026-10-02",
+  "status": "enabled_at_user_request_with_five_round_limit",
+  "scope": "Official Geetest demo; no ikuuu account used. Original dataset used for tuning. Second set initially held out, then used for additional experiments; not a final blind validation set.",
+  "annotation_method": "Visual identification of prompt characters and approximate target centers; all three predictions must be within 22 pixels of the corresponding human-reviewed center.",
+  "models": [
+    {
+      "filename": "best_v3.onnx",
+      "source": "https://raw.githubusercontent.com/MgArcher/Text_select_captcha/dcd1ac317c73cd29a7e3118f935c2b3fbd34cb02/model/best_v3.onnx",
+      "commit": "dcd1ac317c73cd29a7e3118f935c2b3fbd34cb02",
+      "sha256": "a9804980ad250f236104c2befac980321de29799410847c52f5b855ac9de347d",
+      "bytes": 9806720,
+      "license_status": "unverified; user instructed direct use, no license verification gate"
+    },
+    {
+      "filename": "pre_model_v7.onnx",
+      "source": "https://raw.githubusercontent.com/MgArcher/Text_select_captcha/dcd1ac317c73cd29a7e3118f935c2b3fbd34cb02/model/pre_model_v7.onnx",
+      "commit": "dcd1ac317c73cd29a7e3118f935c2b3fbd34cb02",
+      "sha256": "885e01b20592c558df7c7438177e39623f218d02154631cbdc17e654fcac3e05",
+      "bytes": 44452568,
+      "license_status": "unverified; user instructed direct use, no license verification gate"
+    },
+    {
+      "filename": "yolo_word.onnx",
+      "source": "https://media.githubusercontent.com/media/Gxyh513/geetest4-click-solver/c05b1f444d4e4126318fa7ae2cea4a15dd7dedf2/gt4_src/weights/yolo_word.onnx",
+      "commit": "c05b1f444d4e4126318fa7ae2cea4a15dd7dedf2",
+      "sha256": "07d410f7e9020478297daeaf266370b84618ee11cddbaf1106038dac3547ccf5",
+      "bytes": 12139210,
+      "license_status": "unverified; user instructed direct use, no license verification gate"
+    }
+  ],
+  "datasets": [
+    {
+      "name": "samples",
+      "method": "best_v3 detection over blurred RGB/inverse/CLAHE/inverse + NMS + pre_model_v7 unique assignment",
+      "correct": 19,
+      "total": 20,
+      "mean_seconds": 0.46098807610032966,
+      "p95_seconds": 0.4877553429978434,
+      "samples": [
+        {
+          "id": "word-00",
+          "kind": "word",
+          "files": [
+            "word-00-0.jpg",
+            "word-00-1.png",
+            "word-00-2.png",
+            "word-00-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/084d6ef5334942e1b9cfeccebf2202fe.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a45fb6bbf291a6e74cee70210a1fa9a1.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3246bd0399810aab3898334043899f26.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+          ],
+          "sha256": [
+            "893cb79a7d79b2fa9c34049f6160fc8c657d6a250c3d6270f208a97348f70342",
+            "40b36882c10a567c33c4b85666a648e49629f7b04ade3b294bbe8a48413a8bae",
+            "cb30aec9520e78214c520c7ce77d2c91f4a81cd5a8ed950790445f7f98e97852",
+            "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+          ],
+          "prediction": {
+            "id": "word-00",
+            "boxes": [
+              [
+                51,
+                96,
+                116,
+                154
+              ],
+              [
+                142,
+                118,
+                210,
+                183
+              ],
+              [
+                122,
+                24,
+                182,
+                81
+              ],
+              [
+                70,
+                42,
+                126,
+                99
+              ],
+              [
+                180,
+                2,
+                243,
+                61
+              ]
+            ],
+            "scores": [
+              [
+                0.09970439970493317,
+                0.048741664737463,
+                0.04791873320937157,
+                0.04873792454600334,
+                0.9476340413093567
+              ],
+              [
+                0.14073604345321655,
+                0.10584045201539993,
+                0.04637874290347099,
+                0.6935142874717712,
+                0.11434300243854523
+              ],
+              [
+                0.04795089736580849,
+                0.7341569066047668,
+                0.04896261915564537,
+                0.9498209953308105,
+                0.04684615880250931
+              ]
+            ],
+            "points": [
+              [
+                211.5,
+                31.5
+              ],
+              [
+                98.0,
+                70.5
+              ],
+              [
+                176.0,
+                150.5
+              ]
+            ],
+            "seconds": 0.4861994550010422
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                210,
+                30
+              ],
+              [
+                85,
+                126
+              ],
+              [
+                100,
+                72
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-01",
+          "kind": "word",
+          "files": [
+            "word-01-0.jpg",
+            "word-01-1.png",
+            "word-01-2.png",
+            "word-01-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9554c60158ca486793d5f5ec45f16f52.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/96dabbb9eb904a35ae75362b53aef169.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/12401e3443f9e647d7e7ace0be128222.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/8780fffdb2cd6c728b97b4656a8ab3a6.png"
+          ],
+          "sha256": [
+            "ed520fb5b23eaef2237584f2d3c661f6ecc3d84b0a43131358882b01fd51e8a5",
+            "682e1aae0f8ea9230b75bc6bd4260916a12ba92ef99bbdbcb0040d68d6905507",
+            "35e2b0907e9a4400458a95e12a1246ad24201e2ee45497e4e7f5a8f58556631f",
+            "af9c5000d702c43c1fb629bf072d6a79ffa25a5b80fb1d492b0fce8a8ff76d1d"
+          ],
+          "prediction": {
+            "id": "word-01",
+            "boxes": [
+              [
+                175,
+                94,
+                235,
+                148
+              ],
+              [
+                58,
+                17,
+                113,
+                70
+              ],
+              [
+                205,
+                7,
+                265,
+                63
+              ],
+              [
+                30,
+                90,
+                87,
+                146
+              ],
+              [
+                91,
+                102,
+                143,
+                157
+              ]
+            ],
+            "scores": [
+              [
+                0.05087392404675484,
+                0.4499937891960144,
+                0.8182840943336487,
+                0.047618016600608826,
+                0.5276972055435181
+              ],
+              [
+                0.04834616184234619,
+                0.09838882088661194,
+                0.06764112412929535,
+                0.04721899330615997,
+                0.05149820074439049
+              ],
+              [
+                0.9495958089828491,
+                0.1107914075255394,
+                0.261806845664978,
+                0.049216609448194504,
+                0.10319293290376663
+              ]
+            ],
+            "points": [
+              [
+                235.0,
+                35.0
+              ],
+              [
+                85.5,
+                43.5
+              ],
+              [
+                205.0,
+                121.0
+              ]
+            ],
+            "seconds": 0.4792412480019266
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                236,
+                33
+              ],
+              [
+                87,
+                45
+              ],
+              [
+                205,
+                120
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-02",
+          "kind": "word",
+          "files": [
+            "word-02-0.jpg",
+            "word-02-1.png",
+            "word-02-2.png",
+            "word-02-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/b2a75f0ba73c47c4bae4b07b65f4c1e4.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b3fcfc703b5148eca104e01207c8190f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/ef2712b1bb1f0b6a316714994a2d2d45.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c6d2f2f451d9d5aca60b41cc6a3eb93.png"
+          ],
+          "sha256": [
+            "fe848cc265cd39e12606170bb433bea63e75976a35b73b41f00578d6c4db3e21",
+            "86d935fbb723ed53c87bc1c36999f733d23dc9f26db863ee452aa04d109e5147",
+            "e364979e7e46d29a32a1b1cc3ad9ec443badeae2639b9f53deca7f19df25e69c",
+            "ec26e6ab28f99c16f9b159e76cd9ebf88d964db4f1b38d2af3fb435476a3c29a"
+          ],
+          "prediction": {
+            "id": "word-02",
+            "boxes": [
+              [
+                75,
+                86,
+                138,
+                147
+              ],
+              [
+                8,
+                105,
+                68,
+                163
+              ],
+              [
+                135,
+                112,
+                193,
+                169
+              ],
+              [
+                128,
+                17,
+                186,
+                74
+              ],
+              [
+                0,
+                0,
+                60,
+                55
+              ],
+              [
+                285,
+                122,
+                299,
+                171
+              ]
+            ],
+            "scores": [
+              [
+                0.04795782268047333,
+                0.049496471881866455,
+                0.6500158309936523,
+                0.04727601632475853,
+                0.9504672288894653,
+                0.12720341980457306
+              ],
+              [
+                0.10791926085948944,
+                0.048354633152484894,
+                0.478108674287796,
+                0.951971173286438,
+                0.04812650382518768,
+                0.19816918671131134
+              ],
+              [
+                0.4427441656589508,
+                0.9499301314353943,
+                0.053828321397304535,
+                0.04764628782868385,
+                0.048665642738342285,
+                0.47742265462875366
+              ]
+            ],
+            "points": [
+              [
+                30.0,
+                27.5
+              ],
+              [
+                157.0,
+                45.5
+              ],
+              [
+                38.0,
+                134.0
+              ]
+            ],
+            "seconds": 0.486301482989802
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                29,
+                28
+              ],
+              [
+                157,
+                44
+              ],
+              [
+                41,
+                136
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-03",
+          "kind": "word",
+          "files": [
+            "word-03-0.jpg",
+            "word-03-1.png",
+            "word-03-2.png",
+            "word-03-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/cc8bc364943e48b1910d5c757e33df10.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a315cf24633f51d43e73b70d55bedefc.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a136f339af8c799ea9f58e6818f14f6e.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/c26236c2e1be026ce9634bf5fbbb521f.png"
+          ],
+          "sha256": [
+            "8a0d764aec993bcb32f5329e837e9034048dcb2c386f5fc580db733aadb11018",
+            "fca7dd23e2ac71c60ec6cb19abcc393000ae25f1bd65285535b4a7c3fab7dcda",
+            "149cdaad6c12bdb4074b549194e82bf11cdb1bfbe7dbfa66acfa16e6f5e6d338",
+            "45fe30fa10838306e801ed416cb3d18cac41b93972372d6f5237b5252b0f0e30"
+          ],
+          "prediction": {
+            "id": "word-03",
+            "boxes": [
+              [
+                10,
+                99,
+                69,
+                156
+              ],
+              [
+                210,
+                45,
+                267,
+                100
+              ],
+              [
+                44,
+                17,
+                104,
+                73
+              ],
+              [
+                203,
+                125,
+                259,
+                182
+              ],
+              [
+                112,
+                60,
+                171,
+                113
+              ]
+            ],
+            "scores": [
+              [
+                0.13585424423217773,
+                0.9491161108016968,
+                0.0482008159160614,
+                0.5862540006637573,
+                0.2914935350418091
+              ],
+              [
+                0.04774290695786476,
+                0.3124524652957916,
+                0.9478527903556824,
+                0.08797837048768997,
+                0.04797602444887161
+              ],
+              [
+                0.05167791619896889,
+                0.052784912288188934,
+                0.04803570732474327,
+                0.9302264451980591,
+                0.5311877131462097
+              ]
+            ],
+            "points": [
+              [
+                238.5,
+                72.5
+              ],
+              [
+                74.0,
+                45.0
+              ],
+              [
+                231.0,
+                153.5
+              ]
+            ],
+            "seconds": 0.4497877949906979
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                235,
+                74
+              ],
+              [
+                75,
+                45
+              ],
+              [
+                230,
+                157
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-04",
+          "kind": "word",
+          "files": [
+            "word-04-0.jpg",
+            "word-04-1.png",
+            "word-04-2.png",
+            "word-04-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/f9b99f1afef945d08e1389872e65ccb3.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3ee77c8ef93400e9e9fae6346ae6f580.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/69876e881af8192dd66ad10dab7c94b1.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+          ],
+          "sha256": [
+            "62a55e6c7eb502fd2ca0af2e48dba47ab8386676fa841ddc7f9b160016253aee",
+            "891faefa947e83b050d3eff0a70e8ee30427b42c8423a002458bcd349ed05ea3",
+            "12f763b64229f824a95ced71f34c0540e00ccb175c727290294b02bf116ca7e4",
+            "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+          ],
+          "prediction": {
+            "id": "word-04",
+            "boxes": [
+              [
+                133,
+                39,
+                189,
+                93
+              ],
+              [
+                165,
+                104,
+                227,
+                159
+              ],
+              [
+                198,
+                7,
+                262,
+                63
+              ],
+              [
+                3,
+                100,
+                61,
+                156
+              ],
+              [
+                0,
+                42,
+                55,
+                96
+              ]
+            ],
+            "scores": [
+              [
+                0.04847417399287224,
+                0.097172312438488,
+                0.40845051407814026,
+                0.047773078083992004,
+                0.04810304567217827
+              ],
+              [
+                0.09084518253803253,
+                0.6269001364707947,
+                0.7146120071411133,
+                0.04876936227083206,
+                0.9494030475616455
+              ],
+              [
+                0.9481749534606934,
+                0.06127932295203209,
+                0.04766608029603958,
+                0.0478072352707386,
+                0.04704105481505394
+              ]
+            ],
+            "points": [
+              [
+                230.0,
+                35.0
+              ],
+              [
+                27.5,
+                69.0
+              ],
+              [
+                161.0,
+                66.0
+              ]
+            ],
+            "seconds": 0.4458028309891233
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                230,
+                35
+              ],
+              [
+                25,
+                70
+              ],
+              [
+                160,
+                67
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-05",
+          "kind": "word",
+          "files": [
+            "word-05-0.jpg",
+            "word-05-1.png",
+            "word-05-2.png",
+            "word-05-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/717eed37db444fbab7c2e395cc2e0f91.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/08eec2c521bfef59b93ffa26dce1bcf7.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4e195a21aac1f6f9229b29d086077331.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7def9ee0ca92d01f237409a1d0034a60.png"
+          ],
+          "sha256": [
+            "a036c0e79c3edb1198c3dd7934dbc563bcc9b58b73913c72bb514e0891b8436f",
+            "cf7867a8bd915ecc78b43ef5dfcf253b48e2e21bfc45dd373e01f36ee8c3efb3",
+            "d075320187d118502610214c904229e3a3858fb5c5c394250f14105a06e5c682",
+            "d5ff1bda70df9ae4cf5c36a60cfaf4f4943b45c0b072a3a75d779057f0893855"
+          ],
+          "prediction": {
+            "id": "word-05",
+            "boxes": [
+              [
+                204,
+                34,
+                264,
+                90
+              ],
+              [
+                8,
+                17,
+                70,
+                77
+              ],
+              [
+                118,
+                19,
+                174,
+                74
+              ],
+              [
+                192,
+                102,
+                254,
+                160
+              ],
+              [
+                96,
+                108,
+                160,
+                167
+              ]
+            ],
+            "scores": [
+              [
+                0.04716482385993004,
+                0.05072663724422455,
+                0.050585974007844925,
+                0.29614073038101196,
+                0.9487470388412476
+              ],
+              [
+                0.9532535076141357,
+                0.40359604358673096,
+                0.633770227432251,
+                0.04848609119653702,
+                0.049810122698545456
+              ],
+              [
+                0.9461655020713806,
+                0.13296765089035034,
+                0.08839956670999527,
+                0.3587908148765564,
+                0.10770996659994125
+              ]
+            ],
+            "points": [
+              [
+                128.0,
+                137.5
+              ],
+              [
+                146.0,
+                46.5
+              ],
+              [
+                234.0,
+                62.0
+              ]
+            ],
+            "seconds": 0.47425405800458975
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                130,
+                130
+              ],
+              [
+                150,
+                48
+              ],
+              [
+                235,
+                60
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-06",
+          "kind": "word",
+          "files": [
+            "word-06-0.jpg",
+            "word-06-1.png",
+            "word-06-2.png",
+            "word-06-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/4bd81b9d1e854cfba34e60134321cba7.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/83f6c0da39d2f0341b8b76e2564c415a.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/0136d618174d4cc9c1ef03276931ecc8.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+          ],
+          "sha256": [
+            "b84a31f27db82257506bccb2d73788a21d3e8c7310a7005c71b7dd66a4812aa5",
+            "bcbc71cf6578071db6b78dce260c441fdd33e36507a27dc0cbe64abf49c6873d",
+            "ad8c8c972a61da78c90c44650af3afb1bf74a6087f937ee3a7f4cce5dee5af01",
+            "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+          ],
+          "prediction": {
+            "id": "word-06",
+            "boxes": [
+              [
+                200,
+                25,
+                259,
+                86
+              ],
+              [
+                38,
+                17,
+                92,
+                71
+              ],
+              [
+                124,
+                114,
+                181,
+                169
+              ],
+              [
+                120,
+                35,
+                179,
+                91
+              ],
+              [
+                213,
+                125,
+                268,
+                181
+              ]
+            ],
+            "scores": [
+              [
+                0.047466304153203964,
+                0.08567926287651062,
+                0.07576814293861389,
+                0.08447097986936569,
+                0.9492864608764648
+              ],
+              [
+                0.8889984488487244,
+                0.048943355679512024,
+                0.05698186159133911,
+                0.06342045962810516,
+                0.04834580793976784
+              ],
+              [
+                0.048421259969472885,
+                0.9452584385871887,
+                0.04813991114497185,
+                0.6916379332542419,
+                0.04634993150830269
+              ]
+            ],
+            "points": [
+              [
+                240.5,
+                153.0
+              ],
+              [
+                229.5,
+                55.5
+              ],
+              [
+                65.0,
+                44.0
+              ]
+            ],
+            "seconds": 0.4470589900010964
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                235,
+                151
+              ],
+              [
+                230,
+                56
+              ],
+              [
+                66,
+                51
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-07",
+          "kind": "word",
+          "files": [
+            "word-07-0.jpg",
+            "word-07-1.png",
+            "word-07-2.png",
+            "word-07-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/8f9a4e1aba1b49db9eb8ac590285e618.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b4f965683ff747825ddd1824b6e4998c.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2428721ba447825fd4bfde2416fae7d8.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a001ed1cf190f9795d4d3fa6700bfd2b.png"
+          ],
+          "sha256": [
+            "b46386fc418aa6e1da5a56c22ba6c493f76dab75d49e91c3ce54d93beb781f54",
+            "3045103b6b2dc6eac8ab675bce760e5435579cfa501f236be4bb8021bf114df5",
+            "06c6525ab2b84e042300689dd9dd1e27d8f948513f9a07c842f1cda5dbfd20ae",
+            "55188dc705232b3d65aae8fc8bd0a35c5812aa6a87133d29a06e2c7f927e6d26"
+          ],
+          "prediction": {
+            "id": "word-07",
+            "boxes": [
+              [
+                196,
+                23,
+                258,
+                82
+              ],
+              [
+                73,
+                10,
+                132,
+                68
+              ],
+              [
+                32,
+                78,
+                95,
+                137
+              ],
+              [
+                136,
+                78,
+                195,
+                136
+              ]
+            ],
+            "scores": [
+              [
+                0.04837808758020401,
+                0.04796551913022995,
+                0.9497490525245667,
+                0.04802107438445091
+              ],
+              [
+                0.951568067073822,
+                0.9389886260032654,
+                0.047930698841810226,
+                0.5715556740760803
+              ],
+              [
+                0.04882055148482323,
+                0.056080710142850876,
+                0.046816274523735046,
+                0.9449844360351562
+              ]
+            ],
+            "points": [
+              [
+                63.5,
+                107.5
+              ],
+              [
+                227.0,
+                52.5
+              ],
+              [
+                165.5,
+                107.0
+              ]
+            ],
+            "seconds": 0.42092223299550824
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                60,
+                113
+              ],
+              [
+                225,
+                55
+              ],
+              [
+                165,
+                115
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-08",
+          "kind": "word",
+          "files": [
+            "word-08-0.jpg",
+            "word-08-1.png",
+            "word-08-2.png",
+            "word-08-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/a6660889122941aebefb7a50279deddd.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5d6e3b1dd1694c7531750996e5e9094a.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/cfec36ed99d25df61f4013aa96f3f19d.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b712c9ad229554a25f13c55bfcf4c470.png"
+          ],
+          "sha256": [
+            "6f5d6b1109062614511d740f485f3ffbf23b864790d5f78b7e1979c6769e17fb",
+            "e5a8a9c6b781cfec3fd44d77f3be5c07ccaf09398da515d28a91bf60a7c93869",
+            "f098f3b71eb2964a623578fd1a9d9d872d711ff40b4a51bb84ccce13b2888c2a",
+            "e39bcf6cb405399faaacb4e36ea9ed3d58d8e05318a6592c7c92cf83a5b64ecc"
+          ],
+          "prediction": {
+            "id": "word-08",
+            "boxes": [
+              [
+                201,
+                113,
+                256,
+                169
+              ],
+              [
+                0,
+                98,
+                54,
+                153
+              ],
+              [
+                117,
+                74,
+                173,
+                127
+              ],
+              [
+                114,
+                3,
+                171,
+                60
+              ],
+              [
+                172,
+                0,
+                232,
+                54
+              ]
+            ],
+            "scores": [
+              [
+                0.0517919659614563,
+                0.05879659578204155,
+                0.06756535172462463,
+                0.7067747712135315,
+                0.9443348050117493
+              ],
+              [
+                0.07667708396911621,
+                0.050480037927627563,
+                0.24701355397701263,
+                0.9507383704185486,
+                0.3913346230983734
+              ],
+              [
+                0.18462011218070984,
+                0.9512388110160828,
+                0.20417465269565582,
+                0.06638255715370178,
+                0.0699336975812912
+              ]
+            ],
+            "points": [
+              [
+                202.0,
+                27.0
+              ],
+              [
+                142.5,
+                31.5
+              ],
+              [
+                27.0,
+                125.5
+              ]
+            ],
+            "seconds": 0.44538895100413356
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                200,
+                25
+              ],
+              [
+                140,
+                36
+              ],
+              [
+                25,
+                127
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-09",
+          "kind": "word",
+          "files": [
+            "word-09-0.jpg",
+            "word-09-1.png",
+            "word-09-2.png",
+            "word-09-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fb654a59cf5942d08cedb64ec6704cfa.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2044c27397909670f0d90b8b6b5c15c5.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/eab619fba24a1ea828eebee4f54a138f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2321edcb026488b830db6ff41517e40a.png"
+          ],
+          "sha256": [
+            "f22681037fef9cc0da5bc73c5cf1babdd1b614dc8fbf1e154fa73cf6472ccbc9",
+            "7aacdc98612047c8e2d38268d6d6284283d9878abe5746f0a285c065554bfc10",
+            "762346732ce451747110a8d4ac83c9ba07c4d6012065c73546428e11b5a9931b",
+            "a1d64875cb1a89d4afe7f8ca01a33facc4409fa3b199d55dbe26bcb32d87bb95"
+          ],
+          "prediction": {
+            "id": "word-09",
+            "boxes": [
+              [
+                31,
+                66,
+                95,
+                125
+              ],
+              [
+                196,
+                12,
+                257,
+                68
+              ],
+              [
+                106,
+                119,
+                162,
+                171
+              ],
+              [
+                84,
+                5,
+                142,
+                57
+              ],
+              [
+                111,
+                66,
+                167,
+                117
+              ]
+            ],
+            "scores": [
+              [
+                0.2832805812358856,
+                0.049645714461803436,
+                0.7750082612037659,
+                0.9437544941902161,
+                0.1572500765323639
+              ],
+              [
+                0.9494186043739319,
+                0.0832613930106163,
+                0.04696653038263321,
+                0.04833252727985382,
+                0.21376799046993256
+              ],
+              [
+                0.04737730696797371,
+                0.052513424307107925,
+                0.9474413990974426,
+                0.05010579526424408,
+                0.11057280749082565
+              ]
+            ],
+            "points": [
+              [
+                113.0,
+                31.0
+              ],
+              [
+                63.0,
+                95.5
+              ],
+              [
+                134.0,
+                145.0
+              ]
+            ],
+            "seconds": 0.45109978500113357
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                120,
+                26
+              ],
+              [
+                66,
+                94
+              ],
+              [
+                135,
+                148
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-10",
+          "kind": "word",
+          "files": [
+            "word-10-0.jpg",
+            "word-10-1.png",
+            "word-10-2.png",
+            "word-10-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/c0ffc7c0dfc94d79857e49b7460b11fc.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2b047aeed300b4df9b5a006ac03b302d.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/91a1eb2545461008e7babcfbee37b240.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/077a4f9c3546ecc18ae570483dcd603f.png"
+          ],
+          "sha256": [
+            "80a69da8ebb35c883eee26ecc9ca065489d2d89f9eaeae15e92a95b49b757fd2",
+            "efd61fc3b2e6a84d0a204f5d2f5b2757a6f9d273f34f54a8adf503dd7579afbf",
+            "fd3d2a494aa782a9342015e76d5f024f24d5f4eda662d24878d0bcade68f376d",
+            "ffd5d57de137727e212ef48f4a516ae2a925edbb43f11fdcc1652741f4f46bc6"
+          ],
+          "prediction": {
+            "id": "word-10",
+            "boxes": [
+              [
+                78,
+                28,
+                136,
+                85
+              ],
+              [
+                0,
+                52,
+                54,
+                110
+              ],
+              [
+                221,
+                84,
+                279,
+                140
+              ],
+              [
+                139,
+                59,
+                197,
+                116
+              ],
+              [
+                200,
+                0,
+                259,
+                58
+              ]
+            ],
+            "scores": [
+              [
+                0.9488072395324707,
+                0.3490082323551178,
+                0.762663722038269,
+                0.3484082818031311,
+                0.2064337283372879
+              ],
+              [
+                0.04837198555469513,
+                0.19900013506412506,
+                0.9505689144134521,
+                0.37393513321876526,
+                0.05022468790411949
+              ],
+              [
+                0.8633291125297546,
+                0.9515719413757324,
+                0.43931493163108826,
+                0.3077177405357361,
+                0.04873799532651901
+              ]
+            ],
+            "points": [
+              [
+                107.0,
+                56.5
+              ],
+              [
+                250.0,
+                112.0
+              ],
+              [
+                27.0,
+                81.0
+              ]
+            ],
+            "seconds": 0.4877553429978434
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                105,
+                59
+              ],
+              [
+                250,
+                114
+              ],
+              [
+                23,
+                80
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-11",
+          "kind": "word",
+          "files": [
+            "word-11-0.jpg",
+            "word-11-1.png",
+            "word-11-2.png",
+            "word-11-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/80b1b66d49954ed183bde017ec1c74ae.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bcee84f04c0a32692abefe8a800d93f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/49d18732e817c50d4fc9755afea7230d.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d3cfe8c4ecbdad6539e0b8d50d91215.png"
+          ],
+          "sha256": [
+            "ed4b13e4535b7e0b5c6207c1f51da387d721366e70852cd736dc2a929597aec1",
+            "291da1556c49e61e8e7ccc9533823d01473117880c06b3aae144d3b53f942392",
+            "6eb64e80352c24e1d0dda35b4f7014de030d901c3cdc008afb24ed0f7aa3aeb3",
+            "50fe3a0454d609988f385cca9eec6b92ef1bba0840825fd4cdadea5c5b3867fe"
+          ],
+          "prediction": {
+            "id": "word-11",
+            "boxes": [
+              [
+                224,
+                0,
+                282,
+                56
+              ],
+              [
+                49,
+                78,
+                104,
+                130
+              ],
+              [
+                228,
+                79,
+                283,
+                134
+              ],
+              [
+                156,
+                96,
+                214,
+                153
+              ],
+              [
+                0,
+                4,
+                57,
+                59
+              ]
+            ],
+            "scores": [
+              [
+                0.2810540199279785,
+                0.7732222080230713,
+                0.04944445937871933,
+                0.5440689325332642,
+                0.2624589204788208
+              ],
+              [
+                0.08896385878324509,
+                0.048606835305690765,
+                0.05133945867419243,
+                0.052065636962652206,
+                0.9321708083152771
+              ],
+              [
+                0.19968187808990479,
+                0.047529179602861404,
+                0.906777024269104,
+                0.0505685955286026,
+                0.5790421366691589
+              ]
+            ],
+            "points": [
+              [
+                76.5,
+                104.0
+              ],
+              [
+                28.5,
+                31.5
+              ],
+              [
+                255.5,
+                106.5
+              ]
+            ],
+            "seconds": 0.4533167159970617
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                75,
+                105
+              ],
+              [
+                30,
+                31
+              ],
+              [
+                260,
+                106
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-12",
+          "kind": "word",
+          "files": [
+            "word-12-0.jpg",
+            "word-12-1.png",
+            "word-12-2.png",
+            "word-12-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/4a93d4c1bc0c4e878bfa5adea593a2c9.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/aeffbc85384fcca6d1cdc6b39fbb8eeb.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5e5b5ed8d58c99da84028b8da16164dc.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/974f98c1a1e7793d93486613e0002303.png"
+          ],
+          "sha256": [
+            "1a59664390f844cb2a27a5b73b84c294eaf2cfe12008c59cf5606096d5ce7c14",
+            "0ad845b1bce4f2b59cfe2c2526e91a1525a463b10555776d8844dbdfa48bb8f1",
+            "7999efdd611033e3563dd7872c49f652c0a1a898200e2ee3bc3197f61edcd08f",
+            "892a6a5fe29a2f3ebbb27c2410af5dda74797284143e62dd942a3b1fd23906df"
+          ],
+          "prediction": {
+            "id": "word-12",
+            "boxes": [
+              [
+                120,
+                114,
+                180,
+                170
+              ],
+              [
+                12,
+                0,
+                74,
+                57
+              ],
+              [
+                209,
+                101,
+                264,
+                155
+              ],
+              [
+                120,
+                49,
+                182,
+                107
+              ],
+              [
+                215,
+                13,
+                276,
+                69
+              ]
+            ],
+            "scores": [
+              [
+                0.6534692049026489,
+                0.9405304193496704,
+                0.7710846066474915,
+                0.3861200511455536,
+                0.04927334561944008
+              ],
+              [
+                0.26290228962898254,
+                0.5249179005622864,
+                0.9487264752388,
+                0.7275057435035706,
+                0.04867717623710632
+              ],
+              [
+                0.128633052110672,
+                0.047150637954473495,
+                0.37823474407196045,
+                0.9505783915519714,
+                0.053387656807899475
+              ]
+            ],
+            "points": [
+              [
+                43.0,
+                28.5
+              ],
+              [
+                236.5,
+                128.0
+              ],
+              [
+                151.0,
+                78.0
+              ]
+            ],
+            "seconds": 0.44822865701280534
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                42,
+                29
+              ],
+              [
+                236,
+                129
+              ],
+              [
+                149,
+                80
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-13",
+          "kind": "word",
+          "files": [
+            "word-13-0.jpg",
+            "word-13-1.png",
+            "word-13-2.png",
+            "word-13-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9310ecdece5c42559f817db8452d4a69.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/eab619fba24a1ea828eebee4f54a138f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bbb3b39928f0761a66eda6de3edeb27.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9a626a186f5ce819550da5e9c635901a.png"
+          ],
+          "sha256": [
+            "75db51b9499c1036ab69869e5dbe08c799a63d02193704b801be00f9253c5cf8",
+            "762346732ce451747110a8d4ac83c9ba07c4d6012065c73546428e11b5a9931b",
+            "a44f289842df7c54438fae3c3fd1bf9a2835e04b69cb3cd9f7ea7c8a9ea62a97",
+            "72a4ad8e22c65ea3d50b80dbba9bb6e0f0c567cff835b6edc76828cb4367734a"
+          ],
+          "prediction": {
+            "id": "word-13",
+            "boxes": [
+              [
+                205,
+                21,
+                265,
+                78
+              ],
+              [
+                47,
+                51,
+                109,
+                112
+              ],
+              [
+                86,
+                115,
+                148,
+                169
+              ],
+              [
+                155,
+                84,
+                214,
+                143
+              ],
+              [
+                130,
+                35,
+                186,
+                88
+              ]
+            ],
+            "scores": [
+              [
+                0.11390663683414459,
+                0.20248086750507355,
+                0.9484871029853821,
+                0.15474064648151398,
+                0.07359398901462555
+              ],
+              [
+                0.04843154177069664,
+                0.9469378590583801,
+                0.14437134563922882,
+                0.047597452998161316,
+                0.05038532614707947
+              ],
+              [
+                0.9292174577713013,
+                0.04541973024606705,
+                0.046899303793907166,
+                0.526249885559082,
+                0.593274712562561
+              ]
+            ],
+            "points": [
+              [
+                117.0,
+                142.0
+              ],
+              [
+                78.0,
+                81.5
+              ],
+              [
+                235.0,
+                49.5
+              ]
+            ],
+            "seconds": 0.44841242500115186
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                115,
+                140
+              ],
+              [
+                80,
+                89
+              ],
+              [
+                238,
+                54
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-14",
+          "kind": "word",
+          "files": [
+            "word-14-0.jpg",
+            "word-14-1.png",
+            "word-14-2.png",
+            "word-14-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/504968368a7744048b54d5d15d8cb7ed.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a2705d7fc85fec8eec1211649ce2d3ca.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/73325cad49c2d085cc4ef888f05fb335.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a6cdd2a00bc8557f94665a0422a54329.png"
+          ],
+          "sha256": [
+            "551a4225e336ef5415aa4090d17db622fbca769aa27575868a11d662352999da",
+            "740e09a84c3d9d3d43a2dd04dfd77a9cc942103d406ced15c345fc7acf919bf6",
+            "883f08c0a110c4bca73185484f283030acab81fd021119ba6345ae233407241a",
+            "d0382c87ec74cf473d03fce5262e03a7c573b619a4190b81f78c638466cd2f84"
+          ],
+          "prediction": {
+            "id": "word-14",
+            "boxes": [
+              [
+                86,
+                7,
+                145,
+                63
+              ],
+              [
+                25,
+                20,
+                83,
+                79
+              ],
+              [
+                180,
+                96,
+                241,
+                152
+              ],
+              [
+                91,
+                67,
+                150,
+                124
+              ],
+              [
+                210,
+                9,
+                266,
+                63
+              ],
+              [
+                0,
+                111,
+                19,
+                159
+              ],
+              [
+                43,
+                109,
+                91,
+                163
+              ]
+            ],
+            "scores": [
+              [
+                0.07616116106510162,
+                0.04821468144655228,
+                0.9501844048500061,
+                0.7203854322433472,
+                0.0805688351392746,
+                0.4953412413597107,
+                0.06257269531488419
+              ],
+              [
+                0.880757749080658,
+                0.948503315448761,
+                0.08562598377466202,
+                0.8468521237373352,
+                0.0483565591275692,
+                0.4960917532444,
+                0.04720970615744591
+              ],
+              [
+                0.5843307375907898,
+                0.05724986270070076,
+                0.057065799832344055,
+                0.9477419257164001,
+                0.05414484441280365,
+                0.5399987697601318,
+                0.1484021544456482
+              ]
+            ],
+            "points": [
+              [
+                210.5,
+                124.0
+              ],
+              [
+                54.0,
+                49.5
+              ],
+              [
+                120.5,
+                95.5
+              ]
+            ],
+            "seconds": 0.5072029290022328
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                209,
+                125
+              ],
+              [
+                53,
+                50
+              ],
+              [
+                122,
+                92
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-15",
+          "kind": "word",
+          "files": [
+            "word-15-0.jpg",
+            "word-15-1.png",
+            "word-15-2.png",
+            "word-15-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/88c1296bad914fa2a0ba536365cf9a1d.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/219992473b57995ab37a7806e2a1e2d2.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/0857fa4e346f38ac6636279bb64cf0d1.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/575b7a4dca51abf1e5522531da955f28.png"
+          ],
+          "sha256": [
+            "e146cbd8e84945b51494de32929412ee85aa9e787da4f5fb0a1aab68c37642ac",
+            "ff1a3c7bbf66c7a82134f13d29bce102fa23af6b52e07b29412d5b6df8a0553c",
+            "773a267bf98260264a6d769717bee10610bce629d273e1bb8ad97f4219530d96",
+            "f69f2367f009c387d89607a405e54fc94acc9bba927054f2e8b32d3fd8b1d588"
+          ],
+          "prediction": {
+            "id": "word-15",
+            "boxes": [
+              [
+                189,
+                127,
+                242,
+                180
+              ],
+              [
+                29,
+                48,
+                88,
+                103
+              ],
+              [
+                28,
+                113,
+                83,
+                165
+              ],
+              [
+                114,
+                74,
+                170,
+                130
+              ],
+              [
+                202,
+                70,
+                262,
+                124
+              ]
+            ],
+            "scores": [
+              [
+                0.17860518395900726,
+                0.9372689723968506,
+                0.9504246711730957,
+                0.04887831211090088,
+                0.36282259225845337
+              ],
+              [
+                0.04820401966571808,
+                0.0465276800096035,
+                0.15329113602638245,
+                0.04870929569005966,
+                0.9503595232963562
+              ],
+              [
+                0.08403714746236801,
+                0.5886479616165161,
+                0.05186505243182182,
+                0.0506117083132267,
+                0.04894188791513443
+              ]
+            ],
+            "points": [
+              [
+                55.5,
+                139.0
+              ],
+              [
+                232.0,
+                97.0
+              ],
+              [
+                58.5,
+                75.5
+              ]
+            ],
+            "seconds": 0.4690985890047159
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                57,
+                139
+              ],
+              [
+                231,
+                100
+              ],
+              [
+                56,
+                72
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-16",
+          "kind": "word",
+          "files": [
+            "word-16-0.jpg",
+            "word-16-1.png",
+            "word-16-2.png",
+            "word-16-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fd0f1e74aeb64e0a8a8c644764456136.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/778b84ebf8d5a75f4c5e97b73f0696fe.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4edc8d491674ddf75dd204e8e6d45b02.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c6d2f2f451d9d5aca60b41cc6a3eb93.png"
+          ],
+          "sha256": [
+            "bbefcef2a326ff1eb1ef3f3f8bb03ce2993824947b38b4f8209d402f4e445784",
+            "d5b7d520919c11abbc0f4084ec0c9fcdaf62dd3333569dab7c27e74d3fc440ff",
+            "7e1df0ab98b615ed2e8fdf7617a5cf777c7d5d9803d34b8be12390cd60875e23",
+            "ec26e6ab28f99c16f9b159e76cd9ebf88d964db4f1b38d2af3fb435476a3c29a"
+          ],
+          "prediction": {
+            "id": "word-16",
+            "boxes": [
+              [
+                100,
+                55,
+                160,
+                118
+              ],
+              [
+                168,
+                56,
+                228,
+                113
+              ],
+              [
+                26,
+                44,
+                83,
+                99
+              ],
+              [
+                150,
+                1,
+                208,
+                57
+              ],
+              [
+                212,
+                124,
+                273,
+                182
+              ],
+              [
+                280,
+                68,
+                299,
+                126
+              ]
+            ],
+            "scores": [
+              [
+                0.17450276017189026,
+                0.6453914046287537,
+                0.06352240592241287,
+                0.9507563710212708,
+                0.05358268693089485,
+                0.050763729959726334
+              ],
+              [
+                0.3905643820762634,
+                0.9496120810508728,
+                0.06856068968772888,
+                0.5953123569488525,
+                0.7426090240478516,
+                0.04942674934864044
+              ],
+              [
+                0.9501246809959412,
+                0.05106360465288162,
+                0.7804580926895142,
+                0.06662548333406448,
+                0.21184973418712616,
+                0.05310496315360069
+              ]
+            ],
+            "points": [
+              [
+                179.0,
+                29.0
+              ],
+              [
+                198.0,
+                84.5
+              ],
+              [
+                130.0,
+                86.5
+              ]
+            ],
+            "seconds": 0.47363772500830237
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                179,
+                30
+              ],
+              [
+                195,
+                86
+              ],
+              [
+                128,
+                91
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-17",
+          "kind": "word",
+          "files": [
+            "word-17-0.jpg",
+            "word-17-1.png",
+            "word-17-2.png",
+            "word-17-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fc71032d59044570b823463486f962aa.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bcee84f04c0a32692abefe8a800d93f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/49d18732e817c50d4fc9755afea7230d.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d3cfe8c4ecbdad6539e0b8d50d91215.png"
+          ],
+          "sha256": [
+            "e1c1dd8fc616e5651363cd4694da5aa46dda8411fd0fb7450fc781002ddb54d1",
+            "291da1556c49e61e8e7ccc9533823d01473117880c06b3aae144d3b53f942392",
+            "6eb64e80352c24e1d0dda35b4f7014de030d901c3cdc008afb24ed0f7aa3aeb3",
+            "50fe3a0454d609988f385cca9eec6b92ef1bba0840825fd4cdadea5c5b3867fe"
+          ],
+          "prediction": {
+            "id": "word-17",
+            "boxes": [
+              [
+                206,
+                115,
+                264,
+                172
+              ],
+              [
+                90,
+                27,
+                154,
+                87
+              ],
+              [
+                7,
+                30,
+                66,
+                90
+              ],
+              [
+                29,
+                111,
+                92,
+                166
+              ],
+              [
+                152,
+                113,
+                204,
+                166
+              ]
+            ],
+            "scores": [
+              [
+                0.8264855146408081,
+                0.09121743589639664,
+                0.068627268075943,
+                0.047971438616514206,
+                0.7034053206443787
+              ],
+              [
+                0.04591303691267967,
+                0.2966056168079376,
+                0.06079902499914169,
+                0.04944171383976936,
+                0.9115643501281738
+              ],
+              [
+                0.04851185902953148,
+                0.0890936627984047,
+                0.04785294458270073,
+                0.27697518467903137,
+                0.2614692449569702
+              ]
+            ],
+            "points": [
+              [
+                235.0,
+                143.5
+              ],
+              [
+                178.0,
+                139.5
+              ],
+              [
+                60.5,
+                138.5
+              ]
+            ],
+            "seconds": 0.4421489600063069
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                234,
+                145
+              ],
+              [
+                176,
+                143
+              ],
+              [
+                65,
+                144
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-18",
+          "kind": "word",
+          "files": [
+            "word-18-0.jpg",
+            "word-18-1.png",
+            "word-18-2.png",
+            "word-18-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/c80116df0a4d49579b7bb75c25a4d3d8.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/20c37a06f23b7a0c92b18db3e5d57306.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/f4965ce10c943000192e844330466c4d.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3d1460865168d9ef1dc3f605cf119284.png"
+          ],
+          "sha256": [
+            "122d7f7ce305eb2db40644206e59af5eed995b6b688242697eafe7c99310dec9",
+            "49c934de9fd5f50eb0f2a99277b0434bf06427bedbd08c6e45d4ef53514dfb0d",
+            "1b83ed8b9540a0d80c86c3c9bca3deea38d6d57a92f7900496dc731b99897b89",
+            "d1cced090ba9e03ace3718377d73557fdfae98d7a365b1cc6e6d59bbf9ef24d8"
+          ],
+          "prediction": {
+            "id": "word-18",
+            "boxes": [
+              [
+                224,
+                124,
+                279,
+                179
+              ],
+              [
+                8,
+                4,
+                68,
+                61
+              ],
+              [
+                46,
+                82,
+                102,
+                138
+              ],
+              [
+                105,
+                97,
+                161,
+                152
+              ],
+              [
+                169,
+                38,
+                228,
+                94
+              ]
+            ],
+            "scores": [
+              [
+                0.04949236288666725,
+                0.04978041350841522,
+                0.5036492943763733,
+                0.9500000476837158,
+                0.6140896081924438
+              ],
+              [
+                0.04934864118695259,
+                0.059056684374809265,
+                0.055153314024209976,
+                0.2501494288444519,
+                0.94776850938797
+              ],
+              [
+                0.0477416068315506,
+                0.9502400755882263,
+                0.09981274604797363,
+                0.04897332191467285,
+                0.15967245399951935
+              ]
+            ],
+            "points": [
+              [
+                133.0,
+                124.5
+              ],
+              [
+                198.5,
+                66.0
+              ],
+              [
+                38.0,
+                32.5
+              ]
+            ],
+            "seconds": 0.45397545999730937
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                130,
+                122
+              ],
+              [
+                199,
+                66
+              ],
+              [
+                38,
+                33
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-19",
+          "kind": "word",
+          "files": [
+            "word-19-0.jpg",
+            "word-19-1.png",
+            "word-19-2.png",
+            "word-19-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/84067c03be074e8d9391a17174c72658.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d30111edc99f56297650e9eb0de1f14.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5442dfce9bae4548d3851889266c5381.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c41898568fd50d0ed8b84a9842ef616.png"
+          ],
+          "sha256": [
+            "2e6eecf48e8234d3d7663b0c2700491f206161cb81584cb92a647563fbeada22",
+            "4fcac3f709b3f51c99edc031e0c4cf94d6b731277ef61081ccdf8807e1abaaa8",
+            "c5ddf7d9b06707590748a4da7876ef36f999bad7df700c8e032627dd44a3d979",
+            "faa6e1751605a48bc3cd3a3065e7c5fdbd7b1335dae46a11fb59dff618db8738"
+          ],
+          "prediction": {
+            "id": "word-19",
+            "boxes": [
+              [
+                0,
+                69,
+                54,
+                124
+              ],
+              [
+                45,
+                124,
+                96,
+                176
+              ],
+              [
+                194,
+                82,
+                252,
+                141
+              ],
+              [
+                21,
+                13,
+                82,
+                69
+              ],
+              [
+                124,
+                1,
+                184,
+                53
+              ]
+            ],
+            "scores": [
+              [
+                0.048591408878564835,
+                0.9103230834007263,
+                0.4423440992832184,
+                0.04879158362746239,
+                0.048667892813682556
+              ],
+              [
+                0.9479627013206482,
+                0.09251528978347778,
+                0.047766074538230896,
+                0.05388898029923439,
+                0.1301102638244629
+              ],
+              [
+                0.050551481544971466,
+                0.05014132335782051,
+                0.9279522895812988,
+                0.0476628802716732,
+                0.04928518086671829
+              ]
+            ],
+            "points": [
+              [
+                70.5,
+                150.0
+              ],
+              [
+                27.0,
+                96.5
+              ],
+              [
+                223.0,
+                111.5
+              ]
+            ],
+            "seconds": 0.4499278889998095
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                70,
+                152
+              ],
+              [
+                25,
+                97
+              ],
+              [
+                223,
+                113
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "holdout",
+      "method": "best_v3 detection over blurred RGB/inverse/CLAHE/inverse + NMS + pre_model_v7 unique assignment",
+      "correct": 14,
+      "total": 20,
+      "mean_seconds": 0.4558450778014958,
+      "p95_seconds": 0.4816404489974957,
+      "samples": [
+        {
+          "id": "word-00",
+          "kind": "word",
+          "files": [
+            "word-00-0.jpg",
+            "word-00-1.png",
+            "word-00-2.png",
+            "word-00-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/0906831b64344ef38248474c3f8b699e.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a8027886ff28d1b5c1fc29b554bd8c37.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/13026bc185d3772de2e8cd848d73b1f9.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/575b7a4dca51abf1e5522531da955f28.png"
+          ],
+          "sha256": [
+            "8b6cc9367ed02f9c3891061937ec1e0c19a1655cde45735e6455383a076856d3",
+            "e32ace1cdf9801c63a4e85f605627e3a762ed4417517034ad438ede19b689348",
+            "e88dd970887fb2a3566e04d8d9d09a57d6739b4737bf6bf86cbc521e744e6ef7",
+            "f69f2367f009c387d89607a405e54fc94acc9bba927054f2e8b32d3fd8b1d588"
+          ],
+          "prediction": {
+            "id": "word-00",
+            "boxes": [
+              [
+                85,
+                74,
+                144,
+                129
+              ],
+              [
+                128,
+                15,
+                186,
+                72
+              ],
+              [
+                66,
+                15,
+                120,
+                69
+              ],
+              [
+                201,
+                27,
+                259,
+                86
+              ],
+              [
+                191,
+                120,
+                253,
+                177
+              ]
+            ],
+            "scores": [
+              [
+                0.37111008167266846,
+                0.04701703041791916,
+                0.9430729150772095,
+                0.09636162966489792,
+                0.05822109431028366
+              ],
+              [
+                0.17372271418571472,
+                0.10727254301309586,
+                0.9232518076896667,
+                0.9459679126739502,
+                0.08543924242258072
+              ],
+              [
+                0.6720756888389587,
+                0.825319766998291,
+                0.10706719011068344,
+                0.8549172282218933,
+                0.06814650446176529
+              ]
+            ],
+            "points": [
+              [
+                93.0,
+                42.0
+              ],
+              [
+                230.0,
+                56.5
+              ],
+              [
+                157.0,
+                43.5
+              ]
+            ],
+            "seconds": 0.49512908700853586
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                94,
+                40
+              ],
+              [
+                230,
+                53
+              ],
+              [
+                157,
+                40
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-01",
+          "kind": "word",
+          "files": [
+            "word-01-0.jpg",
+            "word-01-1.png",
+            "word-01-2.png",
+            "word-01-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/b7db3148f7d4488cbd13747abd8bce7e.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a315cf24633f51d43e73b70d55bedefc.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a136f339af8c799ea9f58e6818f14f6e.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/c26236c2e1be026ce9634bf5fbbb521f.png"
+          ],
+          "sha256": [
+            "daa8f74a3dc692cc3f59b53afe68dfb6ddf2c0fc5814257800f55525b30e7f28",
+            "fca7dd23e2ac71c60ec6cb19abcc393000ae25f1bd65285535b4a7c3fab7dcda",
+            "149cdaad6c12bdb4074b549194e82bf11cdb1bfbe7dbfa66acfa16e6f5e6d338",
+            "45fe30fa10838306e801ed416cb3d18cac41b93972372d6f5237b5252b0f0e30"
+          ],
+          "prediction": {
+            "id": "word-01",
+            "boxes": [
+              [
+                205,
+                40,
+                265,
+                96
+              ],
+              [
+                72,
+                68,
+                128,
+                123
+              ],
+              [
+                29,
+                1,
+                85,
+                53
+              ],
+              [
+                203,
+                114,
+                259,
+                168
+              ],
+              [
+                144,
+                36,
+                200,
+                93
+              ]
+            ],
+            "scores": [
+              [
+                0.5558086037635803,
+                0.948703944683075,
+                0.07707810401916504,
+                0.06166236847639084,
+                0.09715518355369568
+              ],
+              [
+                0.07345820218324661,
+                0.33582496643066406,
+                0.04625449329614639,
+                0.0624125637114048,
+                0.9482215642929077
+              ],
+              [
+                0.9505055546760559,
+                0.05425622686743736,
+                0.048372503370046616,
+                0.048261724412441254,
+                0.048390746116638184
+              ]
+            ],
+            "points": [
+              [
+                100.0,
+                95.5
+              ],
+              [
+                172.0,
+                64.5
+              ],
+              [
+                235.0,
+                68.0
+              ]
+            ],
+            "seconds": 0.48151985999720637
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                100,
+                94
+              ],
+              [
+                172,
+                64
+              ],
+              [
+                234,
+                65
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-02",
+          "kind": "word",
+          "files": [
+            "word-02-0.jpg",
+            "word-02-1.png",
+            "word-02-2.png",
+            "word-02-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/93be37c6461b44c3beb5e8fe70c07e93.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/617ba808a38152089270532e6d83adef.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/dc661d5467cd656ab25be90560af0a3c.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/496c4a117133708a070e1dab22cbe1ba.png"
+          ],
+          "sha256": [
+            "b3d16493642367d20eb9adfdbc108a99f80a6ea6aafd5f127ada3eeb5ce95c09",
+            "9df694a0df4d6ae2f67c5d718b11005abeb235251529c17d07796c96868211f1",
+            "f1837156d7818ea243eb18a3c50757deb3d3e7e5d550cbda26d891a32b8d3ff4",
+            "d0432a1fb7a2e6bc6fabb60263aecf7b115a7bb18b54e79a94e7be5cf3f5d3e2"
+          ],
+          "prediction": {
+            "id": "word-02",
+            "boxes": [
+              [
+                220,
+                65,
+                278,
+                118
+              ],
+              [
+                142,
+                35,
+                197,
+                91
+              ],
+              [
+                128,
+                118,
+                190,
+                179
+              ],
+              [
+                24,
+                24,
+                85,
+                86
+              ]
+            ],
+            "scores": [
+              [
+                0.9015397429466248,
+                0.23002789914608002,
+                0.04934140294790268,
+                0.9495829343795776
+              ],
+              [
+                0.9464336037635803,
+                0.6106952428817749,
+                0.45785051584243774,
+                0.558815062046051
+              ],
+              [
+                0.3579657971858978,
+                0.8097663521766663,
+                0.3480297029018402,
+                0.08171112835407257
+              ]
+            ],
+            "points": [
+              [
+                54.5,
+                55.0
+              ],
+              [
+                249.0,
+                91.5
+              ],
+              [
+                169.5,
+                63.0
+              ]
+            ],
+            "seconds": 0.42528062500059605
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                54,
+                55
+              ],
+              [
+                249,
+                90
+              ],
+              [
+                110,
+                59
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-03",
+          "kind": "word",
+          "files": [
+            "word-03-0.jpg",
+            "word-03-1.png",
+            "word-03-2.png",
+            "word-03-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/5d0e381da61d4437ad1b9147b52e2722.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/431ffc5f2ab5ec46163eae0e2634ebbf.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a1ef207737a3a1c5183582b3b4806765.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5442dfce9bae4548d3851889266c5381.png"
+          ],
+          "sha256": [
+            "0eec4058cc7ca6e4fc1cdc1f1607c3d505e37880c20c84fbf8b644477e2f9e88",
+            "95d9c56606cdb1eee36cc846e5d2bbf5ac57969f9051d6e66086827ab2ec22d2",
+            "8e2a23e722c52db1cdd84ae2335215b1dcd7b3f20559f4fa7e4d80c0961b87c7",
+            "c5ddf7d9b06707590748a4da7876ef36f999bad7df700c8e032627dd44a3d979"
+          ],
+          "prediction": {
+            "id": "word-03",
+            "boxes": [
+              [
+                29,
+                93,
+                93,
+                152
+              ],
+              [
+                219,
+                119,
+                275,
+                171
+              ],
+              [
+                153,
+                62,
+                210,
+                117
+              ],
+              [
+                129,
+                125,
+                191,
+                182
+              ],
+              [
+                219,
+                52,
+                279,
+                114
+              ]
+            ],
+            "scores": [
+              [
+                0.049108050763607025,
+                0.7264905571937561,
+                0.0470673106610775,
+                0.047890421003103256,
+                0.0498703308403492
+              ],
+              [
+                0.0494416169822216,
+                0.04762791097164154,
+                0.04912571981549263,
+                0.314087450504303,
+                0.05009785667061806
+              ],
+              [
+                0.11551681905984879,
+                0.0602240152657032,
+                0.9473304152488708,
+                0.049888793379068375,
+                0.054789476096630096
+              ]
+            ],
+            "points": [
+              [
+                247.0,
+                145.0
+              ],
+              [
+                160.0,
+                153.5
+              ],
+              [
+                181.5,
+                89.5
+              ]
+            ],
+            "seconds": 0.4476695329940412
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                247,
+                142
+              ],
+              [
+                160,
+                147
+              ],
+              [
+                182,
+                86
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-04",
+          "kind": "word",
+          "files": [
+            "word-04-0.jpg",
+            "word-04-1.png",
+            "word-04-2.png",
+            "word-04-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/2aa79927a55c472c8f7648c59f7df4f5.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/d088e65280ddb314e4807b49e0181bf3.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/52f6ab1b3a9cc817abf647438ee22fcd.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2eda50022efcc3f00e88173635d38ada.png"
+          ],
+          "sha256": [
+            "50872e9de3c800cbcfb05d9aae651b38c37724c9523af77c8a5dbbf79dada935",
+            "7ad9d5e913e179ccfb4d6e9ce0766912428484e75112027e5624e3abdda57bd4",
+            "3e784749a7bb18ae9d103961c01a87a879ec9b13b56cb1e216a6b0dbc5edd29c",
+            "e8512cf91ec0962224ec2ccb1ede7074db46078bd11bd417767ad795b6201061"
+          ],
+          "prediction": {
+            "id": "word-04",
+            "boxes": [
+              [
+                129,
+                20,
+                188,
+                77
+              ],
+              [
+                202,
+                94,
+                263,
+                150
+              ],
+              [
+                142,
+                93,
+                200,
+                149
+              ],
+              [
+                195,
+                30,
+                253,
+                80
+              ],
+              [
+                62,
+                32,
+                123,
+                91
+              ]
+            ],
+            "scores": [
+              [
+                0.048491470515728,
+                0.049288880079984665,
+                0.9497875571250916,
+                0.04716498404741287,
+                0.0471075177192688
+              ],
+              [
+                0.08129596710205078,
+                0.9464580416679382,
+                0.04809163138270378,
+                0.9477145075798035,
+                0.05013279244303703
+              ],
+              [
+                0.05047442391514778,
+                0.04741007462143898,
+                0.046809904277324677,
+                0.047529976814985275,
+                0.9491344690322876
+              ]
+            ],
+            "points": [
+              [
+                171.0,
+                121.0
+              ],
+              [
+                224.0,
+                55.0
+              ],
+              [
+                92.5,
+                61.5
+              ]
+            ],
+            "seconds": 0.44366121198982
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                174,
+                120
+              ],
+              [
+                222,
+                53
+              ],
+              [
+                94,
+                60
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-05",
+          "kind": "word",
+          "files": [
+            "word-05-0.jpg",
+            "word-05-1.png",
+            "word-05-2.png",
+            "word-05-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/6e699033dd1545c6a22e6dd2267cabf6.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/83954c338456c12afbd1305461b1e1d3.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/bfcb38c1da5892f43a58d765200432c0.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3840579d1bec42b98568ef11b6435676.png"
+          ],
+          "sha256": [
+            "4de008534bcd70a24d8a326d470d32f43e0a56a421cff12b4039d1e702ee55f8",
+            "1472ad7b036a49651b83d0f9f81edd3e09c1a5ebd4916a7c9a7438f4373a9ccd",
+            "823b2cdea7f54cae419bc8c68af9e212926a7f6cb32ff55514e75e3a4d016e6b",
+            "8a06ab6bf2b8ed506974e8684cc64e51ca9454ed05cc5e6ead17073a72d5b66f"
+          ],
+          "prediction": {
+            "id": "word-05",
+            "boxes": [
+              [
+                184,
+                112,
+                242,
+                168
+              ],
+              [
+                81,
+                107,
+                139,
+                164
+              ],
+              [
+                34,
+                18,
+                93,
+                74
+              ],
+              [
+                93,
+                46,
+                148,
+                99
+              ],
+              [
+                192,
+                29,
+                256,
+                85
+              ]
+            ],
+            "scores": [
+              [
+                0.47355467081069946,
+                0.05412989854812622,
+                0.9084730744361877,
+                0.07938164472579956,
+                0.11889506131410599
+              ],
+              [
+                0.04808465391397476,
+                0.9487839937210083,
+                0.051901958882808685,
+                0.047790903598070145,
+                0.04827021807432175
+              ],
+              [
+                0.6802575588226318,
+                0.0477379746735096,
+                0.41676485538482666,
+                0.9522524476051331,
+                0.9483277797698975
+              ]
+            ],
+            "points": [
+              [
+                63.5,
+                46.0
+              ],
+              [
+                110.0,
+                135.5
+              ],
+              [
+                120.5,
+                72.5
+              ]
+            ],
+            "seconds": 0.45843330399657134
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                65,
+                45
+              ],
+              [
+                110,
+                134
+              ],
+              [
+                225,
+                54
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-06",
+          "kind": "word",
+          "files": [
+            "word-06-0.jpg",
+            "word-06-1.png",
+            "word-06-2.png",
+            "word-06-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/f9b18089e25e4e1a904a606876f86109.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/6e5da111f73c150a8a272ecf24b79631.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a8027886ff28d1b5c1fc29b554bd8c37.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/8780fffdb2cd6c728b97b4656a8ab3a6.png"
+          ],
+          "sha256": [
+            "963b20bd5dee02267c5894a214842561e57660a1ba436bbba69b77c8841cd224",
+            "6e6d70f77b025133b5920057166b9bc2cc9be24173da376decc89a390b8f1609",
+            "e32ace1cdf9801c63a4e85f605627e3a762ed4417517034ad438ede19b689348",
+            "af9c5000d702c43c1fb629bf072d6a79ffa25a5b80fb1d492b0fce8a8ff76d1d"
+          ],
+          "prediction": {
+            "id": "word-06",
+            "boxes": [
+              [
+                224,
+                109,
+                279,
+                163
+              ],
+              [
+                102,
+                117,
+                159,
+                174
+              ],
+              [
+                205,
+                15,
+                266,
+                74
+              ],
+              [
+                48,
+                95,
+                102,
+                150
+              ],
+              [
+                78,
+                24,
+                130,
+                78
+              ]
+            ],
+            "scores": [
+              [
+                0.0484006293118,
+                0.04771042242646217,
+                0.946491539478302,
+                0.04766673967242241,
+                0.2177678644657135
+              ],
+              [
+                0.9461619257926941,
+                0.050854723900556564,
+                0.04796842858195305,
+                0.05717058107256889,
+                0.05201205238699913
+              ],
+              [
+                0.047744616866111755,
+                0.9483426809310913,
+                0.04895824193954468,
+                0.06249123811721802,
+                0.11555902659893036
+              ]
+            ],
+            "points": [
+              [
+                235.5,
+                44.5
+              ],
+              [
+                251.5,
+                136.0
+              ],
+              [
+                130.5,
+                145.5
+              ]
+            ],
+            "seconds": 0.4620985850051511
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                234,
+                42
+              ],
+              [
+                252,
+                132
+              ],
+              [
+                128,
+                143
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-07",
+          "kind": "word",
+          "files": [
+            "word-07-0.jpg",
+            "word-07-1.png",
+            "word-07-2.png",
+            "word-07-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/c5b90e0f629445c280bd90a666d01b82.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2044c27397909670f0d90b8b6b5c15c5.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5d6e3b1dd1694c7531750996e5e9094a.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bbb3b39928f0761a66eda6de3edeb27.png"
+          ],
+          "sha256": [
+            "3d7f2e57998c59b6a08aa7f04107c75d872130f0df92cf69861a0255c0e77a06",
+            "7aacdc98612047c8e2d38268d6d6284283d9878abe5746f0a285c065554bfc10",
+            "e5a8a9c6b781cfec3fd44d77f3be5c07ccaf09398da515d28a91bf60a7c93869",
+            "a44f289842df7c54438fae3c3fd1bf9a2835e04b69cb3cd9f7ea7c8a9ea62a97"
+          ],
+          "prediction": {
+            "id": "word-07",
+            "boxes": [
+              [
+                131,
+                68,
+                195,
+                126
+              ],
+              [
+                112,
+                124,
+                167,
+                177
+              ],
+              [
+                7,
+                40,
+                66,
+                98
+              ],
+              [
+                35,
+                115,
+                89,
+                171
+              ],
+              [
+                197,
+                78,
+                253,
+                134
+              ]
+            ],
+            "scores": [
+              [
+                0.9477776885032654,
+                0.05493897944688797,
+                0.13513116538524628,
+                0.13172447681427002,
+                0.047979727387428284
+              ],
+              [
+                0.05502622574567795,
+                0.04816651716828346,
+                0.9500324726104736,
+                0.25407329201698303,
+                0.6506098508834839
+              ],
+              [
+                0.05027465149760246,
+                0.9469833970069885,
+                0.04888852313160896,
+                0.08032432943582535,
+                0.048636775463819504
+              ]
+            ],
+            "points": [
+              [
+                163.0,
+                97.0
+              ],
+              [
+                36.5,
+                69.0
+              ],
+              [
+                139.5,
+                150.5
+              ]
+            ],
+            "seconds": 0.4480312249943381
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                164,
+                96
+              ],
+              [
+                40,
+                68
+              ],
+              [
+                139,
+                148
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-08",
+          "kind": "word",
+          "files": [
+            "word-08-0.jpg",
+            "word-08-1.png",
+            "word-08-2.png",
+            "word-08-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/a0d47162a1874ac58cde71bd67a08a43.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/ab18e30c0dc4093ceeda8961fac3d1f4.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3d62a861d7dde371939fdb6c19ad6104.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/18278ffa367ab762e61ba8de2dde6f80.png"
+          ],
+          "sha256": [
+            "2e1d96840a92dcb9304895d67e04a92f9d74272254b4962999f2bf8730ac8620",
+            "df7992f6ee5db1a5dc70a83c571d7583f9e69470aabf1edee111821cce6a7c92",
+            "06574d4fbdad3310b2044f3e0f270af018d2ba830175a0cd6a6df60132e8edfb",
+            "0693c598dad900bfa5a88b79fcda0eedebf26908aec1d9f9240aefda42c35f45"
+          ],
+          "prediction": {
+            "id": "word-08",
+            "boxes": [
+              [
+                91,
+                6,
+                144,
+                60
+              ],
+              [
+                177,
+                88,
+                237,
+                143
+              ],
+              [
+                145,
+                26,
+                202,
+                82
+              ],
+              [
+                6,
+                78,
+                61,
+                133
+              ],
+              [
+                24,
+                26,
+                80,
+                81
+              ]
+            ],
+            "scores": [
+              [
+                0.047590531408786774,
+                0.05132020637392998,
+                0.9494078755378723,
+                0.050154153257608414,
+                0.8969630002975464
+              ],
+              [
+                0.04960324242711067,
+                0.6514410972595215,
+                0.04754055291414261,
+                0.9387636780738831,
+                0.048153989017009735
+              ],
+              [
+                0.04926532879471779,
+                0.944786787033081,
+                0.07544641196727753,
+                0.7292903661727905,
+                0.04728539288043976
+              ]
+            ],
+            "points": [
+              [
+                173.5,
+                54.0
+              ],
+              [
+                33.5,
+                105.5
+              ],
+              [
+                207.0,
+                115.5
+              ]
+            ],
+            "seconds": 0.4491885169991292
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                172,
+                52
+              ],
+              [
+                35,
+                102
+              ],
+              [
+                207,
+                113
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-09",
+          "kind": "word",
+          "files": [
+            "word-09-0.jpg",
+            "word-09-1.png",
+            "word-09-2.png",
+            "word-09-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/3c24291ee81a464a9648944ca4c22560.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/1981f9fc408117cda51efa1b96af6792.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/baa9ade498f027bc78438f814177a127.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/92927256d50a62f1feed6970961ea31d.png"
+          ],
+          "sha256": [
+            "a96a7ded05f6068990a5ac3981440f27c7d05bccd08b8d2eeb3f2abd1194c9e4",
+            "d71319a7e3b4d9239cd3f72e4542353f32c4d70382c4fe7bb414b05a79b5672b",
+            "134b4e4cdd51de312352e1650ca12a37f78bb16303a7e980f012fad3d68f9e2c",
+            "c432b2fddb6c9f89ea8c89931db998efef9585268aaaf00f8c9504b78ca3a041"
+          ],
+          "prediction": {
+            "id": "word-09",
+            "boxes": [
+              [
+                168,
+                44,
+                226,
+                101
+              ],
+              [
+                52,
+                86,
+                118,
+                152
+              ],
+              [
+                146,
+                124,
+                204,
+                178
+              ],
+              [
+                216,
+                113,
+                276,
+                168
+              ],
+              [
+                54,
+                1,
+                120,
+                66
+              ]
+            ],
+            "scores": [
+              [
+                0.9365342855453491,
+                0.05027845501899719,
+                0.06925087422132492,
+                0.07667654752731323,
+                0.047210223972797394
+              ],
+              [
+                0.047528646886348724,
+                0.9510554671287537,
+                0.04953818395733833,
+                0.047195594757795334,
+                0.9490994811058044
+              ],
+              [
+                0.07165161520242691,
+                0.04722801223397255,
+                0.9489805102348328,
+                0.44661447405815125,
+                0.12111512571573257
+              ]
+            ],
+            "points": [
+              [
+                197.0,
+                72.5
+              ],
+              [
+                85.0,
+                119.0
+              ],
+              [
+                175.0,
+                151.0
+              ]
+            ],
+            "seconds": 0.45245759400131647
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                196,
+                72
+              ],
+              [
+                84,
+                116
+              ],
+              [
+                174,
+                148
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-10",
+          "kind": "word",
+          "files": [
+            "word-10-0.jpg",
+            "word-10-1.png",
+            "word-10-2.png",
+            "word-10-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/46e8ade08424499999df359f7a22f152.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/1cef0d0126a42ff15f6dcf97d01e833e.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d30111edc99f56297650e9eb0de1f14.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/78e4f46b19a7eaf866315379b285e494.png"
+          ],
+          "sha256": [
+            "2d31a9fa6c4a72889333b4362847c0c5b5f2b8b5e24dd60766929f1eedd2cb82",
+            "6cde9935070132a2909b5244fb37535b83c0dd96ca2b2361e6a107edfff7fe73",
+            "4fcac3f709b3f51c99edc031e0c4cf94d6b731277ef61081ccdf8807e1abaaa8",
+            "a66ca7f4bbd84ae8b6186bab5f6c3141e2eacd4c92bb3edd7ba2392fcc7e5cdd"
+          ],
+          "prediction": {
+            "id": "word-10",
+            "boxes": [
+              [
+                45,
+                24,
+                102,
+                79
+              ],
+              [
+                0,
+                77,
+                57,
+                134
+              ],
+              [
+                138,
+                3,
+                198,
+                62
+              ],
+              [
+                172,
+                116,
+                233,
+                175
+              ],
+              [
+                72,
+                83,
+                125,
+                141
+              ]
+            ],
+            "scores": [
+              [
+                0.047395192086696625,
+                0.9495626091957092,
+                0.4292462170124054,
+                0.04772765561938286,
+                0.047903597354888916
+              ],
+              [
+                0.9360275864601135,
+                0.047810014337301254,
+                0.06197714805603027,
+                0.04738176241517067,
+                0.04707512632012367
+              ],
+              [
+                0.4358085095882416,
+                0.16389191150665283,
+                0.9293879270553589,
+                0.04999349266290665,
+                0.931087851524353
+              ]
+            ],
+            "points": [
+              [
+                28.5,
+                105.5
+              ],
+              [
+                73.5,
+                51.5
+              ],
+              [
+                98.5,
+                112.0
+              ]
+            ],
+            "seconds": 0.47977750400605146
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                29,
+                102
+              ],
+              [
+                73,
+                51
+              ],
+              [
+                98,
+                112
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-11",
+          "kind": "word",
+          "files": [
+            "word-11-0.jpg",
+            "word-11-1.png",
+            "word-11-2.png",
+            "word-11-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/0b1c55daaaa2453581734e997cbe0322.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/cd876ccbb45e3bb26fdb62fd66e40157.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/aeffbc85384fcca6d1cdc6b39fbb8eeb.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/ef2712b1bb1f0b6a316714994a2d2d45.png"
+          ],
+          "sha256": [
+            "25c8fb1b5c8c6454a843c10baf30acb91fec81330c82365a56cef9d2dfb9cd1a",
+            "2792c2a5efcd032a0624534d63ae945c6b0209324c36897a0ffe9cd4cb4fd307",
+            "0ad845b1bce4f2b59cfe2c2526e91a1525a463b10555776d8844dbdfa48bb8f1",
+            "e364979e7e46d29a32a1b1cc3ad9ec443badeae2639b9f53deca7f19df25e69c"
+          ],
+          "prediction": {
+            "id": "word-11",
+            "boxes": [
+              [
+                99,
+                83,
+                163,
+                141
+              ],
+              [
+                31,
+                2,
+                86,
+                56
+              ],
+              [
+                218,
+                20,
+                278,
+                80
+              ],
+              [
+                94,
+                22,
+                154,
+                80
+              ],
+              [
+                164,
+                7,
+                219,
+                65
+              ]
+            ],
+            "scores": [
+              [
+                0.05399175360798836,
+                0.9453127384185791,
+                0.3101479113101959,
+                0.049346379935741425,
+                0.04727080091834068
+              ],
+              [
+                0.04938168823719025,
+                0.7442402243614197,
+                0.6654139757156372,
+                0.3911712169647217,
+                0.047337573021650314
+              ],
+              [
+                0.9520992040634155,
+                0.0543493889272213,
+                0.4354596734046936,
+                0.6402878165245056,
+                0.27328404784202576
+              ]
+            ],
+            "points": [
+              [
+                58.5,
+                29.0
+              ],
+              [
+                248.0,
+                50.0
+              ],
+              [
+                131.0,
+                112.0
+              ]
+            ],
+            "seconds": 0.4587606489949394
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                59,
+                28
+              ],
+              [
+                247,
+                48
+              ],
+              [
+                130,
+                110
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-12",
+          "kind": "word",
+          "files": [
+            "word-12-0.jpg",
+            "word-12-1.png",
+            "word-12-2.png",
+            "word-12-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9cd42d6f5620468d918222d36e0be9aa.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b516689069a3b6024e502fd3fb43c290.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/cd876ccbb45e3bb26fdb62fd66e40157.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/f37896e63b9eaf32c17a2c19c9bde1dd.png"
+          ],
+          "sha256": [
+            "8b4d01552c6e33bf38e5a73b5ec11da46e3b2eaae5fb6c0314a6184ab975c3fa",
+            "9e7235c69cdb2c742c17c0cee84b1a1fa14795e33147df8c9c536da3c5e641e2",
+            "2792c2a5efcd032a0624534d63ae945c6b0209324c36897a0ffe9cd4cb4fd307",
+            "891fa0991efdbee2662889be61873a5934273d5fe8f0d597e12a4d4d0e77ca73"
+          ],
+          "prediction": {
+            "id": "word-12",
+            "boxes": [
+              [
+                0,
+                17,
+                56,
+                76
+              ],
+              [
+                130,
+                120,
+                191,
+                176
+              ],
+              [
+                223,
+                45,
+                284,
+                101
+              ],
+              [
+                171,
+                13,
+                228,
+                70
+              ],
+              [
+                34,
+                120,
+                93,
+                176
+              ],
+              [
+                278,
+                118,
+                300,
+                171
+              ]
+            ],
+            "scores": [
+              [
+                0.04769818112254143,
+                0.3423583507537842,
+                0.08199764043092728,
+                0.9502869844436646,
+                0.3566044867038727,
+                0.0947030782699585
+              ],
+              [
+                0.05608725920319557,
+                0.3496418297290802,
+                0.9484761953353882,
+                0.4989936351776123,
+                0.10083897411823273,
+                0.050825756043195724
+              ],
+              [
+                0.0474015474319458,
+                0.9482595324516296,
+                0.0664389580488205,
+                0.13260392844676971,
+                0.695219099521637,
+                0.09001512080430984
+              ]
+            ],
+            "points": [
+              [
+                199.5,
+                41.5
+              ],
+              [
+                253.5,
+                73.0
+              ],
+              [
+                160.5,
+                148.0
+              ]
+            ],
+            "seconds": 0.4816404489974957
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                201,
+                42
+              ],
+              [
+                254,
+                72
+              ],
+              [
+                160,
+                148
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-13",
+          "kind": "word",
+          "files": [
+            "word-13-0.jpg",
+            "word-13-1.png",
+            "word-13-2.png",
+            "word-13-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9e527f97a3504b23bd6407a74b30b3f4.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/aeffbc85384fcca6d1cdc6b39fbb8eeb.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a136f339af8c799ea9f58e6818f14f6e.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/f37896e63b9eaf32c17a2c19c9bde1dd.png"
+          ],
+          "sha256": [
+            "cd5c93c781e92a1b0eddf4b0a241d29dc2bbb3352b964efd9077d8eb84738a2d",
+            "0ad845b1bce4f2b59cfe2c2526e91a1525a463b10555776d8844dbdfa48bb8f1",
+            "149cdaad6c12bdb4074b549194e82bf11cdb1bfbe7dbfa66acfa16e6f5e6d338",
+            "891fa0991efdbee2662889be61873a5934273d5fe8f0d597e12a4d4d0e77ca73"
+          ],
+          "prediction": {
+            "id": "word-13",
+            "boxes": [
+              [
+                126,
+                104,
+                184,
+                155
+              ],
+              [
+                22,
+                90,
+                78,
+                143
+              ],
+              [
+                220,
+                60,
+                281,
+                120
+              ],
+              [
+                127,
+                39,
+                185,
+                94
+              ],
+              [
+                67,
+                13,
+                124,
+                70
+              ]
+            ],
+            "scores": [
+              [
+                0.048350874334573746,
+                0.6577427983283997,
+                0.048454705625772476,
+                0.8724174499511719,
+                0.10344479233026505
+              ],
+              [
+                0.048449017107486725,
+                0.0473104864358902,
+                0.9475139379501343,
+                0.04838564246892929,
+                0.0480228066444397
+              ],
+              [
+                0.9479919075965881,
+                0.8736639618873596,
+                0.04846343398094177,
+                0.42656925320625305,
+                0.9477464556694031
+              ]
+            ],
+            "points": [
+              [
+                156.0,
+                66.5
+              ],
+              [
+                250.5,
+                90.0
+              ],
+              [
+                155.0,
+                129.5
+              ]
+            ],
+            "seconds": 0.4579046900034882
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                51,
+                116
+              ],
+              [
+                252,
+                88
+              ],
+              [
+                152,
+                128
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-14",
+          "kind": "word",
+          "files": [
+            "word-14-0.jpg",
+            "word-14-1.png",
+            "word-14-2.png",
+            "word-14-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fe073fa74f6a4d9e8958f403318f7469.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/cd87e73a42aacdb3a42dc7599b8364fb.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2da3e6b2ba39cfa094c0b3d2e4c83948.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4e3d378242fe74d3cf1f0d8d19a7904a.png"
+          ],
+          "sha256": [
+            "4b17e348423d752e7d5188b4934b134795dfae6d136420670ae6431db753aeea",
+            "d0ce912d8ed112311ae2954b66521b08fdeaa7bf52c1b8b8053f082e619dfec7",
+            "f7eda05a33395daf3cbd5a50f8c1b7348e98b52b0ee00dbe5e474572d55f70cd",
+            "0c1625bc5fe0dc79649bddb4489a7660977fb8dc3c2a6a8bde609406248a04cc"
+          ],
+          "prediction": {
+            "id": "word-14",
+            "boxes": [
+              [
+                223,
+                30,
+                278,
+                82
+              ],
+              [
+                57,
+                1,
+                112,
+                54
+              ],
+              [
+                145,
+                84,
+                202,
+                139
+              ],
+              [
+                156,
+                11,
+                212,
+                64
+              ],
+              [
+                0,
+                0,
+                55,
+                53
+              ]
+            ],
+            "scores": [
+              [
+                0.0479622408747673,
+                0.12756755948066711,
+                0.9512413144111633,
+                0.04739196598529816,
+                0.9473192691802979
+              ],
+              [
+                0.048958078026771545,
+                0.9484173059463501,
+                0.7989477515220642,
+                0.12341020256280899,
+                0.05262074992060661
+              ],
+              [
+                0.8370826840400696,
+                0.04880453646183014,
+                0.13154345750808716,
+                0.049537014216184616,
+                0.04749365523457527
+              ]
+            ],
+            "points": [
+              [
+                173.5,
+                111.5
+              ],
+              [
+                84.5,
+                27.5
+              ],
+              [
+                250.5,
+                56.0
+              ]
+            ],
+            "seconds": 0.44860216800589114
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                26,
+                25
+              ],
+              [
+                85,
+                27
+              ],
+              [
+                250,
+                55
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-15",
+          "kind": "word",
+          "files": [
+            "word-15-0.jpg",
+            "word-15-1.png",
+            "word-15-2.png",
+            "word-15-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/8de69582e2c44faea08828c29bfe8479.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/c4fccd8dd11f976ecc6c1e574569794a.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9213c6fc891f6d5e5e17039ecb360f98.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/811ba9ddbf8ba61af81f99bffcc90b47.png"
+          ],
+          "sha256": [
+            "89a15fc3ead49b7349945c1edd5f23de61f4cf8b1c741bde47728eddbf2b0b9d",
+            "e0d2325f2db2a76e7be3dbe44cbeecb013c76631260a95b4938b2d8bff6780cc",
+            "251b3cc94acc84835732f50c9899476148c5a327be7bf8777c346b6f593547f4",
+            "00c507e6291f8007c7a0c92387b3c269713b07ea64e55475b2f207e513c8e315"
+          ],
+          "prediction": {
+            "id": "word-15",
+            "boxes": [
+              [
+                221,
+                44,
+                281,
+                103
+              ],
+              [
+                18,
+                72,
+                79,
+                132
+              ],
+              [
+                80,
+                4,
+                139,
+                60
+              ],
+              [
+                124,
+                95,
+                185,
+                152
+              ],
+              [
+                18,
+                3,
+                77,
+                56
+              ]
+            ],
+            "scores": [
+              [
+                0.0482429563999176,
+                0.14567291736602783,
+                0.951915979385376,
+                0.9284767508506775,
+                0.049394942820072174
+              ],
+              [
+                0.04918113350868225,
+                0.7103800773620605,
+                0.048404037952423096,
+                0.04766644164919853,
+                0.04832755774259567
+              ],
+              [
+                0.7336503863334656,
+                0.7571578621864319,
+                0.06197037920355797,
+                0.8666910529136658,
+                0.8143068552017212
+              ]
+            ],
+            "points": [
+              [
+                109.5,
+                32.0
+              ],
+              [
+                48.5,
+                102.0
+              ],
+              [
+                154.5,
+                123.5
+              ]
+            ],
+            "seconds": 0.4747897500055842
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                109,
+                30
+              ],
+              [
+                50,
+                101
+              ],
+              [
+                48,
+                29
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        },
+        {
+          "id": "word-16",
+          "kind": "word",
+          "files": [
+            "word-16-0.jpg",
+            "word-16-1.png",
+            "word-16-2.png",
+            "word-16-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/28343981f7b641b9a35a1c6c1c09f351.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/778b84ebf8d5a75f4c5e97b73f0696fe.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2134a40201969f94ad83aedf79116e1c.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3b234ae726acb5cbe13b5cb988895b8b.png"
+          ],
+          "sha256": [
+            "827f320b3911a839b22cfc20ddd49b26ab0291e807b2470e424bbe408294da71",
+            "d5b7d520919c11abbc0f4084ec0c9fcdaf62dd3333569dab7c27e74d3fc440ff",
+            "ffc1f406414c9c5c637c98666dbcfc36a0f5c70b9c918dfc96b21be5184db217",
+            "915d6692b85b6dd1892c060cb99315cc9a2d07e21ab7670a91a0eb1f5bbe98ec"
+          ],
+          "prediction": {
+            "id": "word-16",
+            "boxes": [
+              [
+                102,
+                93,
+                156,
+                147
+              ],
+              [
+                43,
+                72,
+                99,
+                127
+              ],
+              [
+                87,
+                0,
+                145,
+                51
+              ],
+              [
+                209,
+                5,
+                269,
+                64
+              ],
+              [
+                6,
+                1,
+                66,
+                53
+              ]
+            ],
+            "scores": [
+              [
+                0.2660374343395233,
+                0.9507004618644714,
+                0.17254850268363953,
+                0.07459785044193268,
+                0.2683185636997223
+              ],
+              [
+                0.9506935477256775,
+                0.048826999962329865,
+                0.049174245446920395,
+                0.8429141044616699,
+                0.2664996087551117
+              ],
+              [
+                0.10919294506311417,
+                0.047959908843040466,
+                0.04761291667819023,
+                0.07166031748056412,
+                0.891292154788971
+              ]
+            ],
+            "points": [
+              [
+                71.0,
+                99.5
+              ],
+              [
+                129.0,
+                120.0
+              ],
+              [
+                36.0,
+                27.0
+              ]
+            ],
+            "seconds": 0.45432349501061253
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                71,
+                98
+              ],
+              [
+                128,
+                119
+              ],
+              [
+                37,
+                26
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-17",
+          "kind": "word",
+          "files": [
+            "word-17-0.jpg",
+            "word-17-1.png",
+            "word-17-2.png",
+            "word-17-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/6472e7cc3b6449bab98e09a75fff77c7.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b30c1a985e265121947d997582645441.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9254523ee408a2038049cb0ffba18e13.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+          ],
+          "sha256": [
+            "9b279840bcd8c8c79ce6868dbf9e7eb7fd941c87fb5d7268fd45bec69f242305",
+            "a63ee105e87db8a88e2c99e442b8ccf9537fef8fd7052cd6e160819d2503f4e9",
+            "f344ef7212a82ed14d166c1545995c58026d290f03d5651e0c52a5aa2ff0a342",
+            "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+          ],
+          "prediction": {
+            "id": "word-17",
+            "boxes": [
+              [
+                161,
+                14,
+                223,
+                71
+              ],
+              [
+                52,
+                54,
+                111,
+                110
+              ],
+              [
+                68,
+                119,
+                127,
+                172
+              ],
+              [
+                192,
+                95,
+                252,
+                153
+              ]
+            ],
+            "scores": [
+              [
+                0.44707176089286804,
+                0.04900786653161049,
+                0.947614848613739,
+                0.049009669572114944
+              ],
+              [
+                0.05868426710367203,
+                0.049786441028118134,
+                0.04820917546749115,
+                0.9018221497535706
+              ],
+              [
+                0.05139509588479996,
+                0.9481230974197388,
+                0.049592819064855576,
+                0.4762784242630005
+              ]
+            ],
+            "points": [
+              [
+                97.5,
+                145.5
+              ],
+              [
+                222.0,
+                124.0
+              ],
+              [
+                81.5,
+                82.0
+              ]
+            ],
+            "seconds": 0.4179049900121754
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                101,
+                143
+              ],
+              [
+                224,
+                122
+              ],
+              [
+                82,
+                80
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-18",
+          "kind": "word",
+          "files": [
+            "word-18-0.jpg",
+            "word-18-1.png",
+            "word-18-2.png",
+            "word-18-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/81ed738fefa5405ca6464b712b3c887f.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/c76cdfaea90f178ed11f3071ba2dcf10.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b38fd422b3c77b00ec34bf77759a8fee.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/d2ed0a06aaa253828c3e3820dc202f8d.png"
+          ],
+          "sha256": [
+            "cbd32a3cb3a24528db38cac6d028b36cead6ec0f2f3f4c2db3965d92dfb811fc",
+            "e6b05d72e6e6f7a1a6a01dc9d99a5741675a82330747839f65bd945284c3c73e",
+            "b0841af0083a359bc8e7fb83db11a2e6094f810dd86ca768fdb85d35e1356f5e",
+            "6d3eb810829bb1558571ae0e7cf687e8bfaf18c19378817491ab4bb835598d34"
+          ],
+          "prediction": {
+            "id": "word-18",
+            "boxes": [
+              [
+                111,
+                94,
+                164,
+                147
+              ],
+              [
+                21,
+                106,
+                79,
+                160
+              ],
+              [
+                181,
+                108,
+                238,
+                165
+              ],
+              [
+                176,
+                30,
+                237,
+                91
+              ],
+              [
+                94,
+                0,
+                155,
+                55
+              ]
+            ],
+            "scores": [
+              [
+                0.8677970767021179,
+                0.06151457503437996,
+                0.9471630454063416,
+                0.047236714512109756,
+                0.4721301794052124
+              ],
+              [
+                0.06572352349758148,
+                0.04892447590827942,
+                0.0504581555724144,
+                0.951658308506012,
+                0.04826543852686882
+              ],
+              [
+                0.8547019958496094,
+                0.9491509199142456,
+                0.5781310200691223,
+                0.09652352333068848,
+                0.10225744545459747
+              ]
+            ],
+            "points": [
+              [
+                209.5,
+                136.5
+              ],
+              [
+                206.5,
+                60.5
+              ],
+              [
+                50.0,
+                133.0
+              ]
+            ],
+            "seconds": 0.4526903060032055
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                209,
+                134
+              ],
+              [
+                206,
+                57
+              ],
+              [
+                50,
+                131
+              ]
+            ],
+            "whole_question_correct": true
+          }
+        },
+        {
+          "id": "word-19",
+          "kind": "word",
+          "files": [
+            "word-19-0.jpg",
+            "word-19-1.png",
+            "word-19-2.png",
+            "word-19-3.png"
+          ],
+          "sources": [
+            "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/10af2cec762045f78c0b8fe8a73366f7.jpg",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/e0a3d49f6963a60767ae6ebc044db25f.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4430d7daa79fe05d387db08544d25116.png",
+            "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/22dbba75b9b0c6e15eca0b726ef57807.png"
+          ],
+          "sha256": [
+            "6a50b990ede033bde1b18f1ff422e373a6ede02a162d031224322b98aa95b27a",
+            "8b324b179e8d68aad78864bdba4aa6338fe688110e58bcf773d43dc5408fb441",
+            "22be0ba458ef28b8b3ded10f7eebbb55a143fabe50d0a3f0b9739464ec81146c",
+            "f0ff42b809eb703d29f4139b98519eefd3d1fa1f6298b9e9a4267631a4597cde"
+          ],
+          "prediction": {
+            "id": "word-19",
+            "boxes": [
+              [
+                10,
+                123,
+                68,
+                175
+              ],
+              [
+                84,
+                121,
+                134,
+                175
+              ],
+              [
+                217,
+                88,
+                279,
+                145
+              ],
+              [
+                116,
+                64,
+                183,
+                126
+              ]
+            ],
+            "scores": [
+              [
+                0.04783355072140694,
+                0.04908529669046402,
+                0.09585659950971603,
+                0.05187693238258362
+              ],
+              [
+                0.04883061721920967,
+                0.049339961260557175,
+                0.950313150882721,
+                0.3896227180957794
+              ],
+              [
+                0.9518510103225708,
+                0.9312353134155273,
+                0.1283893585205078,
+                0.04762672632932663
+              ]
+            ],
+            "points": [
+              [
+                149.5,
+                95.0
+              ],
+              [
+                248.0,
+                116.5
+              ],
+              [
+                39.0,
+                149.0
+              ]
+            ],
+            "seconds": 0.42703801300376654
+          },
+          "visual_review": {
+            "expected_centers": [
+              [
+                113,
+                38
+              ],
+              [
+                247,
+                115
+              ],
+              [
+                39,
+                146
+              ]
+            ],
+            "whole_question_correct": false
+          }
+        }
+      ]
+    }
+  ],
+  "additional_experiments": [
+    {
+      "name": "word-recall-holdout-predictions",
+      "correct": 15,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-05",
+        "word-06",
+        "word-13",
+        "word-14",
+        "word-15"
+      ]
+    },
+    {
+      "name": "word-v4-holdout-predictions",
+      "correct": 14,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-02",
+        "word-06",
+        "word-10",
+        "word-12",
+        "word-13",
+        "word-19"
+      ]
+    },
+    {
+      "name": "word-v4-multi-holdout-predictions",
+      "correct": 14,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-00",
+        "word-02",
+        "word-10",
+        "word-12",
+        "word-13",
+        "word-19"
+      ]
+    },
+    {
+      "name": "word-ensemble-holdout-predictions",
+      "correct": 14,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-02",
+        "word-04",
+        "word-10",
+        "word-13",
+        "word-14",
+        "word-19"
+      ]
+    },
+    {
+      "name": "word-padded-holdout-predictions",
+      "correct": 15,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-10",
+        "word-11",
+        "word-15",
+        "word-17",
+        "word-18"
+      ]
+    },
+    {
+      "name": "word-mean-holdout-predictions",
+      "correct": 13,
+      "total": 20,
+      "failed_sample_ids": [
+        "word-00",
+        "word-03",
+        "word-10",
+        "word-11",
+        "word-15",
+        "word-16",
+        "word-17"
+      ]
+    }
+  ],
+  "gate": {
+    "threshold": 0.9,
+    "second_set_passed": false,
+    "word_runtime_enabled": true,
+    "real_account_login": "waived by user",
+    "original_accuracy_threshold_waived_by_user": true,
+    "max_rounds_per_login": 5,
+    "success_condition": "Explicit Geetest success, then authenticated same-origin user page before returning login Cookie"
+  },
+  "live_public_demo": {
+    "url": "https://gt4.geetest.com/",
+    "verified": true,
+    "rounds": 1,
+    "peak_bytes": 542085120,
+    "success_text": "验证通过",
+    "success_class": "geetest_success",
+    "scope": "Public official demo, not ikuuu account login; one successful real challenge after fixing click animation timing."
+  },
+  "live_retry_test": {
+    "forced_first_wrong_order": true,
+    "verified": true,
+    "rounds": 3,
+    "peak_bytes": 598638592
+  }
+}
