@@ -26,6 +26,135 @@ test.beforeEach(async ({ page }) => {
   await login(page)
 })
 
+test('weibo images open in-page with navigation, zoom, download and focus restoration', async ({
+  page,
+  context,
+}) => {
+  await mockImages(page)
+  await page.route('**/api/v1/data/weibo?*', (route) =>
+    route.fulfill({
+      json: {
+        data: [
+          {
+            UID: '1',
+            用户名: '图片用户',
+            images: ['/weibo_img/original-1.jpg', '/weibo_img/original-2.jpg'],
+            image_thumbs: ['/weibo_img/thumb-1.jpg', '/weibo_img/thumb-2.jpg'],
+          },
+        ],
+        total: 1,
+        total_pages: 1,
+      },
+    }),
+  )
+  await page.goto('/data')
+  const trigger = page.getByRole('button', { name: '查看第 2 张图片', exact: true })
+  const pageCount = context.pages().length
+  await trigger.click()
+  const viewer = page.getByRole('dialog', { name: '微博原图预览' })
+  const image = viewer.locator('.weibo-lightbox-image')
+  await expect(viewer).toBeVisible()
+  await expect(image).toHaveAttribute('src', '/weibo_img/original-2.jpg')
+  await expect(image).toHaveJSProperty('naturalWidth', 48)
+  await expect(viewer.locator('.weibo-lightbox-counter')).toHaveText('2 / 2')
+  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
+  await viewer.getByRole('button', { name: '下一张', exact: true }).click()
+  await expect(image).toHaveAttribute('src', '/weibo_img/original-1.jpg')
+  await viewer.getByRole('button', { name: '放大图片', exact: true }).click()
+  await expect(viewer.locator('.weibo-lightbox-zoom-level')).toHaveText('125%')
+  await viewer.getByRole('button', { name: '适应窗口', exact: true }).click()
+  await expect(viewer.locator('.weibo-lightbox-zoom-level')).toHaveText('100%')
+  await page.keyboard.press('ArrowLeft')
+  await expect(image).toHaveAttribute('src', '/weibo_img/original-2.jpg')
+  await viewer.getByRole('button', { name: '查看第 1 张图片', exact: true }).click()
+  await expect(image).toHaveAttribute('src', '/weibo_img/original-1.jpg')
+  await image.dblclick()
+  await expect(viewer.locator('.weibo-lightbox-zoom-level')).toHaveText('200%')
+  const bounds = (await image.boundingBox())!
+  const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+  await page.mouse.move(center.x, center.y)
+  await page.mouse.down()
+  await page.mouse.move(center.x + 60, center.y + 20)
+  await page.mouse.up()
+  await expect(image).toHaveCSS('transform', 'matrix(2, 0, 0, 2, 60, 20)')
+  await page.keyboard.press('0')
+  await page.mouse.move(center.x, center.y)
+  await page.mouse.down()
+  await page.mouse.move(center.x - 80, center.y)
+  await page.mouse.up()
+  await expect(image).toHaveAttribute('src', '/weibo_img/original-2.jpg')
+  await viewer.getByRole('button', { name: '查看第 1 张图片', exact: true }).click()
+  const downloaded = page.waitForEvent('download')
+  await viewer.getByRole('link', { name: '下载当前图片' }).click()
+  expect((await downloaded).suggestedFilename()).toBe('weibo-01.jpg')
+  expect(context.pages()).toHaveLength(pageCount)
+  await expect(page).toHaveURL(/\/data$/)
+  await page.keyboard.press('Escape')
+  await expect(viewer).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden')
+  await trigger.click()
+  await viewer.getByRole('button', { name: '关闭大图' }).click()
+  await expect(viewer).toHaveCount(0)
+})
+
+test('weibo preview preserves image pairing, handles missing thumbnails and retries failed originals', async ({
+  page,
+}) => {
+  await mockImages(page)
+  let failed = true
+  await page.route('**/weibo_img/original-2.jpg', (route) =>
+    route.fulfill(
+      failed ? { status: 404, body: '' } : { contentType: 'image/svg+xml', body: avatar },
+    ),
+  )
+  await page.route('**/api/v1/data/weibo?*', (route) =>
+    route.fulfill({
+      json: {
+        data: [
+          {
+            UID: '1',
+            images: ['/weibo_img/original-1.jpg', '/weibo_img/original-2.jpg'],
+            image_thumbs: ['invalid:', '/weibo_img/thumb-2.jpg'],
+          },
+          { UID: '2', images: ['/weibo_img/only-original.jpg'] },
+          { UID: '3', image_thumbs: ['/weibo_img/only-thumb.jpg'] },
+        ],
+        total: 3,
+        total_pages: 1,
+      },
+    }),
+  )
+  await page.goto('/data')
+  const cards = page.locator('.data-card')
+  await expect(cards.first().locator('.post-images img').first()).toHaveAttribute(
+    'src',
+    '/weibo_img/original-1.jpg',
+  )
+  await cards.first().getByRole('button', { name: '查看第 2 张图片' }).click()
+  const viewer = page.getByRole('dialog', { name: '微博原图预览' })
+  await expect(viewer.getByRole('alert')).toContainText('原图暂时无法显示')
+  failed = false
+  await viewer.getByRole('button', { name: '重新加载' }).click()
+  await expect(viewer.locator('.weibo-lightbox-image')).toBeVisible()
+  await expect(viewer.locator('.weibo-lightbox-image')).toHaveAttribute(
+    'src',
+    '/weibo_img/original-2.jpg',
+  )
+  await expect(viewer.getByRole('alert')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  for (const [i, src] of [
+    [1, '/weibo_img/only-original.jpg'],
+    [2, '/weibo_img/only-thumb.jpg'],
+  ] as const) {
+    await cards.nth(i).getByRole('button', { name: '查看第 1 张图片' }).click()
+    await expect(viewer.locator('.weibo-lightbox-image')).toHaveAttribute('src', src)
+    await expect(viewer.getByRole('button', { name: '下一张', exact: true })).toHaveCount(0)
+    await viewer.click({ position: { x: 2, y: 70 } })
+    await expect(viewer).toHaveCount(0)
+  }
+})
+
 test('avatars, fallback, updated URLs and expandable posts', async ({ page }, testInfo) => {
   await mockImages(page)
   let repaired = false

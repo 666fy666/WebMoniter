@@ -1390,7 +1390,13 @@ footer {
   gap: 5px;
   margin-top: 16px;
 }
-.post-images a {
+.post-images button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 9px;

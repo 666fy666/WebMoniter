@@ -5,6 +5,7 @@ import { usePolling } from '../composables'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
 import PostBody from '../components/PostBody.vue'
+import ImageViewer from '../components/ImageViewer.vue'
 interface Item {
   [key: string]: unknown
 }
@@ -25,6 +26,7 @@ const platform = ref('weibo'),
   items = ref<Item[]>([])
 let generation = 0
 let pendingRefresh = false
+const preview = ref<{ images: { src: string; thumb: string }[]; index: number } | null>(null)
 const { error, loading, refresh } = usePolling(async (signal) => {
   const current = generation
   const result = await api<{ data: Item[]; total: number; total_pages: number }>(
@@ -38,6 +40,7 @@ const { error, loading, refresh } = usePolling(async (signal) => {
 }, 30000)
 watch(platform, () => (page.value = 1), { flush: 'sync' })
 watch([platform, page], () => {
+  preview.value = null
   generation++
   items.value = []
   total.value = pages.value = 0
@@ -73,7 +76,12 @@ function url(value: unknown) {
     : ''
 }
 function images(item: Item) {
-  return (Array.isArray(item.image_thumbs) ? item.image_thumbs : []).map(url).filter(Boolean)
+  const originals = Array.isArray(item.images) ? item.images : []
+  const thumbs = Array.isArray(item.image_thumbs) ? item.image_thumbs : []
+  return Array.from({ length: Math.max(originals.length, thumbs.length) }, (_, i) => ({
+    src: url(originals[i]) || url(thumbs[i]),
+    thumb: url(thumbs[i]) || url(originals[i]),
+  })).filter((image) => image.src)
 }
 function live(item: Item) {
   return ['1', 'true', '直播中', '是', 'True'].includes(String(item.is_live))
@@ -137,14 +145,15 @@ function live(item: Item) {
           "
         />
         <div v-if="images(item).length" class="post-images">
-          <a
-            v-for="(src, i) in images(item)"
-            :key="src"
-            :href="url((item.images as string[])?.[i]) || src"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><img :src="src" alt="动态图片" loading="lazy" decoding="async"
-          /></a>
+          <button
+            v-for="(image, i) in images(item)"
+            :key="i"
+            type="button"
+            :aria-label="`查看第 ${i + 1} 张图片`"
+            @click="preview = { images: images(item), index: i }"
+          >
+            <img :src="image.thumb" alt="动态图片" loading="lazy" decoding="async" />
+          </button>
         </div>
         <img
           v-else-if="url(item.room_pic || item.video_cover_thumb)"
@@ -203,4 +212,10 @@ function live(item: Item) {
       ><button class="button" :disabled="page >= pages" @click="page++">下一页</button>
     </div>
   </section>
+  <ImageViewer
+    v-if="preview"
+    :images="preview.images"
+    :initial-index="preview.index"
+    @close="preview = null"
+  />
 </template>
