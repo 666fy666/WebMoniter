@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { api, ApiError, dateTime } from '../src/api'
+import { api } from '../src/api'
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -22,7 +22,4 @@ test('safe API errors preserve status and field information', async () => {
       .mockResolvedValue({ ok: false, status: 409, json: async () => ({ detail: '配置已变化' }) }),
   )
   await expect(api('/config')).rejects.toMatchObject({ status: 409, message: '配置已变化' })
-})
-test('empty timestamps render an explicit placeholder', () => {
-  expect(dateTime(null)).toBe('—')
 })

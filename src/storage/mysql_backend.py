@@ -5,10 +5,15 @@ from __future__ import annotations
 import asyncio
 import re
 import warnings
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from itertools import groupby
 from typing import Any
 
 import aiomysql
+
+SYNC_BATCH_SIZE = 500
 
 
 @dataclass(frozen=True)
@@ -302,6 +307,21 @@ async def close_mysql_pool(pool: aiomysql.Pool | None) -> None:
     await pool.wait_closed()
 
 
+async def _rollback_if_open(conn) -> None:
+    # aiomysql closes the connection itself when a network read is cancelled.
+    if not conn.closed:
+        await conn.rollback()
+
+
+@asynccontextmanager
+async def _read_connection(pool):
+    async with pool.acquire() as conn:
+        try:
+            yield conn
+        finally:
+            await _rollback_if_open(conn)
+
+
 async def initialize_mysql_schema(pool: aiomysql.Pool) -> None:
     async with pool.acquire() as conn:
         try:
@@ -316,8 +336,8 @@ async def initialize_mysql_schema(pool: aiomysql.Pool) -> None:
                         await cursor.execute(spec.mysql_ddl)
                 await _migrate_mysql_columns(cursor)
             await conn.commit()
-        except Exception:
-            await conn.rollback()
+        except BaseException:
+            await _rollback_if_open(conn)
             raise
 
 
@@ -348,7 +368,7 @@ async def _migrate_mysql_columns(cursor) -> None:
 
 async def mysql_query(pool: aiomysql.Pool, sql: str, params: dict | None = None) -> list[tuple]:
     converted_sql = convert_mysql_sql(sql)
-    async with pool.acquire() as conn:
+    async with _read_connection(pool) as conn:
         async with conn.cursor() as cursor:
             await cursor.execute(converted_sql, select_mysql_params(converted_sql, params))
             return list(await cursor.fetchall())
@@ -361,8 +381,8 @@ async def mysql_update(pool: aiomysql.Pool, sql: str, params: dict | None = None
             async with conn.cursor() as cursor:
                 await cursor.execute(converted_sql, select_mysql_params(converted_sql, params))
             await conn.commit()
-        except Exception:
-            await conn.rollback()
+        except BaseException:
+            await _rollback_if_open(conn)
             raise
 
 
@@ -380,8 +400,11 @@ def _quoted_columns(spec: TableSpec) -> str:
 
 async def fetch_mysql_tables(pool: aiomysql.Pool) -> dict[str, list[dict[str, Any]]]:
     result: dict[str, list[dict[str, Any]]] = {}
-    async with pool.acquire() as conn:
+    async with _read_connection(pool) as conn:
         async with conn.cursor() as cursor:
+            # 镜像各表使用同一个 InnoDB 快照，不依赖服务器的默认隔离级别。
+            await cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            await cursor.execute("START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY")
             for spec in TABLE_SPECS.values():
                 await cursor.execute(f"SELECT {_quoted_columns(spec)} FROM `{spec.name}`")
                 rows = await cursor.fetchall()
@@ -390,7 +413,7 @@ async def fetch_mysql_tables(pool: aiomysql.Pool) -> dict[str, list[dict[str, An
 
 
 async def mysql_tables_empty(pool: aiomysql.Pool) -> bool:
-    async with pool.acquire() as conn:
+    async with _read_connection(pool) as conn:
         async with conn.cursor() as cursor:
             for spec in TABLE_SPECS.values():
                 await cursor.execute(f"SELECT 1 FROM `{spec.name}` LIMIT 1")
@@ -399,7 +422,7 @@ async def mysql_tables_empty(pool: aiomysql.Pool) -> bool:
     return True
 
 
-async def _upsert_row(cursor, spec: TableSpec, row: dict[str, Any]) -> None:
+async def _upsert_rows(cursor, spec: TableSpec, rows: list[dict[str, Any]]) -> None:
     columns = spec.columns
     placeholders = ", ".join(f"%({column})s" for column in columns)
     update_columns = [column for column in columns if column != spec.primary_key]
@@ -408,7 +431,7 @@ async def _upsert_row(cursor, spec: TableSpec, row: dict[str, Any]) -> None:
         f"INSERT INTO `{spec.name}` ({_quoted_columns(spec)}) VALUES ({placeholders}) "
         f"ON DUPLICATE KEY UPDATE {updates}"
     )
-    await cursor.execute(sql, {column: row.get(column) for column in columns})
+    await cursor.executemany(sql, [{column: row.get(column) for column in columns} for row in rows])
 
 
 async def replace_mysql_tables(
@@ -420,32 +443,45 @@ async def replace_mysql_tables(
             async with conn.cursor() as cursor:
                 for spec in TABLE_SPECS.values():
                     await cursor.execute(f"DELETE FROM `{spec.name}`")
-                    for row in tables.get(spec.name, []):
-                        await _upsert_row(cursor, spec, row)
+                    rows = tables.get(spec.name, [])
+                    for start in range(0, len(rows), SYNC_BATCH_SIZE):
+                        await _upsert_rows(cursor, spec, rows[start : start + SYNC_BATCH_SIZE])
             await conn.commit()
-        except Exception:
-            await conn.rollback()
+        except BaseException:
+            await _rollback_if_open(conn)
             raise
 
 
-async def replay_mysql_events(pool: aiomysql.Pool, events: list[dict[str, Any]]) -> None:
-    """在单个 MySQL 事务内幂等回放 SQLite 离线日志。"""
+async def replay_mysql_events(
+    pool: aiomysql.Pool, batches: AsyncIterator[list[dict[str, Any]]]
+) -> int:
+    """分批读取、按原顺序回放；所有批次在同一事务中提交，返回已提交的末尾 ID。"""
+    last_id = 0
     async with pool.acquire() as conn:
         try:
             async with conn.cursor() as cursor:
-                for event in events:
-                    spec = TABLE_SPECS[event["table_name"]]
-                    operation = event["operation"]
-                    if operation == "clear":
-                        await cursor.execute(f"DELETE FROM `{spec.name}`")
-                    elif operation == "delete":
-                        await cursor.execute(
-                            f"DELETE FROM `{spec.name}` WHERE `{spec.primary_key}`=%s",
-                            (event["pk_value"],),
-                        )
-                    else:
-                        await _upsert_row(cursor, spec, event["row_data"])
+                async for events in batches:
+                    for (table, operation), group in groupby(
+                        events, key=lambda event: (event["table_name"], event["operation"])
+                    ):
+                        spec = TABLE_SPECS[table]
+                        if operation == "upsert":
+                            await _upsert_rows(cursor, spec, [event["row_data"] for event in group])
+                        else:
+                            for event in group:
+                                if operation == "clear":
+                                    await cursor.execute(f"DELETE FROM `{spec.name}`")
+                                elif operation == "delete":
+                                    await cursor.execute(
+                                        f"DELETE FROM `{spec.name}` WHERE `{spec.primary_key}`=%s",
+                                        (event["pk_value"],),
+                                    )
+                                else:
+                                    raise ValueError("未知的离线日志操作")
+                    if events:
+                        last_id = events[-1]["id"]
             await conn.commit()
-        except Exception:
-            await conn.rollback()
+        except BaseException:
+            await _rollback_if_open(conn)
             raise
+    return last_id

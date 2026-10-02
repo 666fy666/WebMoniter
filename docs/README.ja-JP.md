@@ -62,6 +62,7 @@ WebMoniter は Python、FastAPI、APScheduler をベースにしたタスクシ�
 | Weibo | `weibo` | はい | いいえ |
 | Bilibili | `bilibili` | はい | はい |
 | Douyin | `douyin` | いいえ | はい |
+| 快手（実環境での検証待ち） | `kuaishou` | いいえ | はい |
 | Douyu | `douyu` | いいえ | はい |
 | Xiaohongshu | `xhs` | はい | いいえ |
 
@@ -199,17 +200,7 @@ Qinglong では環境変数で設定し、`python -m src.ql <task_id>` で定期
 <details>
 <summary><strong>開発</strong></summary>
 
-```bash
-uv sync --locked --extra dev --extra rainyun
-uv run ruff check .
-uv run black --check .
-uv run pytest -q
-npm ci --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-```
-
-監視または定期タスクを追加する場合は[二次開発ガイド](SECONDARY_DEVELOPMENT.md)を参照してください。`src/tests/` のテストはメタデータ、レジストリ、enable マッピングの整合性を検証します。モジュール構成の詳細は[アーキテクチャ](ARCHITECTURE.md)にあります。
+環境構築と検証コマンドは[開発ガイド](SECONDARY_DEVELOPMENT.md)、モジュール構成とデータフローは[アーキテクチャ](ARCHITECTURE.md)を参照してください。
 
 </details>
 

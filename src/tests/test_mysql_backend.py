@@ -1,17 +1,131 @@
 """MySQL 方言和 SQLite 离线日志契约。"""
 
+import asyncio
+import json
+from unittest.mock import AsyncMock, MagicMock
+
 import aiomysql
 import aiosqlite
 import pytest
 
 from src.settings.config import AppConfig
 from src.storage import database as db_module
+from src.storage import mysql_backend as mysql_module
 from src.storage.mysql_backend import (
     MySQLSettings,
     _migrate_mysql_columns,
     convert_mysql_sql,
     select_mysql_params,
 )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", [None, RuntimeError, asyncio.CancelledError])
+async def test_mysql_replay_commits_only_after_all_batches_and_preserves_order(failure):
+    pool = MagicMock()
+    conn = AsyncMock()
+    conn.closed = False
+    cursor = AsyncMock()
+    pool.acquire.return_value.__aenter__.return_value = conn
+    conn.cursor = MagicMock()
+    conn.cursor.return_value.__aenter__.return_value = cursor
+    events = [
+        {"id": i + 1, "table_name": "douyu", "operation": "upsert", "row_data": {"room": str(i)}}
+        for i in range(2)
+    ]
+
+    async def batches():
+        yield events
+        if failure:
+            raise failure()
+        yield [
+            {"id": 3, "table_name": "douyu", "operation": "clear"},
+            events[0] | {"id": 4},
+            {"id": 5, "table_name": "douyu", "operation": "delete", "pk_value": "0"},
+        ]
+
+    if failure:
+        with pytest.raises(failure):
+            await mysql_module.replay_mysql_events(pool, batches())
+        conn.commit.assert_not_awaited()
+        conn.rollback.assert_awaited_once()
+    else:
+        assert await mysql_module.replay_mysql_events(pool, batches()) == 5
+        conn.commit.assert_awaited_once()
+        conn.rollback.assert_not_awaited()
+        operations = [
+            call[0] for call in cursor.mock_calls if call[0] in {"execute", "executemany"}
+        ]
+        assert operations == ["executemany", "execute", "executemany", "execute"]
+    assert len(cursor.executemany.await_args_list[0].args[1]) == 2
+
+
+@pytest.mark.asyncio
+async def test_outbox_pagination_and_acknowledgement_preserve_unreplayed_events(tmp_path):
+    async with aiosqlite.connect(tmp_path / "outbox.db") as conn:
+        conn.row_factory = aiosqlite.Row
+        await db_module.AsyncDatabase()._init_tables(conn)
+        total = db_module.SYNC_BATCH_SIZE + 2
+        await conn.executemany(
+            "INSERT INTO mysql_sync_outbox (table_name, pk_value, operation, row_data, created_at) "
+            "VALUES ('douyu', ?, 'upsert', ?, '2026-10-02')",
+            [(str(i), json.dumps({"room": str(i)})) for i in range(total)],
+        )
+        await conn.commit()
+        first = await db_module._load_outbox(conn)
+        second = await db_module._load_outbox(conn, after_id=first[-1]["id"])
+        assert len(first) == db_module.SYNC_BATCH_SIZE
+        assert [event["row_data"]["room"] for event in first + second] == [
+            str(i) for i in range(total)
+        ]
+        await db_module._clear_outbox(conn, through_id=first[-1]["id"])
+        assert await db_module._load_outbox(conn) == second
+        assert not conn.in_transaction
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["write", "outbox", "mirror"])
+async def test_cancelled_sqlite_transaction_rolls_back_before_connection_reuse(
+    tmp_path, monkeypatch, operation
+):
+    async with aiosqlite.connect(tmp_path / "cancel.db") as conn:
+        await db_module.AsyncDatabase()._init_tables(conn)
+        await conn.execute("INSERT INTO douyu (room, name) VALUES ('old', 'original')")
+        await conn.commit()
+        committing = asyncio.Event()
+        original_commit = conn.commit
+
+        async def delayed_commit():
+            committing.set()
+            await asyncio.Event().wait()
+
+        monkeypatch.setattr(conn, "commit", delayed_commit)
+        sql = "INSERT INTO douyu (room, name) VALUES (:room, :name)"
+        params = {"room": "new", "name": "cancelled"}
+        if operation == "mirror":
+            write = db_module._replace_sqlite_tables(conn, {})
+            monkeypatch.setattr(db_module, "_sqlite_healthy", True)
+        elif operation == "outbox":
+            write = db_module._sqlite_update_with_outbox(conn, sql, params)
+        else:
+            write = db_module._sqlite_update(conn, sql, params)
+        task = asyncio.create_task(write)
+        try:
+            await asyncio.wait_for(committing.wait(), 2)
+        finally:
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        assert not conn.in_transaction
+        assert await db_module._sqlite_query(conn, "SELECT room, name FROM douyu") == [
+            ("old", "original")
+        ]
+        assert await db_module._load_outbox(conn) == []
+        monkeypatch.setattr(conn, "commit", original_commit)
+        await db_module._sqlite_update(conn, sql, {"room": "next", "name": "saved"})
+        assert await db_module._sqlite_query(conn, "SELECT name FROM douyu WHERE room='next'") == [
+            ("saved",)
+        ]
 
 
 def test_mysql_sql_conversion_supports_both_project_placeholder_styles() -> None:

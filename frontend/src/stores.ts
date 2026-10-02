@@ -32,21 +32,24 @@ export const useUI = defineStore('ui', () => {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const coarse = window.matchMedia('(pointer: coarse)')
   const systemDark = ref(dark.matches)
-  const simple = ref(reduced.matches || coarse.matches)
+  const reducedMotion = ref(reduced.matches)
+  const coarsePointer = ref(coarse.matches)
   dark.addEventListener('change', (e) => {
     systemDark.value = e.matches
   })
   reduced.addEventListener('change', () => {
-    simple.value = reduced.matches || coarse.matches
+    reducedMotion.value = reduced.matches
   })
   coarse.addEventListener('change', () => {
-    simple.value = reduced.matches || coarse.matches
+    coarsePointer.value = coarse.matches
   })
   const effectiveTheme = computed(() =>
     theme.value === 'system' ? (systemDark.value ? 'dark' : 'light') : theme.value,
   )
   const effectiveEffects = computed(() =>
-    reduced.matches || effects.value === 'simple' || (effects.value === 'auto' && simple.value)
+    reducedMotion.value ||
+    effects.value === 'simple' ||
+    (effects.value === 'auto' && coarsePointer.value)
       ? 'simple'
       : 'full',
   )

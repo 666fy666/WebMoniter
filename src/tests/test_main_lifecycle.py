@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -15,8 +17,138 @@ from src.jobs.registry import JobDescriptor
 from src.jobs.scheduler import TaskScheduler
 from src.jobs.task_outcome import TASK_SUCCESS
 from src.settings.config import AppConfig
+from src.settings.watcher import ConfigWatcher
 
 logger = logging.getLogger("test")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("replace_pending", [False, True])
+async def test_watcher_retries_failed_callback_with_latest_configuration(
+    tmp_path, monkeypatch, replace_pending
+):
+    from src.settings import watcher as module
+
+    path = tmp_path / "config.yml"
+    path.write_text("initial")
+    initial = AppConfig(weibo_monitor_interval_seconds=100)
+    pending = AppConfig(weibo_monitor_interval_seconds=200)
+    latest = AppConfig(weibo_monitor_interval_seconds=300)
+    current = initial
+    monkeypatch.setattr(module, "get_config", lambda *args: current)
+    applied = asyncio.Event()
+    calls = []
+
+    async def on_change(old, new):
+        nonlocal current
+        calls.append((old, new))
+        if len(calls) == 1:
+            if replace_pending:
+                current = latest
+                stat = path.stat()
+                replacement = tmp_path / "replacement"
+                replacement.write_text("updated")
+                os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+                replacement.replace(path)
+            raise RuntimeError("temporary apply failure")
+        applied.set()
+
+    watcher = ConfigWatcher(str(path), check_interval=0.001, on_config_changed=on_change)
+    await watcher.start()
+    try:
+        current = pending
+        path.write_text("updated")
+        await asyncio.wait_for(applied.wait(), 1)
+        assert calls == [(initial, pending), (initial, latest if replace_pending else pending)]
+        assert watcher._last_config is (latest if replace_pending else pending)
+        assert not watcher._retry_pending
+    finally:
+        await watcher.stop()
+
+
+@pytest.mark.asyncio
+async def test_config_cleanup_propagates_partial_failure_and_can_be_retried(monkeypatch):
+    from src.settings import db_sync
+
+    db = AsyncMock()
+    db.__aenter__.return_value = db
+    db.execute_update.side_effect = [True, False, True, True]
+    monkeypatch.setattr(db_sync, "AsyncDatabase", lambda: db)
+    old = AppConfig(bilibili_uids="removed")
+    new = AppConfig(bilibili_uids="")
+    with pytest.raises(RuntimeError, match="清理未完成"):
+        await db_sync.sync_config_to_db(old, new)
+    await db_sync.sync_config_to_db(old, new)
+    calls = db.execute_update.await_args_list
+    assert calls[:2] == calls[2:]
+    assert all(call.args[1] == {"pk": "removed"} for call in calls)
+
+
+@pytest.mark.asyncio
+async def test_config_reload_propagates_scheduler_failure(monkeypatch):
+    from src.jobs import lifecycle
+    from src.storage import database
+
+    monkeypatch.setattr(database, "reconfigure_database", AsyncMock())
+    monkeypatch.setattr(lifecycle, "sync_config_to_db", AsyncMock())
+    descriptor = JobDescriptor("test", AsyncMock(), "interval", lambda config: {"seconds": 1})
+    monkeypatch.setattr(lifecycle, "MONITOR_JOBS", [descriptor])
+    monkeypatch.setattr(lifecycle, "monitor_job_enabled", lambda *args: True)
+    scheduler = SimpleNamespace(resume_job=lambda job_id: False)
+    with pytest.raises(RuntimeError, match="恢复任务失败"):
+        await lifecycle.on_scheduler_config_changed(AppConfig(), AppConfig(), scheduler)
+
+
+@pytest.mark.asyncio
+async def test_reapplying_schedule_preserves_next_run_and_can_change_interval():
+    scheduler = TaskScheduler(AppConfig())
+    scheduler.scheduler.add_job(AsyncMock(), "interval", seconds=60, id="interval")
+    scheduler.scheduler.add_job(AsyncMock(), "cron", hour="3", minute="15", id="cron")
+    scheduler.scheduler.start(paused=True)
+    try:
+        expected = {job.id: job.next_run_time for job in scheduler.scheduler.get_jobs()}
+        for _ in range(2):
+            assert scheduler.resume_job("interval")
+            assert scheduler.update_interval_job("interval", seconds=60)
+            assert scheduler.resume_job("cron")
+            assert scheduler.update_cron_job("cron", hour="3", minute="15")
+        assert {job.id: job.next_run_time for job in scheduler.scheduler.get_jobs()} == expected
+        assert scheduler.update_interval_job("interval", seconds=120)
+        job = scheduler.scheduler.get_job("interval")
+        assert job.trigger.interval.total_seconds() == 120
+        assert job.next_run_time > expected["interval"]
+        assert scheduler.pause_job("interval")
+        assert scheduler.scheduler.get_job("interval").next_run_time is None
+        assert scheduler.resume_job("interval")
+        assert scheduler.scheduler.get_job("interval").next_run_time is not None
+    finally:
+        scheduler.shutdown(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_watcher_reloads_restored_file_with_older_timestamp(tmp_path, monkeypatch):
+    from src.settings import watcher as module
+
+    path = tmp_path / "config.yml"
+    path.write_text("initial")
+    configs = iter([AppConfig(weibo_enable=False), AppConfig(weibo_enable=True)])
+    monkeypatch.setattr(module, "get_config", lambda *args: next(configs))
+    changed = asyncio.Event()
+
+    async def on_change(old, new):
+        assert not old.weibo_enable
+        assert new.weibo_enable
+        changed.set()
+
+    watcher = ConfigWatcher(str(path), check_interval=0.001, on_config_changed=on_change)
+    await watcher.start()
+    try:
+        earlier = path.stat().st_mtime - 60
+        path.write_text("restored")
+        os.utime(path, (earlier, earlier))
+        await asyncio.wait_for(changed.wait(), 1)
+    finally:
+        await watcher.stop()
 
 
 class _RecordingWatcher:

@@ -2,6 +2,7 @@
 
 本页说明当前扩展契约。模块边界和存储恢复原理见 [架构文档](ARCHITECTURE.md)，使用参数见 [配置说明](guides/config.md)、[任务指南](guides/tasks.md) 和 [推送通道](guides/push-channels.md)。
 
+<a id="development-checks"></a>
 ## 开发环境与关键检查
 
 在仓库根目录使用 Python 3.11：
@@ -15,6 +16,7 @@ uv run pytest -q
 npm ci --prefix frontend
 npm run test --prefix frontend
 npm run build --prefix frontend
+npm exec --prefix frontend -- playwright install chromium
 npm run test:e2e --prefix frontend
 ```
 
@@ -27,7 +29,9 @@ uv sync --locked --extra dev --extra rainyun --extra docs
 uv run mkdocs build --strict --config-file docs/mkdocs.yml
 ```
 
-Python 测试在收集前将配置、数据库、Cookie、会话和默认日志隔离到临时目录。注册完整性检查只对明确缺失的可选包允许跳过，其他导入错误应失败。前端使用 Vitest 与 Playwright，后者连接隔离的临时后端，不调用真实平台。
+Python 测试在收集前将配置、数据库、Cookie、会话和默认日志隔离到临时目录。注册完整性检查只对明确缺失的可选包允许跳过，其他导入错误应失败。前端使用 Vitest 与 Playwright，后者连接隔离的临时后端，不调用真实平台。Linux 缺少浏览器系统库时使用 `npm exec --prefix frontend -- playwright install --with-deps chromium`。
+
+生产构建已包含 TypeScript 检查与 250 KiB gzip 资源预算，无需再单独重复类型检查；只改类型时可先执行 `npm run typecheck --prefix frontend`。Playwright 使用一个 worker，桌面覆盖关键功能，移动端只重复导航、图片操作、外观偏好与保存按钮可用性。截图留作人工观察，不比较像素基线；平板、极窄屏、字体和弱网性能改由人工验收。
 
 只为结果、边界和一致性增加必要测试。配置合并、鉴权、调度结果、数据库恢复、监控去重、推送格式及请求竞态属于关键回归；颜色、CSS 字符串、固定资源版本、文案措辞和视觉细节不做源码断言。实际图片、触屏、主题和滚动检查见 [Web 自测清单](guides/web-ui.md#manual-checks)。
 
@@ -104,7 +108,7 @@ Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业
 3. 在入口中初始化监控器，并在 `finally` 中关闭资源；参考 `src/monitors/huya_monitor.py`。基类提供 `self.config`、HTTP 会话、`self.db`、`self.push` 和 Cookie 失效通知，未配置推送时可通过 `send_push_news()` 安全跳过。
 4. 实现当前状态与旧快照的对比、首次运行和去重规则；保持有界并发，不在异步函数中直接执行浏览器或阻塞请求。
 5. 调用 `register_monitor()`，在 `MONITOR_SPECS` 登记对应 `TaskSpec`；触发参数函数返回 `{"seconds": ...}`。
-6. 若目标删除需同步清理存储，维护 `src/settings/db_sync.py` 的规则；若需 Web 数据展示，维护 `src/web/data_support.py` 的平台 SQL、主键和行转换，并增加模板/脚本中的平台展示。
+6. 若目标删除需同步清理存储，维护 `src/settings/db_sync.py` 的规则；若需 Web 数据展示，维护 `src/web/data_support.py` 的平台 SQL、主键和行转换，并更新 `frontend/src/views/Data.vue` 的平台展示。
 
 监控入口允许返回 `None`，与必须返回布尔结果的定时任务区分。
 
@@ -115,7 +119,7 @@ Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业
 | 方法 | 契约 |
 |---|---|
 | `execute_query(sql, params=None)` | 返回 `list[tuple]` |
-| `execute_update(sql, params=None)` | 执行 INSERT/UPDATE/DELETE，返回 `bool`；异常由调用方处理 |
+| `execute_update(sql, params=None)` | 执行 INSERT/UPDATE/DELETE；SQL 操作失败记录日志并返回 `False`，调用方必须检查结果；连接初始化失败和任务取消仍可能向上传播 |
 | `execute_insert(sql, params=None)` | 插入的语义入口，返回 `bool` |
 | `is_table_empty(table_name)` | 返回表是否为空 |
 
@@ -137,9 +141,9 @@ Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业
 
 YAML 文本视图可编辑完整配置；表单保存由后端合并，分区保存仅提交该分区字段。完整 YAML 仍是整份替换，推送通道列表和空账号列表的语义见 [配置 API](API.md)。
 
-元数据提供配置节顺序和字段关联，不会自动生成新业务表单。新增表单卡片需维护 `config.html` 与 `config.js` 中的加载、收集和保存逻辑；保留 `data-section`、配置模块及通道控件关联。未提供独立表单的顶层字段仍可用 YAML 编辑，插件参数可通过插件 JSON 区块编辑。
+配置页位于 `frontend/src/views/Config.vue`，从 `/api/v1/config/metadata` 合并样例默认值，并通过 `components/FieldEditor.vue` 渲染字段、数组与嵌套对象。新增字段优先维护配置模型、样例和元数据映射；只有现有通用控件无法表达时才扩展组件。完整 YAML 编辑保留为高级入口。
 
-修改 CSS 或 JavaScript 时递增 `src/web/templating.py` 的 `STATIC_ASSET_VERSION`，所有页面资源共用这一版本。不要把测试固定在某个版本字符串，也不要为了测试把生产脚本改成另一套框架。
+Vue/CSS 修改后运行前端构建；Vite 自动生成带内容哈希的 `/assets/` 文件，首页使用 `no-cache`，无需手动递增版本。`src/web/static_files.py` 的版本仅用于保留的 `/static/` 资源。`src/webUI/` 不再包含 Jinja 模板或配置脚本。
 
 ## 青龙 CLI
 

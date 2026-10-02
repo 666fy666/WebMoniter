@@ -14,6 +14,7 @@ import aiosqlite
 
 from src.core.paths import DB_PATH
 from src.storage.mysql_backend import (
+    SYNC_BATCH_SIZE,
     TABLE_SPECS,
     MySQLSettings,
     close_mysql_pool,
@@ -452,11 +453,6 @@ class AsyncDatabase:
                 _set_sqlite_health(True)
                 return True
         except Exception as e:
-            try:
-                if self._conn:
-                    await self._conn.rollback()
-            except Exception:
-                pass
             if _active_backend != "mysql":
                 _set_sqlite_health(False)
             _logger.error("数据库操作失败: %s\nSQL: %s", e, sqlite_sql)
@@ -534,7 +530,7 @@ async def _sqlite_update(
     try:
         await conn.execute(sql, params)
         await conn.commit()
-    except Exception:
+    except BaseException:
         await conn.rollback()
         raise
 
@@ -608,7 +604,7 @@ async def _sqlite_update_with_outbox(
             },
         )
         await conn.commit()
-    except Exception:
+    except BaseException:
         await conn.rollback()
         raise
 
@@ -644,15 +640,17 @@ async def _replace_sqlite_tables(
             )
         await conn.commit()
         _set_sqlite_health(True)
-    except Exception:
+    except BaseException:
         await conn.rollback()
         _set_sqlite_health(False)
         raise
 
 
-async def _load_outbox(conn: aiosqlite.Connection) -> list[dict[str, Any]]:
+async def _load_outbox(conn: aiosqlite.Connection, after_id: int = 0) -> list[dict[str, Any]]:
     async with conn.execute(
-        "SELECT id, table_name, pk_value, operation, row_data FROM mysql_sync_outbox ORDER BY id"
+        "SELECT id, table_name, pk_value, operation, row_data FROM mysql_sync_outbox "
+        "WHERE id > ? ORDER BY id LIMIT ?",
+        (after_id, SYNC_BATCH_SIZE),
     ) as cursor:
         rows = await cursor.fetchall()
     events = []
@@ -669,16 +667,13 @@ async def _load_outbox(conn: aiosqlite.Connection) -> list[dict[str, Any]]:
     return events
 
 
-async def _clear_outbox(conn: aiosqlite.Connection, event_ids: list[int] | None = None) -> None:
-    if event_ids:
-        placeholders = ",".join("?" for _ in event_ids)
-        await conn.execute(
-            f"DELETE FROM mysql_sync_outbox WHERE id IN ({placeholders})",
-            event_ids,
-        )
-    else:
-        await conn.execute("DELETE FROM mysql_sync_outbox")
-    await conn.commit()
+async def _clear_outbox(conn: aiosqlite.Connection, through_id: int | None = None) -> None:
+    sql = "DELETE FROM mysql_sync_outbox"
+    params = None
+    if through_id is not None:
+        sql += " WHERE id <= :through_id"
+        params = {"through_id": through_id}
+    await _sqlite_update(conn, sql, params)
 
 
 async def _synchronize_connected_mysql_locked(pool) -> None:
@@ -696,8 +691,15 @@ async def _synchronize_connected_mysql_locked(pool) -> None:
         await _clear_outbox(conn)
     else:
         if events:
-            await replay_mysql_events(pool, events)
-            await _clear_outbox(conn, [event["id"] for event in events])
+
+            async def batches():
+                batch = events
+                while batch:
+                    yield batch
+                    batch = await _load_outbox(conn, after_id=batch[-1]["id"])
+
+            last_id = await replay_mysql_events(pool, batches())
+            await _clear_outbox(conn, through_id=last_id)
         await _replace_sqlite_tables(conn, await fetch_mysql_tables(pool))
 
     _mirror_degraded = False

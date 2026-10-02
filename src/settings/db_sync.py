@@ -39,6 +39,7 @@ async def sync_config_to_db(old_config: AppConfig | None, new_config: AppConfig)
         ("xhs_profile_ids", [("xhs", "profile_id")]),
     ]
 
+    failed = False
     async with AsyncDatabase() as db:
         if old_config.kuaishou_targets != new_config.kuaishou_targets:
             from src.monitors.kuaishou_targets import prune_targets, split_targets
@@ -58,14 +59,16 @@ async def sync_config_to_db(old_config: AppConfig | None, new_config: AppConfig)
                         # 使用参数化查询避免 SQL 注入（表名和列名来自代码常量，非用户输入）
                         sql = f"DELETE FROM {table_name} WHERE {pk_column}=%(pk)s"
                         ok = await db.execute_update(sql, {"pk": uid})
-                        if ok:
-                            logger.info(
-                                "配置同步: 已从 %s 表删除 %s=%s（已从配置中移除）",
-                                table_name,
-                                pk_column,
-                                uid,
-                            )
+                        if not ok:
+                            raise RuntimeError("数据库拒绝删除")
+                        logger.info(
+                            "配置同步: 已从 %s 表删除 %s=%s（已从配置中移除）",
+                            table_name,
+                            pk_column,
+                            uid,
+                        )
                     except Exception as e:
+                        failed = True
                         logger.error(
                             "配置同步: 删除 %s 表中 %s=%s 失败: %s",
                             table_name,
@@ -73,3 +76,6 @@ async def sync_config_to_db(old_config: AppConfig | None, new_config: AppConfig)
                             uid,
                             e,
                         )
+
+    if failed:
+        raise RuntimeError("配置目标清理未完成")

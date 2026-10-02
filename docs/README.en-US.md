@@ -63,6 +63,7 @@ See the [documentation home](index.md) and [Web management UI guide](guides/web-
 | Weibo | `weibo` | Yes | No |
 | Bilibili | `bilibili` | Yes | Yes |
 | Douyin | `douyin` | No | Yes |
+| Kuaishou (live validation pending) | `kuaishou` | No | Yes |
 | Douyu | `douyu` | No | Yes |
 | Xiaohongshu | `xhs` | Yes | No |
 
@@ -200,17 +201,7 @@ The source installer creates `config.yml` at the repository root. Docker creates
 <details>
 <summary><strong>Development</strong></summary>
 
-```bash
-uv sync --locked --extra dev --extra rainyun
-uv run ruff check .
-uv run black --check .
-uv run pytest -q
-npm ci --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-```
-
-See the [secondary development guide](SECONDARY_DEVELOPMENT.md) when adding monitors or scheduled tasks. Consistency tests under `src/tests/` verify metadata, registries, and enable mappings. See [Architecture](ARCHITECTURE.md) for the complete module layout.
+Environment setup and all validation commands are maintained in the [development guide](SECONDARY_DEVELOPMENT.md). Module boundaries and data flow are described in [Architecture](ARCHITECTURE.md).
 
 </details>
 

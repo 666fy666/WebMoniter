@@ -42,7 +42,11 @@ flowchart LR
 
 默认业务数据库 `data/data.db` 使用共享 aiosqlite 连接与 WAL，退出统一关闭。MySQL 保留原来的权威写入、SQLite 镜像、outbox、回退和恢复顺序，接口分页不改变一致性。微博 `published_at` 在入库时解析并建立索引，避免列表读取全部正文排序。
 
+outbox 按 ID 分批读取，连续同表 upsert 批量写入，全部批次仍在一个事务内提交；镜像跨表读取使用显式只读可重复读快照。读事务及时结束以复用连接，异常与取消在事务边界回滚；一致性前提和跨库限制见 [数据库配置](guides/config.md#mysql-sync)。
+
 配置使用 `WEBMONITER_CONFIG_FILE`，默认 `config.yml`，Docker 为 `/app/config/config.yml`。写入在同一锁内比较版本、保留未修改密钥、校验并原子替换。配置监听刷新调度和数据库设置。元数据统一从配置模型、字段映射、样例和任务注册表生成，不在页面复制第二份平台列表。
+
+监听器比较文件身份、大小与纳秒时间；回调失败不确认版本，在下一次轮询读取最新配置重试。目标删除失败向上传播，重复主键删除幂等；相同触发器和已恢复的任务不重复调度。该回调不主动执行签到或推送，配置应用也不是跨数据库和调度器的原子事务。
 
 日志按日和大小轮转（单文件 10 MiB，2 个轮转副本），默认保留 3 天，每分钟检查约 100 MiB 总量预算，优先删除最旧非活动文件。活动文件不被删除，所以预算不是严格磁盘配额；Docker 控制台日志另限 10 MB × 3。
 
@@ -56,4 +60,4 @@ flowchart LR
 
 ## 验证
 
-`src/tests/` 覆盖配置、执行、平台、推送、MySQL 回退与安全；`frontend/tests/` 包含客户端单测和 Playwright 真实后端回归。`scripts/container_benchmark.py` 使用临时容器、模拟快照和本地浏览器页面验证资源预算。性能、体积、证据和待验收项见 [重构审查报告](REFACTOR_AUDIT.md)。
+`src/tests/` 保留配置、执行、平台、推送、MySQL 回退、事务取消与安全回归；`frontend/tests/` 包含客户端单测和连接隔离后端的 Playwright 关键交互测试，第三方数据使用模拟响应。检查命令集中在 [开发指南](SECONDARY_DEVELOPMENT.md#development-checks)，视觉、实机和外部服务验收集中在 [自测清单](guides/web-ui.md#manual-checks)。`scripts/container_benchmark.py` 保留为按需资源测试工具；本轮结果与历史测量边界见 [审查报告](REFACTOR_AUDIT.md)。

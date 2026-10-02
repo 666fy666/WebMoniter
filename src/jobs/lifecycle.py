@@ -239,12 +239,16 @@ def _apply_monitor_jobs_after_config_reload(
     out: list[str] = []
     for desc in MONITOR_JOBS:
         if monitor_job_enabled(desc.job_id, new_config):
-            scheduler.resume_job(desc.job_id)
+            if not scheduler.resume_job(desc.job_id):
+                raise RuntimeError(f"恢复任务失败: {desc.job_id}")
             kw = desc.get_trigger_kwargs(new_config)
             if info := scheduler.update_interval_job(job_id=desc.job_id, **kw):
                 out.append(info)
+            else:
+                raise RuntimeError(f"更新触发器失败: {desc.job_id}")
         else:
-            scheduler.pause_job(desc.job_id)
+            if not scheduler.pause_job(desc.job_id):
+                raise RuntimeError(f"暂停任务失败: {desc.job_id}")
             out.append(f"{desc.job_id}(已暂停)")
     return out
 
@@ -255,12 +259,16 @@ def _apply_cron_jobs_after_config_reload(
     out: list[str] = []
     for desc in TASK_JOBS:
         if task_job_enabled(desc.job_id, new_config):
-            scheduler.resume_job(desc.job_id)
+            if not scheduler.resume_job(desc.job_id):
+                raise RuntimeError(f"恢复任务失败: {desc.job_id}")
             kw = desc.get_trigger_kwargs(new_config)
             if info := scheduler.update_cron_job(job_id=desc.job_id, **kw):
                 out.append(info)
+            else:
+                raise RuntimeError(f"更新触发器失败: {desc.job_id}")
         else:
-            scheduler.pause_job(desc.job_id)
+            if not scheduler.pause_job(desc.job_id):
+                raise RuntimeError(f"暂停任务失败: {desc.job_id}")
             out.append(f"{desc.job_id}(已暂停)")
     return out
 
@@ -283,7 +291,8 @@ async def on_scheduler_config_changed(
         if updates:
             logger.info("配置已更新: %s", _format_reload_summary(updates))
     except Exception as e:
-        logger.error("更新调度器任务间隔失败: %s", e, exc_info=True)
+        logger.error("更新调度器任务间隔失败: %s", type(e).__name__)
+        raise
 
 
 # ---------------------------------------------------------------------------

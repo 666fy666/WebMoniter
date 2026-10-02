@@ -10,7 +10,6 @@ import pytest
 from src.core import http
 from src.web import warmup
 from src.web.app import create_web_app
-from src.web.data_support import _cached_weibo_order, _weibo_page_ids
 from src.web.middleware import WebPerformanceMiddleware
 from src.web.static_files import STATIC_ASSET_VERSION, VersionedStaticFiles
 
@@ -131,15 +130,3 @@ def test_tls_context_reuses_verified_ca_configuration():
     assert http.get_certifi_ssl_context() is context
     assert context.check_hostname is True
     assert context.verify_mode == http.ssl.CERT_REQUIRED
-
-
-def test_weibo_sort_cache_is_bounded_and_skips_oversized_indices():
-    _cached_weibo_order.cache_clear()
-    for uid in ("first", "second", "third"):
-        assert _weibo_page_ids([(uid, "正文\n\n2026-01-01 10:00:00")], 0, 1) == [uid]
-    assert _cached_weibo_order.cache_info().currsize == 2
-    misses = _cached_weibo_order.cache_info().misses
-    _weibo_page_ids([(str(i), "unknown") for i in range(4097)], 0, 25)
-    _weibo_page_ids([("x" * 256, "unknown")], 0, 1)
-    assert _cached_weibo_order.cache_info().misses == misses
-    _cached_weibo_order.cache_clear()

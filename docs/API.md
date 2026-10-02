@@ -26,7 +26,7 @@
 
 同一任务已有排队或执行实例时，提交返回已有 `run_id`。队列满返回 503 与 `Retry-After`，不存在的任务返回 404。所有手动、定时和启动入口共用队列；手动触发可绕过“今日已完成”，但不会绕过禁用配置。
 
-运行状态：`queued`、`running`、`success`、`partial`、`failed`、`skipped`、`timeout`、`interrupted`。记录包含 `job_id`、`source`、`created_at`、`started_at`、`finished_at`、`message`。时间戳单位秒。最近记录有 10,000 条保留上限，重启时未完成任务标为中断，不自动重放外部操作。
+运行状态：`queued`、`running`、`success`、`partial`、`failed`、`skipped`、`timeout`、`interrupted`。记录包含 `run_id`、`job_id`、`source`、`created_at`、`started_at`、`finished_at`、`message`。时间戳单位秒。状态更新时清理最近 10,000 条之外的终态记录，排队与运行记录始终保留；因此不是严格的总行数上限。重启时未完成任务标为中断，不自动重放外部操作。
 
 ## 配置
 
@@ -46,7 +46,7 @@
 
 ## 监控数据
 
-`GET /data/{platform}?page=1&page_size=50` 返回 `{data, page, page_size, total}`，每页最大 200。平台包括 `weibo`、`huya`、`bilibili_dynamic`、`bilibili_live`、`douyin`、`douyu`、`xhs`、`kuaishou`。字段与过滤参数见代码 `src/web/data_support.py`、`src/web/routers/data.py`。`GET /data/{platform}/{item_id}` 返回单条快照。
+`GET /data/{platform}?page=1&page_size=50` 返回 `{data, page, page_size, total, total_pages}`，每页最大 200。平台包括 `weibo`、`huya`、`bilibili_dynamic`、`bilibili_live`、`douyin`、`douyu`、`xhs`、`kuaishou`。字段与过滤参数见代码 `src/web/data_support.py`、`src/web/routers/data.py`。`GET /data/{platform}/{item_id}` 返回单条快照。`GET /data/huya/images?rooms=1,2` 批量读取封面和头像，去重后最多 200 个房间；列表的 `include_media=false` 可省略虎牙图片字段。
 
 微博按入库时计算的 `published_at` 索引排序。MySQL 与 SQLite 的权威写入、镜像、outbox 和回退行为保持一致。旧无界 `/api/monitor-status` 接口不再挂载。
 

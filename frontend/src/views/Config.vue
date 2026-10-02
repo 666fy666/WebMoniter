@@ -92,11 +92,16 @@ function hydrate(data: ConfigResponse) {
   if (!(selected.value in document.value)) selected.value = Object.keys(document.value)[0] || ''
 }
 async function load() {
+  if (busy.value) return
   busy.value = true
   error.value = ''
   try {
-    meta.value = await api<Metadata>('/config/metadata')
-    hydrate(await api<ConfigResponse>('/config'))
+    const [metadata, config] = await Promise.all([
+      api<Metadata>('/config/metadata'),
+      api<ConfigResponse>('/config'),
+    ])
+    meta.value = metadata
+    hydrate(config)
     pushType.value = meta.value.push_channels[0]?.type || ''
   } catch (e) {
     error.value = (e as Error).message
@@ -105,26 +110,34 @@ async function load() {
   }
 }
 async function save() {
+  if (busy.value) return
+  const section = selected.value,
+    savingYaml = yamlMode.value,
+    submitted = JSON.parse(JSON.stringify(document.value)) as Config,
+    content = yamlText.value
   busy.value = true
   error.value = ''
   try {
     const result = await send<ConfigResponse>(
       '/config',
-      yamlMode.value
-        ? { version: version.value, content: yamlText.value }
-        : { version: version.value, config: { [selected.value]: document.value[selected.value] } },
+      savingYaml
+        ? { version: version.value, content }
+        : { version: version.value, config: { [section]: submitted[section] } },
       'PUT',
     )
-    // Preserve dirty edits in other sections when saving only the active section.
+    // Preserve edits made before or during this request, even after switching sections.
     const pending = document.value,
       old = JSON.parse(baseline.value) as Config
     hydrate(result)
-    if (!yamlMode.value) {
+    if (!savingYaml) {
       for (const key of Object.keys(pending))
-        if (key !== selected.value && JSON.stringify(pending[key]) !== JSON.stringify(old[key]))
+        if (
+          JSON.stringify(pending[key]) !==
+          JSON.stringify(key === section ? submitted[key] : old[key])
+        )
           document.value[key] = pending[key]
     } else {
-      yamlBaseline.value = yamlText.value
+      yamlBaseline.value = content
     }
     ui.notify('配置已保存，调度设置将在数秒内更新')
   } catch (e) {
@@ -143,6 +156,7 @@ async function save() {
   }
 }
 async function toggleYaml() {
+  if (busy.value) return
   if (dirty.value && !window.confirm('切换编辑方式会放弃尚未保存的内容，是否继续？')) return
   if (yamlMode.value) {
     yamlMode.value = false
@@ -151,6 +165,7 @@ async function toggleYaml() {
     return
   }
   if (!window.confirm('YAML 中包含完整凭据。仅在可信设备上查看，是否继续？')) return
+  busy.value = true
   try {
     const result = await send<{ version: string; content: string }>('/config/reveal', {})
     version.value = result.version
@@ -158,9 +173,12 @@ async function toggleYaml() {
     yamlMode.value = true
   } catch (e) {
     error.value = (e as Error).message
+  } finally {
+    busy.value = false
   }
 }
 async function testDatabase() {
+  if (busy.value) return
   busy.value = true
   error.value = ''
   try {
@@ -208,12 +226,12 @@ onUnmounted(() => {
         <h1>配置</h1>
         <p>你的平台、账号和消息，在这里连接起来。</p>
       </div>
-      <button class="button glass" @click="toggleYaml">
+      <button class="button glass" :disabled="busy" @click="toggleYaml">
         {{ yamlMode ? '返回表单' : 'YAML 高级编辑' }}
       </button>
     </div>
     <p v-if="error" class="error" role="alert" tabindex="-1">
-      {{ error }} <button class="button subtle" @click="load">重新加载</button>
+      {{ error }} <button class="button subtle" :disabled="busy" @click="load">重新加载</button>
     </p>
     <div v-if="yamlMode" class="surface settings-card">
       <label class="field-label"

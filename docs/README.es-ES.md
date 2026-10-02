@@ -67,6 +67,7 @@ Para más detalles sobre la interfaz y las funciones, consulte la [Página Princ
 | Weibo | `weibo` | Sí | No |
 | Bilibili | `bilibili` | Sí | Sí |
 | Douyin | `douyin` | No | Sí |
+| Kuaishou (pendiente de validación real) | `kuaishou` | No | Sí |
 | Douyu | `douyu` | No | Sí |
 | Xiaohongshu | `xhs` | Sí | No |
 
@@ -204,32 +205,7 @@ La instalación desde código crea `config.yml` en la raíz. Docker crea `/app/c
 <details>
 <summary><strong>Notas de Desarrollo</strong></summary>
 
-```bash
-uv sync --locked --extra dev --extra rainyun
-uv run ruff check .
-uv run black --check .
-uv run pytest -q
-npm ci --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-```
-
-Para agregar nuevos monitoreos o tareas programadas, consulte la [Guía de Desarrollo Secundario](SECONDARY_DEVELOPMENT.md). En `src/tests/` hay pruebas de consistencia para metadata, registro y mapeo de habilitación; `uv run pytest` fallará si falta alguna configuración. Para una descripción completa de la arquitectura, vea [ARCHITECTURE.md](ARCHITECTURE.md). El proyecto utiliza actualmente una estructura modular:
-
-| Módulo | Responsabilidad |
-|------|------|
-| `main.py` | Punto de entrada: Web, Programador, Recarga dinámica, Cierre elegante |
-| `src/core/` | Tiempo de ejecución (`runtime.py` watchdog de salida 12s), Rutas (`paths.py`), Versión, Herramientas HTTP |
-| `src/settings/` | Modelos de configuración (`config.py`), Mapeo YAML (`loader_specs.py`), Recarga dinámica (`watcher.py`), Sincronización DB (`db_sync.py`) |
-| `src/jobs/` | Metadatos de tareas (`metadata.py`), Programación (`scheduler.py`), Registro (`registry.py`), Mapeo de habilitación (`enable_fields.py`), Resultados de tarea (`task_outcome.py`), Ciclo de vida (`lifecycle.py`), Logs (`log_manager.py`), Registro de ejecución (`tracker.py`) |
-| `src/storage/` | MySQL primario opcional, espejo/respaldo SQLite (`database.py`, `mysql_backend.py`) y caché de Cookies (`cookie_cache.py`) |
-| `src/monitors/` | Monitoreo de 6 plataformas (disparado por intervalo, lista generada por `metadata.MONITOR_SPECS`) |
-| `src/tasks/` | 30 tareas de negocio + ejemplo `demo_task` (Cron; incluye subpaquete `rainyun/`; `TASK_SPECS` tiene 31 entradas) |
-| `src/push_channel/` | 18 tipos de notificaciones (WeChat Work, DingTalk, Telegram, etc., incluye `demo`, `qlapi`) |
-| `src/web/` | Aplicación FastAPI (`app.py`), Rutas (`routers/`), Auxiliares de autenticación/config/datos, `templating.py`, `static_files.py` |
-| `src/webUI/` | Recursos estáticos frontend y plantillas Jinja2 |
-| `src/ql/` | CLI de Qinglong (`python -m src.ql <task_id>`, compatibilidad de variables de entorno en `compat.py`) |
-| `src/tests/` | Pruebas unitarias y smoke tests con pytest |
+El entorno y los comandos de validación se mantienen en la [guía de desarrollo](SECONDARY_DEVELOPMENT.md). Consulte [Arquitectura](ARCHITECTURE.md) para los módulos y el flujo de datos.
 
 </details>
 

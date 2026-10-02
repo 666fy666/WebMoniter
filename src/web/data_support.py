@@ -2,17 +2,9 @@
 
 import json
 import re
-from functools import lru_cache
 from urllib.parse import quote, urlsplit
 
 from src.core.paths import WEIBO_IMG_DIR
-from src.core.weibo_dates import (
-    _parse_weibo_created_at as _parse_weibo_created_at,
-)
-from src.core.weibo_dates import (
-    _parse_weibo_timestamp,
-    _weibo_timestamp_text,
-)
 
 # 平台配置：table_name, primary_key, filter_query_param
 PLATFORM_CONFIG = {
@@ -197,29 +189,6 @@ def _weibo_thumb_url(image_url: str) -> str:
         return image_url
     stem, _ = filename.rsplit(".", 1)
     return f"{parent}/{stem}.thumb.jpg"
-
-
-def _sort_weibo_index(index: tuple[tuple[object, str | None], ...]) -> tuple[object, ...]:
-    def sort_key(row: tuple) -> float:
-        created_at = _parse_weibo_timestamp(row[1]) if row[1] is not None else None
-        return created_at.timestamp() if created_at is not None else 0.0
-
-    return tuple(row[0] for row in sorted(index, key=sort_key, reverse=True))
-
-
-@lru_cache(maxsize=2)
-def _cached_weibo_order(index: tuple[tuple[object, str | None], ...]) -> tuple[object, ...]:
-    return _sort_weibo_index(index)
-
-
-def _weibo_page_ids(rows: list[tuple], offset: int, page_size: int) -> list[object]:
-    index = tuple((row[0], _weibo_timestamp_text(row[1])) for row in rows)
-    # 键来自每次权威查询的 UID、时间和原始顺序；不保留正文，限制两份 4096 行索引。
-    can_cache = len(index) <= 4096 and all(
-        isinstance(uid, str) and len(uid) <= 255 for uid, _ in index
-    )
-    order = _cached_weibo_order(index) if can_cache else _sort_weibo_index(index)
-    return list(order[offset : offset + page_size])
 
 
 def _weibo_avatar_url(username: object) -> str:

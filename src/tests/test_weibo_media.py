@@ -1344,31 +1344,6 @@ def test_build_description_for_special_retweet_states(source_status, expected):
     assert expected in visible
 
 
-@pytest.mark.parametrize(
-    ("content_type", "expected"),
-    [
-        ("repost", "✨ 小鱼 转发了一条微博～"),
-        ("video", "🎬 小鱼 分享了一条新视频～"),
-        ("image", "🖼️ 小鱼 发来一条新图文～"),
-        ("text", "💬 小鱼 发了条微博～"),
-        ("unknown", "🌟 小鱼 有一条新微博～"),
-    ],
-)
-def test_build_push_title_by_content_type(content_type, expected):
-    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
-    assert monitor._build_push_title({"用户名": "小鱼", "内容类型": content_type}, 1) == expected
-
-
-def test_build_push_title_for_long_text_and_deletion():
-    monitor = WeiboMonitor(AppConfig(weibo_uids="1"))
-    data = {"用户名": "小鱼", "内容类型": "text"}
-
-    assert (
-        monitor._build_push_title(data, 1, "long_text_backfill") == "📝 小鱼 的微博正文补充完整啦"
-    )
-    assert monitor._build_push_title(data, -2) == "🍃 小鱼 悄悄收起了 2 条微博"
-
-
 @pytest.mark.asyncio
 async def test_save_main_and_retweeted_video_covers_with_thumbnails(tmp_path, monkeypatch):
     monitor = WeiboMonitor(AppConfig(weibo_uids="1"))

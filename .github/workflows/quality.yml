@@ -55,6 +55,7 @@ jobs:
           cache-suffix: backend
           cache-dependency-glob: uv.lock
       - run: uv sync --frozen --extra dev --extra rainyun
+      - run: .venv/bin/ruff check .
       - run: .venv/bin/python -m pytest -q
 
   frontend:
@@ -62,10 +63,6 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [desktop, tablet, mobile]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -94,13 +91,12 @@ jobs:
         if: steps.dist.outputs.cache-hit != 'true'
       - run: uv sync --frozen --no-dev --no-install-project
       - run: cd frontend && npx playwright install --with-deps chromium
-      - run: sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
-      # Each viewport has its own server/database, while tests within it stay serial.
-      - run: npm run test:e2e --prefix frontend -- --project=${{ matrix.project }}
+      # One isolated server; desktop contracts and mobile interaction smoke tests stay serial.
+      - run: npm run test:e2e --prefix frontend
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: browser-regression-${{ matrix.project }}
+          name: browser-regression
           path: |
             frontend/test-results
             frontend/playwright-report

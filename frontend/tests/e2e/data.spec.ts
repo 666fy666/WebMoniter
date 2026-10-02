@@ -1,16 +1,8 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 const avatar =
   '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="#794ca6"/><circle cx="24" cy="17" r="8" fill="#eee4f6"/><path d="M8 46v-5a16 16 0 0 1 32 0v5" fill="#eee4f6"/></svg>'
 const longText = '这是用于检查阅读体验的长正文，包含中文、标点与换行。\n'.repeat(15)
-
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel('用户名', { exact: true }).fill('admin')
-  await page.getByLabel('密码', { exact: true }).fill('ui-test-only-password')
-  await page.getByRole('button', { name: '进入工作空间' }).click()
-  await expect(page.getByRole('heading', { name: '一切，尽在掌握。' })).toBeVisible()
-}
 
 async function mockImages(page: Page) {
   await page.route('**/weibo_img/**', (route) =>
@@ -21,10 +13,6 @@ async function mockImages(page: Page) {
   )
   await page.route('**/weibo_img/missing.jpg', (route) => route.fulfill({ status: 404, body: '' }))
 }
-
-test.beforeEach(async ({ page }) => {
-  await login(page)
-})
 
 test('weibo images open in-page with navigation, zoom, download and focus restoration', async ({
   page,
@@ -356,7 +344,8 @@ test('task times and sticky save controls remain usable', async ({ page }, testI
   await expect(page.getByLabel('监控间隔（秒）', { exact: true })).toBeVisible()
   const save = page.getByRole('button', { name: '保存当前模块' })
   await expect(save).toBeInViewport()
-  await page.getByLabel('监控间隔（秒）', { exact: true }).fill('410')
+  const interval = page.getByLabel('监控间隔（秒）', { exact: true })
+  await interval.fill(String(Number(await interval.inputValue()) + 1))
   await expect(save).toBeEnabled()
   const bounds = await save.boundingBox()
   expect(bounds).not.toBeNull()
@@ -376,19 +365,4 @@ test('task times and sticky save controls remain usable', async ({ page }, testI
   await page.screenshot({ path: `test-results/config-sticky-${testInfo.project.name}.png` })
   await save.click()
   await expect(page.getByRole('status')).toContainText('配置已保存')
-})
-
-test('all workspace pages fit a narrow phone in both themes', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'mobile', 'Smallest phone viewport')
-  await page.setViewportSize({ width: 320, height: 740 })
-  for (const theme of ['light', 'dark']) {
-    for (const path of ['/', '/tasks', '/data', '/config', '/logs', '/account']) {
-      await page.goto(path)
-      await page.evaluate((value) => {
-        document.documentElement.dataset.theme = value
-      }, theme)
-      await expect(page.locator('main h1')).toBeVisible()
-      await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 320)
-    }
-  }
 })

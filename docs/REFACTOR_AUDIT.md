@@ -1,4 +1,84 @@
-# 全栈重构审查与验收记录
+# 全栈审查与验收记录
+
+
+## 本轮稳定性与精简审查（2026-10-02）
+
+范围为当前仓库，优先保持现有功能、接口、存储结构和第三方任务流程。审查了启动／退出、配置热重载、认证、队列、数据与日志 API、SQLite／MySQL、监控与签到公共执行方式、推送、青龙、前端交互、部署检查和文档。没有执行真实账号签到、推送或部署；外部服务和生产负载的完整可用性仍需人工验收。
+
+### 项目理解与取舍
+
+Vue 3／TypeScript／Pinia 按路由加载页面，通过 `/api/v1` 访问 FastAPI；任务元数据贯穿配置、注册、调度与青龙。APScheduler、启动和手动入口共用 4 worker／100 容量队列，浏览器任务单独进程隔离且并发为 1。业务默认 SQLite WAL，可启用 MySQL 权威写入、SQLite 镜像和离线 outbox；执行记录独立保存在 `runs.db`。配置带版本与密钥保留标记，日志采用有界增量读取，生产只有一个 Python Web／调度进程。
+
+保留已有有界并发、线程池、浏览器隔离、分页与缓存策略。仅并行配置页两项独立读取，避免等待时间叠加；没有引入请求聚合 API、共享敏感缓存或新基础设施。参考 [Vue 响应式计算](https://vuejs.org/guide/essentials/computed)、[FastAPI 异步边界](https://fastapi.tiangolo.com/async/)及同类监控项目 [Uptime Kuma 的 CI](https://github.com/louislam/uptime-kuma/blob/master/.github/workflows/auto-test.yml)，借鉴职责分层，不照搬其跨系统／Node 版本矩阵。
+
+### 问题、证据与处理
+
+| 问题与证据 | 影响 | 最小处理／验证 |
+|---|---|---|
+| `Config.vue::save` 在响应后读取可变的 `selected`、`yamlMode`，并把当前 YAML 当已保存基线 | 慢请求期间切换模块或继续输入可能丢失编辑／误报已保存 | 固定提交上下文，保留请求期间编辑，YAML 基线使用提交文本；延迟响应浏览器回归 |
+| 配置与元数据读取串行，YAML 展示和保存可重叠 | 增加初次等待，旧响应可覆盖新编辑模式 | `Promise.all` 并行独立读取，复用 busy 状态阻止重叠操作；类型检查与真实后端配置回归 |
+| `stores.ts` 的 computed 直接读 `MediaQueryList.matches` | 完整效果／触屏模式下系统减少动效变化不触发更新 | 独立响应式偏好；桌面与移动端动态切换回归 |
+| `Logs.vue` 切换来源时 `refresh` 因请求在途被忽略；空增量仍复制整窗 | 新日志额外等待轮询／退避，重复数组分配和列表更新 | 请求结束后补一次刷新，恢复更新立即请求，空增量不替换数组，补加载反馈；慢响应切换回归 |
+| SQLite 三个事务辅助函数仅捕获 `Exception`；外层在释放操作锁后再次回滚 | `CancelledError` 可遗留未提交事务，锁外回滚可能影响下个调用者 | 事务内覆盖取消并回滚后向上传播，移除外层重复回滚；普通写入／outbox／镜像三个真实 SQLite 取消用例 |
+| `watcher.py` 只接受修改时间递增，回调失败仍确认配置 | 旧时间戳恢复漏应用，部分失败后不再重试 | 文件身份／大小／纳秒时间指纹；成功才确认，失败下轮读取最新文件重试 |
+| `db_sync.py` 忽略删除返回值，调度回调吞异常；重复恢复／更新触发器重算运行时间 | 部分清理失败被误报成功；重试可能推迟任务 | 删除与调度失败向上传播，主键删除可重复执行，相同触发器与已运行任务不重置 |
+| MySQL 读取保留事务，aiomysql 在归还仍有事务的连接时会关闭连接；种入逐行写、outbox 全量读取 | 重建连接、重复往返和大离线日志内存开销 | 结束读事务，500 条分批读取／批量写入，全部批次同事务；ID 范围确认避免超大 IN 参数列表 |
+| 镜像读取依赖服务器默认隔离级别 | READ COMMITTED 下各表可能读取不同时点 | 显式只读可重复读快照；真实 MySQL 并发写入实验 |
+| `data_support.py` 的旧内存排序与 LRU 仅被测试引用 | 维护不再参与实际分页的逻辑 | 删除三个死函数及对应测试，保留 SQL 索引分页与现有 API 回归 |
+| 三个视口重复运行全部检查，导航测试两两组合，截图与 LCP 门槛依赖机器 | 重复安装／构建及维护成本 | 前端单 job，桌面关键回归加四项移动冒烟，导航单次遍历；视觉与弱网转人工 |
+| 文档引用已删除的配置模板，并描述拖拽、账户底部面板和不存在的数据库状态展示 | 用户／开发者按错误路径操作 | 文档对齐 Vue、实际 API 和页面，不为旧文档增加功能 |
+
+### 修改文件与文档整理
+
+| 文件 | 原因与改动 |
+|---|---|
+| `frontend/src/views/Config.vue` | 保存竞态、并行读取与 busy 防重入 |
+| `frontend/src/views/Logs.vue`、`frontend/src/stores.ts` | 日志刷新与动效响应式修复 |
+| `src/storage/database.py`、`src/storage/mysql_backend.py` | 事务取消回滚、outbox 分批与确认、种入批量写入、读事务释放、跨表一致快照 |
+| `src/settings/watcher.py`、`src/settings/db_sync.py`、`src/monitors/kuaishou_targets.py` | 文件指纹、失败重试、目标清理失败向上传播 |
+| `src/jobs/lifecycle.py`、`src/jobs/scheduler.py` | 调度失败向上传播，同值重试不重置下次执行时间 |
+| `src/web/data_support.py` | 删除无生产调用的内存分页缓存 |
+| `src/tests/test_mysql_backend.py`、`test_main_lifecycle.py` | 增加事务取消、分页确认、跨批失败／取消、配置重试及调度幂等关键回归 |
+| `src/tests/test_web_performance.py`、`test_weibo_media.py` | 删除死缓存测试和六项纯标题措辞断言，保留去重、媒体及富文本安全测试 |
+| `frontend/tests/api.test.ts`、`tests/e2e/{data,navigation,workspace}.spec.ts`、`fixtures.ts` | 删除无关键价值／重复检查，共用登录夹具，覆盖保存与日志竞态；配置修改基于当前值避免视口间相互依赖 |
+| `frontend/playwright.config.ts`、`.github/workflows/quality.yml` | 精简视口范围和重复安装，保留单 worker 与失败截图／trace，CI 加入已有 Ruff 检查 |
+| `frontend/tests/e2e/workspace.spec.ts-snapshots/` 三张 PNG | 删除停止使用的像素基线 |
+| `docs/SECONDARY_DEVELOPMENT.md`、`.github/CI.md` | 检查命令集中到开发指南；CI 文档只描述流程与取舍，修正 Vue/Vite、数据库返回值契约 |
+| `README.md`、`docs/index.md`、`docs/README.*.md` | 精简重复开发步骤与架构表，补快手平台；首页删除旧界面能力描述 |
+| `docs/API.md`、`docs/guides/config.md`、`docs/guides/web-ui.md`、`docs/guides/tasks.md` | 补返回字段、虎牙图片接口、记录保留边界，纠正页面与热重载说明，集中人工自测 |
+| `docs/ARCHITECTURE.md`、`docs/assets/screenshots/README.md`、本报告 | 链接统一检查／验收入口；标记历史截图和数据，合并重复注册表 |
+
+没有删除部署备份步骤、多语言使用说明或平台参数文档；它们具有不同使用场景。没有修改依赖版本、锁文件、数据库 schema、平台登录／验证码／签到流程或公开 API 路径。
+
+### 测试精简与验证
+
+- Python：基线 421 项，移除六项标题措辞断言与一项死缓存检查，首轮增加三个事务取消和一个配置恢复用例；追加九项数据库批次及配置重试必要用例，当前 **427 项通过（2.66 秒）**。保留鉴权／CSRF／会话、配置冲突与密钥、队列去重、日志轮转、数据库回退、平台去重／重试、媒体／富文本安全、安装与发布门禁等关键保障；不按数量盲目删减，原全套只需数秒。
+- Vitest：删除空日期占位符测试，保留 CSRF 传播与错误状态，**2 项通过**。
+- Playwright：原 57 个视口执行项（其中 4 项按条件跳过）缩减为 **21 项全部通过（最终复跑 36.7 秒）**，含新增的保存与日志竞态。删除重复后端 CSRF／分页断言、像素比较、单次 LCP／CLS 阈值和窄屏主题全排列；保留真实后端配置、任务终态与图片、导航等关键交互。未测远程 CI 墙钟收益。
+- Ruff、前端 Prettier、TypeScript 与 Vite 生产构建通过；全部 JS/CSS gzip **74.6 KiB**，项目预算 250 KiB。此数据为本轮体积，不是新增性能基准。
+- shell 语法和根目录／slim／full 三份 Compose 配置检查通过；修改的 Python 文件 Black 检查通过，MkDocs 严格构建与 `git diff --check` 通过。未安装 actionlint，未运行远程 Actions。
+
+- 当前源码已重新构建 Linux amd64 slim 镜像 `webmoniter:audit-20261002`。临时容器使用 `--init`、禁用外网且无生产挂载：UID 10001，存活／就绪／前端页面返回 200，未登录数据库 API 返回 401；停止耗时 0.31 秒，按现有信号退出约定返回 130。构建的离线与默认网络尝试因缺少缓存／Docker DNS 失败，使用主机网络后成功；未改锁文件或 Dockerfile，未重建 full 或其他架构镜像，未推送／部署。
+
+追加真实数据库验证：使用自动删除、仅回环绑定的临时 MySQL 8.4 容器，验证 1,500 行种入、第二批故障整体回滚、505 条 outbox 的跨批失败与取消回滚、upsert／clear／delete 顺序、提交 ID 确认、读连接复用，以及 READ COMMITTED 默认级别下另一连接提交写入时的跨表快照。最近一次单次实验中，逐行写入 0.3081 秒，分批替换（含清空表）0.0212 秒；这是本机小数据集测量，不代表生产吞吐或长事务锁等待。参考 [aiomysql 批量写入](https://aiomysql.readthedocs.io/en/stable/cursors.html#aiomysql.Cursor.executemany) 和 [MySQL 一致性读取](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)，未引入额外并发。
+
+环境说明：沙箱内单独的 `aiosqlite.connect(':memory:')` 查询也无法完成跨线程唤醒；获准使用正常线程环境后全套快速通过。没有为通过测试更改数据库驱动或跳过数据库测试。浏览器运行仅访问隔离后端与模拟响应，未操作真实账号。
+
+### 风险、人工验收与未实施建议
+
+影响涉及配置编辑与热重载、日志显示、外观偏好、MySQL 同步和异常清理。正常数据格式和任务执行语义保持原状；事务保证要求 InnoDB，取消发生在数据库已经提交之后不能撤销该提交，跨库没有原子提交。配置应用也不是原子事务，重试不会撤销已完成的目标删除；平台快照由后续正常监控继续维护。缩减自动视觉覆盖后，人工验收责任见 [完整用户自测清单](guides/web-ui.md#manual-checks)。
+
+以下只建议，不在这轮扩大实现：
+
+- 全表镜像流式化与跨批提交：outbox 分批及种入批量化已完成；镜像仍保留全量数据集和整体 SQLite 事务。进一步缩减峰值内存需要真实大表规模、锁等待和恢复压测，不能直接并行写镜像。
+- MySQL 8.4 提示旧 `VALUES(column)` upsert 语法弃用：现有语法仍能执行；未确定最低 MySQL／MariaDB 兼容范围前不直接替换为新别名语法。
+- 更细粒度任务并发、多进程 Web、全局敏感数据缓存：现有任务与浏览器已经限流，扩大并发会增加重复副作用和内存风险，目前无收益证据。
+- 旧未挂载路由模块仍有内部测试／兼容调用，未整批删除；只删除已确认无生产调用的排序缓存，避免扩大接口风险。
+- 真实手机弱网／滚动、真实 MySQL 断线恢复、arm64／Windows、24 小时稳定性及外部签到与推送：保留手动／专用环境验收，不能从本地模拟回归推断全部在线可用。
+
+## 历史重构记录
+
+以下为仓库原有记录及其原始证据，**不是本轮重新运行的容器、平台或性能测量**；旧测试数量与界面基线仅描述当时版本。当前检查入口和结果以上节为准。
 
 日期：2026-10-02。范围：全新部署，保留 7 类监控、31 类任务（含维护与示例任务）、18 个推送适配器、MySQL 与青龙。实现与短时本地验证已完成；真实平台综合负载、arm64 实机、真实手机和 24 小时长测尚未完成，不能据此宣称全部验收通过。未修改真实服务器、未执行真实签到、未推送镜像。
 
@@ -82,16 +162,13 @@ slim 展开体积略增，未达到展开体积下降；主要来自固定 bookw
 - 真实手机：指定机型/系统后测交互延迟、滚动帧率、软键盘和后台恢复。
 - 目标服务器：50 个模拟持续抓取目标、5 个浏览器账号、3 个访问者的完整并发负载与网络扰动。
 - 24 小时：运行 `scripts/container_benchmark.py --seconds 86400`，检查内存曲线、任务去重、子进程及停止行为；当前脚本长测每约 5 分钟重复浏览器加载，仍需补平台模拟流量。
-- amd64/arm64：CI 已增加 QEMU、对应架构镜像启动与浏览器／模型冒烟；本轮未实际运行远端 CI 或 arm64 机器。
+- amd64/arm64：当前 CI 在原生架构 runner 构建并做启动／浏览器冒烟，不再使用 QEMU；本地审查不替代远端 CI 或 arm64 实机验收。
 - Windows：发布流程已接入前端构建，尚未验证实际发行包。
 - CI 发布前执行新增工作流，远程标签当前不能当作本次修改的交付镜像。
 
+常规检查统一见 [开发指南](SECONDARY_DEVELOPMENT.md#development-checks)。以下仅为复现历史容器测量的命令，需自行准备对应镜像：
+
 ```bash
-.venv/bin/python -m pytest -q
-npm run format:check --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-npm run test:e2e --prefix frontend
 .venv/bin/python scripts/container_benchmark.py --image webmoniter:refactor-full --seconds 60 --output /tmp/full.json
 .venv/bin/python scripts/image_report.py webmoniter:validation-full webmoniter:refactor-full --output /tmp/sizes.json
 ```
@@ -100,48 +177,7 @@ npm run test:e2e --prefix frontend
 
 ## 功能注册清单
 
-| ID | 功能 | 类型 |
-|---|---|---|
-| `huya_monitor` | 虎牙直播监控 | monitor |
-| `weibo_monitor` | 微博监控 | monitor |
-| `bilibili_monitor` | 哔哩哔哩监控 | monitor |
-| `douyin_monitor` | 抖音直播监控 | monitor |
-| `kuaishou_monitor` | 快手直播监控 | monitor |
-| `douyu_monitor` | 斗鱼直播监控 | monitor |
-| `xhs_monitor` | 小红书动态监控 | monitor |
-| `weibo_cookie_refresh` | 微博 Cookie 自动刷新 | task |
-| `log_cleanup` | 日志清理 | task |
-| `ikuuu_checkin` | iKuuu 签到 | task |
-| `tieba_checkin` | 百度贴吧签到 | task |
-| `weibo_chaohua_checkin` | 微博超话签到 | task |
-| `rainyun_checkin` | 雨云签到 | task |
-| `enshan_checkin` | 恩山论坛签到 | task |
-| `fg_checkin` | 富贵论坛签到 | task |
-| `aliyun_checkin` | 阿里云盘签到 | task |
-| `smzdm_checkin` | 什么值得买签到 | task |
-| `zdm_draw` | 值得买每日抽奖 | task |
-| `tyyun_checkin` | 天翼云盘签到 | task |
-| `miui_checkin` | 小米社区签到 | task |
-| `iqiyi_checkin` | 爱奇艺签到 | task |
-| `lenovo_checkin` | 联想乐豆签到 | task |
-| `lbly_checkin` | 丽宝乐园签到 | task |
-| `pinzan_checkin` | 品赞代理签到 | task |
-| `dml_checkin` | 达美乐任务 | task |
-| `xiaomao_checkin` | 小茅预约 | task |
-| `ydwx_checkin` | 一点万象签到 | task |
-| `xingkong_checkin` | 星空代理签到 | task |
-| `freenom_checkin` | Freenom 免费域名续期 | task |
-| `weather_push` | 天气每日推送 | task |
-| `qtw_checkin` | 千图网签到 | task |
-| `kuake_checkin` | 夸克网盘签到 | task |
-| `kjwj_checkin` | 科技玩家签到 | task |
-| `fr_checkin` | 帆软社区签到 | task |
-| `nine_nine_nine_task` | 999 会员中心健康打卡 | task |
-| `zgfc_draw` | 中国福彩抽奖活动 | task |
-| `ssq_500w_notice` | 双色球开奖通知 | task |
-| `demo_task` | 二次开发示例任务 | task |
-
-推送适配器：`serverChan_turbo`、`serverChan_3`、`wecom_apps`、`wecom_bot`、`dingtalk_bot`、`feishu_apps`、`feishu_bot`、`telegram_bot`、`qq_bot`、`napcat_qq`、`bark`、`gotify`、`webhook`、`pushplus`、`email`、`wxpusher`、`demo`、`qlapi`。注册与配置映射有完整性断言，各平台业务仍由原模块实现。
+当前注册为 7 类监控、31 类定时／维护／示例任务、18 种推送适配器。清单统一见 [任务指南](guides/tasks.md)、[推送指南](guides/push-channels.md) 和 `src/jobs/metadata.py`，不在审查记录重复维护另一份逐项表。注册与配置映射由关键测试核对。
 
 ## 安装入口简化验证（2026-10-02）
 
@@ -152,4 +188,4 @@ npm run test:e2e --prefix frontend
 
 ## 修改文件清单
 
-完整新增、修改和删除路径见 [文件清单](assets/validation/refactor-changed-files.txt)。新前端位于 `frontend/`；原 `src/webUI/templates`、`static/js`、`static/css` 已移除，图标和图片资源保留。
+历史重构的新增、修改和删除路径见 [文件清单](assets/validation/refactor-changed-files.txt)。新前端位于 `frontend/`；原 `src/webUI/templates`、`static/js`、`static/css` 已移除，图标和图片资源保留。

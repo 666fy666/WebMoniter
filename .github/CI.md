@@ -2,12 +2,12 @@
 
 ## 质量检查
 
-- Python 测试与前端检查、浏览器回归并行执行。
+- 后端 Ruff／pytest 与前端检查／浏览器回归分为两个 job 并行执行。
 - PR 和主分支提交仅修改 `docs/**`、Markdown 或 LICENSE 时跳过重型检查；保留 `checks` 汇总状态，供分支保护使用。任意代码变更仍执行完整检查；标签发布和手动 Docker 发布始终完整验证。
 - 连续提交取消同一 PR/分支的过时检查；发布任务不在执行中取消。
 - uv 与 npm 缓存下载内容，安装仍遵循锁文件。前端 `dist` 使用包含整个前端目录的精确缓存键，只在输入完全一致时复用；格式检查、单元测试和浏览器回归仍执行。
 - 后端保留 `dev`、`rainyun` 依赖，避免浏览器签到测试静默跳过；前端测试服务器仅安装基础依赖。
-- Playwright 按 desktop、tablet、mobile 分三个并行 job，各自使用独立测试服务器和数据库，每个 job 保留单 worker，避免共享配置与数据库的测试相互干扰。这样缩短墙钟时间，但会增加同时使用的 runner 数和部分重复安装开销。
+- 前端只有一个 job，依赖安装、格式检查、单测、构建各执行一次。Playwright 单 worker 串行运行桌面关键回归与四项移动端冒烟，共用临时测试服务器；用例基于当前值修改配置，避免不同视口依赖固定初值。平板、极窄屏、像素比对和弱网性能交给 [人工自测](../docs/guides/web-ui.md#manual-checks)。
 
 ## Docker 发布
 
@@ -25,16 +25,10 @@ Windows 打包使用 uv 和 npm 缓存，基础依赖按 `uv.lock` 安装；ZIP 
 
 ## 验证与耗时对比
 
-```bash
-actionlint
-.venv/bin/python -m pytest -q src/tests/test_ci_workflows.py
-npm run format:check --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-```
+本地检查命令统一见 [开发指南](../docs/SECONDARY_DEVELOPMENT.md#development-checks)。工作流改动另运行 `actionlint`（若已安装）与 `.venv/bin/python -m pytest -q src/tests/test_ci_workflows.py`，后者验证汇总门禁和发布摘要保护。
 
 首次和第二次发布分别观察冷缓存、热缓存耗时。对比 Actions 中的总墙钟时间及每个 job 的依赖安装、构建、冒烟步骤，避免将 runner 排队时间误认为构建时间。新的发布关键路径约为 `max(质量检查, 最慢的原生构建与冒烟测试) + manifest 发布`；实际降幅需以远程运行结果确认。
 
-2026-10-02 的优化前基线：最近一次[质量检查](https://github.com/666fy666/WebMoniter/actions/runs/36994382651)总计约 158 秒，其中浏览器回归 70 秒。当天的 [Docker 发布](https://github.com/666fy666/WebMoniter/actions/runs/36992704267)中 full 构建 630 秒、slim 构建 297 秒，ARM 验证失败在 QEMU 初始化；前一天最近一次[成功发布](https://github.com/666fy666/WebMoniter/actions/runs/36847305461)总计约 459 秒。失败运行不作为成功发布提速比例的分母。
+历史记录（本轮未重新查询远程 Actions）：此前的[质量检查](https://github.com/666fy666/WebMoniter/actions/runs/36994382651)总计约 158 秒，其中浏览器回归 70 秒。当天的 [Docker 发布](https://github.com/666fy666/WebMoniter/actions/runs/36992704267)中 full 构建 630 秒、slim 构建 297 秒，ARM 验证失败在 QEMU 初始化；前一天最近一次[成功发布](https://github.com/666fy666/WebMoniter/actions/runs/36847305461)总计约 459 秒。失败运行不作为成功发布提速比例的分母。
 
 分架构构建与缓存配置参考 [Docker 多架构 CI](https://docs.docker.com/build/ci/github-actions/multi-platform/)、[Registry cache](https://docs.docker.com/build/cache/backends/registry/)；runner 标签参考 [GitHub 官方列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)。

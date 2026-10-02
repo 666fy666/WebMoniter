@@ -41,10 +41,10 @@
 
 WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，用于统一管理：
 
-- 平台监控：虎牙、微博、哔哩哔哩、抖音、斗鱼、小红书。
+- 平台监控：虎牙、微博、哔哩哔哩、抖音、快手、斗鱼、小红书。
 - 定时任务：微博 Cookie 刷新、iKuuu、贴吧、微博超话、雨云、阿里云盘、Freenom、天气推送等 **30 个**签到/提醒任务（另含 `demo_task` 示例；清单见 `src/jobs/metadata.py` 的 `TASK_SPECS`）。
 - 多渠道推送：企业微信、钉钉、飞书、Telegram、Bark、WxPusher、邮件等 **18 种** type。
-- Web 管理：配置编辑、任务管理、数据展示、日志查看、密码管理；桌面端无顶栏，用侧边栏拉手收起/展开导航，手机端底部导航含账户入口。导航、工具栏、弹窗与交互控件采用 iOS 液态玻璃风格，内容区域保持清晰易读；PC 与移动端共用统一设计规范，支持键盘标签切换、可见焦点、44px 触控目标及减少动效/透明度偏好。细节见 [Web 管理界面](docs/guides/web-ui.md)。
+- Web 管理：配置、任务、数据、日志、账户与外观；桌面侧栏与顶部路径导航，移动端底部导航。支持明暗主题、键盘操作和系统减少动效偏好，详见 [Web 管理界面](docs/guides/web-ui.md)。
 
 配置支持热重载，修改 `config.yml` 后通常约 5 秒内生效。
 
@@ -291,17 +291,7 @@ bash install.sh source
 <details>
 <summary><strong>开发说明</strong></summary>
 
-```bash
-uv sync --locked --extra dev --extra rainyun
-uv run ruff check .
-uv run pytest -q
-npm ci --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-npm run test:e2e --prefix frontend
-```
-
-Black 检查修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`。Node 用于前端构建与测试，生产运行无需 Node 服务。
+开发环境、格式与类型检查、关键测试命令统一见 [开发指南](docs/SECONDARY_DEVELOPMENT.md#development-checks)。Node 仅用于前端构建与测试，生产不运行 Node 服务。
 
 新增监控、定时任务或推送通道见 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)，模块边界、数据流和存储恢复见 [架构说明](docs/ARCHITECTURE.md)。任务、通道和配置节以 `src/jobs/metadata.py` 及运行时代码为准，关键测试检查注册完整性、配置映射及执行行为。
 

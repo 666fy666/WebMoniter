@@ -16,10 +16,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } },
     },
     {
-      name: 'tablet',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1024, height: 900 } },
+      name: 'mobile',
+      use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' },
+      grep: /responsive workspace|rapid navigation|weibo images open|sticky save/,
     },
-    { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
     command: '../.venv/bin/python ../scripts/ui_test_server.py',

@@ -66,9 +66,11 @@ async def prune_targets(db, targets: list[str]) -> None:
     resolved = {target: principal for _, target, principal in rows if target in active}
     for key, target, _ in rows:
         if target not in active:
-            await db.execute_update(
+            ok = await db.execute_update(
                 "DELETE FROM kuaishou_targets WHERE target_key=%(pk)s", {"pk": key}
             )
+            if not ok:
+                raise RuntimeError("清理快手目标映射失败")
     for target in targets:
         try:
             principal = principal_from_target(target)
@@ -81,6 +83,8 @@ async def prune_targets(db, targets: list[str]) -> None:
     keep = set(resolved.values())
     for (principal,) in await db.execute_query("SELECT principal_id FROM kuaishou"):
         if principal not in keep:
-            await db.execute_update(
+            ok = await db.execute_update(
                 "DELETE FROM kuaishou WHERE principal_id=%(pk)s", {"pk": principal}
             )
+            if not ok:
+                raise RuntimeError("清理快手快照失败")

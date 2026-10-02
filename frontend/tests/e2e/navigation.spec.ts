@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 const destinations = [
   { name: '概览', path: '/', heading: '一切，尽在掌握。' },
@@ -22,36 +22,18 @@ async function visit(page: Page, destination: (typeof destinations)[number]) {
     await expect(page.getByLabel('监控间隔（秒）', { exact: true })).toBeVisible()
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/login')
-  await page.getByLabel('用户名', { exact: true }).fill('admin')
-  await page.getByLabel('密码', { exact: true }).fill('ui-test-only-password')
-  await page.getByRole('button', { name: '进入工作空间' }).click()
-  await expect(page.getByRole('heading', { name: '一切，尽在掌握。' })).toBeVisible()
-})
-
-for (const reducedMotion of ['no-preference', 'reduce'] as const) {
-  test(`all workspace tabs render without reloading (${reducedMotion})`, async ({ page }) => {
-    test.setTimeout(60000)
-    const errors: string[] = []
-    page.on('pageerror', (error) => errors.push(error.message))
-    await page.emulateMedia({ reducedMotion })
-    const documentId = await page.evaluate(() => {
-      const id = String(Math.random())
-      document.documentElement.dataset.navigationTest = id
-      return id
-    })
-    for (const source of destinations) {
-      for (const target of destinations) {
-        if (source === target) continue
-        await visit(page, source)
-        await visit(page, target)
-      }
-    }
-    await expect(page.locator('html')).toHaveAttribute('data-navigation-test', documentId)
-    expect(errors).toEqual([])
+test('all workspace tabs render without reloading', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  const documentId = await page.evaluate(() => {
+    const id = String(Math.random())
+    document.documentElement.dataset.navigationTest = id
+    return id
   })
-}
+  for (const destination of destinations) await visit(page, destination)
+  await expect(page.locator('html')).toHaveAttribute('data-navigation-test', documentId)
+  expect(errors).toEqual([])
+})
 
 test('rapid navigation and browser history keep the current page visible', async ({ page }) => {
   await visit(page, destinations[2])

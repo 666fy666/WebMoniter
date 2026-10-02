@@ -238,8 +238,12 @@ class TaskScheduler:
         # 创建新的触发器
         new_trigger = IntervalTrigger(**trigger_kwargs)
 
-        # 更新任务的触发器
-        job.reschedule(trigger=new_trigger)
+        # 重复应用同一配置时保留下次执行时间，避免重试不断推迟任务。
+        if (
+            not isinstance(job.trigger, IntervalTrigger)
+            or job.trigger.interval != new_trigger.interval
+        ):
+            job.reschedule(trigger=new_trigger)
         # 返回更新信息，不直接输出日志
         if seconds is not None:
             return f"{job_id}(间隔: {seconds}秒)"
@@ -262,7 +266,9 @@ class TaskScheduler:
     def resume_job(self, job_id: str) -> bool:
         """恢复指定任务，用于监控启用开关打开时。"""
         try:
-            self.scheduler.resume_job(job_id)
+            job = self.scheduler.get_job(job_id)
+            if job is None or getattr(job, "next_run_time", None) is None:
+                self.scheduler.resume_job(job_id)
             self.logger.debug("已恢复任务: %s", job_id)
             return True
         except Exception as e:
@@ -317,8 +323,10 @@ class TaskScheduler:
             day_of_week=new_day_of_week,
         )
 
-        # 更新任务的触发器
-        job.reschedule(trigger=new_trigger)
+        if [str(field) for field in job.trigger.fields] != [
+            str(field) for field in new_trigger.fields
+        ]:
+            job.reschedule(trigger=new_trigger)
         # 返回更新信息，不直接输出日志
         return f"{job_id}(执行时间: {new_hour}:{new_minute})"
 

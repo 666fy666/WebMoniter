@@ -62,6 +62,7 @@ WebMoniter는 Python, FastAPI, APScheduler 기반의 작업 시스템으로 다�
 | Weibo | `weibo` | 예 | 아니요 |
 | Bilibili | `bilibili` | 예 | 예 |
 | Douyin | `douyin` | 아니요 | 예 |
+| 콰이쇼우 (실환경 검증 필요) | `kuaishou` | 아니요 | 예 |
 | Douyu | `douyu` | 아니요 | 예 |
 | Xiaohongshu | `xhs` | 예 | 아니요 |
 
@@ -199,17 +200,7 @@ Qinglong 사용자는 환경 변수로 설정한 뒤 `python -m src.ql <task_id>
 <details>
 <summary><strong>개발</strong></summary>
 
-```bash
-uv sync --locked --extra dev --extra rainyun
-uv run ruff check .
-uv run black --check .
-uv run pytest -q
-npm ci --prefix frontend
-npm run test --prefix frontend
-npm run build --prefix frontend
-```
-
-모니터링 또는 예약 작업을 추가하려면 [2차 개발 안내](SECONDARY_DEVELOPMENT.md)를 참고하세요. `src/tests/`의 테스트는 메타데이터, 레지스트리, enable 매핑의 일관성을 검증합니다. 전체 모듈 구조는 [아키텍처 문서](ARCHITECTURE.md)에 설명되어 있습니다.
+환경 설정과 검증 명령은 [개발 안내](SECONDARY_DEVELOPMENT.md), 모듈 구성과 데이터 흐름은 [아키텍처](ARCHITECTURE.md)를 참고하세요.
 
 </details>
 
