@@ -27,7 +27,7 @@
 | 镜像 | 标签 | Compose 文件 | 适用场景 |
 |:--|:--|:--|:--|
 | 精简镜像 | `fengyu666/webmoniter:latest` | `docker/docker-compose.yml` | 默认推荐。适合监控、推送和大多数 HTTP 类签到 |
-| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 运行微博 Cookie 刷新、雨云等浏览器任务时使用 |
+| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 运行微博 Cookie 刷新、iKuuu、雨云等浏览器任务时使用 |
 
 `latest` 与 semver 主标签（如 `2.4.8`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
 
@@ -42,7 +42,7 @@ git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
 
 # 2. 复制并编辑配置文件（模板在 config/ 目录）
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 # 编辑 config.yml，配置监控任务和推送通道
 
 # 3. 启动精简镜像（Compose 文件在 docker/，请在仓库根目录执行）
@@ -77,7 +77,7 @@ docker compose -f docker/docker-compose.yml up -d
 docker image rm fengyu666/webmoniter:latest
 ```
 
-如果启用微博 Cookie 刷新（`weibo.cookie_refresh_enable: true`）或雨云浏览器签到，使用完整镜像：
+如果启用微博 Cookie 刷新（`weibo.cookie_refresh_enable: true`）、iKuuu 或雨云浏览器签到，使用完整镜像：
 
 ```bash
 # 启动完整镜像
@@ -111,7 +111,7 @@ docker image rm fengyu666/webmoniter:full
 不使用 Compose 时，可以直接运行单个容器。请先准备配置文件和持久化目录：
 
 ```bash
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 mkdir -p data logs
 ```
 
@@ -146,11 +146,13 @@ docker image rm fengyu666/webmoniter:latest
 ```bash
 # 拉取并启动
 docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped \
-  -p 8866:8866 --shm-size=256m \
+docker run -d --name webmoniter-full --restart unless-stopped --init \
+  -p 8866:8866 --shm-size=256m --memory=1536m \
   -e TZ=Asia/Shanghai \
   -e CHROME_BIN=/usr/bin/chromium \
   -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+  -e WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1 \
+  -e WEBMONITER_KUAISHOU_COOKIE \
   -v "$(pwd)/config.yml:/app/config.yml" \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/logs:/app/logs" \
@@ -172,8 +174,18 @@ docker image rm fengyu666/webmoniter:full
 !!! tip "Windows PowerShell"
     如果 `-v "$(pwd)/config.yml:/app/config.yml"` 在 PowerShell 中解析异常，可把 `$(pwd)` 换成当前目录的绝对路径，例如 `D:/code/WebMoniter/config.yml:/app/config.yml`。
 
+### 完整镜像验证记录
+
+2026-10-02 在 linux/amd64 本地构建完整镜像，并在 `--memory=1536m --shm-size=256m` 的临时容器中验证应用启动、Web 登录、快手配置保存与回读、状态卡片展示，以及 Chrome 和匹配的 chromedriver。浏览器与 ddddocr 检测、识别模型同时运行的峰值约 457 MiB。验证容器未挂载用户配置与数据；没有执行真实账号签到。
+
+构建命令为 `docker build --network=host -f docker/Dockerfile.full -t webmoniter:validation-full .`；此环境默认构建网络无法解析 Debian 软件源，因此使用宿主网络。`full` 远程标签的 amd64/arm64 清单已查到；以上运行验证针对本地源码构建的 amd64 镜像，不代表远程标签已包含本次修改，也不代表 arm64 已运行验收。后续完整镜像已内置文字和九宫格模型，每次登录最多 5 轮换题重试。九宫格：20 题生产推理复跑与原评估一致，浏览器共存峰值约 384 MiB；公开极验演示页面一次选图提交成功。文字已按用户指示放宽准确率门槛接入（新增样本单轮 70%）；三模型与浏览器共存峰值约 722 MiB。快手真实直播状态仍未完成验收，详见对应任务文档。
+
 !!! danger "删除数据"
     `docker compose ... down`、`docker rm` 只删除容器和网络，不会删除仓库根目录下的 `config.yml`、`data/`、`logs/`。如果要彻底清空历史数据，请在确认备份后手动删除这些文件和目录。
+
+### MySQL 8 认证支持
+
+依赖包含 `PyMySQL[rsa]`，支持 MySQL 8 默认的 `caching_sha2_password` 认证；源码部署更新依赖后生效，Docker 部署需使用包含本次改动的镜像。该依赖是 [PyMySQL 官方安装说明](https://pymysql.readthedocs.io/en/latest/user/installation.html)对 SHA-2 认证的要求，无需修改服务器认证方式。隔离 MySQL 8.4.11 已通过快手状态写入、实际断线回退 SQLite、重连同步与删除清理验证，未使用用户数据库或发送外部通知。
 
 ---
 
@@ -225,7 +237,7 @@ uv venv --python 3.11
 uv sync --locked --extra dev --extra rainyun
 
 # 3. 复制配置文件
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 
 # 4. 启动程序（默认端口 8866，可通过环境变量 PORT 覆盖，如 PORT=8080 uv run python main.py）
 uv run python main.py

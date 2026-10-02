@@ -61,6 +61,14 @@ class DouyuConfig(BaseModel):
     concurrency: int = 2
 
 
+class KuaishouConfig(BaseModel):
+    """快手监控目标可以是主播 ID、主页或分享链接。"""
+
+    targets: list[str]
+    cookie: str = ""
+    concurrency: int = Field(default=2, ge=1, le=10)
+
+
 class XhsConfig(BaseModel):
     """小红书配置"""
 
@@ -135,6 +143,14 @@ class AppConfig(BaseModel):
     douyin_douyin_ids: str = ""
     douyin_concurrency: int = 2
     douyin_push_channels: list[str] = Field(default_factory=list)
+
+    # 快手（网页接口仍需在部署环境实测，默认关闭）
+    kuaishou_enable: bool = False
+    kuaishou_targets: str = ""
+    kuaishou_cookie: str = ""
+    kuaishou_concurrency: int = Field(default=2, ge=1, le=10)
+    kuaishou_monitor_interval_seconds: int = Field(default=60, ge=10)
+    kuaishou_push_channels: list[str] = Field(default_factory=list)
 
     # 斗鱼
     douyu_enable: bool = True  # 是否启用斗鱼直播监控
@@ -458,6 +474,15 @@ class AppConfig(BaseModel):
             concurrency=self.douyu_concurrency,
         )
 
+    def get_kuaishou_config(self) -> KuaishouConfig:
+        from src.monitors.kuaishou_targets import split_targets
+
+        return KuaishouConfig(
+            targets=split_targets(self.kuaishou_targets),
+            cookie=os.environ.get("WEBMONITER_KUAISHOU_COOKIE", self.kuaishou_cookie).strip(),
+            concurrency=self.kuaishou_concurrency,
+        )
+
     def get_xhs_config(self) -> XhsConfig:
         """获取小红书配置"""
         ids = [i.strip() for i in (self.xhs_profile_ids or "").split(",") if i.strip()]
@@ -553,7 +578,7 @@ def load_config_from_yml(yml_path: str = "config.yml") -> dict:
                                 value = []
                             elif isinstance(value, str):
                                 value = [v.strip() for v in value.split(",") if v.strip()]
-                        if yaml_field in ("uids", "rooms", "douyin_ids", "profile_ids"):
+                        if yaml_field in ("uids", "rooms", "douyin_ids", "profile_ids", "targets"):
                             if isinstance(value, list):
                                 value = ",".join(str(v).strip() for v in value if v)
                             elif not isinstance(value, str):

@@ -86,6 +86,56 @@ weibo_chaohua:
 **认证方式**：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。  
 **部署说明**：登录会启动浏览器处理验证流程；Docker 请使用 **`docker/Dockerfile.full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发请使用 `uv sync --locked --extra rainyun` 并自备 Chromium/Chromedriver。
 
+### 图片验证状态与验收记录
+
+登录成功必须同时满足：进入同域的已认证用户页，并找到可见的退出登录入口。普通会话 Cookie 不算成功。账号错误、模型缺失、未知题型和验证码耗尽会停止本次登录，不通过切换域名重复尝试。
+
+**文字顺序点选和九宫格均已接入本地 CPU 识别，每次登录最多 5 轮。** 文字新样本单轮正确率为 70%，用户明确同意放宽原定 90% 门槛，使用换题重试并以站点明确返回“验证通过”为准。此变更不代表文字单轮准确率已达 90%。 完整镜像构建时下载固定版本的三份识别权重并校验 SHA-256，运行时按需加载、多个账号共享模型并串行推理，不调用外部识别服务。第三方权重按本次用户指示直接使用；保留来源、版本和校验值，未将未核实的权重许可标记为已确认。
+
+文字按三个提示字进行检测、字形匹配和唯一分配，使用原图归一化坐标映射到当前页面尺寸；候选不足则换题。九宫格读取实际提示和九个单元格，支持当前已评估的“选 3 个”题型。点击使用页面元素，跟随浏览器缩放；每次点击前核对图片地址和提示，换图后重新识别。提示中的剩余数量会随点击递减，不视为换题。每次登录最多处理 5 轮挑战，只有明确收到极验成功状态才继续；关闭弹窗不算成功。不保存包含账号信息的整页截图。
+
+2026-10-02 从[极验官方演示](https://gt4.geetest.com/)取得真实图片并按背景 SHA-256 去重，人工核对整题答案。结果如下：
+
+| 路线 | 数据集 | 整题正确率 | 结论 |
+|:--|:--|:--|:--|
+| ddddocr 检测、逐字识别与顺序匹配 | 首批文字 20 题 | 0/20 | 未达标 |
+| 专用字检测 + 字形匹配 ONNX | 同一批文字 20 题，用于调试 | 19/20（95%） | 不能作为独立验收 |
+| 同一专用字检测 + 字形匹配方案 | 新增文字 20 题 | 14/20（70%） | 按用户新指示接入，最多 5 轮 |
+| ResNet18 ONNX 分类向量余弦相似度 | 九宫格 20 题 | 19/20（95%） | 已接入 |
+
+九宫格原离线评估平均 0.286 秒、P95 0.300 秒；误选的一题把拉链混淆为过山车。生产识别模块在内置权重的完整镜像中断网复跑，20 题选择与原报告完全一致，Chrome 与模型共存峰值 403,111,936 字节（约 384 MiB）。公开真实页面另完成自动选图和提交，一轮收到“验证通过”；随后刻意使首轮失败，刷新换题后第二轮通过，峰值 462,733,312 字节（约 441 MiB）。均低于 `--memory=1536m --shm-size=256m` 限制；文字题也完成真实页面识别、按序点击和提交，一轮收到“验证通过”；再刻意打乱首轮顺序，换题重试后第三轮通过。单轮成功测试峰值 542,085,120 字节（约 517 MiB）。连续点击需等待标记动画，提交前确认三个标记齐全；标记未完整出现则换题重试。这些结果不等于 ikuuu 真实账号登录验收，后者按用户要求跳过。
+
+三份模型与浏览器共存的断网容器复跑共 60 道题，峰值 756,846,592 字节（约 722 MiB），低于 1.5 GiB 限制。
+
+文字新路线使用 `MgArcher/Text_select_captcha` 的固定版本检测和字形匹配模型，平均每题约 0.46 秒。还试验了 V4 专用检测、候选合并、裁剪扩边和分数聚合，新增 20 题中最高 15/20，仍有漏检与相似字误选。第二批后来也参与调试，因此后续准确率评估仍需要新的盲测数据；已按用户新指示接入主方案；未将更换题目后的累计成功率假定为单轮准确率，也未假定各次失败相互独立。
+
+报告与复跑入口：
+
+- [最初 40 题离线评估](../../assets/validation/ikuuu-model-evaluation-2026-10-02.json)：保留历史基线与每张图片来源、校验值。
+- [文字后续评估](../../assets/validation/ikuuu-word-followup-2026-10-02.json)：两批样本、预期点击位置、预测和模型版本。
+- [九宫格接入与容器验证](../../assets/validation/ikuuu-nine-integration-2026-10-02.json)：生产推理复跑与公开页面成功记录。
+- [文字离线评估脚本](../../assets/validation/evaluate_ikuuu_word_models.py)与[原始基线脚本](../../assets/validation/evaluate_ikuuu_models.py)。
+
+九宫格权重为 [GeetestMYS 固定提交](https://github.com/WhiteZerooooo/GeetestMYS/tree/0cc806751b70a866b96b31812737d9844b379fe0)中的 `model/resnet18.onnx`，约 45 MB，SHA-256：`2085490e5a44158600092114a6dd918d2862093caffbc2f7647c5374ce99bedc`。完整镜像的默认路径为 `/app/models/ikuuu`；本地运行时先下载三份模型：
+
+```bash
+uv run --no-sync python -m src.tasks.ikuuu_models --directory data/models/ikuuu
+```
+
+如使用自定义目录，设置 `WEBMONITER_IKUUU_MODEL_DIR`。此命令下载九宫格 `resnet18.onnx`、文字检测 `best_v3.onnx` 和字形匹配 `pre_model_v7.onnx`；文字权重固定到 [Text_select_captcha 提交 dcd1ac3](https://github.com/MgArcher/Text_select_captcha/tree/dcd1ac317c73cd29a7e3118f935c2b3fbd34cb02)，校验值见文字评估报告。缺失或校验失败会明确报错，不在签到任务中临时联网下载。精简镜像不包含浏览器及模型。
+
+按文字报告准备图片、清单和两个模型文件后，可以离线复跑候选方案：
+
+```bash
+uv run --no-sync python docs/assets/validation/evaluate_ikuuu_word_models.py \
+  --manifest /tmp/webmoniter-validation/holdout/manifest.json \
+  --samples /tmp/webmoniter-validation/holdout \
+  --models /tmp/webmoniter-validation/text-select \
+  --output /tmp/webmoniter-validation/word-results.json
+```
+
+脚本校验权重及样本 SHA-256，只生成预测，不提交答案、不修改任务配置。模拟测试覆盖刷新、次数耗尽、未知题型、模型缺失、文字坐标缩放、两种题型共用五轮预算、匿名 Cookie、密码错误、认证成功和浏览器释放；模拟结果不代替真实模型准确率。
+
 ### 配置项
 
 | 配置项 | 类型 | 必填 | 说明 |

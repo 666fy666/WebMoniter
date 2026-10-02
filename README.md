@@ -65,6 +65,7 @@ WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，�
 | 微博 | `weibo` | 是 | 否 |
 | 哔哩哔哩 | `bilibili` | 是 | 是 |
 | 抖音 | `douyin` | 否 | 是 |
+| 快手（待实测） | `kuaishou` | 否 | 是 |
 | 斗鱼 | `douyu` | 否 | 是 |
 | 小红书 | `xhs` | 是 | 否 |
 
@@ -103,17 +104,50 @@ WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，�
 
 精简镜像 `latest` 适合监控、推送和大多数 HTTP 签到；微博 Cookie 刷新、iKuuu、雨云等浏览器任务使用 `full`。
 
+精简镜像（`latest`）：
+
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 
 docker compose -f docker/docker-compose.yml pull
 docker compose -f docker/docker-compose.yml up -d
 docker compose -f docker/docker-compose.yml logs -f
 ```
 
-访问 `http://localhost:8866`，默认账号 `admin` / `123`，首次登录后修改密码。需要完整镜像时，将上述 Compose 文件换为 `docker/docker-compose.full.yml`；两套 Compose 二选一运行。
+访问 `http://localhost:8866`，默认账号 `admin` / `123`，首次登录后修改密码。两套 Compose 二选一运行。
+
+完整镜像（`full`，在克隆后的仓库根目录执行）：
+
+```bash
+test -f config.yml || cp config/config.yml.sample config.yml
+docker compose -f docker/docker-compose.full.yml pull
+docker compose -f docker/docker-compose.full.yml up -d
+docker compose -f docker/docker-compose.full.yml logs -f
+```
+
+完整镜像也可以直接使用 `docker run`，与 Compose 二选一：
+
+```bash
+test -f config.yml || cp config/config.yml.sample config.yml
+mkdir -p data logs
+docker pull fengyu666/webmoniter:full
+docker run -d --name webmoniter-full --restart unless-stopped --init \
+  -p 8866:8866 --shm-size=256m --memory=1536m \
+  -e TZ=Asia/Shanghai \
+  -e CHROME_BIN=/usr/bin/chromium \
+  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+  -e WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1 \
+  -e WEBMONITER_KUAISHOU_COOKIE \
+  -v "$(pwd)/config.yml:/app/config.yml" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  fengyu666/webmoniter:full
+docker logs -f webmoniter-full
+```
+
+切换部署方式前先停止旧容器，避免端口冲突；沿用原有配置和数据目录。本次源码构建的完整镜像包含 iKuuu 文字点选与九宫格本地识别模型；每次登录最多 5 轮换题重试，以站点明确验证成功为准。文字单轮准确率尚未达到原定 90%，详见签到文档。远程镜像是否包含此改动取决于发布版本。
 
 单容器命令、停止与更新、端口及数据挂载统一见 [安装与运行](docs/installation.md)，镜像差异与本地构建见 [Docker 说明](docker/README.md)。
 
@@ -126,7 +160,7 @@ cd WebMoniter
 uv python install 3.11
 uv venv --python 3.11
 uv sync --locked --extra dev --extra rainyun
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 uv run python main.py
 ```
 
@@ -151,7 +185,7 @@ uv sync --locked --extra dev
 核心配置文件为仓库根目录的 `config.yml`。首次使用请从模板复制：
 
 ```bash
-cp config/config.yml.sample config.yml
+test -f config.yml || cp config/config.yml.sample config.yml
 ```
 
 配置项说明见：

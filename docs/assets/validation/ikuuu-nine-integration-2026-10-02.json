@@ -1,0 +1,1257 @@
+{
+  "date": "2026-10-02",
+  "status": "word_and_nine_enabled_with_five_round_limit",
+  "model": {
+    "source": "https://raw.githubusercontent.com/WhiteZerooooo/GeetestMYS/0cc806751b70a866b96b31812737d9844b379fe0/model/resnet18.onnx",
+    "sha256": "2085490e5a44158600092114a6dd918d2862093caffbc2f7647c5374ce99bedc",
+    "license_verified": false,
+    "authorization": "User explicitly requested direct use; license verification is not an enablement gate."
+  },
+  "offline_runtime": {
+    "samples": 20,
+    "identical_to_original": 20,
+    "model": "/app/models/ikuuu/resnet18.onnx",
+    "browser": "150.0.7871.100",
+    "peak_bytes": 403111936,
+    "predictions": [
+      {
+        "id": "nine-00",
+        "selected": [
+          4,
+          5,
+          8
+        ],
+        "seconds": 0.7297065899911104
+      },
+      {
+        "id": "nine-01",
+        "selected": [
+          2,
+          3,
+          6
+        ],
+        "seconds": 0.29621783101174515
+      },
+      {
+        "id": "nine-02",
+        "selected": [
+          1,
+          2,
+          8
+        ],
+        "seconds": 0.28399525900022127
+      },
+      {
+        "id": "nine-03",
+        "selected": [
+          2,
+          5,
+          7
+        ],
+        "seconds": 0.29000075701333117
+      },
+      {
+        "id": "nine-04",
+        "selected": [
+          3,
+          4,
+          5
+        ],
+        "seconds": 0.28526269900612533
+      },
+      {
+        "id": "nine-05",
+        "selected": [
+          5,
+          8,
+          9
+        ],
+        "seconds": 0.27616768098960165
+      },
+      {
+        "id": "nine-06",
+        "selected": [
+          2,
+          4,
+          7
+        ],
+        "seconds": 0.29414140300650615
+      },
+      {
+        "id": "nine-07",
+        "selected": [
+          3,
+          5,
+          8
+        ],
+        "seconds": 0.2998428540013265
+      },
+      {
+        "id": "nine-08",
+        "selected": [
+          1,
+          2,
+          9
+        ],
+        "seconds": 0.28447480899922084
+      },
+      {
+        "id": "nine-09",
+        "selected": [
+          1,
+          4,
+          7
+        ],
+        "seconds": 0.28571097100211773
+      },
+      {
+        "id": "nine-10",
+        "selected": [
+          1,
+          5,
+          7
+        ],
+        "seconds": 0.2851940120017389
+      },
+      {
+        "id": "nine-11",
+        "selected": [
+          3,
+          5,
+          7
+        ],
+        "seconds": 0.27615270898968447
+      },
+      {
+        "id": "nine-12",
+        "selected": [
+          4,
+          5,
+          6
+        ],
+        "seconds": 0.2754643039952498
+      },
+      {
+        "id": "nine-13",
+        "selected": [
+          2,
+          4,
+          6
+        ],
+        "seconds": 0.2913334839977324
+      },
+      {
+        "id": "nine-14",
+        "selected": [
+          3,
+          4,
+          8
+        ],
+        "seconds": 0.276939488001517
+      },
+      {
+        "id": "nine-15",
+        "selected": [
+          2,
+          4,
+          9
+        ],
+        "seconds": 0.30003378399123903
+      },
+      {
+        "id": "nine-16",
+        "selected": [
+          4,
+          6,
+          8
+        ],
+        "seconds": 0.2828093239950249
+      },
+      {
+        "id": "nine-17",
+        "selected": [
+          4,
+          6,
+          9
+        ],
+        "seconds": 0.29022947400517296
+      },
+      {
+        "id": "nine-18",
+        "selected": [
+          5,
+          7,
+          8
+        ],
+        "seconds": 0.2792414209980052
+      },
+      {
+        "id": "nine-19",
+        "selected": [
+          4,
+          5,
+          7
+        ],
+        "seconds": 0.2779995000018971
+      }
+    ]
+  },
+  "runtime_image_id": "sha256:97f4a7ab4420143f15a3a9a549639121d36167aa24fe14d15cf4f1f2d96e703d",
+  "live_public_demo": {
+    "url": "https://gt4.geetest.com/",
+    "verified": true,
+    "rounds": 1,
+    "success_text": "验证通过",
+    "success_class": "geetest_success",
+    "peak_bytes": 462733312,
+    "source_mounted_into_previous_validation_image": true,
+    "note": "No account credentials; one real challenge completed. This is not a measured server acceptance rate over 20 challenges."
+  },
+  "limits": {
+    "memory_bytes": 1610612736,
+    "shm_bytes": 268435456,
+    "max_rounds_per_login": 5,
+    "retry_policy": "Increased from 3 to 5 at user request; earlier one-round real-page success is unchanged."
+  },
+  "supported_layout": "Geetest v4 nine cells, initially select 3; direct DOM element clicks respect CSS sizing. Remaining count decrements with each selection.",
+  "real_account_login": "waived by user; not tested",
+  "word": "Enabled at user request despite main candidate second-set accuracy 14/20. No claim of 90% single-challenge accuracy.",
+  "live_retry_test": {
+    "forced_first_failure": true,
+    "verified": true,
+    "rounds": 2,
+    "peak_bytes": 513708032
+  },
+  "all_models_runtime": {
+    "samples": 60,
+    "models": [
+      "/validation/models/resnet18.onnx",
+      "/validation/models/best_v3.onnx",
+      "/validation/models/pre_model_v7.onnx"
+    ],
+    "browser": "150.0.7871.100",
+    "peak_bytes": 756846592,
+    "predictions": [
+      {
+        "dataset": "samples",
+        "id": "word-00",
+        "kind": "word",
+        "points": [
+          [
+            0.705,
+            0.1575
+          ],
+          [
+            0.32666666666666666,
+            0.3525
+          ],
+          [
+            0.5866666666666667,
+            0.7525
+          ]
+        ],
+        "seconds": 0.9337127280014101
+      },
+      {
+        "dataset": "samples",
+        "id": "word-01",
+        "kind": "word",
+        "points": [
+          [
+            0.7833333333333333,
+            0.175
+          ],
+          [
+            0.285,
+            0.2175
+          ],
+          [
+            0.6833333333333333,
+            0.605
+          ]
+        ],
+        "seconds": 0.40797563499654643
+      },
+      {
+        "dataset": "samples",
+        "id": "word-02",
+        "kind": "word",
+        "points": [
+          [
+            0.1,
+            0.1375
+          ],
+          [
+            0.5233333333333333,
+            0.2275
+          ],
+          [
+            0.12666666666666668,
+            0.67
+          ]
+        ],
+        "seconds": 0.4083245240035467
+      },
+      {
+        "dataset": "samples",
+        "id": "word-03",
+        "kind": "word",
+        "points": [
+          [
+            0.795,
+            0.3625
+          ],
+          [
+            0.24666666666666667,
+            0.225
+          ],
+          [
+            0.77,
+            0.7675
+          ]
+        ],
+        "seconds": 0.3881208529928699
+      },
+      {
+        "dataset": "samples",
+        "id": "word-04",
+        "kind": "word",
+        "points": [
+          [
+            0.7666666666666667,
+            0.175
+          ],
+          [
+            0.09166666666666666,
+            0.345
+          ],
+          [
+            0.5366666666666666,
+            0.33
+          ]
+        ],
+        "seconds": 0.41389809899555985
+      },
+      {
+        "dataset": "samples",
+        "id": "word-05",
+        "kind": "word",
+        "points": [
+          [
+            0.4266666666666667,
+            0.6875
+          ],
+          [
+            0.4866666666666667,
+            0.2325
+          ],
+          [
+            0.78,
+            0.31
+          ]
+        ],
+        "seconds": 0.38482319499598816
+      },
+      {
+        "dataset": "samples",
+        "id": "word-06",
+        "kind": "word",
+        "points": [
+          [
+            0.8016666666666666,
+            0.765
+          ],
+          [
+            0.765,
+            0.2775
+          ],
+          [
+            0.21666666666666667,
+            0.22
+          ]
+        ],
+        "seconds": 0.38710824299778324
+      },
+      {
+        "dataset": "samples",
+        "id": "word-07",
+        "kind": "word",
+        "points": [
+          [
+            0.21166666666666667,
+            0.5375
+          ],
+          [
+            0.7566666666666667,
+            0.2625
+          ],
+          [
+            0.5516666666666666,
+            0.535
+          ]
+        ],
+        "seconds": 0.36221265100175515
+      },
+      {
+        "dataset": "samples",
+        "id": "word-08",
+        "kind": "word",
+        "points": [
+          [
+            0.6733333333333333,
+            0.135
+          ],
+          [
+            0.475,
+            0.1575
+          ],
+          [
+            0.09,
+            0.6275
+          ]
+        ],
+        "seconds": 0.384704985001008
+      },
+      {
+        "dataset": "samples",
+        "id": "word-09",
+        "kind": "word",
+        "points": [
+          [
+            0.37666666666666665,
+            0.155
+          ],
+          [
+            0.21,
+            0.4775
+          ],
+          [
+            0.44666666666666666,
+            0.725
+          ]
+        ],
+        "seconds": 0.39221771601296496
+      },
+      {
+        "dataset": "samples",
+        "id": "word-10",
+        "kind": "word",
+        "points": [
+          [
+            0.3566666666666667,
+            0.2825
+          ],
+          [
+            0.8333333333333334,
+            0.56
+          ],
+          [
+            0.09,
+            0.405
+          ]
+        ],
+        "seconds": 0.3919993820018135
+      },
+      {
+        "dataset": "samples",
+        "id": "word-11",
+        "kind": "word",
+        "points": [
+          [
+            0.255,
+            0.52
+          ],
+          [
+            0.095,
+            0.1575
+          ],
+          [
+            0.8516666666666667,
+            0.5325
+          ]
+        ],
+        "seconds": 0.3826232519932091
+      },
+      {
+        "dataset": "samples",
+        "id": "word-12",
+        "kind": "word",
+        "points": [
+          [
+            0.14333333333333334,
+            0.1425
+          ],
+          [
+            0.7883333333333333,
+            0.64
+          ],
+          [
+            0.5033333333333333,
+            0.39
+          ]
+        ],
+        "seconds": 0.3860933100077091
+      },
+      {
+        "dataset": "samples",
+        "id": "word-13",
+        "kind": "word",
+        "points": [
+          [
+            0.39,
+            0.71
+          ],
+          [
+            0.26,
+            0.4075
+          ],
+          [
+            0.7833333333333333,
+            0.2475
+          ]
+        ],
+        "seconds": 0.387728290996165
+      },
+      {
+        "dataset": "samples",
+        "id": "word-14",
+        "kind": "word",
+        "points": [
+          [
+            0.7016666666666667,
+            0.62
+          ],
+          [
+            0.18,
+            0.2475
+          ],
+          [
+            0.40166666666666667,
+            0.4775
+          ]
+        ],
+        "seconds": 0.43494609599292744
+      },
+      {
+        "dataset": "samples",
+        "id": "word-15",
+        "kind": "word",
+        "points": [
+          [
+            0.185,
+            0.695
+          ],
+          [
+            0.7733333333333333,
+            0.485
+          ],
+          [
+            0.195,
+            0.3775
+          ]
+        ],
+        "seconds": 0.4177791550027905
+      },
+      {
+        "dataset": "samples",
+        "id": "word-16",
+        "kind": "word",
+        "points": [
+          [
+            0.5966666666666667,
+            0.145
+          ],
+          [
+            0.66,
+            0.4225
+          ],
+          [
+            0.43333333333333335,
+            0.4325
+          ]
+        ],
+        "seconds": 0.40199253999162465
+      },
+      {
+        "dataset": "samples",
+        "id": "word-17",
+        "kind": "word",
+        "points": [
+          [
+            0.7833333333333333,
+            0.7175
+          ],
+          [
+            0.5933333333333334,
+            0.6975
+          ],
+          [
+            0.20166666666666666,
+            0.6925
+          ]
+        ],
+        "seconds": 0.38407023600302637
+      },
+      {
+        "dataset": "samples",
+        "id": "word-18",
+        "kind": "word",
+        "points": [
+          [
+            0.44333333333333336,
+            0.6225
+          ],
+          [
+            0.6616666666666666,
+            0.33
+          ],
+          [
+            0.12666666666666668,
+            0.1625
+          ]
+        ],
+        "seconds": 0.3894439880095888
+      },
+      {
+        "dataset": "samples",
+        "id": "word-19",
+        "kind": "word",
+        "points": [
+          [
+            0.235,
+            0.75
+          ],
+          [
+            0.09,
+            0.4825
+          ],
+          [
+            0.7433333333333333,
+            0.5575
+          ]
+        ],
+        "seconds": 0.38340977499319706
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-00",
+        "kind": "nine",
+        "selected": [
+          3,
+          4,
+          7
+        ],
+        "seconds": 0.40155968500766903
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-01",
+        "kind": "nine",
+        "selected": [
+          1,
+          2,
+          5
+        ],
+        "seconds": 0.289003480997053
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-02",
+        "kind": "nine",
+        "selected": [
+          0,
+          1,
+          7
+        ],
+        "seconds": 0.28081993899832014
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-03",
+        "kind": "nine",
+        "selected": [
+          1,
+          4,
+          6
+        ],
+        "seconds": 0.2782371880020946
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-04",
+        "kind": "nine",
+        "selected": [
+          2,
+          3,
+          4
+        ],
+        "seconds": 0.2926831850054441
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-05",
+        "kind": "nine",
+        "selected": [
+          4,
+          7,
+          8
+        ],
+        "seconds": 0.27717541399761103
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-06",
+        "kind": "nine",
+        "selected": [
+          1,
+          3,
+          6
+        ],
+        "seconds": 0.28335284399508964
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-07",
+        "kind": "nine",
+        "selected": [
+          2,
+          4,
+          7
+        ],
+        "seconds": 0.3142479790112702
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-08",
+        "kind": "nine",
+        "selected": [
+          0,
+          1,
+          8
+        ],
+        "seconds": 0.2799479740060633
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-09",
+        "kind": "nine",
+        "selected": [
+          0,
+          3,
+          6
+        ],
+        "seconds": 0.28292436800256837
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-10",
+        "kind": "nine",
+        "selected": [
+          0,
+          4,
+          6
+        ],
+        "seconds": 0.27476025599753484
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-11",
+        "kind": "nine",
+        "selected": [
+          2,
+          4,
+          6
+        ],
+        "seconds": 0.28504975100804586
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-12",
+        "kind": "nine",
+        "selected": [
+          3,
+          4,
+          5
+        ],
+        "seconds": 0.2792858180037001
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-13",
+        "kind": "nine",
+        "selected": [
+          1,
+          3,
+          5
+        ],
+        "seconds": 0.2841655819938751
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-14",
+        "kind": "nine",
+        "selected": [
+          2,
+          3,
+          7
+        ],
+        "seconds": 0.2750947019958403
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-15",
+        "kind": "nine",
+        "selected": [
+          1,
+          3,
+          8
+        ],
+        "seconds": 0.3021399279969046
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-16",
+        "kind": "nine",
+        "selected": [
+          3,
+          5,
+          7
+        ],
+        "seconds": 0.27593202600837685
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-17",
+        "kind": "nine",
+        "selected": [
+          3,
+          5,
+          8
+        ],
+        "seconds": 0.28192828899773303
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-18",
+        "kind": "nine",
+        "selected": [
+          4,
+          6,
+          7
+        ],
+        "seconds": 0.281929720993503
+      },
+      {
+        "dataset": "samples",
+        "id": "nine-19",
+        "kind": "nine",
+        "selected": [
+          3,
+          4,
+          6
+        ],
+        "seconds": 0.27577962100622244
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-00",
+        "kind": "word",
+        "points": [
+          [
+            0.31,
+            0.21
+          ],
+          [
+            0.7666666666666667,
+            0.2825
+          ],
+          [
+            0.5233333333333333,
+            0.2175
+          ]
+        ],
+        "seconds": 0.382010009008809
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-01",
+        "kind": "word",
+        "points": [
+          [
+            0.3333333333333333,
+            0.4775
+          ],
+          [
+            0.5733333333333334,
+            0.3225
+          ],
+          [
+            0.7833333333333333,
+            0.34
+          ]
+        ],
+        "seconds": 0.40487349999602884
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-02",
+        "kind": "word",
+        "points": [
+          [
+            0.18166666666666667,
+            0.275
+          ],
+          [
+            0.83,
+            0.4575
+          ],
+          [
+            0.565,
+            0.315
+          ]
+        ],
+        "seconds": 0.3559828900033608
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-03",
+        "kind": "word",
+        "points": [
+          [
+            0.8233333333333334,
+            0.725
+          ],
+          [
+            0.5333333333333333,
+            0.7675
+          ],
+          [
+            0.605,
+            0.4475
+          ]
+        ],
+        "seconds": 0.38420324900653213
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-04",
+        "kind": "word",
+        "points": [
+          [
+            0.57,
+            0.605
+          ],
+          [
+            0.7466666666666667,
+            0.275
+          ],
+          [
+            0.30833333333333335,
+            0.3075
+          ]
+        ],
+        "seconds": 0.3852980140072759
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-05",
+        "kind": "word",
+        "points": [
+          [
+            0.21166666666666667,
+            0.23
+          ],
+          [
+            0.36666666666666664,
+            0.6775
+          ],
+          [
+            0.40166666666666667,
+            0.3625
+          ]
+        ],
+        "seconds": 0.384600439996575
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-06",
+        "kind": "word",
+        "points": [
+          [
+            0.785,
+            0.2225
+          ],
+          [
+            0.8383333333333334,
+            0.68
+          ],
+          [
+            0.435,
+            0.7275
+          ]
+        ],
+        "seconds": 0.3846965690026991
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-07",
+        "kind": "word",
+        "points": [
+          [
+            0.5433333333333333,
+            0.485
+          ],
+          [
+            0.12166666666666667,
+            0.345
+          ],
+          [
+            0.465,
+            0.7525
+          ]
+        ],
+        "seconds": 0.3982003260025522
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-08",
+        "kind": "word",
+        "points": [
+          [
+            0.5783333333333334,
+            0.27
+          ],
+          [
+            0.11166666666666666,
+            0.5275
+          ],
+          [
+            0.69,
+            0.5775
+          ]
+        ],
+        "seconds": 0.38271685600921046
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-09",
+        "kind": "word",
+        "points": [
+          [
+            0.6566666666666666,
+            0.3625
+          ],
+          [
+            0.2833333333333333,
+            0.595
+          ],
+          [
+            0.5833333333333334,
+            0.755
+          ]
+        ],
+        "seconds": 0.3848510989919305
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-10",
+        "kind": "word",
+        "points": [
+          [
+            0.095,
+            0.5275
+          ],
+          [
+            0.245,
+            0.2575
+          ],
+          [
+            0.3283333333333333,
+            0.56
+          ]
+        ],
+        "seconds": 0.3815517089969944
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-11",
+        "kind": "word",
+        "points": [
+          [
+            0.195,
+            0.145
+          ],
+          [
+            0.8266666666666667,
+            0.25
+          ],
+          [
+            0.43666666666666665,
+            0.56
+          ]
+        ],
+        "seconds": 0.38014189500245266
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-12",
+        "kind": "word",
+        "points": [
+          [
+            0.665,
+            0.2075
+          ],
+          [
+            0.845,
+            0.365
+          ],
+          [
+            0.535,
+            0.74
+          ]
+        ],
+        "seconds": 0.4304323510004906
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-13",
+        "kind": "word",
+        "points": [
+          [
+            0.52,
+            0.3325
+          ],
+          [
+            0.835,
+            0.45
+          ],
+          [
+            0.5166666666666667,
+            0.6475
+          ]
+        ],
+        "seconds": 0.38206212100340053
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-14",
+        "kind": "word",
+        "points": [
+          [
+            0.5783333333333334,
+            0.5575
+          ],
+          [
+            0.2816666666666667,
+            0.1375
+          ],
+          [
+            0.835,
+            0.28
+          ]
+        ],
+        "seconds": 0.3885986519890139
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-15",
+        "kind": "word",
+        "points": [
+          [
+            0.365,
+            0.16
+          ],
+          [
+            0.16166666666666665,
+            0.51
+          ],
+          [
+            0.515,
+            0.6175
+          ]
+        ],
+        "seconds": 0.38500137299706694
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-16",
+        "kind": "word",
+        "points": [
+          [
+            0.23666666666666666,
+            0.4975
+          ],
+          [
+            0.43,
+            0.6
+          ],
+          [
+            0.12,
+            0.135
+          ]
+        ],
+        "seconds": 0.3776311550027458
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-17",
+        "kind": "word",
+        "points": [
+          [
+            0.325,
+            0.7275
+          ],
+          [
+            0.74,
+            0.62
+          ],
+          [
+            0.27166666666666667,
+            0.41
+          ]
+        ],
+        "seconds": 0.3644306360074552
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-18",
+        "kind": "word",
+        "points": [
+          [
+            0.6983333333333334,
+            0.6825
+          ],
+          [
+            0.6883333333333334,
+            0.3025
+          ],
+          [
+            0.16666666666666666,
+            0.665
+          ]
+        ],
+        "seconds": 0.41355325999029446
+      },
+      {
+        "dataset": "holdout",
+        "id": "word-19",
+        "kind": "word",
+        "points": [
+          [
+            0.49833333333333335,
+            0.475
+          ],
+          [
+            0.8266666666666667,
+            0.5825
+          ],
+          [
+            0.13,
+            0.745
+          ]
+        ],
+        "seconds": 0.3641879350034287
+      }
+    ]
+  }
+}

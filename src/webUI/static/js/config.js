@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     const FALLBACK_CONFIG_SECTIONS = [
-        'weibo', 'weibo_chaohua', 'huya', 'bilibili', 'douyin', 'douyu', 'xhs',
+        'weibo', 'weibo_chaohua', 'huya', 'bilibili', 'douyin', 'kuaishou', 'douyu', 'xhs',
         'checkin', 'rainyun', 'tieba', 'enshan', 'tyyun', 'aliyun', 'smzdm',
         'zdm_draw', 'fg', 'miui', 'iqiyi', 'lenovo', 'lbly', 'pinzan', 'dml',
         'xiaomao', 'ydwx', 'xingkong', 'qtw', 'freenom', 'weather', 'kuake',
@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         'quiet_hours_enable', 'mysql_enabled', 'rainyun_auto_renew', 'weibo_enable',
         'weibo_cookie_refresh_enable',
         'weibo_chaohua_enable', 'huya_enable', 'bilibili_enable',
-        'douyin_enable', 'douyu_enable', 'xhs_enable', 'checkin_enable',
+        'douyin_enable', 'kuaishou_enable', 'douyu_enable', 'xhs_enable', 'checkin_enable',
         'rainyun_enable', 'tieba_enable', 'enshan_enable', 'tyyun_enable',
         'aliyun_enable', 'smzdm_enable', 'zdm_draw_enable', 'fg_enable',
         'miui_enable', 'iqiyi_enable', 'lenovo_enable', 'lbly_enable',
@@ -1663,6 +1663,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                     renderTaskPushChannelSelect('douyin_push_channels', config.douyin.push_channels || []);
                 }
                 break;
+            case 'kuaishou':
+                if (config.kuaishou) {
+                    const kuaishouEnable = document.getElementById('kuaishou_enable');
+                    const kuaishouEnableLabel = document.getElementById('kuaishou_enable_label');
+                    document.getElementById('kuaishou_cookie').value = config.kuaishou.cookie || '';
+                    if (kuaishouEnable) {
+                        const enableVal = config.kuaishou.enable;
+                        kuaishouEnable.checked = enableVal === true || enableVal === 'true';
+                        if (kuaishouEnableLabel) kuaishouEnableLabel.textContent = kuaishouEnable.checked ? '开启' : '关闭';
+                    }
+                    document.getElementById('kuaishou_targets').value = typeof config.kuaishou.targets === 'string'
+                        ? config.kuaishou.targets
+                        : (Array.isArray(config.kuaishou.targets) ? config.kuaishou.targets.join(',') : '');
+                    document.getElementById('kuaishou_concurrency').value = config.kuaishou.concurrency || 2;
+                    const ksInterval = document.getElementById('kuaishou_monitor_interval_seconds');
+                    if (ksInterval) ksInterval.value = config.kuaishou.monitor_interval_seconds || 60;
+                    renderTaskPushChannelSelect('kuaishou_push_channels', config.kuaishou.push_channels || []);
+                }
+                break;
             case 'douyu':
                 if (config.douyu) {
                     if (douyuEnable) {
@@ -2230,6 +2249,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                     concurrency: parseInt(document.getElementById('douyin_concurrency').value) || 2,
                     monitor_interval_seconds: parseInt(document.getElementById('douyin_monitor_interval_seconds').value) || 30,
                     push_channels: getTaskPushChannels('douyin_push_channels')
+                };
+                break;
+            case 'kuaishou':
+                config.kuaishou = {
+                    enable: document.getElementById('kuaishou_enable')?.checked === true,
+                    cookie: document.getElementById('kuaishou_cookie').value.trim(),
+                    targets: document.getElementById('kuaishou_targets').value.trim(),
+                    concurrency: parseInt(document.getElementById('kuaishou_concurrency').value) || 2,
+                    monitor_interval_seconds: parseInt(document.getElementById('kuaishou_monitor_interval_seconds').value) || 60,
+                    push_channels: getTaskPushChannels('kuaishou_push_channels')
                 };
                 break;
             case 'douyu':

@@ -1,0 +1,2299 @@
+{
+  "date": "2026-10-02",
+  "status": "not_approved_for_automatic_clicking",
+  "sample_source": "https://gt4.geetest.com/",
+  "sample_scope": "Official public demo; not authenticated ikuuu login. No answers submitted.",
+  "annotation_method": "Assistant visual inspection of challenge images and prompt images. Nine: exact three cells. Word: each question has at least one clearly required character absent from every detected candidate, proving whole-question failure. No success inferred from prompt OCR alone.",
+  "versions": {
+    "ddddocr": "1.5.6",
+    "onnxruntime": "1.24.1",
+    "numpy": "2.4.2",
+    "pillow": "12.1.0",
+    "selenium": "4.40.0",
+    "chrome": "150.0.7871.100"
+  },
+  "model": {
+    "url": "https://raw.githubusercontent.com/WhiteZerooooo/GeetestMYS/0cc806751b70a866b96b31812737d9844b379fe0/model/resnet18.onnx",
+    "sha256": "2085490e5a44158600092114a6dd918d2862093caffbc2f7647c5374ce99bedc",
+    "bytes": 44931025,
+    "license": "unverified; repository license endpoint returned HTTP 404; not bundled in project or image",
+    "input_shape": [
+      10,
+      3,
+      224,
+      224
+    ],
+    "output_shape": [
+      10,
+      91
+    ],
+    "nine_method": "RGB white alpha composite; PIL default resize 224x224; ImageNet normalization; cosine similarity of 91-dimensional outputs; select top 3",
+    "word_method": "ddddocr detection; crop each box and classify; white alpha composite for prompt images; no rotation augmentation"
+  },
+  "ddddocr_model_sha256": {
+    "common.onnx": "33b5cd351ee94e73a6bf8fa18c415ed8b819b3ffd342e267c30d8ad8334e34e8",
+    "common_det.onnx": "6faa8ea85a8c1a634e5050c4a138fca10f30194e0d7abbe9ade1fcd423af6ed6",
+    "common_old.onnx": "b8f2ad9cbc1f2e3922a6cb9459e30824e7e2467f3fb4fd61420640e34ea0bf68"
+  },
+  "environment": {
+    "image_id": "sha256:af1acc5230e338a1372baeba1e37c9f1b467358192df9f46a418965e99b034cc",
+    "platform": "linux/amd64",
+    "network": "none",
+    "memory_limit_bytes": 1610612736,
+    "shm_bytes": 268435456,
+    "browser_kept_running": true,
+    "candidate_intra_op_threads": 1,
+    "candidate_inter_op_threads": 1,
+    "cgroup_peak_bytes": 473546752,
+    "timing_includes": "image loading, preprocessing and inference; excludes model/browser initialization"
+  },
+  "metrics": {
+    "word": {
+      "samples": 20,
+      "unique_backgrounds": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "mean_seconds": 0.06477661204698962,
+      "p95_seconds": 0.08791370700055268,
+      "max_seconds": 0.11275242299598176
+    },
+    "nine": {
+      "samples": 20,
+      "unique_backgrounds": 20,
+      "correct": 19,
+      "accuracy": 0.95,
+      "mean_seconds": 0.2860518828507338,
+      "p95_seconds": 0.2997644729912281,
+      "max_seconds": 0.310467596995295
+    }
+  },
+  "gates": {
+    "word_accuracy_at_least_90_percent": false,
+    "nine_accuracy_at_least_90_percent": true,
+    "combined_memory_below_1_5_gib": true,
+    "nine_model_redistribution_license_verified": false,
+    "ikuuu_browser_click_submit_refresh_verified": false,
+    "real_account_login": "waived by user, not tested"
+  },
+  "samples": [
+    {
+      "id": "word-00",
+      "kind": "word",
+      "files": [
+        "word-00-0.jpg",
+        "word-00-1.png",
+        "word-00-2.png",
+        "word-00-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/084d6ef5334942e1b9cfeccebf2202fe.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a45fb6bbf291a6e74cee70210a1fa9a1.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3246bd0399810aab3898334043899f26.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+      ],
+      "sha256": [
+        "893cb79a7d79b2fa9c34049f6160fc8c657d6a250c3d6270f208a97348f70342",
+        "40b36882c10a567c33c4b85666a648e49629f7b04ade3b294bbe8a48413a8bae",
+        "cb30aec9520e78214c520c7ce77d2c91f4a81cd5a8ed950790445f7f98e97852",
+        "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+      ],
+      "prediction": {
+        "id": "word-00",
+        "kind": "word",
+        "boxes": [
+          [
+            128,
+            26,
+            178,
+            76
+          ],
+          [
+            58,
+            103,
+            109,
+            150
+          ],
+          [
+            75,
+            48,
+            124,
+            96
+          ],
+          [
+            184,
+            12,
+            236,
+            54
+          ]
+        ],
+        "characters": [
+          "赛",
+          "系",
+          "百",
+          "Z"
+        ],
+        "prompt": [
+          "云",
+          "吞",
+          "面"
+        ],
+        "seconds": 0.11275242299598176
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "云",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-01",
+      "kind": "word",
+      "files": [
+        "word-01-0.jpg",
+        "word-01-1.png",
+        "word-01-2.png",
+        "word-01-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9554c60158ca486793d5f5ec45f16f52.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/96dabbb9eb904a35ae75362b53aef169.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/12401e3443f9e647d7e7ace0be128222.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/8780fffdb2cd6c728b97b4656a8ab3a6.png"
+      ],
+      "sha256": [
+        "ed520fb5b23eaef2237584f2d3c661f6ecc3d84b0a43131358882b01fd51e8a5",
+        "682e1aae0f8ea9230b75bc6bd4260916a12ba92ef99bbdbcb0040d68d6905507",
+        "35e2b0907e9a4400458a95e12a1246ad24201e2ee45497e4e7f5a8f58556631f",
+        "af9c5000d702c43c1fb629bf072d6a79ffa25a5b80fb1d492b0fce8a8ff76d1d"
+      ],
+      "prediction": {
+        "id": "word-01",
+        "kind": "word",
+        "boxes": [
+          [
+            32,
+            89,
+            84,
+            140
+          ]
+        ],
+        "characters": [
+          "生"
+        ],
+        "prompt": [
+          "蛋",
+          "黄",
+          "酥"
+        ],
+        "seconds": 0.050771470996551216
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "酥",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-02",
+      "kind": "word",
+      "files": [
+        "word-02-0.jpg",
+        "word-02-1.png",
+        "word-02-2.png",
+        "word-02-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/b2a75f0ba73c47c4bae4b07b65f4c1e4.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b3fcfc703b5148eca104e01207c8190f.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/ef2712b1bb1f0b6a316714994a2d2d45.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c6d2f2f451d9d5aca60b41cc6a3eb93.png"
+      ],
+      "sha256": [
+        "fe848cc265cd39e12606170bb433bea63e75976a35b73b41f00578d6c4db3e21",
+        "86d935fbb723ed53c87bc1c36999f733d23dc9f26db863ee452aa04d109e5147",
+        "e364979e7e46d29a32a1b1cc3ad9ec443badeae2639b9f53deca7f19df25e69c",
+        "ec26e6ab28f99c16f9b159e76cd9ebf88d964db4f1b38d2af3fb435476a3c29a"
+      ],
+      "prediction": {
+        "id": "word-02",
+        "kind": "word",
+        "boxes": [
+          [
+            28,
+            122,
+            64,
+            158
+          ],
+          [
+            79,
+            91,
+            131,
+            139
+          ],
+          [
+            136,
+            117,
+            187,
+            167
+          ]
+        ],
+        "characters": [
+          "",
+          "子",
+          "稻"
+        ],
+        "prompt": [
+          "鲜",
+          "鸡",
+          "汤"
+        ],
+        "seconds": 0.0562994060019264
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "鲜",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-03",
+      "kind": "word",
+      "files": [
+        "word-03-0.jpg",
+        "word-03-1.png",
+        "word-03-2.png",
+        "word-03-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/cc8bc364943e48b1910d5c757e33df10.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a315cf24633f51d43e73b70d55bedefc.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a136f339af8c799ea9f58e6818f14f6e.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/c26236c2e1be026ce9634bf5fbbb521f.png"
+      ],
+      "sha256": [
+        "8a0d764aec993bcb32f5329e837e9034048dcb2c386f5fc580db733aadb11018",
+        "fca7dd23e2ac71c60ec6cb19abcc393000ae25f1bd65285535b4a7c3fab7dcda",
+        "149cdaad6c12bdb4074b549194e82bf11cdb1bfbe7dbfa66acfa16e6f5e6d338",
+        "45fe30fa10838306e801ed416cb3d18cac41b93972372d6f5237b5252b0f0e30"
+      ],
+      "prediction": {
+        "id": "word-03",
+        "kind": "word",
+        "boxes": [
+          [
+            213,
+            50,
+            263,
+            96
+          ],
+          [
+            17,
+            109,
+            62,
+            153
+          ],
+          [
+            202,
+            128,
+            253,
+            178
+          ],
+          [
+            117,
+            62,
+            165,
+            109
+          ],
+          [
+            54,
+            21,
+            100,
+            68
+          ]
+        ],
+        "characters": [
+          "烤",
+          "币",
+          "",
+          "句",
+          "主"
+        ],
+        "prompt": [
+          "烤",
+          "羊",
+          "方"
+        ],
+        "seconds": 0.06508501099597197
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "羊",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-04",
+      "kind": "word",
+      "files": [
+        "word-04-0.jpg",
+        "word-04-1.png",
+        "word-04-2.png",
+        "word-04-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/f9b99f1afef945d08e1389872e65ccb3.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3ee77c8ef93400e9e9fae6346ae6f580.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/69876e881af8192dd66ad10dab7c94b1.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+      ],
+      "sha256": [
+        "62a55e6c7eb502fd2ca0af2e48dba47ab8386676fa841ddc7f9b160016253aee",
+        "891faefa947e83b050d3eff0a70e8ee30427b42c8423a002458bcd349ed05ea3",
+        "12f763b64229f824a95ced71f34c0540e00ccb175c727290294b02bf116ca7e4",
+        "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+      ],
+      "prediction": {
+        "id": "word-04",
+        "kind": "word",
+        "boxes": [
+          [
+            137,
+            44,
+            183,
+            90
+          ],
+          [
+            170,
+            107,
+            220,
+            156
+          ],
+          [
+            204,
+            7,
+            256,
+            60
+          ],
+          [
+            3,
+            46,
+            50,
+            91
+          ],
+          [
+            4,
+            101,
+            58,
+            156
+          ]
+        ],
+        "characters": [
+          "面",
+          "和",
+          "菜",
+          "长",
+          "万F"
+        ],
+        "prompt": [
+          "菜",
+          "烩",
+          "面"
+        ],
+        "seconds": 0.06487574400671292
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "烩",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-05",
+      "kind": "word",
+      "files": [
+        "word-05-0.jpg",
+        "word-05-1.png",
+        "word-05-2.png",
+        "word-05-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/717eed37db444fbab7c2e395cc2e0f91.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/08eec2c521bfef59b93ffa26dce1bcf7.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4e195a21aac1f6f9229b29d086077331.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7def9ee0ca92d01f237409a1d0034a60.png"
+      ],
+      "sha256": [
+        "a036c0e79c3edb1198c3dd7934dbc563bcc9b58b73913c72bb514e0891b8436f",
+        "cf7867a8bd915ecc78b43ef5dfcf253b48e2e21bfc45dd373e01f36ee8c3efb3",
+        "d075320187d118502610214c904229e3a3858fb5c5c394250f14105a06e5c682",
+        "d5ff1bda70df9ae4cf5c36a60cfaf4f4943b45c0b072a3a75d779057f0893855"
+      ],
+      "prediction": {
+        "id": "word-05",
+        "kind": "word",
+        "boxes": [
+          [
+            22,
+            27,
+            66,
+            71
+          ],
+          [
+            207,
+            38,
+            257,
+            86
+          ],
+          [
+            122,
+            21,
+            171,
+            71
+          ],
+          [
+            198,
+            106,
+            243,
+            147
+          ]
+        ],
+        "characters": [
+          "中",
+          "船",
+          "抗",
+          "外"
+        ],
+        "prompt": [
+          "沙",
+          "拉",
+          "船"
+        ],
+        "seconds": 0.08791370700055268
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "沙",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-06",
+      "kind": "word",
+      "files": [
+        "word-06-0.jpg",
+        "word-06-1.png",
+        "word-06-2.png",
+        "word-06-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/4bd81b9d1e854cfba34e60134321cba7.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/83f6c0da39d2f0341b8b76e2564c415a.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/0136d618174d4cc9c1ef03276931ecc8.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/fd6a0e7d3606d6c328cd552c2bb52fa3.png"
+      ],
+      "sha256": [
+        "b84a31f27db82257506bccb2d73788a21d3e8c7310a7005c71b7dd66a4812aa5",
+        "bcbc71cf6578071db6b78dce260c441fdd33e36507a27dc0cbe64abf49c6873d",
+        "ad8c8c972a61da78c90c44650af3afb1bf74a6087f937ee3a7f4cce5dee5af01",
+        "8da2e5491e04540792ea3f30f4980018e224e1a414c72e1ed257efe058bd48b1"
+      ],
+      "prediction": {
+        "id": "word-06",
+        "kind": "word",
+        "boxes": [
+          [
+            218,
+            129,
+            261,
+            178
+          ],
+          [
+            38,
+            18,
+            91,
+            71
+          ],
+          [
+            203,
+            30,
+            248,
+            73
+          ],
+          [
+            129,
+            118,
+            177,
+            163
+          ]
+        ],
+        "characters": [
+          "几",
+          "面",
+          "址",
+          "t"
+        ],
+        "prompt": [
+          "刀",
+          "拔",
+          "面"
+        ],
+        "seconds": 0.06265053999959491
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "刀",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-07",
+      "kind": "word",
+      "files": [
+        "word-07-0.jpg",
+        "word-07-1.png",
+        "word-07-2.png",
+        "word-07-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/8f9a4e1aba1b49db9eb8ac590285e618.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b4f965683ff747825ddd1824b6e4998c.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2428721ba447825fd4bfde2416fae7d8.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a001ed1cf190f9795d4d3fa6700bfd2b.png"
+      ],
+      "sha256": [
+        "b46386fc418aa6e1da5a56c22ba6c493f76dab75d49e91c3ce54d93beb781f54",
+        "3045103b6b2dc6eac8ab675bce760e5435579cfa501f236be4bb8021bf114df5",
+        "06c6525ab2b84e042300689dd9dd1e27d8f948513f9a07c842f1cda5dbfd20ae",
+        "55188dc705232b3d65aae8fc8bd0a35c5812aa6a87133d29a06e2c7f927e6d26"
+      ],
+      "prediction": {
+        "id": "word-07",
+        "kind": "word",
+        "boxes": [
+          [
+            78,
+            13,
+            127,
+            64
+          ],
+          [
+            143,
+            83,
+            191,
+            129
+          ],
+          [
+            45,
+            83,
+            89,
+            131
+          ]
+        ],
+        "characters": [
+          "莲",
+          "卒",
+          ""
+        ],
+        "prompt": [
+          "玉",
+          "芯",
+          "茶"
+        ],
+        "seconds": 0.05805690499255434
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "玉",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-08",
+      "kind": "word",
+      "files": [
+        "word-08-0.jpg",
+        "word-08-1.png",
+        "word-08-2.png",
+        "word-08-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/a6660889122941aebefb7a50279deddd.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5d6e3b1dd1694c7531750996e5e9094a.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/cfec36ed99d25df61f4013aa96f3f19d.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/b712c9ad229554a25f13c55bfcf4c470.png"
+      ],
+      "sha256": [
+        "6f5d6b1109062614511d740f485f3ffbf23b864790d5f78b7e1979c6769e17fb",
+        "e5a8a9c6b781cfec3fd44d77f3be5c07ccaf09398da515d28a91bf60a7c93869",
+        "f098f3b71eb2964a623578fd1a9d9d872d711ff40b4a51bb84ccce13b2888c2a",
+        "e39bcf6cb405399faaacb4e36ea9ed3d58d8e05318a6592c7c92cf83a5b64ecc"
+      ],
+      "prediction": {
+        "id": "word-08",
+        "kind": "word",
+        "boxes": [
+          [
+            0,
+            100,
+            49,
+            149
+          ],
+          [
+            118,
+            75,
+            169,
+            123
+          ],
+          [
+            201,
+            116,
+            252,
+            165
+          ]
+        ],
+        "characters": [
+          "",
+          "叶",
+          "t品"
+        ],
+        "prompt": [
+          "冬",
+          "瓜",
+          "甑"
+        ],
+        "seconds": 0.0597630979900714
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "冬",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-09",
+      "kind": "word",
+      "files": [
+        "word-09-0.jpg",
+        "word-09-1.png",
+        "word-09-2.png",
+        "word-09-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fb654a59cf5942d08cedb64ec6704cfa.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2044c27397909670f0d90b8b6b5c15c5.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/eab619fba24a1ea828eebee4f54a138f.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2321edcb026488b830db6ff41517e40a.png"
+      ],
+      "sha256": [
+        "f22681037fef9cc0da5bc73c5cf1babdd1b614dc8fbf1e154fa73cf6472ccbc9",
+        "7aacdc98612047c8e2d38268d6d6284283d9878abe5746f0a285c065554bfc10",
+        "762346732ce451747110a8d4ac83c9ba07c4d6012065c73546428e11b5a9931b",
+        "a1d64875cb1a89d4afe7f8ca01a33facc4409fa3b199d55dbe26bcb32d87bb95"
+      ],
+      "prediction": {
+        "id": "word-09",
+        "kind": "word",
+        "boxes": [
+          [
+            201,
+            13,
+            250,
+            63
+          ],
+          [
+            287,
+            1,
+            299,
+            49
+          ]
+        ],
+        "characters": [
+          "内",
+          ""
+        ],
+        "prompt": [
+          "热",
+          "水k",
+          "藕"
+        ],
+        "seconds": 0.08116268100275192
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "热",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-10",
+      "kind": "word",
+      "files": [
+        "word-10-0.jpg",
+        "word-10-1.png",
+        "word-10-2.png",
+        "word-10-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/c0ffc7c0dfc94d79857e49b7460b11fc.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2b047aeed300b4df9b5a006ac03b302d.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/91a1eb2545461008e7babcfbee37b240.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/077a4f9c3546ecc18ae570483dcd603f.png"
+      ],
+      "sha256": [
+        "80a69da8ebb35c883eee26ecc9ca065489d2d89f9eaeae15e92a95b49b757fd2",
+        "efd61fc3b2e6a84d0a204f5d2f5b2757a6f9d273f34f54a8adf503dd7579afbf",
+        "fd3d2a494aa782a9342015e76d5f024f24d5f4eda662d24878d0bcade68f376d",
+        "ffd5d57de137727e212ef48f4a516ae2a925edbb43f11fdcc1652741f4f46bc6"
+      ],
+      "prediction": {
+        "id": "word-10",
+        "kind": "word",
+        "boxes": [
+          [
+            142,
+            63,
+            194,
+            113
+          ],
+          [
+            0,
+            54,
+            49,
+            106
+          ],
+          [
+            223,
+            85,
+            275,
+            137
+          ],
+          [
+            78,
+            29,
+            130,
+            80
+          ],
+          [
+            203,
+            2,
+            254,
+            54
+          ]
+        ],
+        "characters": [
+          "始",
+          "胺",
+          "醚",
+          "塌",
+          "豆"
+        ],
+        "prompt": [
+          "烟",
+          "醚",
+          "胺"
+        ],
+        "seconds": 0.06376548300613649
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "烟",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-11",
+      "kind": "word",
+      "files": [
+        "word-11-0.jpg",
+        "word-11-1.png",
+        "word-11-2.png",
+        "word-11-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/80b1b66d49954ed183bde017ec1c74ae.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bcee84f04c0a32692abefe8a800d93f.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/49d18732e817c50d4fc9755afea7230d.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d3cfe8c4ecbdad6539e0b8d50d91215.png"
+      ],
+      "sha256": [
+        "ed4b13e4535b7e0b5c6207c1f51da387d721366e70852cd736dc2a929597aec1",
+        "291da1556c49e61e8e7ccc9533823d01473117880c06b3aae144d3b53f942392",
+        "6eb64e80352c24e1d0dda35b4f7014de030d901c3cdc008afb24ed0f7aa3aeb3",
+        "50fe3a0454d609988f385cca9eec6b92ef1bba0840825fd4cdadea5c5b3867fe"
+      ],
+      "prediction": {
+        "id": "word-11",
+        "kind": "word",
+        "boxes": [
+          [
+            158,
+            98,
+            210,
+            148
+          ],
+          [
+            227,
+            81,
+            279,
+            131
+          ],
+          [
+            51,
+            78,
+            101,
+            128
+          ]
+        ],
+        "characters": [
+          "答",
+          "童",
+          "莳"
+        ],
+        "prompt": [
+          "时",
+          "萝",
+          "草"
+        ],
+        "seconds": 0.05657061999954749
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "萝",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-12",
+      "kind": "word",
+      "files": [
+        "word-12-0.jpg",
+        "word-12-1.png",
+        "word-12-2.png",
+        "word-12-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/4a93d4c1bc0c4e878bfa5adea593a2c9.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/aeffbc85384fcca6d1cdc6b39fbb8eeb.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5e5b5ed8d58c99da84028b8da16164dc.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/974f98c1a1e7793d93486613e0002303.png"
+      ],
+      "sha256": [
+        "1a59664390f844cb2a27a5b73b84c294eaf2cfe12008c59cf5606096d5ce7c14",
+        "0ad845b1bce4f2b59cfe2c2526e91a1525a463b10555776d8844dbdfa48bb8f1",
+        "7999efdd611033e3563dd7872c49f652c0a1a898200e2ee3bc3197f61edcd08f",
+        "892a6a5fe29a2f3ebbb27c2410af5dda74797284143e62dd942a3b1fd23906df"
+      ],
+      "prediction": {
+        "id": "word-12",
+        "kind": "word",
+        "boxes": [
+          [
+            210,
+            102,
+            262,
+            153
+          ],
+          [
+            124,
+            117,
+            175,
+            167
+          ],
+          [
+            124,
+            51,
+            177,
+            102
+          ],
+          [
+            15,
+            0,
+            70,
+            53
+          ],
+          [
+            223,
+            17,
+            270,
+            66
+          ]
+        ],
+        "characters": [
+          "",
+          "曲",
+          "帖",
+          "炉",
+          ""
+        ],
+        "prompt": [
+          "烧",
+          "连",
+          "帖占"
+        ],
+        "seconds": 0.06870028500270564
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "烧",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-13",
+      "kind": "word",
+      "files": [
+        "word-13-0.jpg",
+        "word-13-1.png",
+        "word-13-2.png",
+        "word-13-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/9310ecdece5c42559f817db8452d4a69.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/eab619fba24a1ea828eebee4f54a138f.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bbb3b39928f0761a66eda6de3edeb27.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9a626a186f5ce819550da5e9c635901a.png"
+      ],
+      "sha256": [
+        "75db51b9499c1036ab69869e5dbe08c799a63d02193704b801be00f9253c5cf8",
+        "762346732ce451747110a8d4ac83c9ba07c4d6012065c73546428e11b5a9931b",
+        "a44f289842df7c54438fae3c3fd1bf9a2835e04b69cb3cd9f7ea7c8a9ea62a97",
+        "72a4ad8e22c65ea3d50b80dbba9bb6e0f0c567cff835b6edc76828cb4367734a"
+      ],
+      "prediction": {
+        "id": "word-13",
+        "kind": "word",
+        "boxes": [],
+        "characters": [],
+        "prompt": [
+          "水k",
+          "果",
+          "塔"
+        ],
+        "seconds": 0.04844153799058404
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "果",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-14",
+      "kind": "word",
+      "files": [
+        "word-14-0.jpg",
+        "word-14-1.png",
+        "word-14-2.png",
+        "word-14-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/504968368a7744048b54d5d15d8cb7ed.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a2705d7fc85fec8eec1211649ce2d3ca.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/73325cad49c2d085cc4ef888f05fb335.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/a6cdd2a00bc8557f94665a0422a54329.png"
+      ],
+      "sha256": [
+        "551a4225e336ef5415aa4090d17db622fbca769aa27575868a11d662352999da",
+        "740e09a84c3d9d3d43a2dd04dfd77a9cc942103d406ced15c345fc7acf919bf6",
+        "883f08c0a110c4bca73185484f283030acab81fd021119ba6345ae233407241a",
+        "d0382c87ec74cf473d03fce5262e03a7c573b619a4190b81f78c638466cd2f84"
+      ],
+      "prediction": {
+        "id": "word-14",
+        "kind": "word",
+        "boxes": [
+          [
+            88,
+            8,
+            141,
+            59
+          ],
+          [
+            29,
+            20,
+            79,
+            76
+          ],
+          [
+            184,
+            99,
+            232,
+            147
+          ],
+          [
+            99,
+            71,
+            145,
+            119
+          ],
+          [
+            212,
+            9,
+            266,
+            50
+          ],
+          [
+            0,
+            97,
+            22,
+            149
+          ]
+        ],
+        "characters": [
+          "中",
+          "蒲",
+          "5",
+          "家",
+          "-z",
+          ""
+        ],
+        "prompt": [
+          "乐",
+          "满",
+          "家"
+        ],
+        "seconds": 0.06463573899236508
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "乐",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-15",
+      "kind": "word",
+      "files": [
+        "word-15-0.jpg",
+        "word-15-1.png",
+        "word-15-2.png",
+        "word-15-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/88c1296bad914fa2a0ba536365cf9a1d.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/219992473b57995ab37a7806e2a1e2d2.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/0857fa4e346f38ac6636279bb64cf0d1.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/575b7a4dca51abf1e5522531da955f28.png"
+      ],
+      "sha256": [
+        "e146cbd8e84945b51494de32929412ee85aa9e787da4f5fb0a1aab68c37642ac",
+        "ff1a3c7bbf66c7a82134f13d29bce102fa23af6b52e07b29412d5b6df8a0553c",
+        "773a267bf98260264a6d769717bee10610bce629d273e1bb8ad97f4219530d96",
+        "f69f2367f009c387d89607a405e54fc94acc9bba927054f2e8b32d3fd8b1d588"
+      ],
+      "prediction": {
+        "id": "word-15",
+        "kind": "word",
+        "boxes": [
+          [
+            190,
+            128,
+            240,
+            178
+          ],
+          [
+            116,
+            77,
+            166,
+            126
+          ],
+          [
+            33,
+            52,
+            83,
+            100
+          ],
+          [
+            30,
+            114,
+            80,
+            162
+          ],
+          [
+            207,
+            74,
+            254,
+            118
+          ]
+        ],
+        "characters": [
+          "城",
+          "茵",
+          "4e",
+          "鲤里",
+          "围"
+        ],
+        "prompt": [
+          "鲤",
+          "鱼",
+          "粥"
+        ],
+        "seconds": 0.06199688499327749
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "鱼",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-16",
+      "kind": "word",
+      "files": [
+        "word-16-0.jpg",
+        "word-16-1.png",
+        "word-16-2.png",
+        "word-16-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fd0f1e74aeb64e0a8a8c644764456136.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/778b84ebf8d5a75f4c5e97b73f0696fe.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/4edc8d491674ddf75dd204e8e6d45b02.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c6d2f2f451d9d5aca60b41cc6a3eb93.png"
+      ],
+      "sha256": [
+        "bbefcef2a326ff1eb1ef3f3f8bb03ce2993824947b38b4f8209d402f4e445784",
+        "d5b7d520919c11abbc0f4084ec0c9fcdaf62dd3333569dab7c27e74d3fc440ff",
+        "7e1df0ab98b615ed2e8fdf7617a5cf777c7d5d9803d34b8be12390cd60875e23",
+        "ec26e6ab28f99c16f9b159e76cd9ebf88d964db4f1b38d2af3fb435476a3c29a"
+      ],
+      "prediction": {
+        "id": "word-16",
+        "kind": "word",
+        "boxes": [
+          [
+            223,
+            130,
+            268,
+            175
+          ],
+          [
+            104,
+            73,
+            136,
+            108
+          ]
+        ],
+        "characters": [
+          "早",
+          ""
+        ],
+        "prompt": [
+          "酸",
+          "梅",
+          "汤"
+        ],
+        "seconds": 0.05237386099179275
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "酸",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-17",
+      "kind": "word",
+      "files": [
+        "word-17-0.jpg",
+        "word-17-1.png",
+        "word-17-2.png",
+        "word-17-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/fc71032d59044570b823463486f962aa.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/2bcee84f04c0a32692abefe8a800d93f.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/49d18732e817c50d4fc9755afea7230d.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d3cfe8c4ecbdad6539e0b8d50d91215.png"
+      ],
+      "sha256": [
+        "e1c1dd8fc616e5651363cd4694da5aa46dda8411fd0fb7450fc781002ddb54d1",
+        "291da1556c49e61e8e7ccc9533823d01473117880c06b3aae144d3b53f942392",
+        "6eb64e80352c24e1d0dda35b4f7014de030d901c3cdc008afb24ed0f7aa3aeb3",
+        "50fe3a0454d609988f385cca9eec6b92ef1bba0840825fd4cdadea5c5b3867fe"
+      ],
+      "prediction": {
+        "id": "word-17",
+        "kind": "word",
+        "boxes": [
+          [
+            33,
+            114,
+            83,
+            161
+          ],
+          [
+            96,
+            32,
+            148,
+            81
+          ],
+          [
+            11,
+            36,
+            62,
+            80
+          ],
+          [
+            155,
+            115,
+            201,
+            164
+          ],
+          [
+            212,
+            124,
+            258,
+            168
+          ]
+        ],
+        "characters": [
+          "草",
+          "津",
+          "JF",
+          "苹",
+          "B"
+        ],
+        "prompt": [
+          "时",
+          "萝",
+          "草"
+        ],
+        "seconds": 0.062178310996387154
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "萝",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-18",
+      "kind": "word",
+      "files": [
+        "word-18-0.jpg",
+        "word-18-1.png",
+        "word-18-2.png",
+        "word-18-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/c80116df0a4d49579b7bb75c25a4d3d8.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/20c37a06f23b7a0c92b18db3e5d57306.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/f4965ce10c943000192e844330466c4d.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/3d1460865168d9ef1dc3f605cf119284.png"
+      ],
+      "sha256": [
+        "122d7f7ce305eb2db40644206e59af5eed995b6b688242697eafe7c99310dec9",
+        "49c934de9fd5f50eb0f2a99277b0434bf06427bedbd08c6e45d4ef53514dfb0d",
+        "1b83ed8b9540a0d80c86c3c9bca3deea38d6d57a92f7900496dc731b99897b89",
+        "d1cced090ba9e03ace3718377d73557fdfae98d7a365b1cc6e6d59bbf9ef24d8"
+      ],
+      "prediction": {
+        "id": "word-18",
+        "kind": "word",
+        "boxes": [
+          [
+            106,
+            100,
+            154,
+            146
+          ],
+          [
+            226,
+            128,
+            274,
+            176
+          ],
+          [
+            49,
+            85,
+            98,
+            133
+          ],
+          [
+            174,
+            41,
+            224,
+            90
+          ],
+          [
+            11,
+            6,
+            62,
+            59
+          ]
+        ],
+        "characters": [
+          "佛",
+          "",
+          "革",
+          "L",
+          "馏"
+        ],
+        "prompt": [
+          "佛",
+          "跳",
+          "墙"
+        ],
+        "seconds": 0.06195493499399163
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "跳",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "word-19",
+      "kind": "word",
+      "files": [
+        "word-19-0.jpg",
+        "word-19-1.png",
+        "word-19-2.png",
+        "word-19-3.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/fdd2aaa4a429487381bd673b104f152d/word/314828/2026-10-02T12/84067c03be074e8d9391a17174c72658.jpg",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/7d30111edc99f56297650e9eb0de1f14.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/5442dfce9bae4548d3851889266c5381.png",
+        "https://static.geetest.com/nerualpic/original_word_pic/jiangchengzhengjunti/9c41898568fd50d0ed8b84a9842ef616.png"
+      ],
+      "sha256": [
+        "2e6eecf48e8234d3d7663b0c2700491f206161cb81584cb92a647563fbeada22",
+        "4fcac3f709b3f51c99edc031e0c4cf94d6b731277ef61081ccdf8807e1abaaa8",
+        "c5ddf7d9b06707590748a4da7876ef36f999bad7df700c8e032627dd44a3d979",
+        "faa6e1751605a48bc3cd3a3065e7c5fdbd7b1335dae46a11fb59dff618db8738"
+      ],
+      "prediction": {
+        "id": "word-19",
+        "kind": "word",
+        "boxes": [
+          [
+            1,
+            73,
+            47,
+            119
+          ],
+          [
+            26,
+            14,
+            76,
+            59
+          ],
+          [
+            46,
+            128,
+            93,
+            174
+          ]
+        ],
+        "characters": [
+          "包",
+          "叶H",
+          "银"
+        ],
+        "prompt": [
+          "银",
+          "包",
+          "金"
+        ],
+        "seconds": 0.055583597990334965
+      },
+      "visual_review": {
+        "required_character_missing_from_candidates": "金",
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "nine-00",
+      "kind": "nine",
+      "files": [
+        "nine-00-0.jpg",
+        "nine-00-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/6cbe99e2d7a1478d825dfebe37ce3b36.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/377ec368faae877fe01ca7468cefc824.png"
+      ],
+      "sha256": [
+        "8181e7a5a23e52edce203a864e1058fff9a0fdf971705c9afa9a0ce7a4eba101",
+        "5cfbcb0ae770dcdfc383cd9b92682c89077a1a58a3a2787e1acebb2d95cfeb63"
+      ],
+      "prediction": {
+        "id": "nine-00",
+        "kind": "nine",
+        "scores": [
+          -0.0669868066906929,
+          0.08405938744544983,
+          -0.29757416248321533,
+          0.8000194430351257,
+          0.8449134230613708,
+          -0.04578176140785217,
+          -0.2307334840297699,
+          0.8547878861427307,
+          -0.12175929546356201
+        ],
+        "selected": [
+          4,
+          5,
+          8
+        ],
+        "seconds": 0.2997644729912281
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          4,
+          5,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-01",
+      "kind": "nine",
+      "files": [
+        "nine-01-0.jpg",
+        "nine-01-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/82271821431749518418ba88ad38b856.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/6a45fcc6cf26abbd6a4b1730558f66e1.png"
+      ],
+      "sha256": [
+        "6bc5df5099c26524b774a3b703ce32dd4783bfafdca41163a44744cf2df3554f",
+        "93efb53c9cb0d7ce8c14211ccfebea6dfd5b25db8de51b315d28f24ea9333315"
+      ],
+      "prediction": {
+        "id": "nine-01",
+        "kind": "nine",
+        "scores": [
+          0.2091742902994156,
+          0.6069020628929138,
+          0.7624072432518005,
+          -0.05354151874780655,
+          -0.0695175901055336,
+          0.6636931300163269,
+          -0.05051126331090927,
+          0.4096089005470276,
+          0.06446775048971176
+        ],
+        "selected": [
+          2,
+          3,
+          6
+        ],
+        "seconds": 0.29191607399843633
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          2,
+          3,
+          6
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-02",
+      "kind": "nine",
+      "files": [
+        "nine-02-0.jpg",
+        "nine-02-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/b7a0e930de71451f804635c20d1f6c8e.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/fae005cf393a8ec646f3fe040339fd9d.png"
+      ],
+      "sha256": [
+        "a29d7f9675288e0efc5507ab5fd97c13cf6e49f61a61aa46ba2647b4534b8c94",
+        "5da79bfe0abb073ae25033650210ad8950e589273135ff08bdd40dd4bb1125b8"
+      ],
+      "prediction": {
+        "id": "nine-02",
+        "kind": "nine",
+        "scores": [
+          0.7315359711647034,
+          0.649658203125,
+          0.2372397780418396,
+          0.27434241771698,
+          0.3717918395996094,
+          0.21350587904453278,
+          0.05049866810441017,
+          0.661281406879425,
+          0.09378314763307571
+        ],
+        "selected": [
+          1,
+          2,
+          8
+        ],
+        "seconds": 0.27564205300586764
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          1,
+          2,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-03",
+      "kind": "nine",
+      "files": [
+        "nine-03-0.jpg",
+        "nine-03-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/c47b86d8522049219e6c4d761428c791.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/d0763edaa9d9bd2a9516280e9044d885.png"
+      ],
+      "sha256": [
+        "67f37eb8fde9cfd8b216462fecf3e329718842da36070250cd31e1169a6574fa",
+        "97828a4aa1d190bb721021b33a2a655efadb9c454581593dbc2c4a18bfc2f1d9"
+      ],
+      "prediction": {
+        "id": "nine-03",
+        "kind": "nine",
+        "scores": [
+          0.040726643055677414,
+          0.6537255644798279,
+          0.06224357336759567,
+          0.0681409165263176,
+          0.6531273722648621,
+          0.06356122344732285,
+          0.5067195892333984,
+          -0.03313771262764931,
+          -0.11231856048107147
+        ],
+        "selected": [
+          2,
+          5,
+          7
+        ],
+        "seconds": 0.28296968500944786
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          2,
+          5,
+          7
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-04",
+      "kind": "nine",
+      "files": [
+        "nine-04-0.jpg",
+        "nine-04-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/34c54ed569c14156973a1bf64b4cff16.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/24f7ca5f6ff1a5afb9032aa5e533ad95.png"
+      ],
+      "sha256": [
+        "94efb889520663dfc4d5cf4896ad1e710a024789d094fc974d588c5dbfb0d13a",
+        "0992f7f75f2d39dc9ec659a7e335dbd2178b857a7813fd3134468738f5951fb1"
+      ],
+      "prediction": {
+        "id": "nine-04",
+        "kind": "nine",
+        "scores": [
+          -0.019010469317436218,
+          0.05187578499317169,
+          0.8240564465522766,
+          0.7547353506088257,
+          0.8267853856086731,
+          -0.014500625431537628,
+          -0.07845915108919144,
+          -0.08624399453401566,
+          0.07677249610424042
+        ],
+        "selected": [
+          3,
+          4,
+          5
+        ],
+        "seconds": 0.2828531809936976
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          3,
+          4,
+          5
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-05",
+      "kind": "nine",
+      "files": [
+        "nine-05-0.jpg",
+        "nine-05-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/0bb4821af3d141a3818c523ca5d5d051.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/c60346dca558858abf74582f8e11d2e3.png"
+      ],
+      "sha256": [
+        "b7763a8e58a63e12bde227ff5253193dac466d595e82ec10995cc73e81bf95d2",
+        "9492654e77f32d753d0f60a804d327960a092ec78e7b98b5b036aabfa6f314bd"
+      ],
+      "prediction": {
+        "id": "nine-05",
+        "kind": "nine",
+        "scores": [
+          0.2582496702671051,
+          0.2390233725309372,
+          -0.054643139243125916,
+          -0.10162858664989471,
+          0.3835262358188629,
+          -0.08306334912776947,
+          0.3174205720424652,
+          0.486138254404068,
+          0.5276728868484497
+        ],
+        "selected": [
+          5,
+          8,
+          9
+        ],
+        "seconds": 0.310467596995295
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          5,
+          8,
+          9
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-06",
+      "kind": "nine",
+      "files": [
+        "nine-06-0.jpg",
+        "nine-06-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/859591ffef0d4c0487ecdca38138b00c.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/bd5f4b0419caa97dd2f9b4d3238ff92f.png"
+      ],
+      "sha256": [
+        "c1bd665077a58fed2c6cbc674cd6945c38e41eefd56f399aad4dc4c40b7db3b6",
+        "21a4e4bc6fbf171dd4646e6c91cf68bc6ed0f6ba8a2ea999276ef98e758543ad"
+      ],
+      "prediction": {
+        "id": "nine-06",
+        "kind": "nine",
+        "scores": [
+          0.10785657912492752,
+          0.684235692024231,
+          0.0718630999326706,
+          0.691980242729187,
+          0.010090574622154236,
+          -0.04926081374287605,
+          0.6419854164123535,
+          -0.11269103735685349,
+          0.18344369530677795
+        ],
+        "selected": [
+          2,
+          4,
+          7
+        ],
+        "seconds": 0.27704628799983766
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          2,
+          4,
+          7
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-07",
+      "kind": "nine",
+      "files": [
+        "nine-07-0.jpg",
+        "nine-07-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/fff5473145274168bacc714ea7e765d7.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/98ac6b4b086b5a2f47677b15e786d9ba.png"
+      ],
+      "sha256": [
+        "15f23a1979fe3c3b2131ceef9e5a7e68b51c43ff6c7bc4aadde527a3648c97e0",
+        "0370fe2c31523dc1a4661fa46beb52e3ead9e39083262a6de92e06eb20f14f98"
+      ],
+      "prediction": {
+        "id": "nine-07",
+        "kind": "nine",
+        "scores": [
+          -0.09401305764913559,
+          0.20950154960155487,
+          0.5518212914466858,
+          -0.08810419589281082,
+          0.7373957633972168,
+          -0.0473514124751091,
+          -0.113864466547966,
+          0.6869604587554932,
+          -0.03784525766968727
+        ],
+        "selected": [
+          3,
+          5,
+          8
+        ],
+        "seconds": 0.28217094800493214
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          3,
+          5,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-08",
+      "kind": "nine",
+      "files": [
+        "nine-08-0.jpg",
+        "nine-08-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/75ff077de31d4d259184a80b9b4b0562.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/742929dcb631403d7c1c1efad2ca2700.png"
+      ],
+      "sha256": [
+        "84eae29ed427d49aa0c6b153eb83cc5d4e2a80b44e63b35109b22c77a6fdaa1e",
+        "2c9eec929aaae3bccfd9fc8a67023f363684d491bd49588070b6c89274e61261"
+      ],
+      "prediction": {
+        "id": "nine-08",
+        "kind": "nine",
+        "scores": [
+          0.7273393273353577,
+          0.7209251523017883,
+          0.08551076054573059,
+          -0.12260925769805908,
+          -0.1996912658214569,
+          -0.05844076722860336,
+          -0.19267356395721436,
+          -0.10422322899103165,
+          0.787607729434967
+        ],
+        "selected": [
+          1,
+          2,
+          9
+        ],
+        "seconds": 0.28318550300900824
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          1,
+          2,
+          9
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-09",
+      "kind": "nine",
+      "files": [
+        "nine-09-0.jpg",
+        "nine-09-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/9c2804bc10674c2ba998bb8bc69bd469.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/23ec24c5ca59000543cee1dfded0cbea.png"
+      ],
+      "sha256": [
+        "0ef6c67ed0d2b86536b18728673804a5c53967deeefc29fa054a86c7682e0526",
+        "f002e78b65129dd88cd83c24a0c2b9ed042101ed3d8b48c61a1563fe281fdc4b"
+      ],
+      "prediction": {
+        "id": "nine-09",
+        "kind": "nine",
+        "scores": [
+          0.6271283030509949,
+          -0.10707490891218185,
+          -0.047384314239025116,
+          0.4185611307621002,
+          -0.06569085270166397,
+          -0.10025656968355179,
+          0.7252097129821777,
+          -0.05889614671468735,
+          0.055042609572410583
+        ],
+        "selected": [
+          1,
+          4,
+          7
+        ],
+        "seconds": 0.27723767299903557
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          1,
+          4,
+          7
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-10",
+      "kind": "nine",
+      "files": [
+        "nine-10-0.jpg",
+        "nine-10-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/632cb5dce4674b34be545e57f9a3ab0c.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/3298b47610e12fd4075eaff9d08f57bf.png"
+      ],
+      "sha256": [
+        "485d3f40b195fd7bfea638c0db0519e0d508e09592bb2645299ce5f26189ebe6",
+        "34ee0356c95739b8dc90e2ea051eb55e232d5dcce634c8eff4ad211b1263729c"
+      ],
+      "prediction": {
+        "id": "nine-10",
+        "kind": "nine",
+        "scores": [
+          0.6058414578437805,
+          0.07270380109548569,
+          -0.09911341965198517,
+          0.09962281584739685,
+          0.46522411704063416,
+          0.4158814549446106,
+          0.4868621826171875,
+          0.3971889913082123,
+          0.06395021080970764
+        ],
+        "selected": [
+          1,
+          5,
+          7
+        ],
+        "seconds": 0.2812699549976969
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          1,
+          5,
+          8
+        ],
+        "whole_question_correct": false
+      }
+    },
+    {
+      "id": "nine-11",
+      "kind": "nine",
+      "files": [
+        "nine-11-0.jpg",
+        "nine-11-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/f87b21e67b924fe6801c4da743e00f32.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/78f9151935d912f37259b72c2036ec6b.png"
+      ],
+      "sha256": [
+        "cf6adeb0e438ba2d5a47ce01ad9dcd78dda288259be8987beb9b5ac65970c14a",
+        "2132335c4cb7875a62737bb5eb91c2d918f1f5f4e4838b968363fd709026b43d"
+      ],
+      "prediction": {
+        "id": "nine-11",
+        "kind": "nine",
+        "scores": [
+          -0.09546118974685669,
+          -0.10490146279335022,
+          0.7403658628463745,
+          -7.000844925642014e-05,
+          0.7689753174781799,
+          -0.11974439769983292,
+          0.7549219727516174,
+          0.1619148999452591,
+          -0.26950761675834656
+        ],
+        "selected": [
+          3,
+          5,
+          7
+        ],
+        "seconds": 0.29930406701168977
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          3,
+          5,
+          7
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-12",
+      "kind": "nine",
+      "files": [
+        "nine-12-0.jpg",
+        "nine-12-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/695da423a3f74cf686337e9638ec0fef.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/abaecf8ca3f98dc13eeecbac263cd3ed.png"
+      ],
+      "sha256": [
+        "9a5d6dee5d90677bb38c7d64857cadc4b3afa0e8286194e91bd41e1750dee38d",
+        "8059b4952400c981e5da4e465b1b9f5bd87e2cbe2f1c7b4ec6ea291ddcc0b22a"
+      ],
+      "prediction": {
+        "id": "nine-12",
+        "kind": "nine",
+        "scores": [
+          0.290088951587677,
+          -0.18599505722522736,
+          -0.10268625617027283,
+          0.45974984765052795,
+          0.5330846905708313,
+          0.5520439147949219,
+          -0.25187039375305176,
+          0.05526246130466461,
+          -0.15925535559654236
+        ],
+        "selected": [
+          4,
+          5,
+          6
+        ],
+        "seconds": 0.2896855319995666
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          4,
+          5,
+          6
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-13",
+      "kind": "nine",
+      "files": [
+        "nine-13-0.jpg",
+        "nine-13-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/6e2e7ca6f21142b6928a71fca7bd7ef8.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/698777432d4b6352e008a1d267329aa1.png"
+      ],
+      "sha256": [
+        "681db23d7b649698f335ed23cf94b64b776e189fee4735a2d33a3b84601f3285",
+        "29b65e421198c4f1ac157089d5f7e5ab697fd6fd37c10b6b9467e871ddc497a2"
+      ],
+      "prediction": {
+        "id": "nine-13",
+        "kind": "nine",
+        "scores": [
+          0.011853238567709923,
+          0.5751094818115234,
+          0.07823088020086288,
+          0.6387995481491089,
+          0.0365617536008358,
+          0.7155173420906067,
+          0.1020008847117424,
+          0.10858222097158432,
+          0.19085024297237396
+        ],
+        "selected": [
+          2,
+          4,
+          6
+        ],
+        "seconds": 0.29338333899795543
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          2,
+          4,
+          6
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-14",
+      "kind": "nine",
+      "files": [
+        "nine-14-0.jpg",
+        "nine-14-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/1f3d003ec7884072b40c462a353d0d0c.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/0f3d3fc913d9ec4434ec3b41423ddf0e.png"
+      ],
+      "sha256": [
+        "386e776deb05344a7cf8b62d7d1b19d67bf1177b5235902b7f7df9561dd98225",
+        "6f6750adb28b93835d88e67961a25ce63a4ae2cc56102aa4f19afe1032e11c61"
+      ],
+      "prediction": {
+        "id": "nine-14",
+        "kind": "nine",
+        "scores": [
+          0.1643752008676529,
+          0.12418441474437714,
+          0.6621267795562744,
+          0.7480930685997009,
+          0.23689217865467072,
+          0.22747427225112915,
+          -0.017509154975414276,
+          0.6857157349586487,
+          -0.1979667693376541
+        ],
+        "selected": [
+          3,
+          4,
+          8
+        ],
+        "seconds": 0.28380922399810515
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          3,
+          4,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-15",
+      "kind": "nine",
+      "files": [
+        "nine-15-0.jpg",
+        "nine-15-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/ce7998ae4fd64748bbde1ebd3766c041.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/66b1a7ecc863ac5c5158a5898d9a8f6e.png"
+      ],
+      "sha256": [
+        "2f6b135f196b35c557883b4b65137084e42cd3e7134d0ae33be3a40976fd7b5d",
+        "9755a99f72f24020c39a610f40f47bd1bb267df06159af03e6e44da1c3c1a705"
+      ],
+      "prediction": {
+        "id": "nine-15",
+        "kind": "nine",
+        "scores": [
+          0.3999364972114563,
+          0.7832757830619812,
+          0.4203321635723114,
+          0.7109724879264832,
+          0.3098692297935486,
+          0.32381176948547363,
+          0.21982920169830322,
+          0.1696947067975998,
+          0.7983269691467285
+        ],
+        "selected": [
+          2,
+          4,
+          9
+        ],
+        "seconds": 0.28487558200140484
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          2,
+          4,
+          9
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-16",
+      "kind": "nine",
+      "files": [
+        "nine-16-0.jpg",
+        "nine-16-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/cdd3c936e02d4bc8987266fd6c98a1c8.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/7eef7295c50d70615433858746056bca.png"
+      ],
+      "sha256": [
+        "91fb117c8e9a9b0d6b9bb5878c8f4920705e1585d8e71798426b55d40a61ce4d",
+        "c7274a195308b9cfeb0876cea23ed34e9b22fd17d736996a326070acd0581501"
+      ],
+      "prediction": {
+        "id": "nine-16",
+        "kind": "nine",
+        "scores": [
+          0.015718266367912292,
+          -0.0501534529030323,
+          0.011276345700025558,
+          0.5886641144752502,
+          -0.0627305656671524,
+          0.7394369840621948,
+          -0.2181997001171112,
+          0.6708078980445862,
+          0.05308718979358673
+        ],
+        "selected": [
+          4,
+          6,
+          8
+        ],
+        "seconds": 0.27604550299292896
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          4,
+          6,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-17",
+      "kind": "nine",
+      "files": [
+        "nine-17-0.jpg",
+        "nine-17-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/33f0b686b8e041549f80fb1345e1b136.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/a51e47f646375ab6bf5dd2c42d3e6181.png"
+      ],
+      "sha256": [
+        "ff77362ddae5083fe1127a0722cd81d3f4448e33e443eb5d9ac05879c9d405ce",
+        "775b8fc40718c2517d1273ca604ff5560eadbe840abc9b68ef106b36e5af6304"
+      ],
+      "prediction": {
+        "id": "nine-17",
+        "kind": "nine",
+        "scores": [
+          -0.20610438287258148,
+          0.025202997028827667,
+          -0.07634755223989487,
+          0.787642776966095,
+          -0.11100892722606659,
+          0.7626537680625916,
+          -0.07254745066165924,
+          0.0022538844496011734,
+          0.8609727621078491
+        ],
+        "selected": [
+          4,
+          6,
+          9
+        ],
+        "seconds": 0.2814845730026718
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          4,
+          6,
+          9
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-18",
+      "kind": "nine",
+      "files": [
+        "nine-18-0.jpg",
+        "nine-18-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/b58ea8bf2fc547279c55da65bd667b84.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/fae005cf393a8ec646f3fe040339fd9d.png"
+      ],
+      "sha256": [
+        "bfcc461d739eba2aee402377071a67cfe9f98a51ce32e0fa0ebcfb9cd3df170d",
+        "5da79bfe0abb073ae25033650210ad8950e589273135ff08bdd40dd4bb1125b8"
+      ],
+      "prediction": {
+        "id": "nine-18",
+        "kind": "nine",
+        "scores": [
+          0.2634316086769104,
+          0.08259331434965134,
+          -0.06667201220989227,
+          0.014569496735930443,
+          0.5584912896156311,
+          0.016374671831727028,
+          0.6234942078590393,
+          0.6682533025741577,
+          0.05533573776483536
+        ],
+        "selected": [
+          5,
+          7,
+          8
+        ],
+        "seconds": 0.28547546500340104
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          5,
+          7,
+          8
+        ],
+        "whole_question_correct": true
+      }
+    },
+    {
+      "id": "nine-19",
+      "kind": "nine",
+      "files": [
+        "nine-19-0.jpg",
+        "nine-19-1.png"
+      ],
+      "sources": [
+        "https://static.geetest.com/captcha_v4/policy/3d0936b11a2c4a65bbb53635e656c780/nine/314837/2026-10-02T12/c36cf2593150479da4a6e0521261e82a.jpg",
+        "https://static.geetest.com/static_resources/nine/20260828/icon_prompt/b74012a0fbca4af4bd29f73af7c0fffb.png"
+      ],
+      "sha256": [
+        "626308b5a76fa3ec332a509b85fbc92d3cbcf292623123d18bc8c5572e2e2ba6",
+        "d6486c1aeb1f25307580a6c0c6562de533a49e6a639b83e3581b852c0f5bd411"
+      ],
+      "prediction": {
+        "id": "nine-19",
+        "kind": "nine",
+        "scores": [
+          -0.16498377919197083,
+          0.15191291272640228,
+          0.11547945439815521,
+          0.698955237865448,
+          0.6482164263725281,
+          -0.11979439109563828,
+          0.7415547370910645,
+          -0.17703647911548615,
+          -0.1392403542995453
+        ],
+        "selected": [
+          4,
+          5,
+          7
+        ],
+        "seconds": 0.2824509420024697
+      },
+      "visual_review": {
+        "expected_cells_row_major_1_based": [
+          4,
+          5,
+          7
+        ],
+        "whole_question_correct": true
+      }
+    }
+  ],
+  "ddddocr_package_license": {
+    "spdx_id": "MIT",
+    "source": "https://github.com/sml2h3/ddddocr/blob/master/LICENSE",
+    "scope": "ddddocr repository; does not cover the separate candidate ResNet18 model"
+  },
+  "reproduction": {
+    "samples_with_identical_predictions": 40,
+    "cgroup_peak_bytes": 462327808,
+    "script_sha256": "29fbd75c9e396882975e707246868edce28430d2698d11a1cbdc79488c5c99b6"
+  }
+}

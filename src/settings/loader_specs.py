@@ -70,6 +70,14 @@ CONFIG_MAPPINGS: dict[str, dict[str, str]] = {
         "monitor_interval_seconds": "douyin_monitor_interval_seconds",
         "push_channels": "douyin_push_channels",
     },
+    "kuaishou": {
+        "enable": "kuaishou_enable",
+        "targets": "kuaishou_targets",
+        "cookie": "kuaishou_cookie",
+        "concurrency": "kuaishou_concurrency",
+        "monitor_interval_seconds": "kuaishou_monitor_interval_seconds",
+        "push_channels": "kuaishou_push_channels",
+    },
     "douyu": {
         "enable": "douyu_enable",
         "rooms": "douyu_rooms",

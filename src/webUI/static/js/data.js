@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentTable === 'huya' || currentTable === 'douyu') return String(row.room ?? index);
         if (currentTable === 'bilibili_live') return String(row.room_id ?? row.uid ?? index);
         if (currentTable === 'bilibili_dynamic') return String(row.dynamic_id ?? row.uid ?? index);
+        if (currentTable === 'kuaishou') return String(row.principal_id ?? index);
         if (currentTable === 'douyin') return String(row.douyin_id ?? index);
         if (currentTable === 'xhs') return String(row.profile_id ?? index);
         return String(index);
@@ -1495,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </article>`;
             });
             html += '</div>';
-        } else if (currentTable === 'douyin' || currentTable === 'bilibili_live') {
+        } else if (currentTable === 'douyin' || currentTable === 'kuaishou' || currentTable === 'bilibili_live') {
             // 抖音直播 / B站直播：与 B站动态 统一的 feed 卡片样式
             html += '<div class="data-card-grid feed-card-grid data-card-sortable">';
             rows.forEach((row, idx) => {
@@ -1505,7 +1506,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 let platformBadgeClass = '';
                 let platformLabel = '';
                 let url = row.url || '';
-                if (currentTable === 'douyin') {
+                if (currentTable === 'kuaishou') {
+                    roomLabel = '主播 ID';
+                    roomValue = row.principal_id;
+                    platformBadgeClass = 'platform-badge-kuaishou';
+                    platformLabel = '快手直播';
+                    url = url || (row.principal_id ? `https://live.kuaishou.com/u/${encodeURIComponent(row.principal_id)}` : '');
+                } else if (currentTable === 'douyin') {
                     roomLabel = '抖音号';
                     roomValue = row.douyin_id;
                     platformBadgeClass = 'platform-badge-douyin';

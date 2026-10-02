@@ -33,6 +33,7 @@ from src.jobs.registry import register_task
 from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
 from src.push_channel.manager import UnifiedPushManager, build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
+from src.tasks.ikuuu_captcha import CaptchaSolver, IkuuuLoginRejectedError
 
 logger = logging.getLogger(__name__)
 
@@ -662,6 +663,43 @@ class _IkuuuBrowserUnavailableError(RuntimeError):
     """浏览器或 WebDriver 环境缺失，重试域名无法恢复。"""
 
 
+def _authenticated_user_page(driver, cfg: CheckinConfig) -> bool:
+    current = urlparse(driver.current_url)
+    expected = urlparse(cfg.user_page_url)
+    if current.scheme != "https" or current.netloc != expected.netloc:
+        return False
+    if current.path != "/user" and not current.path.startswith("/user/"):
+        return False
+    return any(
+        element.is_displayed()
+        for element in driver.find_elements(
+            "css selector", 'a[href="/auth/logout"], a[href$="/auth/logout"]'
+        )
+    )
+
+
+def _login_completed(driver, cfg: CheckinConfig, solver: CaptchaSolver) -> bool:
+    if _authenticated_user_page(driver, cfg):
+        return True
+    for element in driver.find_elements(
+        "css selector", ".swal2-html-container, .swal-text, .alert-danger, .invalid-feedback"
+    ):
+        if element.is_displayed() and any(
+            marker in element.text
+            for marker in (
+                "密码错误",
+                "邮箱或者密码",
+                "账号或密码",
+                "账户或密码",
+                "用户不存在",
+                "账户被禁用",
+            )
+        ):
+            raise IkuuuLoginRejectedError("站点拒绝登录，请检查账号、密码或账号状态")
+    solver.solve_if_present(driver)
+    return False
+
+
 def _binary_version(path: str) -> tuple[bool, str]:
     try:
         result = subprocess.run(
@@ -944,20 +982,29 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
         password_input.clear()
         password_input.send_keys(cfg.password)
 
+        solver = CaptchaSolver()
         try:
             verify_button = WebDriverWait(driver, 5).until(
-                expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, ".geetest_btn_click"))
+                expected_conditions.element_to_be_clickable(
+                    (By.CSS_SELECTOR, ".geetest_btn_click, .geetest_holder")
+                )
             )
             verify_button.click()
             logger.debug("ikuuu签到：已点击验证按钮")
+            solver.solve_if_present(driver, wait_for_challenge=True)
         except TimeoutException:
             logger.debug("ikuuu签到：未发现验证按钮，继续提交登录")
 
-        time.sleep(2)
+        solver.solve_if_present(driver)
         wait.until(
             expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, 'button[type="submit"]'))
         ).click()
-        time.sleep(5)
+        try:
+            wait.until(lambda browser: _login_completed(browser, cfg, solver))
+        except TimeoutException as exc:
+            raise IkuuuLoginRejectedError(
+                "登录超时：未确认进入已认证用户页面；可能存在未完成的验证码或站点页面变化"
+            ) from exc
 
         cookies = driver.get_cookies()
         cookie_string = "; ".join(
@@ -972,7 +1019,7 @@ def _login_and_get_cookie_sync(cfg: CheckinConfig) -> str | None:
         logger.debug("ikuuu签到：浏览器登录完成，已获取 Cookie")
         return cookie_string
 
-    except _IkuuuBrowserUnavailableError:
+    except (_IkuuuBrowserUnavailableError, IkuuuLoginRejectedError):
         raise
     except Exception as exc:  # noqa: BLE001
         logger.error("ikuuu签到：登录过程中发生错误：%s", exc, exc_info=True)
@@ -1002,6 +1049,9 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
 
         try:
             cookie = await asyncio.to_thread(_login_and_get_cookie_sync, cfg)
+        except IkuuuLoginRejectedError:
+            # 验证码或账号错误不是域名错误，交给调用者推送具体原因。
+            raise
         except _IkuuuBrowserUnavailableError as exc:
             logger.error(
                 "ikuuu签到：账号 %s 浏览器环境不可用，跳过后续登录重试：%s",
@@ -1182,13 +1232,19 @@ async def run_checkin_once() -> bool:
             cfg_one = cfg.with_account(account["email"], account["password"])
             logger.debug("ikuuu签到：正在处理第 %d/%d 个账号", idx + 1, len(valid_accounts))
 
-            cookie = await _login_and_get_cookie(session, cfg_one)
+            login_error = "登录失败，无法获取已认证 Cookie，请检查浏览器、账号或站点状态。"
+            try:
+                cookie = await _login_and_get_cookie(session, cfg_one)
+            except IkuuuLoginRejectedError as exc:
+                cookie = None
+                login_error = str(exc)
+                logger.error("ikuuu签到：账号 %s %s", _mask_email(cfg_one.email), login_error)
             if not cookie:
                 logger.error("ikuuu签到：❌ 账号 %s 登录失败", _mask_email(cfg_one.email))
                 await _send_checkin_push(
                     push_manager,
                     title="ikuuu签到失败：登录失败",
-                    msg="登录失败，无法获取 Cookie，请检查账号、密码或站点状态。",
+                    msg=login_error,
                     success=False,
                     cfg=cfg_one,
                 )

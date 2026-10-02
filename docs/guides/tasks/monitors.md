@@ -248,3 +248,36 @@ xhs:
 - **启动时**：程序启动后会按配置的间隔开始轮询，无需额外触发。  
 - **热重载**：修改各监控任务配置并保存 `config.yml` 后，约 5 秒内生效，无需重启。  
 - **推送**：若配置了 `quiet_hours`（免打扰），在免打扰时段内不会推送，但监控仍会执行并更新数据。  
+
+
+## 快手直播监控 {#kuaishou-monitor}
+
+配置节点为 `kuaishou`，默认关闭；首次取得状态只建立基线，之后确认开播／下播时通知。网络失败、风控、缺少状态或主播身份不匹配时保留旧状态，日志报告获取失败。免打扰期间更新状态但不推送。
+
+```yaml
+kuaishou:
+  enable: false
+  targets:
+    - "https://live.kuaishou.com/profile/主播ID"
+    # 也支持主播 ID、/u/主播ID 直播地址和 v.kuaishou.com 分享短链
+  cookie: ""
+  concurrency: 2
+  monitor_interval_seconds: 60
+  push_channels: []
+```
+
+`targets` 支持 YAML 列表、逗号或换行分隔的文本。不同链接解析为同一主播后只监控一次，映射保存在数据库中；删除最后一个引用才清理该主播。分享短链逐跳校验域名，解析失败时建议改用网页版主页。只支持主播主页／直播分享，不支持作品链接。
+
+Cookie 可通过 `WEBMONITER_KUAISHOU_COOKIE` 环境变量提供，优先于 YAML 字段，不写回配置或回显到表单。Compose 已透传此变量；使用 `docker run` 时添加 `-e WEBMONITER_KUAISHOU_COOKIE`。并发范围 1–10，间隔至少 10 秒，建议使用默认 60 秒。
+
+**验证状态：短链及 Web 流程通过，真实直播状态验收未完成。** 2026-10-02 的只读探测首次取得包含 `isLiving: true` 与主播字段的真实页面，后续 HTTP 客户端和 Chrome 均遇到“请求过快，请稍后重试”。这类响应虽然包含 `isLiving: false`，但同时存在 `errorType` 且缺少主播 ID，解析器拒绝将其记录为下播。尚未取得可信的真实下播样本或观察到完整开播／下播转换。
+
+后续复核公开主播 `Chili020202` 的直播间仍返回错误页，`c.kuaishou.com/fw/user/...` 与 `/fw/live/...` 落地页则返回 HTTP 200 空正文。按[参考项目](https://github.com/go-olive/tv/blob/main/kuaishou.go)的 `userInfoQuery` 查询 `name/living`，实际返回 HTTP 502 且没有 `data`。这些响应均不能证明下播，因此没有将分享页或未经验证的 GraphQL 接口加入状态获取回退。
+
+进一步核对当前官方页面脚本发现，受限房间也可能包含 `isLiving: false`。解析器现在同时要求 `status.forbiddenState` 为整数 `1`（成功）或 `671`（明确未开播），并拒绝状态码与直播状态冲突的响应。公开主播 `XFZ11200` 的直播详情接口虽然返回 HTTP 200，实际 `data.result` 为 `2`（请求过快）；首页与分类列表的 `living` 也不能作为可信下播依据，均未加入回退。请求期间删除目标时，轮询结束会按最新配置清理记录。
+
+两个公开 App 短链已通过实际解析：`https://v.kuaishou.com/JCgShg` → `qiuqianjieshuo`，`https://v.kuaishou.com/dzXtEg` → `Chili020202`。后一链接实际跳转至 `c.kuaishou.com/fw/user/...`，已补充白名单与回归测试。短链可失效，长期监控使用持久化后的主播 ID。
+
+完整镜像的隔离浏览器验证已通过配置加载、保存、刷新后回读、平台切换、状态卡片及直播间链接展示；展示数据为隔离 SQLite 中的测试记录，不能代替真实直播状态验收。解析依据为公开页面结构中的 `liveroom.playList[0].isLiving`，同时核对主播 ID；接口或页面变化会报告失败，不推断下播。[页面结构与短链来源](https://github.com/Mrhs121/kuaishou_recorder/blob/main/kuaishou_recorder.py)。本监控不依赖浏览器，可使用精简镜像。
+
+隔离的 MySQL 8.4.11 实测通过建表、中文及 emoji、首次基线静默、开下播通知去重、SQLite 镜像、实际停库后的离线更新、配置触发重连同步，以及多个链接引用同一主播的删除清理。直播状态由测试输入提供，通知仅在本地捕获，没有发送到外部通道。[验证记录及官方脚本来源](../../assets/validation/kuaishou-runtime-2026-10-02.json)。

@@ -12,6 +12,7 @@ from src.web.app import create_web_app
 from src.web.data_support import _cached_weibo_order, _weibo_page_ids
 from src.web.middleware import WebPerformanceMiddleware
 from src.web.static_files import VersionedStaticFiles
+from src.web.templating import STATIC_ASSET_VERSION
 
 
 async def _request(app, path, query=b"", headers=()):
@@ -52,7 +53,10 @@ async def test_api_no_store_and_timing_preserve_auth_contract():
 @pytest.mark.asyncio
 async def test_compressed_static_file_and_versioned_cache_preserve_content():
     messages = await _request(
-        create_web_app(), "/static/js/common.js", b"v=3", [(b"accept-encoding", b"gzip")]
+        create_web_app(),
+        "/static/js/common.js",
+        f"v={STATIC_ASSET_VERSION}".encode(),
+        [(b"accept-encoding", b"gzip")],
     )
     headers = dict(messages[0]["headers"])
     assert headers[b"cache-control"] == b"public, max-age=31536000, immutable"

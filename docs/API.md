@@ -170,6 +170,7 @@ Content-Type: application/json
 | 哔哩哔哩直播     | `bilibili_live`     | UP 主 UID           | `1795147802`                 |
 | 哔哩哔哩动态     | `bilibili_dynamic`  | UP 主 UID           | `1795147802`                 |
 | 抖音直播         | `douyin`            | 抖音号（字符串）    | `ASOULjiaran`                |
+| 快手直播         | `kuaishou`          | 主播 principal_id | `KPL704668133` |
 | 斗鱼直播         | `douyu`             | 房间号 room         | `307876`                     |
 | 小红书动态       | `xhs`               | 用户 profile_id     | `52d8c541b4c4d60e6c867480`   |
 
@@ -188,7 +189,7 @@ GET /api/data/douyin?id=ASOULjiaran&page=1&page_size=20
 - `page_size`：每页条数（默认 100）；Web 微博页使用 25
 - `uid`：当 `platform` 为 `weibo`、`bilibili_live`、`bilibili_dynamic` 时按 UID 过滤
 - `room`：当 `platform` 为 `huya`、`douyu` 时按房间号过滤
-- `id`：当 `platform` 为 `douyin`、`xhs` 时按抖音号 / profile_id 过滤
+- `id`：当 `platform` 为 `douyin`、`kuaishou`、`xhs` 时按抖音号 / principal_id / profile_id 过滤
 - `include_media`：当 `platform` 为 `huya` 时有效；设为 `false` 时 `room_pic`、`avatar_url` 仍存在，但值为空字符串，前端可再调用 `/api/data/huya/images` 异步获取
 
 `page`、`page_size` 必须为正整数，非正数返回 HTTP 400 和 `error` 字段；无法解析为整数时由 FastAPI 返回 HTTP 422。微博按正文中的发布时间稳定排序后分页，时间无法解析的记录排在最后。
@@ -246,6 +247,7 @@ GET /api/data/huya/{room}
 | 哔哩哔哩直播     | `bilibili_live`     | UP 主 UID           |
 | 哔哩哔哩动态     | `bilibili_dynamic`  | UP 主 UID           |
 | 抖音直播         | `douyin`            | 抖音号（字符串）    |
+| 快手直播         | `kuaishou`          | 主播 principal_id |
 | 斗鱼直播         | `douyu`             | 房间号 room         |
 | 小红书动态       | `xhs`               | 用户 profile_id     |
 
@@ -279,6 +281,7 @@ GET /api/monitor-status/xhs
 - `huya`：`room`、`name`、`is_live`、`url`  
 - `bilibili_live`：`uid`、`uname`、`room_id`、`is_live`、`url`  
 - `bilibili_dynamic`：`uid`、`uname`、`dynamic_id`、`dynamic_text`、`url`  
+- `kuaishou`：`principal_id`、`name`、`is_live`、`url`；状态值为字符串 `"1"`（直播中）或 `"0"`（未开播），获取失败时保留上次确认的状态。
 - `douyin`：`douyin_id`、`name`、`is_live`、`url`  
 - `douyu`：`room`、`name`、`is_live`、`url`  
 - `xhs`：`profile_id`、`user_name`、`latest_note_title`、`url`

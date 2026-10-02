@@ -40,6 +40,10 @@ async def sync_config_to_db(old_config: AppConfig | None, new_config: AppConfig)
     ]
 
     async with AsyncDatabase() as db:
+        if old_config.kuaishou_targets != new_config.kuaishou_targets:
+            from src.monitors.kuaishou_targets import prune_targets, split_targets
+
+            await prune_targets(db, split_targets(new_config.kuaishou_targets))
         for attr_name, tables in sync_rules:
             old_ids = _parse_ids(getattr(old_config, attr_name, "") or "")
             new_ids = _parse_ids(getattr(new_config, attr_name, "") or "")

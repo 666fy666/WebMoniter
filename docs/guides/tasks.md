@@ -29,6 +29,7 @@
 | 虎牙 | 监控直播间开播/下播 | `huya` | [监控任务详解](tasks/monitors.md) |
 | 哔哩哔哩 | 动态 + 开播/下播 | `bilibili` | [监控任务详解](tasks/monitors.md) |
 | 抖音 | 直播开播/下播 | `douyin` | [监控任务详解](tasks/monitors.md) |
+| 快手（待实测） | 直播开播/下播 | `kuaishou` | [快手监控](tasks/monitors.md#kuaishou-monitor) |
 | 斗鱼 | 直播开播/下播 | `douyu` | [监控任务详解](tasks/monitors.md) |
 | 小红书 | 用户最新笔记 | `xhs` | [监控任务详解](tasks/monitors.md) |
 

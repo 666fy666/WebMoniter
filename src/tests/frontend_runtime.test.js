@@ -447,6 +447,53 @@ test('配置分区仅提交自身字段，元数据失败时开关标签可用�
     assert.equal(saves.filter(record => record.url === '/api/database/status').length, 1);
 });
 
+test('快手配置支持目标列表、默认关闭及独立保存', async () => {
+    const r = runtime('config.js', (url, options) => {
+        if (url === '/api/config/metadata') return Promise.reject(new Error('offline'));
+        if (options.method === 'POST') return Promise.resolve(response({ success: true }));
+        if (url === '/api/config?format=json') return Promise.resolve(response({ config: {
+            kuaishou: { targets: ['alice', 'https://v.kuaishou.com/share'], cookie: '', push_channels: [] }
+        } }));
+        return Promise.resolve(response({ active_backend: 'sqlite', sync_state: 'sqlite_only' }));
+    });
+    const section = new Element(), button = new Element('button');
+    section.dataset.section = 'kuaishou';
+    section.queries['.section-save-btn'] = [button];
+    r.all['.config-section'] = [section];
+    await r.start();
+    assert.equal(r.el('kuaishou_enable').checked, false);
+    assert.equal(r.el('kuaishou_targets').value, 'alice,https://v.kuaishou.com/share');
+    r.el('kuaishou_enable').checked = true;
+    await r.el('kuaishou_enable').emit('change');
+    assert.equal(r.el('kuaishou_enable_label').textContent, '开启');
+    r.el('kuaishou_targets').value = 'bob';
+    await button.emit('click'); await settle();
+    const save = r.requests.find(record => record.options.method === 'POST');
+    assert.deepEqual(JSON.parse(save.options.body), { config: { kuaishou: {
+        enable: true, targets: 'bob', cookie: '', concurrency: 2,
+        monitor_interval_seconds: 60, push_channels: []
+    } } });
+});
+
+test('快手数据页展示状态、主播 ID 和直播链接并转义名称', async () => {
+    const r = runtime('data.js');
+    const tab = new Element('button'); tab.dataset.table = 'kuaishou';
+    r.all['.tab-btn'] = [tab];
+    await r.start(); await tab.emit('click');
+    assert.match(r.requests.at(-1).url, /api\/data\/kuaishou/);
+    r.reply(r.requests.at(-1), { data: [
+        { principal_id: 'alice', name: '<b>主播</b>', is_live: '1', url: 'https://live.kuaishou.com/u/alice' },
+        { principal_id: 'bob', name: '未开播主播', is_live: '0' }
+    ], total: 2, total_pages: 1 });
+    await settle();
+    const html = r.el('dataTableContainer').innerHTML;
+    assert.match(html, /快手直播/);
+    assert.match(html, /直播中/);
+    assert.match(html, /未开播/);
+    assert.match(html, /&lt;b&gt;主播&lt;\/b&gt;/);
+    assert.match(html, /https:\/\/live.kuaishou.com\/u\/alice/);
+});
+
 test('高频指针事件在一帧内合并布局读取，离开页面清理待处理更新', async () => {
     const r = runtime('common.js');
     r.context.initCustomCursorExperience();

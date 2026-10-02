@@ -22,6 +22,10 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project --extra rainyun && \
     rm -rf /root/.cache/uv
 
+# 权重固定到提交和 SHA-256；签到运行时不访问模型下载站点。
+COPY src/tasks/ikuuu_models.py /tmp/ikuuu_models.py
+RUN python /tmp/ikuuu_models.py --directory /app/models/ikuuu
+
 RUN find /app/.venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find /app/.venv -type d \( -name tests -o -name test -o -name examples \) -exec rm -rf {} + 2>/dev/null || true && \
     find /app/.venv -type f \( -name "*.pyc" -o -name "*.pyo" -o -name "*.pyi" -o -name "*.h" -o -name "*.a" \) -delete 2>/dev/null || true && \
@@ -78,6 +82,7 @@ RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shangh
 WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/models /app/models
 
 COPY pyproject.toml main.py ./
 COPY config/ ./config/
@@ -92,6 +97,7 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     CHROME_BIN=/usr/bin/chromium \
     CHROMEDRIVER_PATH=/usr/bin/chromedriver \
+    WEBMONITER_IKUUU_MODEL_DIR=/app/models/ikuuu \
     WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1
 
 EXPOSE 8866

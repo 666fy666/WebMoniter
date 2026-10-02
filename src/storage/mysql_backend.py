@@ -110,6 +110,24 @@ TABLE_SPECS: dict[str, TableSpec] = {
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
         """,
     ),
+    "kuaishou": TableSpec(
+        "kuaishou",
+        "principal_id",
+        ("principal_id", "name", "is_live"),
+        """CREATE TABLE IF NOT EXISTS `kuaishou` (
+            `principal_id` VARCHAR(255) COLLATE utf8mb4_bin PRIMARY KEY,
+            `name` LONGTEXT NOT NULL, `is_live` LONGTEXT
+        ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""",
+    ),
+    "kuaishou_targets": TableSpec(
+        "kuaishou_targets",
+        "target_key",
+        ("target_key", "target", "principal_id"),
+        """CREATE TABLE IF NOT EXISTS `kuaishou_targets` (
+            `target_key` VARCHAR(255) COLLATE utf8mb4_bin PRIMARY KEY,
+            `target` LONGTEXT NOT NULL, `principal_id` LONGTEXT NOT NULL
+        ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci""",
+    ),
     "douyu": TableSpec(
         "douyu",
         "room",

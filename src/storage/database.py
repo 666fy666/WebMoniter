@@ -218,6 +218,17 @@ class AsyncDatabase:
         """
         )
 
+        await conn.execute(
+            """CREATE TABLE IF NOT EXISTS kuaishou (
+                principal_id TEXT PRIMARY KEY, name TEXT NOT NULL, is_live TEXT
+            )"""
+        )
+        await conn.execute(
+            """CREATE TABLE IF NOT EXISTS kuaishou_targets (
+                target_key TEXT PRIMARY KEY, target TEXT NOT NULL, principal_id TEXT NOT NULL
+            )"""
+        )
+
         # 创建 douyu 表
         await conn.execute(
             """

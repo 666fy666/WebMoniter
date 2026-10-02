@@ -6677,3 +6677,8 @@ body.login-body.has-update-banner .theme-toggle-fab {
         height: 40px;
     }
 }
+
+.platform-badge-kuaishou {
+    background: rgba(255, 102, 0, 0.12);
+    color: #dd5800;
+}

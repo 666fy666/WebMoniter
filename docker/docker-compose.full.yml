@@ -20,6 +20,7 @@ services:
       - ../data:/app/data
       - ../logs:/app/logs
     environment:
+      - WEBMONITER_KUAISHOU_COOKIE
       - TZ=Asia/Shanghai
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONNOUSERSITE=1

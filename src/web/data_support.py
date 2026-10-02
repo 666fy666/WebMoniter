@@ -13,6 +13,7 @@ PLATFORM_CONFIG = {
     "bilibili_live": ("bilibili_live", "uid", "uid"),
     "bilibili_dynamic": ("bilibili_dynamic", "uid", "uid"),
     "douyin": ("douyin", "douyin_id", "id"),
+    "kuaishou": ("kuaishou", "principal_id", "id"),
     "douyu": ("douyu", "room", "room"),
     "xhs": ("xhs", "profile_id", "id"),
 }
@@ -381,6 +382,15 @@ def _douyu_row_to_item(row: tuple) -> dict:
     }
 
 
+def _kuaishou_row_to_item(row: tuple) -> dict:
+    return {
+        "principal_id": row[0],
+        "name": row[1],
+        "is_live": row[2],
+        "url": f"https://live.kuaishou.com/u/{row[0]}",
+    }
+
+
 def _xhs_row_to_item(row: tuple) -> dict:
     return {
         "profile_id": row[0],
@@ -398,6 +408,7 @@ def _row_to_item(platform: str, row: tuple) -> dict:
         "bilibili_live": _bilibili_live_row_to_item,
         "bilibili_dynamic": _bilibili_dynamic_row_to_item,
         "douyin": _douyin_row_to_item,
+        "kuaishou": _kuaishou_row_to_item,
         "douyu": _douyu_row_to_item,
         "xhs": _xhs_row_to_item,
     }
@@ -421,6 +432,10 @@ _PLATFORM_SELECT = {
         "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic WHERE uid = :pk",
     ),
     "douyin": ("douyin", "SELECT douyin_id, name, is_live FROM douyin WHERE douyin_id = :pk"),
+    "kuaishou": (
+        "kuaishou",
+        "SELECT principal_id, name, is_live FROM kuaishou WHERE principal_id = :pk",
+    ),
     "douyu": ("douyu", "SELECT room, name, is_live FROM douyu WHERE room = :pk"),
     "xhs": (
         "xhs",
@@ -437,6 +452,7 @@ _PLATFORM_LIST_SQL = {
     "bilibili_live": "SELECT uid, uname, room_id, is_live FROM bilibili_live",
     "bilibili_dynamic": "SELECT uid, uname, dynamic_id, dynamic_text FROM bilibili_dynamic",
     "douyin": "SELECT douyin_id, name, is_live FROM douyin",
+    "kuaishou": "SELECT principal_id, name, is_live FROM kuaishou",
     "douyu": "SELECT room, name, is_live FROM douyu",
     "xhs": "SELECT profile_id, user_name, latest_note_title FROM xhs",
 }

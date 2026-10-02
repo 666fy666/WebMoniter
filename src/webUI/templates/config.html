@@ -330,6 +330,62 @@
                 </div>
             </div>
 
+            <!-- 快手直播监控配置 -->
+            <div class="card config-section fade-in" data-section="kuaishou" data-module="monitor" style="animation-delay: 0.14s;">
+                <div class="card-header">
+                    <h2>{{ icon('module') }} 快手直播监控配置</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary section-reload-btn">
+                            {{ icon('refresh') }}
+                            重新加载
+                        </button>
+                        <button class="btn btn-primary section-save-btn">
+                            {{ icon('save') }}
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="config-table">
+                        <tr>
+                            <td class="config-label">启用快手直播监控</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="kuaishou_enable">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label" id="kuaishou_enable_label">关闭</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">主播 ID 或链接</td>
+                            <td><textarea id="kuaishou_targets" class="form-textarea" rows="3" placeholder="每行一个或逗号分隔，支持主页、直播间和 App 分享短链"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">Cookie（可选）</td>
+                            <td><input type="password" id="kuaishou_cookie" class="form-input" autocomplete="off">
+                                <p class="help-text">可通过 WEBMONITER_KUAISHOU_COOKIE 环境变量提供，环境变量优先。网页接口待部署环境实测，获取失败会保留旧状态。</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">并发数</td>
+                            <td><input type="number" id="kuaishou_concurrency" class="form-input" min="1" max="10" value="2"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">监控间隔（秒）</td>
+                            <td><input type="number" id="kuaishou_monitor_interval_seconds" class="form-input" min="10" placeholder="默认60"></td>
+                        </tr>
+                        <tr>
+                            <td class="config-label">推送通道</td>
+                            <td>
+                                <div id="kuaishou_push_channels" class="push-channels-select"></div>
+                                <p class="help-text">不选择则使用全部已配置的通道</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
             <!-- 斗鱼直播监控配置 -->
             <div class="card config-section fade-in" data-section="douyu" data-module="monitor" style="animation-delay: 0.16s;">
                 <div class="card-header">

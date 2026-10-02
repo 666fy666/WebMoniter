@@ -46,6 +46,7 @@ ENV/
 .cursor/
 .agents/
 .codex/
+.aws/
 *.swp
 *.swo
 *~
