@@ -1,3 +1,5 @@
+> 此翻译尚未同步全栈重构的部署步骤，请以 [当前安装说明](installation.md) 为准。新部署默认账号 `admin`、密码 `123`，环境变量覆盖为可选项。
+
 <div align="center">
 
 # WebMoniter
@@ -229,7 +231,9 @@ uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q
-node --test src/tests/frontend_runtime.test.js
+npm ci --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
 ```
 
 모니터링 또는 예약 작업을 추가하려면 [2차 개발 안내](SECONDARY_DEVELOPMENT.md)를 참고하세요. `src/tests/`의 테스트는 메타데이터, 레지스트리, enable 매핑의 일관성을 검증합니다. 전체 모듈 구조는 [아키텍처 문서](ARCHITECTURE.md)에 설명되어 있습니다.

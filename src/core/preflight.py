@@ -17,8 +17,7 @@ SKIP_ENV = "WEBMONITER_SKIP_PREFLIGHT"
 BROWSER_SMOKE_ENV = "WEBMONITER_PREFLIGHT_BROWSER_SMOKE"
 VERBOSE_ENV = "WEBMONITER_PREFLIGHT_VERBOSE"
 SMOKE_TEST_COMMAND = (
-    "chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage "
-    "--dump-dom about:blank"
+    "chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --dump-dom about:blank"
 )
 
 CORE_IMPORTS: tuple[tuple[str, str], ...] = (
@@ -33,9 +32,9 @@ CORE_IMPORTS: tuple[tuple[str, str], ...] = (
     ("aiosmtplib", "aiosmtplib"),
     ("fastapi", "fastapi"),
     ("uvicorn", "uvicorn"),
-    ("jinja2", "jinja2"),
     ("multipart", "python-multipart"),
     ("itsdangerous", "itsdangerous"),
+    ("argon2", "argon2-cffi"),
     ("bs4", "beautifulsoup4"),
     ("PIL", "pillow"),
     ("rsa", "rsa"),
@@ -346,8 +345,7 @@ def _check_browser_smoke(
 ) -> None:
     if not _is_truthy(os.environ.get(BROWSER_SMOKE_ENV)):
         notes.append(
-            "浏览器自动化 smoke test: 已跳过；如需启动前验证 WebDriver，"
-            f"设置 {BROWSER_SMOKE_ENV}=1"
+            f"浏览器自动化 smoke test: 已跳过；如需启动前验证 WebDriver，设置 {BROWSER_SMOKE_ENV}=1"
         )
         return
     try:

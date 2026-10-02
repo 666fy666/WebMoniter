@@ -1,9 +1,10 @@
 """仓库根目录相对路径约定（Docker WORKDIR /app、本地 uv run、PyInstaller 解压目录均以应用根为 cwd）。"""
 
+import os
 import sys
 from pathlib import Path
 
-CONFIG_YAML_FILE = Path("config.yml")
+CONFIG_YAML_FILE = Path(os.environ.get("WEBMONITER_CONFIG_FILE", "config.yml"))
 SRC_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = SRC_DIR.parent
 WEB_UI_DIR = SRC_DIR / "webUI"
@@ -20,7 +21,7 @@ def get_app_root() -> Path:
 
 def get_data_dir() -> Path:
     """data 目录路径，不存在时自动创建。"""
-    data_dir = get_app_root() / "data"
+    data_dir = Path(os.environ.get("WEBMONITER_DATA_DIR", str(get_app_root() / "data")))
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 

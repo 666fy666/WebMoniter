@@ -2151,6 +2151,10 @@ class WeiboMonitor(BaseMonitor):
             self.logger.error(f"获取用户 {uid} 数据失败: {e}")
             return
 
+        from src.core.weibo_dates import _parse_weibo_created_at
+
+        published = _parse_weibo_created_at(new_data.get("文本"))
+        new_data["published_at"] = published.timestamp() if published else 0
         new_data.setdefault("转发微博", "{}")
         new_data.setdefault("正文结构", "[]")
         new_data.setdefault("标签", "[]")
@@ -2277,7 +2281,7 @@ class WeiboMonitor(BaseMonitor):
                         "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                         "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
                         "图片=%(图片)s, 转发微博=%(转发微博)s, 正文结构=%(正文结构)s, "
-                        "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s "
+                        "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s, published_at=%(published_at)s "
                         "WHERE UID=%(UID)s"
                     )
                     updated = await self.db.execute_update(sql, new_data)
@@ -2302,7 +2306,7 @@ class WeiboMonitor(BaseMonitor):
                     "UPDATE weibo SET 用户名=%(用户名)s, 认证信息=%(认证信息)s, 简介=%(简介)s, "
                     "粉丝数=%(粉丝数)s, 微博数=%(微博数)s, 文本=%(文本)s, mid=%(mid)s, "
                     "图片=%(图片)s, 转发微博=%(转发微博)s, 正文结构=%(正文结构)s, "
-                    "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s "
+                    "标签=%(标签)s, 内容类型=%(内容类型)s, 视频封面=%(视频封面)s, published_at=%(published_at)s "
                     "WHERE UID=%(UID)s"
                 )
                 updated = await self.db.execute_update(sql, new_data)
@@ -2348,10 +2352,10 @@ class WeiboMonitor(BaseMonitor):
             # 新用户插入
             sql = (
                 "INSERT INTO weibo (UID, 用户名, 认证信息, 简介, 粉丝数, 微博数, 文本, mid, "
-                "图片, 转发微博, 正文结构, 标签, 内容类型, 视频封面) "
+                "图片, 转发微博, 正文结构, 标签, 内容类型, 视频封面, published_at) "
                 "VALUES (%(UID)s, %(用户名)s, %(认证信息)s, %(简介)s, %(粉丝数)s, "
                 "%(微博数)s, %(文本)s, %(mid)s, %(图片)s, %(转发微博)s, %(正文结构)s, "
-                "%(标签)s, %(内容类型)s, %(视频封面)s)"
+                "%(标签)s, %(内容类型)s, %(视频封面)s, %(published_at)s)"
             )
             inserted = await self.db.execute_insert(sql, new_data)
             if not inserted:

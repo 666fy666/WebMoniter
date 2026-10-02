@@ -1,6 +1,6 @@
 # 定时任务（签到）详解
 
-以下为所有内置定时任务的配置说明。每个任务在 `config.yml` 中有独立配置节点，**必填项**未配置或 `enable: false` 时不会执行。  
+以下为所有内置定时任务的配置说明。每个任务在 `config.yml` 中有独立配置节点，**必填项**未配置或 `enable: false` 时不会执行。
 **默认行为**：项目启动时会尝试执行一次（若当天已运行则跳过）；之后按 `time` 每日定点执行；Web「任务管理」中手动触发可强制执行。微博 Cookie 刷新是例外，只按 Cron 或手动触发。
 
 ---
@@ -41,8 +41,8 @@ weibo:
 
 ## 微博超话签到
 
-**配置节点**：`weibo_chaohua`  
-**默认时间**：23:45  
+**配置节点**：`weibo_chaohua`
+**默认时间**：23:45
 **认证方式**：Cookie（须包含 **XSRF-TOKEN**），支持多 Cookie。
 
 任务会先确认 Cookie 对应的完整登录 UID，再使用该 UID 获取关注的超话。只有已确认登录且关注数确实为 0 时，日志中的“总计=0”才代表正常空列表；匿名或不完整登录态会直接报错并提示重新获取 Cookie。
@@ -59,8 +59,8 @@ weibo:
 
 ### 如何获取 Cookie
 
-1. 浏览器打开 [微博](https://weibo.com) 并登录。  
-2. 按 `F12` → **Console（控制台）**，输入 `document.cookie` 回车，复制输出的整段字符串。  
+1. 浏览器打开 [微博](https://weibo.com) 并登录。
+2. 按 `F12` → **Console（控制台）**，输入 `document.cookie` 回车，复制输出的整段字符串。
 3. 确保其中包含 **XSRF-TOKEN**，填入 `cookie` 或 `cookies` 列表中的一项。
 
 ### 示例
@@ -81,10 +81,10 @@ weibo_chaohua:
 
 ## iKuuu 签到
 
-**配置节点**：`checkin`  
-**默认时间**：08:00  
-**认证方式**：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。  
-**部署说明**：登录会启动浏览器处理验证流程；Docker 请使用 **`docker/Dockerfile.full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发请使用 `uv sync --locked --extra rainyun` 并自备 Chromium/Chromedriver。
+**配置节点**：`checkin`
+**默认时间**：08:00
+**认证方式**：邮箱 + 密码。域名自动从 ikuuu.club 发现，无需配置 URL。支持多账号。
+**部署说明**：登录会启动浏览器处理验证流程；Docker 请使用 **`docker/Dockerfile --target full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发请使用 `uv sync --locked --extra rainyun` 并自备 Chromium/Chromedriver。
 
 ### 图片验证状态与验收记录
 
@@ -168,10 +168,10 @@ checkin:
 
 ## 雨云签到
 
-**配置节点**：`rainyun`  
-**默认时间**：08:30  
-**认证方式**：账号密码（Selenium + ddddocr，参考 [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)）。**签到使用账号密码登录**，`api_key` 仅用于服务器到期自动续费（可选）。需安装 Chrome/Chromium 及 chromedriver。  
-**部署说明**：默认 **`docker/Dockerfile` / `latest` 精简镜像**不含浏览器与雨云 Python 依赖；雨云请用 **`docker/Dockerfile.full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发：`uv sync --locked --extra rainyun` 并自备 Chromium。  
+**配置节点**：`rainyun`
+**默认时间**：08:30
+**认证方式**：账号密码（Selenium + ddddocr，参考 [Rainyun-Qiandao](https://github.com/Jielumoon/Rainyun-Qiandao)）。**签到使用账号密码登录**，`api_key` 仅用于服务器到期自动续费（可选）。需安装 Chrome/Chromium 及 chromedriver。
+**部署说明**：默认 **`docker/Dockerfile` / `latest` 精简镜像**不含浏览器与雨云 Python 依赖；雨云请用 **`docker/Dockerfile --target full`**、镜像标签 **`full`** 或 **`docker/docker-compose.full.yml`**。本地开发：`uv sync --locked --extra rainyun` 并自备 Chromium。
 **服务器自动续费**：签到完成后会检查游戏云服务器到期情况，剩余天数小于阈值且积分充足时自动续费 7 天。
 
 ### 配置项
@@ -188,8 +188,8 @@ checkin:
 
 ### 如何获取 API Key（续费用）
 
-1. 登录 [雨云控制台](https://www.rainyun.com/)。  
-2. 进入 **总览 → 用户 → 账户设置 → API 密钥**。  
+1. 登录 [雨云控制台](https://www.rainyun.com/)。
+2. 进入 **总览 → 用户 → 账户设置 → API 密钥**。
 3. 创建或复制 API 密钥，填入 `accounts` 中对应账号的 `api_key`（可选，仅续费时需要）。
 
 ### 示例
@@ -220,8 +220,8 @@ rainyun:
 
 ## 百度贴吧签到
 
-**配置节点**：`tieba`  
-**默认时间**：08:10  
+**配置节点**：`tieba`
+**默认时间**：08:10
 **认证方式**：Cookie（**须包含 BDUSS**），支持多 Cookie。
 
 ### 配置项
@@ -236,8 +236,8 @@ rainyun:
 
 ### 如何获取 Cookie
 
-1. 浏览器登录 [百度贴吧](https://tieba.baidu.com)。  
-2. `F12` → **Console**，输入 `document.cookie` 回车，复制整段。  
+1. 浏览器登录 [百度贴吧](https://tieba.baidu.com)。
+2. `F12` → **Console**，输入 `document.cookie` 回车，复制整段。
 3. 确认其中包含 **BDUSS**，填入 `cookie` 或 `cookies` 中一项。
 
 ### 示例
@@ -254,8 +254,8 @@ tieba:
 
 ## 恩山论坛签到
 
-**配置节点**：`enshan`  
-**默认时间**：02:00  
+**配置节点**：`enshan`
+**默认时间**：02:00
 **认证方式**：Cookie，支持多 Cookie。
 
 ### 配置项
@@ -286,8 +286,8 @@ enshan:
 
 ## 天翼云盘签到
 
-**配置节点**：`tyyun`  
-**默认时间**：04:30  
+**配置节点**：`tyyun`
+**默认时间**：04:30
 **认证方式**：手机号 + 密码，支持多账号（需 `rsa` 库）。
 
 ### 配置项
@@ -316,8 +316,8 @@ tyyun:
 
 ## 阿里云盘签到
 
-**配置节点**：`aliyun`  
-**默认时间**：05:30  
+**配置节点**：`aliyun`
+**默认时间**：05:30
 **认证方式**：refresh_token，支持多 token。
 
 ### 配置项
@@ -348,8 +348,8 @@ aliyun:
 
 ## 什么值得买签到
 
-**配置节点**：`smzdm`  
-**默认时间**：00:30  
+**配置节点**：`smzdm`
+**默认时间**：00:30
 **认证方式**：Cookie，支持多 Cookie。
 
 ### 配置项
@@ -380,8 +380,8 @@ smzdm:
 
 ## 值得买每日抽奖
 
-**配置节点**：`zdm_draw`  
-**默认时间**：07:30  
+**配置节点**：`zdm_draw`
+**默认时间**：07:30
 **认证方式**：与 smzdm 共用 Cookie，支持多 Cookie。
 
 ### 配置项
@@ -402,8 +402,8 @@ zdm_draw:
 
 ## 富贵论坛签到
 
-**配置节点**：`fg`  
-**默认时间**：00:01  
+**配置节点**：`fg`
+**默认时间**：00:01
 **认证方式**：Cookie，支持多 Cookie。
 
 ### 配置项
@@ -434,8 +434,8 @@ fg:
 
 ## 小米社区签到
 
-**配置节点**：`miui`  
-**默认时间**：08:30  
+**配置节点**：`miui`
+**默认时间**：08:30
 **认证方式**：手机号/账号 + 密码，支持多账号。需 `pycryptodome`，存在封号风险。
 
 ### 配置项
@@ -464,8 +464,8 @@ miui:
 
 ## 爱奇艺签到
 
-**配置节点**：`iqiyi`  
-**默认时间**：06:00  
+**配置节点**：`iqiyi`
+**默认时间**：06:00
 **认证方式**：Cookie（须含 **P00001、P00003、QC005、__dfp** 等），支持多 Cookie。
 
 ### 配置项
@@ -496,8 +496,8 @@ iqiyi:
 
 ## 联想乐豆签到
 
-**配置节点**：`lenovo`  
-**默认时间**：05:30  
+**配置节点**：`lenovo`
+**默认时间**：05:30
 **认证方式**：access_token（联想 App 请求头中 accesstoken），支持多 token。
 
 ### 配置项
@@ -528,8 +528,8 @@ lenovo:
 
 ## 丽宝乐园签到
 
-**配置节点**：`lbly`  
-**默认时间**：05:30  
+**配置节点**：`lbly`
+**默认时间**：05:30
 **认证方式**：抓包获取请求体 JSON（含 MallID、Header.Token 等），支持多组 request_bodies。
 
 ### 配置项
@@ -560,8 +560,8 @@ lbly:
 
 ## 品赞代理签到
 
-**配置节点**：`pinzan`  
-**默认时间**：08:00  
+**配置节点**：`pinzan`
+**默认时间**：08:00
 **认证方式**：账号 + 密码，支持多账号。
 
 ### 配置项
@@ -590,8 +590,8 @@ pinzan:
 
 ## 达美乐任务
 
-**配置节点**：`dml`  
-**默认时间**：06:00  
+**配置节点**：`dml`
+**默认时间**：06:00
 **认证方式**：小程序抓包获取 openid，支持多 openid。
 
 ### 配置项
@@ -622,8 +622,8 @@ dml:
 
 ## 小茅预约（i茅台）
 
-**配置节点**：`xiaomao`  
-**默认时间**：09:00  
+**配置节点**：`xiaomao`
+**默认时间**：09:00
 **认证方式**：每条为「省份,城市,经度,纬度,设备id,token,MT-Token-Wap」（小茅运领奖励可不填 MT-Token-Wap）。需 `pycryptodome`。支持多账号 `tokens`。
 
 ### 配置项
@@ -651,8 +651,8 @@ xiaomao:
 
 ## 一点万象签到
 
-**配置节点**：`ydwx`  
-**默认时间**：06:00  
+**配置节点**：`ydwx`
+**默认时间**：06:00
 **认证方式**：deviceParams + token，支持多账号（accounts 中每项 device_params、token）。
 
 ### 配置项
@@ -681,8 +681,8 @@ ydwx:
 
 ## 星空代理签到
 
-**配置节点**：`xingkong`  
-**默认时间**：07:30  
+**配置节点**：`xingkong`
+**默认时间**：07:30
 **认证方式**：用户名 + 密码，支持多账号。
 
 ### 配置项
@@ -711,8 +711,8 @@ xingkong:
 
 ## Freenom 免费域名续期
 
-**配置节点**：`freenom`  
-**默认时间**：07:33  
+**配置节点**：`freenom`
+**默认时间**：07:33
 **认证方式**：邮箱 + 密码，支持多账号。对 14 天内到期的域名自动续期 12 个月。
 
 ### 配置项
@@ -746,8 +746,8 @@ freenom:
 
 ## 天气推送
 
-**配置节点**：`weather`  
-**默认时间**：07:30  
+**配置节点**：`weather`
+**默认时间**：07:30
 **说明**：按城市代码推送今日天气与未来 7 日预报，仅通知不写入数据库。
 
 ### 配置项
@@ -761,7 +761,7 @@ freenom:
 
 ### 如何获取城市代码
 
-可参考：[city.json（城市代码示例）](https://fastly.jsdelivr.net/gh/Oreomeow/checkinpanel@master/city.json)  
+可参考：[city.json（城市代码示例）](https://fastly.jsdelivr.net/gh/Oreomeow/checkinpanel@master/city.json)
 接口说明：`http://t.weather.itboy.net/api/weather/city/{city_code}`。
 
 ### 示例
@@ -778,8 +778,8 @@ weather:
 
 ## 千图网签到
 
-**配置节点**：`qtw`  
-**默认时间**：01:30  
+**配置节点**：`qtw`
+**默认时间**：01:30
 **认证方式**：Cookie，支持多 Cookie。
 
 ### 配置项
@@ -806,8 +806,8 @@ qtw:
 
 ## 夸克网盘签到
 
-**配置节点**：`kuake`  
-**默认时间**：02:00  
+**配置节点**：`kuake`
+**默认时间**：02:00
 **认证方式**：Cookie（登录 [pan.quark.cn](https://pan.quark.cn/) 后的请求头 Cookie），支持多 Cookie。
 
 ### 配置项
@@ -838,8 +838,8 @@ kuake:
 
 ## 科技玩家签到
 
-**配置节点**：`kjwj`  
-**默认时间**：07:30  
+**配置节点**：`kjwj`
+**默认时间**：07:30
 **认证方式**：账号 + 密码，支持多账号。
 
 ### 配置项
@@ -867,8 +867,8 @@ kjwj:
 
 ## 帆软社区签到
 
-**配置节点**：`fr`  
-**默认时间**：06:30  
+**配置节点**：`fr`
+**默认时间**：06:30
 **认证方式**：Cookie（社区签到 + 摇摇乐）。
 
 ### 配置项
@@ -894,8 +894,8 @@ fr:
 
 ## 999 会员中心健康任务
 
-**配置节点**：`nine_nine_nine`  
-**默认时间**：15:15  
+**配置节点**：`nine_nine_nine`
+**默认时间**：15:15
 **认证方式**：抓包 mc.999.com.cn 请求头中的 **Authorization**，支持多 token。
 
 ### 配置项
@@ -922,8 +922,8 @@ nine_nine_nine:
 
 ## 中国福彩抽奖
 
-**配置节点**：`zgfc`  
-**默认时间**：08:00  
+**配置节点**：`zgfc`
+**默认时间**：08:00
 **认证方式**：请求头 Authorization，支持多 token。
 
 ### 配置项
@@ -950,8 +950,8 @@ zgfc:
 
 ## 双色球开奖通知
 
-**配置节点**：`ssq_500w`  
-**默认时间**：21:30  
+**配置节点**：`ssq_500w`
+**默认时间**：21:30
 **说明**：获取最新双色球开奖信息、守号检测、冷号机选等（仅娱乐通知，不涉及真实购彩）。无需账号，只需配置 `enable`、`time`、`push_channels`。
 
 ### 配置项
@@ -975,8 +975,8 @@ ssq_500w:
 
 ## 日志清理
 
-**配置节点**：`log_cleanup`  
-**默认时间**：02:10  
+**配置节点**：`log_cleanup`
+**默认时间**：02:10
 **说明**：按保留天数清理历史日志文件，非签到类任务。
 
 ### 配置项
@@ -1000,7 +1000,7 @@ log_cleanup:
 
 ## 免打扰时段 {#quiet-hours}
 
-**配置节点**：`quiet_hours`  
+**配置节点**：`quiet_hours`
 **说明**：在指定时间段内，监控与签到任务**照常执行并更新数据**，但**不推送通知**。支持跨天（如 22:00～08:00）。
 
 ### 配置项
@@ -1027,8 +1027,8 @@ quiet_hours:
 
 ## 插件示例任务（Demo）
 
-**配置节点**：`plugins.demo_task`  
-**默认时间**：08:00  
+**配置节点**：`plugins.demo_task`
+**默认时间**：08:00
 **说明**：二次开发示例任务，不需要可在 `src/jobs/metadata.py` 的 `TASK_SPECS` 中移除对应 `TaskSpec`（`TASK_MODULES` 由元数据生成）。
 
 ### 配置项

@@ -1,36 +1,11 @@
-# 精简栈：镜像 :latest（由 docker/Dockerfile 构建）。请在仓库根目录执行 compose（挂载路径相对于本文件解析）。
-# 示例：docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d
+name: webmoniter
 services:
   web-monitor:
-    image: fengyu666/webmoniter:latest
-    container_name: webmoniter
-    restart: unless-stopped
-    init: true
-    shm_size: 128m
-    deploy:
-      resources:
-        limits:
-          memory: 1536M
-        reservations:
-          memory: 768M
-    ports:
-      - "8866:8866"
-    volumes:
-      - ../config.yml:/app/config.yml
-      - ../data:/app/data
-      - ../logs:/app/logs
-    environment:
-      - WEBMONITER_KUAISHOU_COOKIE
-      - TZ=Asia/Shanghai
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONNOUSERSITE=1
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8866') + '/', timeout=5)\"",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    extends:
+      file: ../compose.yaml
+      service: web-monitor
+    image: ${WEBMONITER_IMAGE:-fengyu666/webmoniter:latest}
+volumes:
+  config:
+  data:
+  logs:

@@ -1,39 +1,10 @@
-# 完整栈：镜像 :full（由 docker/Dockerfile.full 构建）。用于 iKuuu、雨云等浏览器签到任务。请在仓库根目录执行 compose。
-# 示例：docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d
+name: webmoniter
 services:
   web-monitor:
-    image: fengyu666/webmoniter:full
-    container_name: webmoniter
-    restart: unless-stopped
-    init: true
-    shm_size: 256m
-    deploy:
-      resources:
-        limits:
-          memory: 1536M
-        reservations:
-          memory: 768M
-    ports:
-      - "8866:8866"
-    volumes:
-      - ../config.yml:/app/config.yml
-      - ../data:/app/data
-      - ../logs:/app/logs
-    environment:
-      - WEBMONITER_KUAISHOU_COOKIE
-      - TZ=Asia/Shanghai
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONNOUSERSITE=1
-      - CHROME_BIN=/usr/bin/chromium
-      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
-      - WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8866') + '/', timeout=5)\"",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    extends:
+      file: ../compose.yaml
+      service: web-monitor
+volumes:
+  config:
+  data:
+  logs:

@@ -172,3 +172,19 @@ def test_rainyun_chrome_instance_exited_is_browser_environment_error():
     exc = RuntimeError("session not created: Chrome instance exited")
 
     assert session._is_webdriver_environment_error(exc)
+
+
+@pytest.mark.asyncio
+async def test_browser_timeout_retries_and_preserves_terminal_timeout(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from src.tasks import rainyun_checkin as module
+
+    operation = AsyncMock(side_effect=TimeoutError)
+    monkeypatch.setattr(module, "_run_single_account_async", operation)
+    monkeypatch.setattr(module, "_CHECKIN_RETRY_COUNT", 2)
+    monkeypatch.setattr(module, "_CHECKIN_RETRY_DELAY", 0)
+    account = module.RainyunAccountConfig(username="fixture", password="fixture-only")
+    with pytest.raises(TimeoutError):
+        await module._run_single_account_with_retry(account, 7)
+    assert operation.await_count == 3

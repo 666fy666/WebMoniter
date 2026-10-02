@@ -1,8 +1,12 @@
 #!/bin/sh
-set -e
-# 确保 data / logs 存在且可写（兼容首次启动与 bind mount 权限）
-for dir in /app/data /app/logs; do
+set -eu
+umask 077
+for dir in "$WEBMONITER_DATA_DIR" "$WEBMONITER_LOG_DIR" "$(dirname "$WEBMONITER_CONFIG_FILE")"; do
   mkdir -p "$dir"
-  chmod -R 777 "$dir" 2>/dev/null || true
+  if [ ! -w "$dir" ]; then
+    echo "Directory is not writable by uid $(id -u): $dir" >&2
+    exit 1
+  fi
 done
+python -m src.settings.initialize --sample /app/config/config.yml.sample --destination "$WEBMONITER_CONFIG_FILE"
 exec python main.py

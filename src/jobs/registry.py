@@ -20,7 +20,7 @@ from typing import Any
 from src.jobs.enable_fields import MONITOR_JOB_ENABLE_FIELD_MAP, TASK_JOB_ENABLE_FIELD_MAP
 from src.jobs.log_manager import LogManager, TaskLogFilter, _current_job_id
 from src.jobs.metadata import MONITOR_MODULES, TASK_MODULES
-from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS, TaskOutcome
+from src.jobs.task_outcome import TASK_SKIPPED, TASK_SUCCESS, TaskOutcome
 from src.settings.config import AppConfig, get_config
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def register_monitor(
         config = get_config()
         if not monitor_job_enabled(job_id, config):
             logger.debug("%s: 当前配置未启用，跳过执行", job_id)
-            return
+            return TASK_SKIPPED
         async with _task_logging_context(job_id):
             await run_func()
 
@@ -167,11 +167,11 @@ def register_task(
         config = get_config()
         if not task_job_enabled(job_id, config):
             logger.debug("%s: 当前配置未启用，跳过调度执行", job_id)
-            return TASK_FAILED
+            return TASK_SKIPPED
 
         if skip_if_run_today and await check_run_today(job_id):
             logger.info("%s: 当天已经运行过了，跳过该任务", job_id)
-            return TASK_FAILED
+            return TASK_SKIPPED
 
         async with _task_logging_context(job_id):
             result = await run_func()

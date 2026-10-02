@@ -12,19 +12,22 @@ uv venv --python 3.11
 uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run pytest -q
-node --test src/tests/frontend_runtime.test.js
+npm ci --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
+npm run test:e2e --prefix frontend
 ```
 
-浏览器任务需要 `rainyun` 可选依赖及本地 Chrome/Chromium、chromedriver；安装和预检见 [安装与运行](installation.md)。Node 仅用于前端测试，服务运行不依赖 Node，也无需 npm 安装步骤。
+浏览器任务需要 `rainyun` 可选依赖及本地 Chrome/Chromium、chromedriver；安装和预检见 [安装与运行](installation.md)。Node 24 用于 Vue 前端构建与测试，Python 服务提供静态产物，不运行 Node 服务。
 
-Black 检查本轮修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`；需要格式化时对同一文件去掉 `--check`。修改静态脚本后用 `node --check` 检查相应文件。文档检查为：
+Black 检查本轮修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`；需要格式化时对同一文件去掉 `--check`。前端修改用 `npm run format:check --prefix frontend` 和生产构建验证。文档检查为：
 
 ```bash
 uv sync --locked --extra dev --extra rainyun --extra docs
 uv run mkdocs build --strict --config-file docs/mkdocs.yml
 ```
 
-Python 测试在收集前将配置、数据库、Cookie、会话和默认日志隔离到临时目录。注册完整性检查只对明确缺失的可选包允许跳过，其他导入错误应失败。前端回归执行真实脚本，使用内存 DOM、fetch、时钟及空闲回调，不调用真实平台。
+Python 测试在收集前将配置、数据库、Cookie、会话和默认日志隔离到临时目录。注册完整性检查只对明确缺失的可选包允许跳过，其他导入错误应失败。前端使用 Vitest 与 Playwright，后者连接隔离的临时后端，不调用真实平台。
 
 只为结果、边界和一致性增加必要测试。配置合并、鉴权、调度结果、数据库恢复、监控去重、推送格式及请求竞态属于关键回归；颜色、CSS 字符串、固定资源版本、文案措辞和视觉细节不做源码断言。实际图片、触屏、主题和滚动检查见 [Web 自测清单](guides/web-ui.md#manual-checks)。
 
@@ -64,7 +67,7 @@ def _get_demo_task_trigger_kwargs(config) -> dict:
 | `run_on_startup` | `True`：参与启动首轮；设为 `False` 后仅按触发器执行 |
 | `description` | Web 展示文案，与元数据保持一致 |
 
-Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业务内部的禁用或缺参校验仍有效。明确返回 `False` 时 HTTP 200、`success: false`，异常为 HTTP 500。手动执行不会经过每日记录包装层。
+Web「立即运行」使用 `original_run_func`，绕过当天跳过检查；业务内部的禁用或缺参校验仍有效。提交返回 `202 + run_id`，结果由执行记录查询；`False` 为失败，`TASK_PARTIAL` 为部分成功，禁用任务为跳过。手动执行经过统一队列，不经过每日记录包装层。
 
 ### 元数据与配置映射
 

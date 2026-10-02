@@ -1,3 +1,5 @@
+> 此翻译尚未同步全栈重构的部署步骤，请以 [当前安装说明](installation.md) 为准。新部署默认账号 `admin`、密码 `123`，环境变量覆盖为可选项。
+
 <div align="center">
 
 # WebMoniter
@@ -232,7 +234,9 @@ uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run black --check .
 uv run pytest -q
-node --test src/tests/frontend_runtime.test.js
+npm ci --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
 ```
 
 See the [secondary development guide](SECONDARY_DEVELOPMENT.md) when adding monitors or scheduled tasks. Consistency tests under `src/tests/` verify metadata, registries, and enable mappings. See [Architecture](ARCHITECTURE.md) for the complete module layout.

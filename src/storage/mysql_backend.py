@@ -38,6 +38,7 @@ TABLE_SPECS: dict[str, TableSpec] = {
             "标签",
             "内容类型",
             "视频封面",
+            "published_at",
         ),
         """
         CREATE TABLE IF NOT EXISTS `weibo` (
@@ -54,7 +55,9 @@ TABLE_SPECS: dict[str, TableSpec] = {
             `正文结构` LONGTEXT,
             `标签` LONGTEXT,
             `内容类型` LONGTEXT,
-            `视频封面` LONGTEXT
+            `视频封面` LONGTEXT,
+            `published_at` DOUBLE NOT NULL DEFAULT 0,
+            INDEX weibo_published (`published_at`, `UID`)
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
         """,
     ),
@@ -176,6 +179,7 @@ MYSQL_COLUMN_MIGRATIONS: dict[str, dict[str, str]] = {
         "标签": "LONGTEXT NULL",
         "内容类型": "LONGTEXT NULL",
         "视频封面": "LONGTEXT NULL",
+        "published_at": "DOUBLE NOT NULL DEFAULT 0",
     },
     "huya": {
         "room_pic": "LONGTEXT NULL",

@@ -120,6 +120,6 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 ## 链接
 
 - **代码仓库**: [GitHub](https://github.com/666fy666/WebMoniter) · [GitCode](https://gitcode.com/qq_35720175/WebMoniter)
-- **Docker**: [fengyu666/webmoniter](https://hub.docker.com/r/fengyu666/webmoniter)（`docker/Dockerfile`→`latest` 精简；雨云用 `docker/Dockerfile.full` / 标签 `:full`）
+- **Docker**: [fengyu666/webmoniter](https://hub.docker.com/r/fengyu666/webmoniter)（`docker/Dockerfile`→`latest` 精简；雨云用 `docker/Dockerfile --target full` / 标签 `:full`）
 - **Releases**: [GitHub Releases](https://github.com/666fy666/WebMoniter/releases)（含 Windows 一键包）
 - **许可证**: [MIT License](https://github.com/666fy666/WebMoniter/blob/main/LICENSE)

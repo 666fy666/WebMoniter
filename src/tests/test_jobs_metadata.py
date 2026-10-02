@@ -1,7 +1,6 @@
 """任务与配置元数据一致性测试。"""
 
 import json
-import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -55,10 +54,10 @@ def test_config_section_order_covers_loader_and_frontend_extras() -> None:
     assert CONFIG_SECTION_ORDER[-3:] == ("quiet_hours", "push_channel", "plugins")
 
 
-def test_config_section_order_matches_frontend_template() -> None:
-    html = Path("src/webUI/templates/config.html").read_text(encoding="utf-8")
-    template_sections = tuple(re.findall(r'data-section="([^\"]+)"', html))
-    assert template_sections == CONFIG_SECTION_ORDER
+def test_config_metadata_covers_frontend_sections() -> None:
+    from src.web.config_service import metadata
+
+    assert set(CONFIG_SECTION_ORDER) <= set(metadata()["defaults"])
 
 
 def test_config_sample_contains_metadata_sections() -> None:
@@ -181,9 +180,13 @@ class _JsonRequest:
 async def test_database_connection_api_tests_unsaved_values_without_returning_password(
     monkeypatch,
 ) -> None:
+    from src.web.config_service import mask
+
     tested = []
     monkeypatch.setattr(config_router, "check_login", lambda session_id: session_id == "ok")
-    monkeypatch.setattr(config_router, "get_config", lambda: AppConfig())
+    monkeypatch.setattr(
+        config_router, "get_config", lambda: AppConfig(mysql_password="private-value")
+    )
 
     async def fake_test(config):
         tested.append(config)
@@ -196,7 +199,7 @@ async def test_database_connection_api_tests_unsaved_values_without_returning_pa
                     "enabled": True,
                     "host": "db.internal",
                     "user": "monitor",
-                    "password": "private-value",
+                    "password": mask({"password": "private-value"})["password"],
                     "database": "webmoniter",
                 }
             }

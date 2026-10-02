@@ -84,7 +84,7 @@ Thumbs.db
 *.swp
 *.swo
 
-# README.md、docs/、config/*.sample 参与镜像构建（AI RAG）；运行时 config.yml 由 volume 挂载
+# 配置样例参与镜像构建；文档、截图与验证报告不进入运行层
 
 # MkDocs build output
 site/
@@ -117,3 +117,13 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Vue sources are built in the frontend stage; exclude local artifacts
+frontend/dist/
+frontend/node_modules/
+frontend/test-results/
+frontend/playwright-report/
+docs/
+
+# Local source bootstrap tools and build cache
+.runtime/

@@ -19,7 +19,7 @@ import shutil
 import socket
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -1048,7 +1048,18 @@ async def _login_and_get_cookie(session: aiohttp.ClientSession, cfg: CheckinConf
             )
 
         try:
-            cookie = await asyncio.to_thread(_login_and_get_cookie_sync, cfg)
+            from src.core.browser_process import BrowserProcessError, run_browser
+
+            try:
+                cookie = await run_browser("ikuuu_login", asdict(cfg))
+            except BrowserProcessError as exc:
+                if exc.kind == "IkuuuCaptchaUnavailableError":
+                    from src.tasks.ikuuu_captcha import IkuuuCaptchaUnavailableError
+
+                    raise IkuuuCaptchaUnavailableError("验证码模型或挑战不可用") from exc
+                if exc.kind == "IkuuuLoginRejectedError":
+                    raise IkuuuLoginRejectedError("验证码或账号验证失败") from exc
+                raise _IkuuuBrowserUnavailableError("浏览器环境不可用") from exc
         except IkuuuLoginRejectedError:
             # 验证码或账号错误不是域名错误，交给调用者推送具体原因。
             raise
@@ -1269,7 +1280,13 @@ async def run_checkin_once() -> bool:
             await push_manager.close()
 
     logger.info("ikuuu签到：结束（成功 %d/%d 个账号）", success_count, len(valid_accounts))
-    return TASK_SUCCESS if success_count > 0 else TASK_FAILED
+    from src.jobs.task_outcome import TASK_PARTIAL
+
+    return (
+        TASK_SUCCESS
+        if success_count == len(valid_accounts)
+        else (TASK_PARTIAL if success_count else TASK_FAILED)
+    )
 
 
 async def _send_checkin_push(
@@ -1292,11 +1309,11 @@ async def _send_checkin_push(
 
     masked_email = _mask_email(cfg.email)
     status_emoji = "✅" if success else "❌"
-    description = f"{status_emoji} 账号：{masked_email}\n" f"{msg}\n"
+    description = f"{status_emoji} 账号：{masked_email}\n{msg}\n"
     if traffic_info:
         description += f"\n【流量信息】\n{traffic_info}\n"
     description += (
-        f"\n当前域名：{cfg.domain}\n" f"登录地址：{cfg.login_url}\n" f"签到接口：{cfg.checkin_url}"
+        f"\n当前域名：{cfg.domain}\n登录地址：{cfg.login_url}\n签到接口：{cfg.checkin_url}"
     )
 
     try:

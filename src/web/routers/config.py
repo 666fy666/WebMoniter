@@ -198,6 +198,11 @@ async def test_database_connection_api(request: Request):
         if not isinstance(mysql, dict):
             return JSONResponse({"error": "MySQL 配置格式错误"}, status_code=400)
         current = get_config()
+        from src.web.config_service import mask, restore
+
+        references: dict = {}
+        mask({"password": current.mysql_password}, references=references)
+        mysql = restore(mysql, references)
         values = current.model_dump()
         field_map = {
             "enabled": "mysql_enabled",

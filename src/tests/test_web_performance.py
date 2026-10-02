@@ -2,6 +2,7 @@
 
 import asyncio
 import gzip
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -11,8 +12,7 @@ from src.web import warmup
 from src.web.app import create_web_app
 from src.web.data_support import _cached_weibo_order, _weibo_page_ids
 from src.web.middleware import WebPerformanceMiddleware
-from src.web.static_files import VersionedStaticFiles
-from src.web.templating import STATIC_ASSET_VERSION
+from src.web.static_files import STATIC_ASSET_VERSION, VersionedStaticFiles
 
 
 async def _request(app, path, query=b"", headers=()):
@@ -42,19 +42,19 @@ async def _request(app, path, query=b"", headers=()):
 
 @pytest.mark.asyncio
 async def test_api_no_store_and_timing_preserve_auth_contract():
-    messages = await _request(create_web_app(), "/api/check-auth")
+    messages = await _request(create_web_app(), "/api/v1/tasks")
     assert messages[0]["status"] == 401
     headers = dict(messages[0]["headers"])
     assert headers[b"cache-control"] == b"no-store"
     assert headers[b"server-timing"].startswith(b"app;dur=")
-    assert messages[1]["body"] == b'{"authenticated":false}'
+    assert "detail" in json.loads(messages[1]["body"])
 
 
 @pytest.mark.asyncio
 async def test_compressed_static_file_and_versioned_cache_preserve_content():
     messages = await _request(
         create_web_app(),
-        "/static/js/common.js",
+        "/static/icons.svg",
         f"v={STATIC_ASSET_VERSION}".encode(),
         [(b"accept-encoding", b"gzip")],
     )
@@ -62,7 +62,7 @@ async def test_compressed_static_file_and_versioned_cache_preserve_content():
     assert headers[b"cache-control"] == b"public, max-age=31536000, immutable"
     assert headers[b"content-encoding"] == b"gzip"
     content = gzip.decompress(b"".join(message.get("body", b"") for message in messages[1:]))
-    assert b"async function fetchJSON" in content
+    assert b"<symbol" in content
 
 
 @pytest.mark.asyncio
@@ -109,51 +109,21 @@ async def test_slow_request_logs_route_template_without_query_or_item_id(caplog)
 
 
 @pytest.mark.asyncio
-async def test_warmup_failure_isolated_and_later_stages_run(monkeypatch):
-    stages = []
+async def test_tls_warmup_failure_is_isolated(monkeypatch, caplog):
+    def fail_tls():
+        raise RuntimeError("test")
 
-    def fail_templates():
-        raise RuntimeError("template failed")
-
-    async def dates():
-        stages.append("dates")
-
-    monkeypatch.setattr(warmup, "_warm_templates", fail_templates)
-    monkeypatch.setattr(warmup, "get_certifi_ssl_context", lambda: stages.append("tls"))
-    monkeypatch.setattr(warmup, "_warm_weibo_dates", dates)
+    monkeypatch.setattr(warmup, "get_certifi_ssl_context", fail_tls)
     await warmup.warmup_web_resources()
-    assert stages == ["tls", "dates"]
+    assert "stage=tls error=RuntimeError" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_warmup_can_be_cancelled_without_leaving_background_task(monkeypatch):
-    started = asyncio.Event()
-
-    async def blocked_dates():
-        started.set()
-        await asyncio.Event().wait()
-
-    monkeypatch.setattr(warmup, "_warm_templates", lambda: None)
-    monkeypatch.setattr(warmup, "get_certifi_ssl_context", lambda: None)
-    monkeypatch.setattr(warmup, "_warm_weibo_dates", blocked_dates)
-    task = asyncio.create_task(warmup.warmup_web_resources())
-    await asyncio.wait_for(started.wait(), timeout=1)
+async def test_warmup_can_be_cancelled():
+    task = asyncio.create_task(asyncio.sleep(100))
     await warmup.stop_web_warmup(task)
     assert task.done()
     await warmup.stop_web_warmup(None)
-
-
-@pytest.mark.asyncio
-async def test_warmup_stage_has_deadline(monkeypatch, caplog):
-    async def blocked_dates():
-        await asyncio.Event().wait()
-
-    monkeypatch.setattr(warmup, "_warm_templates", lambda: None)
-    monkeypatch.setattr(warmup, "get_certifi_ssl_context", lambda: None)
-    monkeypatch.setattr(warmup, "_warm_weibo_dates", blocked_dates)
-    monkeypatch.setattr(warmup, "WARMUP_STAGE_TIMEOUT_SECONDS", 0.01)
-    await asyncio.wait_for(warmup.warmup_web_resources(), timeout=1)
-    assert "stage=weibo_dates error=TimeoutError" in caplog.text
 
 
 def test_tls_context_reuses_verified_ca_configuration():

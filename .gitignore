@@ -84,3 +84,10 @@ site/
 # 操作系统
 .DS_Store
 Thumbs.db
+
+# Frontend validation artifacts
+frontend/test-results/
+frontend/playwright-report/
+
+# Local source bootstrap tools and build cache
+.runtime/

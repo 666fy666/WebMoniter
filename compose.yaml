@@ -1,0 +1,38 @@
+name: webmoniter
+services:
+  web-monitor:
+    image: ${WEBMONITER_IMAGE:-fengyu666/webmoniter:full}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    shm_size: 256m
+    mem_limit: 1536m
+    mem_reservation: 512m
+    memswap_limit: 2048m
+    cpus: 1.75
+    pids_limit: 256
+    ports:
+      - "127.0.0.1:8866:8866"
+    volumes:
+      - config:/app/config
+      - data:/app/data
+      - logs:/app/logs
+    environment:
+      WEBMONITER_ADMIN_USERNAME: ${WEBMONITER_ADMIN_USERNAME:-admin}
+      WEBMONITER_ADMIN_PASSWORD: ${WEBMONITER_ADMIN_PASSWORD:-123}
+      WEBMONITER_SECURE_COOKIE: ${WEBMONITER_SECURE_COOKIE:-0}
+      WEBMONITER_KUAISHOU_COOKIE: ${WEBMONITER_KUAISHOU_COOKIE:-}
+      TZ: Asia/Shanghai
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  config:
+  data:
+  logs:

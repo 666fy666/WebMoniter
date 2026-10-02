@@ -5,40 +5,13 @@ import logging
 import time
 
 from src.core.http import get_certifi_ssl_context
-from src.storage.database import AsyncDatabase
-from src.web.data_support import _weibo_page_ids
-from src.web.templating import templates
 
 logger = logging.getLogger(__name__)
 WARMUP_STAGE_TIMEOUT_SECONDS = 10
 
 
-def _warm_templates() -> None:
-    for name in (
-        "base.html",
-        "partials/icon.html",
-        "partials/sidebar.html",
-        "login.html",
-        "config.html",
-        "tasks.html",
-        "data.html",
-        "logs.html",
-    ):
-        templates.env.get_template(name)
-
-
-async def _warm_weibo_dates() -> None:
-    async with AsyncDatabase() as db:
-        rows = await db.execute_query("SELECT UID, 文本 FROM weibo LIMIT :limit", {"limit": 4096})
-    await asyncio.to_thread(_weibo_page_ids, rows, 0, 25)
-
-
 async def warmup_web_resources() -> None:
-    for name, warm in (
-        ("templates", lambda: asyncio.to_thread(_warm_templates)),
-        ("tls", lambda: asyncio.to_thread(get_certifi_ssl_context)),
-        ("weibo_dates", _warm_weibo_dates),
-    ):
+    for name, warm in (("tls", lambda: asyncio.to_thread(get_certifi_ssl_context)),):
         started = time.perf_counter()
         try:
             await asyncio.wait_for(warm(), timeout=WARMUP_STAGE_TIMEOUT_SECONDS)

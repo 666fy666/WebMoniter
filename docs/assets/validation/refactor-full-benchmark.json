@@ -1,0 +1,20 @@
+{
+  "image": "webmoniter:refactor-full",
+  "image_inspect_size_bytes": 618855408,
+  "duration_seconds": 60,
+  "visitors": 3,
+  "local_monitor_snapshots": 50,
+  "requests": 1342,
+  "api_p95_ms": 64.66375700256322,
+  "memory_peak_bytes": 557338624,
+  "startup_seconds": 2.002940624995972,
+  "browser_model_smoke": true,
+  "errors": [],
+  "oom_killed": false,
+  "limits": {
+    "memory_mib": 1536,
+    "cpu": 1.75,
+    "swap": false
+  },
+  "scope": "Local fixtures; five serial browser/model sessions; no external platform requests"
+}

@@ -140,7 +140,8 @@ class AsyncDatabase:
                 正文结构 TEXT DEFAULT '[]',
                 标签 TEXT DEFAULT '[]',
                 内容类型 TEXT DEFAULT 'text',
-                视频封面 TEXT DEFAULT ''
+                视频封面 TEXT DEFAULT '',
+                published_at REAL NOT NULL DEFAULT 0
             )
         """
         )
@@ -162,6 +163,12 @@ class AsyncDatabase:
                 await conn.execute("ALTER TABLE weibo ADD COLUMN 视频封面 TEXT DEFAULT ''")
         except Exception as e:
             _logger.warning("为 weibo 表添加展示字段失败（不影响主流程）: %s", e)
+
+        if "published_at" not in columns:
+            await conn.execute("ALTER TABLE weibo ADD COLUMN published_at REAL NOT NULL DEFAULT 0")
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS weibo_published ON weibo(published_at DESC, UID)"
+        )
 
         # 创建 huya 表（基础字段）
         await conn.execute(

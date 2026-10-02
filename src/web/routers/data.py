@@ -17,7 +17,6 @@ from src.web.data_support import (
     PLATFORM_PRIMARY_KEY,
     VALID_PLATFORMS,
     _row_to_item,
-    _weibo_page_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,23 +30,14 @@ def _list_response(platform: str, rows: list[tuple], **metadata) -> JSONResponse
 async def _get_weibo_page(
     db: AsyncDatabase, where_clause: str, filter_params: dict, page: int, page_size: int
 ) -> tuple[list[tuple], int]:
-    # 排序只读取主键和正文；图片及转发等大字段仅按主键批量读取当前页。
-    index_rows = await db.execute_query(
-        f"SELECT UID, 文本 FROM weibo{where_clause}", filter_params or None
+    count = await db.execute_query(
+        f"SELECT COUNT(*) FROM weibo{where_clause}", filter_params or None
     )
-    page_ids = await asyncio.to_thread(
-        _weibo_page_ids, index_rows, (page - 1) * page_size, page_size
+    rows = await db.execute_query(
+        f"{_PLATFORM_LIST_SQL['weibo']}{where_clause} ORDER BY published_at DESC, UID ASC LIMIT :limit OFFSET :offset",
+        {**filter_params, "limit": page_size, "offset": (page - 1) * page_size},
     )
-    rows_by_id = {}
-    for start in range(0, len(page_ids), 500):
-        batch = page_ids[start : start + 500]
-        params = {f"pk{i}": uid for i, uid in enumerate(batch)}
-        placeholders = ", ".join(f":pk{i}" for i in range(len(batch)))
-        rows = await db.execute_query(
-            f"{_PLATFORM_LIST_SQL['weibo']} WHERE UID IN ({placeholders})", params
-        )
-        rows_by_id.update((row[0], row) for row in rows)
-    return [rows_by_id[uid] for uid in page_ids if uid in rows_by_id], len(index_rows)
+    return rows, count[0][0] if count else 0
 
 
 @router.get("/api/data/huya/images")
@@ -58,6 +48,8 @@ async def get_huya_images(request: Request, rooms: str = ""):
         return JSONResponse({"error": "未授权"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
     room_ids = list(dict.fromkeys(r.strip() for r in rooms.split(",") if r.strip()))
+    if len(room_ids) > 200:
+        return JSONResponse({"error": "一次最多查询 200 个房间"}, status_code=400)
     if not room_ids:
         return JSONResponse({"data": {}})
 
@@ -81,7 +73,7 @@ async def get_huya_images(request: Request, rooms: str = ""):
         return JSONResponse({"data": data})
     except Exception as e:
         logger.error("获取虎牙图片 URL 失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)
 
 
 @router.get("/api/data/{platform}/{item_id}")
@@ -109,7 +101,7 @@ async def get_data_item(request: Request, platform: str, item_id: str):
         return JSONResponse({"data": data})
     except Exception as e:
         logger.error("获取单条数据失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)
 
 
 @router.get("/api/data/{platform}")
@@ -117,7 +109,7 @@ async def get_table_data(
     request: Request,
     platform: str,
     page: int = 1,
-    page_size: int = 100,
+    page_size: int = 50,
     include_media: bool = True,
     uid: str | None = None,
     room: str | None = None,
@@ -139,8 +131,10 @@ async def get_table_data(
             status_code=400,
         )
 
-    if page < 1 or page_size < 1:
-        return JSONResponse({"error": "page 和 page_size 必须为正整数"}, status_code=400)
+    if page < 1 or not 1 <= page_size <= 200:
+        return JSONResponse(
+            {"error": "page 必须为正整数，page_size 必须在 1–200 之间"}, status_code=400
+        )
 
     _, _, filter_param_name = PLATFORM_CONFIG[platform]
     filter_param = (
@@ -184,7 +178,7 @@ async def get_table_data(
         )
     except Exception as e:
         logger.error("获取表数据失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)
 
 
 @router.get("/api/monitor-status/{platform}/{item_id}")
@@ -215,7 +209,7 @@ async def get_monitor_status_item(request: Request, platform: str, item_id: str)
         )
     except Exception as e:
         logger.error("获取监控状态失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)
 
 
 @router.get("/api/monitor-status/{platform}")
@@ -240,7 +234,7 @@ async def get_monitor_status_by_platform(request: Request, platform: str):
         )
     except Exception as e:
         logger.error("获取监控状态失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)
 
 
 @router.get("/api/monitor-status")
@@ -271,4 +265,4 @@ async def get_monitor_status(request: Request):
         )
     except Exception as e:
         logger.error("获取监控状态失败: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "数据读取失败，请检查数据库状态"}, status_code=500)

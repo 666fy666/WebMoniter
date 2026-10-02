@@ -1,0 +1,11 @@
+{
+  "lcp": 884,
+  "cls": 0.009646232548466435,
+  "download_mbps": 5,
+  "rtt_ms": 100,
+  "cpu_slowdown": 4,
+  "cache_disabled": true,
+  "viewport": "1440x1000",
+  "browser": "Chromium via Playwright",
+  "date": "2026-10-02"
+}

@@ -1,7 +1,5 @@
 """Web 认证状态与凭据读写。"""
 
-import hashlib
-import hmac
 import json
 import logging
 import os
@@ -10,13 +8,17 @@ import time
 from pathlib import Path
 from threading import RLock
 
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError
+
 from src.core.paths import AUTH_FILE, WEB_SESSION_FILE
 
 logger = logging.getLogger(__name__)
 DEFAULT_USERNAME = "admin"
 DEFAULT_PASSWORD = "123"
-WEB_SESSION_MAX_AGE_SECONDS = 365 * 24 * 60 * 60
-WEB_SESSION_RENEW_WITHIN_SECONDS = 30 * 24 * 60 * 60
+WEB_SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+WEB_SESSION_RENEW_WITHIN_SECONDS = 24 * 60 * 60
+_password_hasher = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 
 # 当前进程内的登录会话缓存；权威数据持久化在 data/web_sessions.json。
 active_sessions: set[str] = set()
@@ -30,22 +32,41 @@ def _now_ts() -> int:
 
 
 def hash_password(password: str) -> str:
-    """使用 SHA-256 哈希密码。"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """使用 Argon2id 哈希密码。"""
+    return _password_hasher.hash(password)
 
 
 def load_auth() -> dict:
-    """加载认证信息，如果文件不存在则返回默认值。"""
+    """加载有效凭据；首次使用默认值或环境覆盖，损坏时拒绝启动。"""
     if AUTH_FILE.exists():
         try:
             with open(AUTH_FILE, encoding="utf-8") as f:
-                return json.load(f)
+                credentials = json.load(f)
+            if (
+                not isinstance(credentials, dict)
+                or not isinstance(credentials.get("username"), str)
+                or not 1 <= len(credentials["username"]) <= 128
+                or not isinstance(credentials.get("password_hash"), str)
+                or not credentials["password_hash"].startswith("$argon2id$")
+            ):
+                raise ValueError("认证文件格式无效")
+            return credentials
         except Exception as e:
             logger.error("加载认证文件失败: %s", e)
-    return {
-        "username": DEFAULT_USERNAME,
-        "password_hash": hash_password(DEFAULT_PASSWORD),
+        raise RuntimeError("认证文件不可用，请从备份恢复")
+    password = os.environ.get("WEBMONITER_ADMIN_PASSWORD") or DEFAULT_PASSWORD
+    if len(password) > 1024:
+        raise RuntimeError("管理员密码不能超过 1024 个字符")
+    username = os.environ.get("WEBMONITER_ADMIN_USERNAME", DEFAULT_USERNAME)
+    if not 1 <= len(username) <= 128:
+        raise RuntimeError("管理员用户名须为 1–128 个字符")
+    credentials = {
+        "username": username,
+        "password_hash": hash_password(password),
     }
+    if not save_auth(credentials):
+        raise RuntimeError("无法初始化管理员凭据")
+    return credentials
 
 
 def save_auth(auth_data: dict) -> bool:
@@ -77,7 +98,10 @@ def verify_password(password: str, password_hash: object) -> bool:
     """验证密码。"""
     if not isinstance(password_hash, str) or not password_hash.isascii():
         return False
-    return hmac.compare_digest(hash_password(password), password_hash)
+    try:
+        return _password_hasher.verify(password_hash, password)
+    except (VerificationError, InvalidHashError):
+        return False
 
 
 def _session_expires_at(now: int | None = None) -> int:

@@ -48,7 +48,7 @@ async def test_manual_task_requires_login_and_existing_task(web_request):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(("page", "page_size"), [(0, 100), (-1, 100), (1, 0), (1, -1)])
+@pytest.mark.parametrize(("page", "page_size"), [(0, 100), (-1, 100), (1, 0), (1, -1), (1, 201)])
 async def test_data_rejects_nonpositive_pagination(web_request, page, page_size):
     response = await data.get_table_data(web_request, "huya", page=page, page_size=page_size)
     assert response.status_code == 400
@@ -76,9 +76,11 @@ async def test_weibo_paginates_before_conversion_and_keeps_stable_order(web_requ
             pass
 
         async def execute_query(self, sql, params):
-            if sql.startswith("SELECT UID, 文本"):
-                return [(row[0], row[6]) for row in rows]
-            return [row for row in reversed(rows) if row[0] in params.values()]
+            if sql.startswith("SELECT COUNT"):
+                return [(len(rows),)]
+            assert "ORDER BY published_at DESC, UID ASC LIMIT :limit OFFSET :offset" in sql
+            assert params == {"limit": 2, "offset": 2}
+            return [rows[4], rows[0]]
 
     converted = []
 
@@ -112,21 +114,21 @@ async def test_weibo_large_page_filters_and_refreshes_updated_data(
         async with database.AsyncDatabase() as db:
             async with db.get_connection() as conn:
                 await conn.executemany(
-                    "INSERT INTO weibo (UID, 用户名, 文本, 图片) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO weibo (UID, 用户名, 文本, 图片, published_at) VALUES (?, ?, ?, ?, ?)",
                     [
-                        (str(i), "test", "正文\n\n2026-01-01 10:00:00", '["/image.jpg"]')
+                        (str(i), "test", "正文\n\n2026-01-01 10:00:00", '["/image.jpg"]', 1)
                         for i in range(600)
                     ],
                 )
                 await conn.commit()
-            response = await data.get_table_data(web_request, "weibo", page_size=600)
+            response = await data.get_table_data(web_request, "weibo", page_size=200)
             body = json.loads(response.body)
             assert body["total"] == 600
-            assert [row["UID"] for row in body["data"]] == [str(i) for i in range(600)]
+            assert [row["UID"] for row in body["data"]] == sorted(str(i) for i in range(600))[:200]
             assert body["data"][0]["images"] == ["/image.jpg"]
 
             assert await db.execute_update(
-                "UPDATE weibo SET 文本=:text WHERE UID=:pk",
+                "UPDATE weibo SET 文本=:text, published_at=2 WHERE UID=:pk",
                 {"text": "更新正文\n\n2026-12-01 10:00:00", "pk": "599"},
             )
             response = await data.get_table_data(web_request, "weibo", page_size=1)
@@ -135,7 +137,8 @@ async def test_weibo_large_page_filters_and_refreshes_updated_data(
 
             async with aiosqlite.connect(str(database.DB_PATH)) as external:
                 await external.execute(
-                    "UPDATE weibo SET 文本=? WHERE UID=?", ("外部更新\n\n2027-01-01 10:00:00", "1")
+                    "UPDATE weibo SET 文本=?, published_at=3 WHERE UID=?",
+                    ("外部更新\n\n2027-01-01 10:00:00", "1"),
                 )
                 await external.commit()
             external_response = await data.get_table_data(web_request, "weibo", page_size=1)
@@ -168,11 +171,14 @@ async def test_huya_images_batches_many_ids_without_changing_response(web_reques
             return [(room, " cover ", " avatar ") for room in params.values()]
 
     monkeypatch.setattr(data, "AsyncDatabase", Database)
-    rooms = ",".join(str(i) for i in range(1200)) + ",0,1"
+    too_many = ",".join(str(i) for i in range(201))
+    assert (await data.get_huya_images(web_request, too_many)).status_code == 400
+    assert not batches
+    rooms = ",".join(str(i) for i in range(200)) + ",0,1"
     body = json.loads((await data.get_huya_images(web_request, rooms)).body)
-    assert len(body["data"]) == 1200
-    assert body["data"]["1199"] == {"room_pic": "cover", "avatar_url": "avatar"}
-    assert batches == [500, 500, 200]
+    assert len(body["data"]) == 200
+    assert body["data"]["199"] == {"room_pic": "cover", "avatar_url": "avatar"}
+    assert batches == [200]
 
 
 @pytest.mark.asyncio

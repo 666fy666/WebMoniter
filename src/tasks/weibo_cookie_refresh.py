@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import re
 import shutil
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -527,12 +526,23 @@ async def _renew_unique_cookies(
     results: dict[str, CookieRenewalResult] = {}
     for index, cookie_value in enumerate(cookie_values, start=1):
         logger.info("微博 Cookie 刷新：正在处理第 %d/%d 个唯一 Cookie", index, len(cookie_values))
-        result = await asyncio.to_thread(
-            _renew_cookie_sync,
-            cookie_value,
-            requirements.get(cookie_value),
-            validation_uid,
-        )
+        from src.core.browser_process import BrowserProcessError, run_browser
+
+        try:
+            raw = await run_browser(
+                "weibo_cookie",
+                {
+                    "cookie": cookie_value,
+                    "requirements": asdict(
+                        requirements.get(cookie_value)
+                        or CookieValidationRequirements(validate_weibo=True)
+                    ),
+                    "validation_uid": validation_uid,
+                },
+            )
+            result = CookieRenewalResult(**raw)
+        except (BrowserProcessError, TimeoutError):
+            result = CookieRenewalResult(False, error="浏览器执行失败或超时")
         results[cookie_value] = result
         if result.success:
             logger.info("微博 Cookie 刷新：第 %d 个 Cookie 续期成功", index)

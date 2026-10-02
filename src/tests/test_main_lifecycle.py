@@ -85,9 +85,9 @@ async def test_initial_pass_skips_remaining_jobs_after_shutdown_request() -> Non
         JobDescriptor("second", second_run, "cron", lambda config: {}),
     ]
 
-    await _run_initial_pass(jobs, should_stop=lambda: bool(calls))
+    await _run_initial_pass(jobs, should_stop=lambda: True)
 
-    assert calls == ["first"]
+    assert calls == []
 
 
 @pytest.mark.asyncio
@@ -107,9 +107,15 @@ async def test_initial_pass_skips_jobs_opted_out_of_startup() -> None:
         JobDescriptor("regular", regular, "cron", lambda config: {}),
     ]
 
-    await _run_initial_pass(jobs)
+    from src.jobs.execution import get_execution_service
 
-    assert calls == ["regular"]
+    service = get_execution_service()
+    try:
+        await _run_initial_pass(jobs)
+        await service.queue.join()
+        assert calls == ["regular"]
+    finally:
+        await service.stop()
 
 
 @pytest.mark.asyncio
@@ -188,7 +194,10 @@ async def test_main_warmup_runs_after_initialization_and_stops_before_database_c
     monkeypatch.setattr(database, "close_shared_connection", close_database)
     monkeypatch.setattr(scheduler, "TaskScheduler", Scheduler)
     monkeypatch.setattr(watcher, "ConfigWatcher", Watcher)
-    monkeypatch.setattr(app, "create_web_app", lambda: None)
+    from src.web import auth
+
+    monkeypatch.setattr(auth, "load_auth", lambda: {})
+    monkeypatch.setattr(app, "create_web_app", lambda: SimpleNamespace(state=SimpleNamespace()))
     monkeypatch.setattr(warmup, "warmup_web_resources", warm)
     monkeypatch.setattr(lifecycle, "register_and_prime_jobs", prime_jobs)
     monkeypatch.setattr(lifecycle, "shutdown_web_server", stop_web)

@@ -74,8 +74,10 @@ async def main() -> None:
 
     # Web 延后 import，避免在未使用 Web 的测试/脚本场景里提前加载 FastAPI 栈
     from src.web.app import create_web_app
+    from src.web.auth import load_auth
     from src.web.warmup import stop_web_warmup, warmup_web_resources
 
+    await asyncio.to_thread(load_auth)
     web_app = create_web_app()
     attach_uvicorn_noise_filter()
     server = build_uvicorn_server(web_app)
@@ -91,6 +93,7 @@ async def main() -> None:
         await reconfigure_database(config)
 
         scheduler = TaskScheduler(config)
+        web_app.state.scheduler = scheduler
         scheduler.install_signal_handlers()
         await register_and_prime_jobs(scheduler, config)
         if scheduler.shutdown_requested:
@@ -109,7 +112,7 @@ async def main() -> None:
             await on_scheduler_config_changed(old_cfg, new_cfg, scheduler)
 
         config_watcher = ConfigWatcher(
-            config_path=CONFIG_FILE,
+            config_path=str(CONFIG_YAML_FILE),
             check_interval=CONFIG_POLL_INTERVAL_SEC,
             on_config_changed=on_config_changed,
         )
@@ -135,5 +138,10 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    if "--browser-worker" in sys.argv:
+        from src.core.browser_worker import main as browser_main
+
+        browser_main()
+        sys.exit(0)
     run_startup_preflight()
     run_async_app(main())

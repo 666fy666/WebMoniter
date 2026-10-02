@@ -541,7 +541,7 @@ def _coerce_bool(value) -> bool:
     return bool(value)
 
 
-def load_config_from_yml(yml_path: str = "config.yml") -> dict:
+def load_config_from_yml(yml_path: str = str(CONFIG_YAML_FILE)) -> dict:
     """
     从YAML文件加载配置并转换为AppConfig所需的格式
 

@@ -102,77 +102,25 @@ WebMoniter 是一个基于 Python、FastAPI 和 APScheduler 的任务系统，�
 
 ### Docker
 
-精简镜像 `latest` 适合监控、推送和大多数 HTTP 签到；微博 Cookie 刷新、iKuuu、雨云等浏览器任务使用 `full`。
-
-精简镜像（`latest`）：
+下载源码并进入项目目录后，一条命令安装并启动。Ubuntu 24.04 缺少 Docker 时会自动安装；默认 full 镜像，保留浏览器与 OCR。默认账号 `admin`、密码 `123`，无需提前设置密码。
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-test -f config.yml || cp config/config.yml.sample config.yml
-
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
-docker compose -f docker/docker-compose.yml logs -f
+bash install.sh docker
 ```
 
-访问 `http://localhost:8866`，默认账号 `admin` / `123`，首次登录后修改密码。两套 Compose 二选一运行。
+远程标签须在本次重构正式发布后使用，当前源码修改尚未发布。构建本地镜像、HTTPS、配置初始化、非 root 权限、备份恢复和版本回退见 [Docker 部署说明](docker/README.md)。新版本采用独立配置、数据和日志命名卷，不自动迁移旧部署。
 
-完整镜像（`full`，在克隆后的仓库根目录执行）：
+已有 Docker Compose 时也可以直接运行 `docker compose up -d --pull always --wait`。默认只绑定 `127.0.0.1:8866`，远程访问方式见部署说明。
+
+### 源码运行（Linux）
 
 ```bash
-test -f config.yml || cp config/config.yml.sample config.yml
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-docker compose -f docker/docker-compose.full.yml logs -f
+bash install.sh source
 ```
 
-完整镜像也可以直接使用 `docker run`，与 Compose 二选一：
-
-```bash
-test -f config.yml || cp config/config.yml.sample config.yml
-mkdir -p data logs
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped --init \
-  -p 8866:8866 --shm-size=256m --memory=1536m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -e WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1 \
-  -e WEBMONITER_KUAISHOU_COOKIE \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
-docker logs -f webmoniter-full
-```
-
-切换部署方式前先停止旧容器，避免端口冲突；沿用原有配置和数据目录。本次源码构建的完整镜像包含 iKuuu 文字点选与九宫格本地识别模型；每次登录最多 5 轮换题重试，以站点明确验证成功为准。文字单轮准确率尚未达到原定 90%，详见签到文档。远程镜像是否包含此改动取决于发布版本。
-
-单容器命令、停止与更新、端口及数据挂载统一见 [安装与运行](docs/installation.md)，镜像差异与本地构建见 [Docker 说明](docker/README.md)。
-
-### 本地运行
-
-```bash
-git clone https://github.com/666fy666/WebMoniter.git
-cd WebMoniter
-
-uv python install 3.11
-uv venv --python 3.11
-uv sync --locked --extra dev --extra rainyun
-test -f config.yml || cp config/config.yml.sample config.yml
-uv run python main.py
-```
-
-不使用浏览器签到时也可以只安装核心与开发依赖：
-
-```bash
-uv sync --locked --extra dev
-```
-
-### Windows 一键包
-
-从 [Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载 `WebMoniter-vX.X.X-windows-x64.zip`，解压后复制 `config.yml.sample` 为 `config.yml`，双击 `WebMoniter.exe` 启动。
+自动准备 uv、Python 3.11、Node 24、项目依赖、前端、浏览器/驱动和模型，首次生成配置，随后前台启动。默认账号同样为 `admin / 123`。业务任务默认关闭，登录后按需配置；再次运行会保留配置与数据。浏览器自动安装支持 Linux x64，缺少系统库时使用 sudo 安装；只需要 HTTP 任务可运行 `bash install.sh source --no-browser`。Windows 与其他架构见 [安装说明](docs/installation.md)。
 
 ### 青龙面板
 
@@ -182,11 +130,7 @@ uv sync --locked --extra dev
 
 ## 配置
 
-核心配置文件为仓库根目录的 `config.yml`。首次使用请从模板复制：
-
-```bash
-test -f config.yml || cp config/config.yml.sample config.yml
-```
+源码安装脚本会自动创建根目录的 `config.yml`；Docker 存放于配置卷。已有配置不会覆盖，直接在 Web 配置页编辑即可。
 
 配置项说明见：
 
@@ -220,10 +164,13 @@ test -f config.yml || cp config/config.yml.sample config.yml
 uv sync --locked --extra dev --extra rainyun
 uv run ruff check .
 uv run pytest -q
-node --test src/tests/frontend_runtime.test.js
+npm ci --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
+npm run test:e2e --prefix frontend
 ```
 
-Black 检查修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`。Node 仅用于前端测试，服务运行无需 Node 或 npm。
+Black 检查修改的 Python 文件，例如 `uv run black --check src/web/routers/data.py`。Node 用于前端构建与测试，生产运行无需 Node 服务。
 
 新增监控、定时任务或推送通道见 [二次开发指南](docs/SECONDARY_DEVELOPMENT.md)，模块边界、数据流和存储恢复见 [架构说明](docs/ARCHITECTURE.md)。任务、通道和配置节以 `src/jobs/metadata.py` 及运行时代码为准，关键测试检查注册完整性、配置映射及执行行为。
 

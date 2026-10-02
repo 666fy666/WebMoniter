@@ -5,6 +5,8 @@ from urllib.parse import parse_qs
 from starlette.staticfiles import StaticFiles
 from starlette.types import Receive, Scope, Send
 
+STATIC_ASSET_VERSION = "5"
+
 
 class CachedStaticFiles(StaticFiles):
     """StaticFiles that adds Cache-Control headers to successful responses."""

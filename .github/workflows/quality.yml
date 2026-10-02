@@ -1,0 +1,38 @@
+name: Quality and browser regression
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_call:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash -n install.sh && sh -n docker/docker-entrypoint.sh
+      - run: docker compose config --quiet && docker compose -f docker/docker-compose.yml config --quiet && docker compose -f docker/docker-compose.full.yml config --quiet
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11.15'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install uv==0.11.26
+      - run: uv sync --frozen --extra dev --extra rainyun
+      - run: .venv/bin/python -m pytest -q
+      - run: npm ci --prefix frontend
+      - run: npm run format:check --prefix frontend
+      - run: npm run test --prefix frontend
+      - run: npm run build --prefix frontend
+      - run: cd frontend && npx playwright install --with-deps chromium
+      - run: sudo apt-get update && sudo apt-get install -y fonts-noto-core fonts-noto-cjk
+      - run: npm run test:e2e --prefix frontend
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: browser-regression
+          path: |
+            frontend/test-results
+            frontend/playwright-report

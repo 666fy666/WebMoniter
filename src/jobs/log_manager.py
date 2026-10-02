@@ -3,6 +3,7 @@
 import contextvars
 import logging
 import logging.handlers
+import os
 import re
 import time
 from datetime import datetime
@@ -14,7 +15,31 @@ _current_job_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 )
 
 
-class DailyRotatingFileHandler(logging.FileHandler):
+def enforce_log_budget(directory: Path, limit: int = 100 * 1024 * 1024) -> None:
+    """Delete oldest inactive logs first; never unlink an open logging destination."""
+    active = {
+        Path(h.baseFilename).resolve()
+        for h in logging.root.handlers
+        if isinstance(h, logging.FileHandler)
+    }
+    try:
+        files = sorted(
+            ((p.stat().st_mtime, p.stat().st_size, p) for p in directory.glob("*.log*")),
+            key=lambda row: row[0],
+        )
+        total = sum(row[1] for row in files)
+        for _, size, path in files:
+            if total <= limit:
+                break
+            if path.resolve() not in active:
+                path.unlink(missing_ok=True)
+                total -= size
+    except OSError:
+        # A parallel rotation can remove a file between stat and unlink.
+        pass
+
+
+class DailyRotatingFileHandler(logging.handlers.RotatingFileHandler):
     """按日期自动轮转的文件处理器
 
     每次写入日志时检查当前日期，如果日期变化则切换到新的日志文件
@@ -51,7 +76,14 @@ class DailyRotatingFileHandler(logging.FileHandler):
         current_file.parent.mkdir(parents=True, exist_ok=True)
 
         # 调用父类构造函数
-        super().__init__(str(current_file), encoding=encoding, delay=False)
+        super().__init__(
+            str(current_file),
+            encoding=encoding,
+            delay=False,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=2,
+        )
+        self._last_budget_check = 0.0
 
     def _update_file(self):
         """更新当前日期和文件路径"""
@@ -90,6 +122,9 @@ class DailyRotatingFileHandler(logging.FileHandler):
 
         # 调用父类的emit方法写入日志
         super().emit(record)
+        if time.monotonic() - self._last_budget_check > 60:
+            self._last_budget_check = time.monotonic()
+            enforce_log_budget(self.log_dir)
 
 
 class TaskLogFilter(logging.Filter):
@@ -115,7 +150,7 @@ class LogManager:
             log_dir: 日志目录路径
             retention_days: 日志保留天数，超过此天数的日志将被删除
         """
-        self.log_dir = Path(log_dir)
+        self.log_dir = Path(os.environ.get("WEBMONITER_LOG_DIR", log_dir))
         self.retention_days = retention_days
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -244,7 +279,7 @@ class LogManager:
         today = datetime.now().date()
 
         try:
-            for log_file in self.log_dir.glob("*.log"):
+            for log_file in self.log_dir.glob("*.log*"):
                 # 跳过清理日志本身
                 if cleanup_log_name in log_file.name:
                     continue
@@ -303,7 +338,7 @@ class LogManager:
         """
         total_size = 0
         try:
-            for log_file in self.log_dir.glob("*.log"):
+            for log_file in self.log_dir.glob("*.log*"):
                 total_size += log_file.stat().st_size
         except Exception as e:
             self.logger.warning("计算日志目录大小时出错: %s", e)

@@ -13,15 +13,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import asdict
 
 import aiohttp
 
+from src.core.browser_process import run_browser
 from src.jobs.registry import register_task
-from src.jobs.task_outcome import TASK_FAILED, TASK_SUCCESS
+from src.jobs.task_outcome import TASK_FAILED, TASK_PARTIAL, TASK_SUCCESS
 from src.push_channel.manager import build_push_manager
 from src.settings.config import AppConfig, get_config, is_in_quiet_hours, parse_checkin_time
 from src.tasks.rainyun.config_adapter import RainyunAccountConfig
-from src.tasks.rainyun.runner import run_single_account
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +86,8 @@ async def _run_single_account_async(
     overrides = {"renew_threshold_days": renew_threshold_days}
     if chrome_overrides:
         overrides.update(chrome_overrides)
-    loop = asyncio.get_running_loop()
-    ok, msg = await loop.run_in_executor(
-        None,
-        lambda: run_single_account(account, **overrides),
+    ok, msg = await run_browser(
+        "rainyun_account", {"account": asdict(account), "overrides": overrides}
     )
     return ok, msg
 
@@ -116,11 +115,18 @@ async def _run_single_account_with_retry(
             )
             await asyncio.sleep(retry_delay)
 
-        ok, msg = await _run_single_account_async(
-            account,
-            renew_threshold_days,
-            chrome_overrides=chrome_overrides,
-        )
+        from src.core.browser_process import BrowserProcessError
+
+        try:
+            ok, msg = await _run_single_account_async(
+                account,
+                renew_threshold_days,
+                chrome_overrides=chrome_overrides,
+            )
+        except (BrowserProcessError, TimeoutError) as exc:
+            if attempt == max_attempts:
+                raise
+            ok, msg = False, f"浏览器尝试失败（{type(exc).__name__}）"
         if ok:
             if attempt > 1:
                 msg = f"{msg}\n（第 {attempt} 次尝试成功）"
@@ -186,6 +192,7 @@ async def run_rainyun_checkin_once() -> bool:
             chrome_overrides["chromedriver_path"] = app_config.rainyun_chromedriver_path
 
         success_count = 0
+        timeout_count = 0
         for idx, account in enumerate(accounts, start=1):
             logger.info(
                 "雨云签到：正在处理第 %d/%d 个账号 %s", idx, len(accounts), account.username
@@ -206,6 +213,9 @@ async def run_rainyun_checkin_once() -> bool:
                     success=ok,
                     account_name=account.username,
                 )
+            except TimeoutError:
+                timeout_count += 1
+                logger.warning("雨云签到：第 %d 个账号的浏览器尝试超时", idx)
             except Exception as exc:
                 logger.error("雨云签到：账号 %s 执行异常：%s", account.username, exc, exc_info=True)
                 await _send_checkin_push(
@@ -220,7 +230,15 @@ async def run_rainyun_checkin_once() -> bool:
             await push_manager.close()
 
     logger.info("雨云签到：任务执行完成（成功 %d/%d 个账号）", success_count, len(accounts))
-    return TASK_SUCCESS if success_count > 0 else TASK_FAILED
+    if timeout_count == len(accounts):
+        from src.jobs.task_outcome import TASK_TIMEOUT
+
+        return TASK_TIMEOUT
+    return (
+        TASK_SUCCESS
+        if success_count == len(accounts)
+        else (TASK_PARTIAL if success_count else TASK_FAILED)
+    )
 
 
 async def _send_checkin_push(

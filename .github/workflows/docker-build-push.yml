@@ -11,8 +11,11 @@ env:
   IMAGE_NAME: fengyu666/webmoniter
 
 jobs:
+  validate:
+    uses: ./.github/workflows/quality.yml
   # 精简与完整分两个 job，避免同一 runner 上连续 build-push 时 Buildx/GHA 缓存层被错误复用，导致 latest 与 full digest 相同
   docker-slim:
+    needs: validate
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build.outputs.digest }}
@@ -20,6 +23,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v5
+
+      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v4
 
@@ -67,6 +72,7 @@ jobs:
         run: echo "slim digest ${{ steps.build.outputs.digest }}"
 
   docker-full:
+    needs: validate
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build.outputs.digest }}
@@ -74,6 +80,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v5
+
+      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v4
 
@@ -109,7 +117,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./docker/Dockerfile.full
+          file: ./docker/Dockerfile
+          target: full
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -121,9 +130,17 @@ jobs:
         run: echo "full digest ${{ steps.build.outputs.digest }}"
 
   verify-hub-tags:
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [amd64, arm64]
+    env:
+      DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
     needs: [docker-slim, docker-full]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -153,3 +170,24 @@ jobs:
           docker run --rm --entrypoint sh "$IMG@$SLIM_DIGEST" -c 'if test -x /usr/bin/chromium; then echo "::error::slim image incorrectly contains /usr/bin/chromium"; exit 1; fi'
           # 完整镜像必须带 Chromium
           docker run --rm --entrypoint sh "$IMG@$FULL_DIGEST" -c 'test -x /usr/bin/chromium'
+
+      - name: Application and browser smoke
+        env:
+          IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
+          FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
+        run: |
+          python scripts/container_benchmark.py --image "$IMG@$SLIM_DIGEST" --seconds 5 --smoke-only --output slim-smoke.json
+          python scripts/container_benchmark.py --image "$IMG@$FULL_DIGEST" --seconds 5 --smoke-only --output full-smoke.json
+          docker image inspect --format '{{.Architecture}} {{.Size}}' "$IMG@$SLIM_DIGEST" "$IMG@$FULL_DIGEST" > image-store-sizes.txt
+          docker history --no-trunc --format '{{.ID}} {{.Size}}' "$IMG@$SLIM_DIGEST" > slim-layers.txt
+          docker history --no-trunc --format '{{.ID}} {{.Size}}' "$IMG@$FULL_DIGEST" > full-layers.txt
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: image-smoke-${{ matrix.architecture }}
+          path: |
+            *-smoke.json
+            *-sizes.txt
+            *-layers.txt

@@ -1,272 +1,66 @@
 # 安装与运行
 
-支持 **Docker**（推荐）、**Windows 一键包** 和 **本地 Python** 三种方式。部署完成后访问 `http://localhost:8866`，默认账号 `admin` / `123`。
+当前版本采用 Vue 前端与单进程 Python 后端。首次管理员默认账号 `admin`、密码 `123`，无需预先设置环境变量。重构版按全新部署设计，旧 API 和旧账户摘要不自动迁移；历史镜像需按对应版本文档使用。
 
----
+## Docker（推荐）
 
-## 部署完成后效果
+目标服务器为 Ubuntu 24.04、2 vCPU、2 GB、5 Mbps，选择 full 镜像保留浏览器与 OCR。使用本地 SQLite，不同时部署 MySQL。镜像在 CI 构建，服务器只拉取并运行。
 
-启动成功后，在浏览器访问 `http://localhost:8866`，使用默认账号 `admin` / `123` 登录，即可看到 Web 管理界面：
+完整步骤、非 root 目录权限、HTTPS、资源限制、Swap、备份恢复与版本回退见 [Docker 部署说明](DEPLOYMENT.md)。Compose 只将 8866 绑定到本机，需要通过 SSH 隧道或 HTTPS 反代访问。两种镜像二选一运行。
 
-| 配置管理（登录后默认首页） | 任务管理 |
-|:------------------------:|:--------:|
-| ![配置管理](assets/screenshots/配置管理.png) | ![任务管理](assets/screenshots/任务管理.png) |
-| 左侧导航 + 右侧编辑区，修改后自动热重载 | 侧边栏可切换：配置管理、任务管理、数据展示、日志查看 |
-
-!!! success "下一步"
-    登录后建议：① 在「密码修改」中修改默认密码；② 在「配置管理」中配置至少一个推送通道和要使用的任务。
-
----
-
-## Docker 部署（推荐）
-
-**要求**: Docker >= 20.10、Docker Compose >= 2.0，支持 amd64 / arm64。
-
-### 镜像选择
-
-| 镜像 | 标签 | Compose 文件 | 适用场景 |
-|:--|:--|:--|:--|
-| 精简镜像 | `fengyu666/webmoniter:latest` | `docker/docker-compose.yml` | 默认推荐。适合监控、推送和大多数 HTTP 类签到 |
-| 完整镜像 | `fengyu666/webmoniter:full` | `docker/docker-compose.full.yml` | 运行微博 Cookie 刷新、iKuuu、雨云等浏览器任务时使用 |
-
-`latest` 与 semver 主标签（如 `2.4.8`）由 `docker/Dockerfile` 构建，不包含 Chromium/Chromedriver，也不安装 Selenium、ddddocr、OpenCV 等雨云浏览器签到依赖。`full` 由 `docker/Dockerfile.full` 构建，体积更大，但包含浏览器运行环境。
-
-!!! warning "二选一运行"
-    两个 Compose 文件的默认容器名都是 `webmoniter`，请根据需要选择精简镜像或完整镜像，不要同时启动两套 Compose。
-
-### 方式一：Docker Compose
+下载源码并进入项目目录后运行（Ubuntu 缺少 Docker 时自动安装官方 Engine 与 Compose）：
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/666fy666/WebMoniter.git
-cd WebMoniter
-
-# 2. 复制并编辑配置文件（模板在 config/ 目录）
-test -f config.yml || cp config/config.yml.sample config.yml
-# 编辑 config.yml，配置监控任务和推送通道
-
-# 3. 启动精简镜像（Compose 文件在 docker/，请在仓库根目录执行）
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
+bash install.sh docker
 ```
 
-精简镜像常用命令：
+已有 Docker Compose 时可直接 `docker compose up -d --pull always --wait`。默认 full 镜像，自动拉取、后台启动并等待就绪。以上远程标签须在本次修改正式发布后使用；未发布时按部署文档构建本地镜像。首次业务任务默认关闭，进入配置页填写账号、推送渠道后启用。
+
+## 源码安装与运行（Linux）
+
+同样在项目目录执行一条命令，无需先安装 Python、uv、Node 或手动复制配置：
 
 ```bash
-# 查看状态和日志
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs -f
-
-# 停止容器，保留容器和数据
-docker compose -f docker/docker-compose.yml stop
-
-# 再次启动已经停止的容器
-docker compose -f docker/docker-compose.yml start
-
-# 重启容器
-docker compose -f docker/docker-compose.yml restart
-
-# 停止并删除容器/网络，保留仓库根目录下的 config.yml、data/、logs/
-docker compose -f docker/docker-compose.yml down
-
-# 更新镜像并重新创建容器
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
-
-# 删除本地精简镜像（需要先 down 或 rm 掉使用它的容器）
-docker image rm fengyu666/webmoniter:latest
+bash install.sh source
 ```
 
-如果启用微博 Cookie 刷新（`weibo.cookie_refresh_enable: true`）、iKuuu 或雨云浏览器签到，使用完整镜像：
+脚本自动准备 uv、Python 3.11、锁定的 Python 依赖、Node 24、前端静态文件、匹配版本的 Chrome/驱动及全部已使用模型，随后前台启动。默认访问 `http://localhost:8866`，登录 `admin / 123`。首次配置的业务任务关闭，登录后再按需启用。按 Ctrl+C 停止；再次执行相同命令即可启动，并保留已有配置、账户和数据。
+
+工具和浏览器放在项目的 `.runtime/`，Python 环境在 `.venv/`；不会修改 shell 配置。前端输入未改变时复用产物。首次下载浏览器和模型需要较多时间与空间；缺少系统库时，Ubuntu/Debian 会通过 sudo 安装。自动浏览器安装支持 Linux x64；其他架构可自行提供可执行的 `CHROME_BIN` 与 `CHROMEDRIVER_PATH`，或只使用 HTTP 任务。
+
+可选参数：
 
 ```bash
-# 启动完整镜像
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-
-# 查看状态和日志
-docker compose -f docker/docker-compose.full.yml ps
-docker compose -f docker/docker-compose.full.yml logs -f
-
-# 停止 / 再次启动 / 重启
-docker compose -f docker/docker-compose.full.yml stop
-docker compose -f docker/docker-compose.full.yml start
-docker compose -f docker/docker-compose.full.yml restart
-
-# 删除容器/网络，保留仓库根目录下的 config.yml、data/、logs/
-docker compose -f docker/docker-compose.full.yml down
-
-# 删除本地完整镜像（需要先 down 或 rm 掉使用它的容器）
-docker image rm fengyu666/webmoniter:full
+bash install.sh source --prepare-only  # 安装完成后退出
+bash install.sh source --no-browser    # 跳过浏览器/模型下载，运行 HTTP 任务
 ```
 
-!!! tip "提示"
-    - `config.yml` 支持热重载（约 5 秒生效），无需重启
-    - 数据持久化：`config.yml`、`data/`、`logs/` 挂载到仓库根目录对应路径，`docker compose ... down` 不会丢失容器外数据
-    - 容器启动时会通过 **docker/docker-entrypoint.sh**（镜像内 `/app/docker-entrypoint.sh`）自动为 `data/`、`logs/` 及其子目录赋予读写权限，避免 bind mount 导致 SQLite 数据库或日志文件只读无法写入
-    - 默认端口 8866，如需修改可在 `environment` 中增加 `PORT=8080` 等，并在 `ports` 中映射对应端口
+`--no-browser` 不会修改已有配置；如果已启用依赖浏览器的任务，需要先在配置中关闭它们或补齐浏览器。以后启用浏览器任务时重新运行不带该参数的命令即可。安装失败后修复网络或权限并重复命令，不需要删除配置或数据。
 
-### 方式二：docker run 单容器
+更新源码后仍运行相同命令，脚本会同步锁定依赖并按需重建前端。源码运行不带 Docker 的资源上限或自动重启；2 GB 生产服务器优先用 Docker，镜像在 CI 构建，避免在服务器编译前端。Node 只参与构建，不常驻。
 
-不使用 Compose 时，可以直接运行单个容器。请先准备配置文件和持久化目录：
+前端开发可运行 `npm run dev --prefix frontend`，Vite 将 API 转发到本机 Python 服务；若 Node 由脚本安装，需要将 `.runtime/node-*/bin` 对应目录加入当前终端 PATH。使用 `WEBMONITER_CONFIG_FILE`、`WEBMONITER_DATA_DIR`、`WEBMONITER_LOG_DIR` 隔离实例；生产同一数据目录只运行一个 Web／调度进程。
 
-```bash
-test -f config.yml || cp config/config.yml.sample config.yml
-mkdir -p data logs
+## Windows 发行包
+
+发布工作流会先构建 Vue，再把静态产物打入 PyInstaller 目录。下载对应版本的发行包，复制样例配置并编辑。在 PowerShell 直接运行，默认账号 `admin`、密码 `123`：
+
+```powershell
+.\WebMoniter.exe
 ```
 
-精简镜像：
+浏览器及模型依赖按该发行包实际包含内容配置；本轮未在真实 Windows 机器执行打包产物验证。
 
-```bash
-# 拉取并启动
-docker pull fengyu666/webmoniter:latest
-docker run -d --name webmoniter --restart unless-stopped \
-  -p 8866:8866 --shm-size=128m \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:latest
+## 青龙
 
-# 查看日志 / 停止 / 再次启动 / 重启
-docker logs -f webmoniter
-docker stop webmoniter
-docker start webmoniter
-docker restart webmoniter
+保留 `python -m src.ql <task_id>` 与环境变量配置，详见 [青龙指南](QINGLONG.md)。单次 CLI 不启动 Web，不要求 Web 管理员密码。不要将青龙和 Web 调度器同时配置为执行同一副作用任务。
 
-# 删除容器；如果容器仍在运行，可使用 docker rm -f webmoniter
-docker rm webmoniter
+## 验证与排障
 
-# 删除镜像
-docker image rm fengyu666/webmoniter:latest
-```
+- `/health/live` 失败：检查容器是否存活、端口和启动日志。
+- `/health/ready` 失败：检查本地数据目录权限、SQLite 与任务执行服务；第三方平台下线不影响就绪检查。
+- 首次登录使用 `admin / 123`；若已存在账户，请使用该账户当前密码，环境变量不会覆盖它。
+- 浏览器失败：检查浏览器与驱动版本、模型校验和非 root 可读权限。
+- 内存或延迟超标：用基准脚本复测，减少启用目标和轮询频率，不增加 Web worker 数量。
 
-完整镜像：
-
-```bash
-# 拉取并启动
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped --init \
-  -p 8866:8866 --shm-size=256m --memory=1536m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -e WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1 \
-  -e WEBMONITER_KUAISHOU_COOKIE \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
-
-# 查看日志 / 停止 / 再次启动 / 重启
-docker logs -f webmoniter-full
-docker stop webmoniter-full
-docker start webmoniter-full
-docker restart webmoniter-full
-
-# 删除容器；如果容器仍在运行，可使用 docker rm -f webmoniter-full
-docker rm webmoniter-full
-
-# 删除镜像
-docker image rm fengyu666/webmoniter:full
-```
-
-!!! tip "Windows PowerShell"
-    如果 `-v "$(pwd)/config.yml:/app/config.yml"` 在 PowerShell 中解析异常，可把 `$(pwd)` 换成当前目录的绝对路径，例如 `D:/code/WebMoniter/config.yml:/app/config.yml`。
-
-### 完整镜像验证记录
-
-2026-10-02 在 linux/amd64 本地构建完整镜像，并在 `--memory=1536m --shm-size=256m` 的临时容器中验证应用启动、Web 登录、快手配置保存与回读、状态卡片展示，以及 Chrome 和匹配的 chromedriver。浏览器与 ddddocr 检测、识别模型同时运行的峰值约 457 MiB。验证容器未挂载用户配置与数据；没有执行真实账号签到。
-
-构建命令为 `docker build --network=host -f docker/Dockerfile.full -t webmoniter:validation-full .`；此环境默认构建网络无法解析 Debian 软件源，因此使用宿主网络。`full` 远程标签的 amd64/arm64 清单已查到；以上运行验证针对本地源码构建的 amd64 镜像，不代表远程标签已包含本次修改，也不代表 arm64 已运行验收。后续完整镜像已内置文字和九宫格模型，每次登录最多 5 轮换题重试。九宫格：20 题生产推理复跑与原评估一致，浏览器共存峰值约 384 MiB；公开极验演示页面一次选图提交成功。文字已按用户指示放宽准确率门槛接入（新增样本单轮 70%）；三模型与浏览器共存峰值约 722 MiB。快手真实直播状态仍未完成验收，详见对应任务文档。
-
-!!! danger "删除数据"
-    `docker compose ... down`、`docker rm` 只删除容器和网络，不会删除仓库根目录下的 `config.yml`、`data/`、`logs/`。如果要彻底清空历史数据，请在确认备份后手动删除这些文件和目录。
-
-### MySQL 8 认证支持
-
-依赖包含 `PyMySQL[rsa]`，支持 MySQL 8 默认的 `caching_sha2_password` 认证；源码部署更新依赖后生效，Docker 部署需使用包含本次改动的镜像。该依赖是 [PyMySQL 官方安装说明](https://pymysql.readthedocs.io/en/latest/user/installation.html)对 SHA-2 认证的要求，无需修改服务器认证方式。隔离 MySQL 8.4.11 已通过快手状态写入、实际断线回退 SQLite、重连同步与删除清理验证，未使用用户数据库或发送外部通知。
-
----
-
-## Windows 部署
-
-**无需安装 Python 环境**，下载即用。
-
-1. 前往 [GitHub Releases](https://github.com/666fy666/WebMoniter/releases/latest) 下载最新的 `WebMoniter-vX.X.X-windows-x64.zip`
-2. 解压到任意目录
-3. 将解压目录下的 `config.yml.sample` 复制为 `config.yml`，并按需编辑配置（与源码中 `config/config.yml.sample` 一致）
-4. 双击 `WebMoniter.exe` 启动（会弹出控制台窗口显示日志）
-
-!!! tip "提示"
-    - 首次运行 Windows 防火墙可能提示网络访问权限，请允许
-    - 关闭控制台窗口即可停止程序
-    - `config.yml` 支持热重载，修改配置无需重启
-
----
-
-## 青龙面板部署
-
-**适用**：已安装 [青龙面板](https://github.com/whyour/qinglong) 的用户。通过**环境变量**配置参数，推送自动走**青龙内置通知**（QLAPI），与主项目逻辑完全兼容。
-
-**快速步骤**：
-
-1. **添加环境变量**（青龙 → 环境变量）：如 `WEBMONITER_CHECKIN_ENABLE=true`、`WEBMONITER_CHECKIN_EMAIL`、`WEBMONITER_CHECKIN_PASSWORD`
-2. **订阅项目**：订阅 `https://github.com/666fy666/WebMoniter`，需保留完整项目代码；如果使用青龙白名单，请至少包含 `src/`、`pyproject.toml`、`uv.lock`
-3. **添加定时任务**：命令 `cd /path/to/WebMoniter && python -m src.ql ikuuu_checkin`，定时规则 `0 8 * * *`（示例）
-
-!!! success "推送通知"
-    青龙环境下自动使用**青龙系统通知**，在青龙「系统设置 → 通知设置」中配置推送方式即可，无需额外配置。
-
-**完整操作指南**（环境变量一览、多账号配置、常见问题）：[青龙面板兼容指南](QINGLONG.md)
-
----
-
-## 本地安装
-
-**要求**: Python 3.11（`requires-python = ">=3.11,<3.12"`）、[uv](https://docs.astral.sh/uv/getting-started/installation/)
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/666fy666/WebMoniter.git
-cd WebMoniter
-
-# 2. 固定源码运行 Python 版本并安装依赖
-uv python install 3.11
-uv venv --python 3.11
-uv sync --locked --extra dev --extra rainyun
-
-# 3. 复制配置文件
-test -f config.yml || cp config/config.yml.sample config.yml
-
-# 4. 启动程序（默认端口 8866，可通过环境变量 PORT 覆盖，如 PORT=8080 uv run python main.py）
-uv run python main.py
-
-# 后台启动（推荐用于长期运行）
-uv run python main.py &
-
-# 可选：将日志输出重定向到文件
-# uv run python main.py > webmoniter.log 2>&1 &
-
-```
-
-源码启动会先执行环境预检：uv、Python 3.11、虚拟环境、pytest/dev 依赖，以及启用 iKuuu、雨云或微博 Cookie 刷新时的 Chrome/本地 chromedriver 状态。若不满足，终端会直接给出修复命令。默认不会启动 WebDriver 或触发 Selenium Manager 下载；如需启动前实际烟测，可设置 `WEBMONITER_PREFLIGHT_BROWSER_SMOKE=1`。Docker full 镜像默认启用该烟测，便于提前发现容器内 Chrome/Chromium 崩溃问题。
-
-!!! tip "停止程序"
-    在终端按 `Ctrl+C` 会触发优雅关闭：停止调度器、关闭 Web 服务、配置监控器和数据库连接。项目会为同步网络请求、浏览器任务等阻塞场景设置兜底，通常会在数秒内退出；如果仍在等待，再按一次 `Ctrl+C` 会立即强制退出。
-
----
-
-## 更新
-
-| 部署方式 | 更新方式 |
-|:--------:|:--------|
-| Docker 精简镜像 | `docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d` |
-| Docker 完整镜像 | `docker compose -f docker/docker-compose.full.yml pull && docker compose -f docker/docker-compose.full.yml up -d` |
-| Windows | 下载最新 Release 的 ZIP，解压覆盖（保留 `config.yml`、`data/`） |
-| 本地 | `git pull` → `uv sync --locked --extra dev --extra rainyun` → 重启应用；不使用浏览器任务时可省略 `--extra rainyun` |
-
-!!! tip "提示"
-    配置编辑支持热重载，通常无需重启；代码、依赖或镜像更新后需要重启或重建容器。更新前备份 `config.yml`、`data/`。
-
-**版本更新提醒**：登录 Web 管理界面后，侧边栏底部显示当前版本号；若检测到新版本，页面顶部会显示更新提示横幅，可跳转至 [GitHub Releases](https://github.com/666fy666/WebMoniter/releases) 查看。
+本轮实测、截图、镜像体积与仍待验证的真实手机、arm64 和 24 小时长测见 [审查报告](REFACTOR_AUDIT.md)。早期 iKuuu 模型验证数据仍保留于 `docs/assets/validation/ikuuu-*.json`；模型能加载不代表真实平台识别率或签到成功率。

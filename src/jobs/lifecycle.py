@@ -17,6 +17,7 @@ from typing import Any
 
 import uvicorn
 
+from src.jobs.execution import get_execution_service, scheduled_runner
 from src.jobs.log_manager import LogManager
 from src.jobs.registry import (
     MONITOR_JOBS,
@@ -149,13 +150,17 @@ async def cancel_web_task(web_task: asyncio.Task[Any]) -> None:
 def _add_interval_jobs(scheduler: TaskScheduler, config: AppConfig) -> None:
     for desc in MONITOR_JOBS:
         kw = desc.get_trigger_kwargs(config)
-        scheduler.add_interval_job(func=desc.run_func, job_id=desc.job_id, **kw)
+        scheduler.add_interval_job(
+            func=scheduled_runner(desc.job_id, desc.run_func), job_id=desc.job_id, **kw
+        )
 
 
 def _add_cron_jobs(scheduler: TaskScheduler, config: AppConfig) -> None:
     for desc in TASK_JOBS:
         kw = desc.get_trigger_kwargs(config)
-        scheduler.add_cron_job(func=desc.run_func, job_id=desc.job_id, **kw)
+        scheduler.add_cron_job(
+            func=scheduled_runner(desc.job_id, desc.run_func), job_id=desc.job_id, **kw
+        )
 
 
 def _pause_monitors_disabled_in_config(scheduler: TaskScheduler, config: AppConfig) -> None:
@@ -183,7 +188,9 @@ async def _run_initial_pass(
             logger.info("收到停止信号，跳过剩余启动首轮任务")
             break
         try:
-            await desc.run_func()
+            service = get_execution_service()
+            await service.start()
+            await service.submit(desc.job_id, desc.run_func, "startup")
         except Exception as e:  # noqa: BLE001
             logger.error("%s 启动时首次执行失败: %s", desc.job_id, e, exc_info=True)
 

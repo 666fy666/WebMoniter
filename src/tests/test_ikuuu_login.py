@@ -63,9 +63,13 @@ def test_authenticated_page_requires_origin_path_and_logout(url, logout, authent
 
 @pytest.mark.asyncio
 async def test_captcha_failure_does_not_rediscover_domain_or_retry(monkeypatch):
-    login = Mock(side_effect=IkuuuCaptchaUnavailableError("模型未通过验收"))
+    from src.core import browser_process
+
+    login = AsyncMock(
+        side_effect=browser_process.BrowserProcessError("IkuuuCaptchaUnavailableError")
+    )
     discover = AsyncMock()
-    monkeypatch.setattr(module, "_login_and_get_cookie_sync", login)
+    monkeypatch.setattr(browser_process, "run_browser", login)
     monkeypatch.setattr(module, "_extract_ikuuu_domain_with_retry", discover)
     with pytest.raises(IkuuuCaptchaUnavailableError):
         await module._login_and_get_cookie(None, config())

@@ -35,7 +35,7 @@
 | 配置类型   | 说明 |
 |:----------:|:-----|
 | **应用配置** | 监控、签到、推送、免打扰等均在 **`config/config.yml.sample`** 中有注释说明。以该文件为模板在仓库根复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | **`docker/docker-compose.yml`**（精简，对 **`docker/Dockerfile`**）；雨云用 **`docker/docker-compose.full.yml`**（对 **`docker/Dockerfile.full`** / 标签 `full`）。**`docker/docker-entrypoint.sh`** 为 `data/`、`logs/` 赋权。请在仓库根执行：`docker compose -f docker/docker-compose.yml up -d` 或 `-f docker/docker-compose.full.yml`。 |
+| **Docker 编排** | **`docker/docker-compose.yml`**（精简，对 **`docker/Dockerfile`**）；雨云用 **`docker/docker-compose.full.yml`**（对 **`docker/Dockerfile --target full`** / 标签 `full`）。**`docker/docker-entrypoint.sh`** 检查配置、数据、日志目录的非 root 写权限。请在仓库根执行：`docker compose -f docker/docker-compose.yml up -d` 或 `-f docker/docker-compose.full.yml`。 |
 
 ---
 
