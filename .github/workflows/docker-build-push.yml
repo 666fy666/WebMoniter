@@ -134,8 +134,6 @@ jobs:
       fail-fast: false
       matrix:
         architecture: [amd64, arm64]
-    env:
-      DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
     needs: [docker-slim, docker-full]
     runs-on: ubuntu-latest
     steps:
@@ -152,6 +150,8 @@ jobs:
 
       - name: Pull and assert slim ≠ full (Chromium)
         env:
+          # 仅验证时指定目标架构；QEMU 安装镜像必须使用 runner 原生架构。
+          DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
           IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
           FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
@@ -173,6 +173,7 @@ jobs:
 
       - name: Application and browser smoke
         env:
+          DOCKER_DEFAULT_PLATFORM: linux/${{ matrix.architecture }}
           IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           SLIM_DIGEST: ${{ needs.docker-slim.outputs.digest }}
           FULL_DIGEST: ${{ needs.docker-full.outputs.digest }}
