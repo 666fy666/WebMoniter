@@ -3,7 +3,7 @@
 ---
 
 ??? question "如何更新 Cookie？"
-    直接修改 `config.yml` 中的 Cookie 值，**无需重启容器或程序**。系统支持配置热重载，会在约 5 秒内自动检测并应用新配置。
+    在 Web「配置管理」修改 Cookie 并保存，**无需重启容器或程序**。系统通常约 5 秒内应用新配置。源码默认配置为仓库根目录的 `config.yml`，Docker 默认为配置卷中的 `/app/config/config.yml`；修改宿主机根目录的 `config.yml` 不会影响默认 Docker 部署。
 
 ---
 
@@ -27,10 +27,12 @@
 ---
 
 ??? question "数据库和日志文件在哪里？"
-    | 部署方式   | 数据库位置   | 日志位置     |
-    |:----------:|:------------:|:------------:|
-    | Docker 部署 | `./data/` 目录 | `./logs/` 目录 |
-    | 本地部署   | `./data/` 目录 | `./logs/` 目录 |
+    | 部署方式 | 配置 | 数据 | 日志 |
+    |---|---|---|---|
+    | Docker 默认部署 | `webmoniter_config` 卷中的 `/app/config/config.yml` | `webmoniter_data` 卷，容器内 `/app/data` | `webmoniter_logs` 卷，容器内 `/app/logs` |
+    | 源码默认部署 | 根目录 `config.yml` | `./data/` | `./logs/` |
+
+    自定义 Compose 项目名会改变卷名前缀；自定义目录变量或 bind mount 时以实际配置为准。Docker 数据不在仓库目录中，复制方法见 [备份与恢复](DEPLOYMENT.md#backup-restore)。
 
     日志目录内含：
     - `main_YYYYMMDD.log`：当日总日志
@@ -39,15 +41,41 @@
 ---
 
 ??? question "Web 界面无法访问怎么办？"
-    1. 确认程序已正常启动（看控制台或日志）
-    2. 确认端口 8866 未被占用
-    3. Docker 部署时确认端口映射为 `8866:8866`
-    4. 检查防火墙是否放行 8866
+    1. 在部署机器的项目根目录执行 `docker compose ps` 与 `docker compose logs --tail=100 web-monitor`，确认启动状态；源码运行查看终端日志。
+    2. 在部署机器执行 `curl -fsS http://127.0.0.1:8866/health/ready`。失败时检查端口占用、目录权限和日志。
+    3. 当前 Docker 映射为 `0.0.0.0:8866:8866`，远程访问 `http://服务器IP:8866` 时检查防火墙和云安全组是否允许所需来源的 TCP 8866。如果自行改成了 `127.0.0.1:8866:8866`，则仅允许本机访问；在自己的电脑运行 `ssh -N -L 8866:127.0.0.1:8866 用户名@服务器地址` 并保持连接，再打开 <http://127.0.0.1:8866>，或使用 [HTTPS 反代](DEPLOYMENT.md#https)。
+    4. 自己电脑的 8866 被占用时，将隧道改为 `ssh -N -L 18866:127.0.0.1:8866 用户名@服务器地址`，浏览器改为 <http://127.0.0.1:18866>。无需修改服务器配置。
+
+---
+
+??? question "Docker 更新后为什么还是旧版本？"
+    `git pull` 只更新仓库文件，不构建远程镜像；`docker compose pull` 只下载镜像，`restart` 只重启原容器。确认目标镜像已发布，在原部署目录执行 `docker compose up -d --pull always --wait --wait-timeout 180` 才会应用新镜像。若固定了 `WEBMONITER_IMAGE` 版本或 digest，先修改为目标版本；本地构建则重新构建并使用 `--pull never`。更新前先 [备份](DEPLOYMENT.md#backup-restore)，不要删除数据卷。
+
+---
+
+??? question "stop、down 和 down --volumes 有什么区别？"
+    - `docker compose stop`：停止 Web 与任务，保留容器和数据；用 `docker compose start` 恢复。
+    - `docker compose down`：删除容器和项目网络，保留命名卷；用 `docker compose up -d --wait --wait-timeout 180` 恢复。
+    - **`docker compose down --volumes`（或 `down -v`）**：额外永久删除配置、数据和日志命名卷；仅用于彻底卸载或明确需要重新初始化时，执行前先备份。
+
+    删除项目源码目录不会删除 Docker 命名卷。详细清理范围见 [停止与卸载](DEPLOYMENT.md#stop-uninstall)。
+
+---
+
+??? question "安装成功，但 Docker 命令提示权限不足或等待健康检查超时？"
+    安装脚本会在需要时自动通过 sudo 调用 Docker；日常维护可能也需要 `sudo docker compose ps`、`sudo docker compose logs --tail=100 web-monitor`。若连 Docker 服务都无法连接，先确认服务已启动。
+
+    `--wait-timeout 180` 超时不代表数据丢失，也不代表容器已自动删除。先看状态和日志，修复后重新执行启动命令，不要用 `down --volumes` 排障。Compose 不识别 `--wait` 时需更新 Compose 插件。
+
+---
+
+??? question "默认密码登录失败，改环境变量也没有生效？"
+    `admin / 123` 只用于首次创建管理员。已有数据卷中的账户使用当前密码，`WEBMONITER_ADMIN_USERNAME`、`WEBMONITER_ADMIN_PASSWORD` 不会覆盖已有账户；登录后通过账户页改密码。若已配置 `WEBMONITER_SECURE_COOKIE=1`，请通过 HTTPS 登录，通过 HTTP/SSH 隧道访问则保持该项为 `0`，修改后用 `docker compose up -d --wait --wait-timeout 180` 应用。
 
 ---
 
 ??? question "本地运行时如何停止？Ctrl+C 卡住怎么办？"
-    在运行 `uv run python main.py` 的终端按 `Ctrl+C` 即可停止。程序会停止调度器、关闭 Web 服务、配置监控器和数据库连接。
+    在运行 `bash install.sh source` 的终端按 `Ctrl+C` 即可停止。程序会停止调度器、关闭 Web 服务、配置监控器和数据库连接。再次执行安装命令可继续运行；更新和卸载见 [源码维护说明](installation.md#source-maintenance)。
 
     项目会对同步网络请求、浏览器任务等阻塞场景设置兜底：正常会在数秒内退出；如果关闭流程仍被任务阻塞，约 12 秒后会强制退出；再次按 `Ctrl+C` 会立即强制退出。
 
@@ -64,7 +92,7 @@
 ---
 
 ??? question "Docker 部署下雨云签到如何启用？"
-    **精简镜像**（由 **`docker/Dockerfile`** 构建，`latest` 等标签）**不包含** Chromium 与浏览器任务依赖；若启用 `weibo.cookie_refresh_enable: true` 或 `rainyun.enable: true`，请改用 **`full` 镜像**（由 **`docker/Dockerfile --target full`** 构建，如 `fengyu666/webmoniter:full`）或 `docker compose -f docker/docker-compose.full.yml up -d`。完整镜像默认提供 `/usr/bin/chromium` 与 `/usr/bin/chromedriver`；路径不同时使用环境变量 `CHROME_BIN`、`CHROMEDRIVER_PATH`，雨云也可使用其配置字段。
+    根目录 `compose.yaml` 和 `bash install.sh docker` 已默认使用 **full 镜像**，在配置页填写雨云账号并启用即可。若曾切换到 `latest` 精简版，它不包含 Chromium 与浏览器/OCR 依赖；请将根目录 `.env` 的 `WEBMONITER_IMAGE` 改为 `fengyu666/webmoniter:full`，再执行 `docker compose up -d --pull always --wait --wait-timeout 180`。微博 Cookie 刷新、iKuuu 等浏览器任务同样使用 full。完整镜像默认提供 `/usr/bin/chromium` 与 `/usr/bin/chromedriver`；自定义路径可用 `CHROME_BIN`、`CHROMEDRIVER_PATH`，雨云也可使用其配置字段。
 
 ---
 

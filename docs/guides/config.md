@@ -1,6 +1,6 @@
 # 配置说明
 
-所有运行配置均通过 **`config.yml`** 管理。修改后**无需重启**，系统支持配置热重载（约 5 秒内生效）。
+监控、签到、推送等业务配置通过 **`config.yml`** 管理，修改后通常约 5 秒内热重载。镜像、端口映射、目录挂载与 Cookie 安全标志等部署参数由 Compose 或环境变量管理，修改后需重新创建容器。
 
 ---
 
@@ -14,10 +14,10 @@
 
 ## 操作步骤（首次使用）
 
-1. **复制配置文件**  
-   在项目根目录执行：`cp config/config.yml.sample config.yml`（Windows 下复制并重命名为 `config.yml`）。
+1. **部署并登录**
+   按 [安装说明](../installation.md)启动服务，首次使用 `admin / 123` 登录并修改密码。`bash install.sh source` 和 Docker 入口会自动创建配置，已有配置不会覆盖；业务任务默认关闭，仅开启日志清理。Windows 包按发行包说明准备配置。
 
-2. **按需编辑 `config.yml`**  
+2. **在 Web「配置管理」按需编辑**
    - 先配置至少一个 **推送通道**（[推送通道配置详解](push-channels.md)），否则监控/签到结果无法收到通知。  
    - 再配置要使用的 **监控任务**（[监控任务详解](tasks/monitors.md)）或 **定时/签到任务**（[定时任务详解](tasks/checkin.md)）。  
    - 各配置块字段含义见本文「主要配置块」及上述详解页。
@@ -25,8 +25,8 @@
 3. **保存并等待生效**  
    保存 `config.yml` 后约 5 秒内自动生效，无需重启程序或容器。
 
-4. **可选：Web 界面编辑**  
-   部署完成后访问 `http://localhost:8866`，可在「配置管理」中可视化编辑并保存，同样支持热重载。
+4. **检查任务与日志**
+   确认任务已经启用，在任务页查看下次执行时间；按需使用「立即运行」实际执行一次，再到日志页查看结果。远程 Docker 访问见 [部署与访问](../DEPLOYMENT.md#first-start)。
 
 ---
 
@@ -34,8 +34,12 @@
 
 | 配置类型   | 说明 |
 |:----------:|:-----|
-| **应用配置** | 监控、签到、推送、免打扰等均在 **`config/config.yml.sample`** 中有注释说明。以该文件为模板在仓库根复制为 `config.yml` 后按需修改。 |
-| **Docker 编排** | **`docker/docker-compose.yml`**（精简，对 **`docker/Dockerfile`**）；雨云用 **`docker/docker-compose.full.yml`**（对 **`docker/Dockerfile --target full`** / 标签 `full`）。**`docker/docker-entrypoint.sh`** 检查配置、数据、日志目录的非 root 写权限。请在仓库根执行：`docker compose -f docker/docker-compose.yml up -d` 或 `-f docker/docker-compose.full.yml`。 |
+| **配置样例** | **`config/config.yml.sample`** 提供字段注释；初始化程序以它生成配置。更新时不要用样例覆盖已有配置。 |
+| **源码配置** | 默认是仓库根目录的 `config.yml`，由安装脚本首次生成；可通过 `WEBMONITER_CONFIG_FILE` 更改实际路径。 |
+| **Docker 配置** | 默认是 `webmoniter_config` 卷中的 `/app/config/config.yml`。修改源码根目录的 `config.yml` 不影响默认容器；建议直接使用 Web 配置页。 |
+| **Docker 编排** | 根目录 **`compose.yaml`** 默认使用 full 镜像。`docker/docker-compose.full.yml` 为兼容入口，`docker/docker-compose.yml` 为精简版入口。`WEBMONITER_IMAGE` 可覆盖默认镜像；`docker/docker-entrypoint.sh` 检查目录写权限并初始化配置。维护方式见 [部署指南](../DEPLOYMENT.md)。 |
+
+默认 Compose 的 `.env` 用于设置镜像和可选的初始化环境变量，不能替代业务 `config.yml`。管理员环境变量只影响首次创建的账户；后续改密码使用账户页。更新、停止和 `down` 都保留配置卷，`down --volumes` 会永久删除它，执行前请 [备份](../DEPLOYMENT.md#backup-restore)。
 
 ---
 

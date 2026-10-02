@@ -1,4 +1,4 @@
-> 此翻译尚未同步全栈重构的部署步骤，请以 [当前安装说明](installation.md) 为准。新部署默认账号 `admin`、密码 `123`，环境变量覆盖为可选项。
+> Los comandos de despliegue y mantenimiento siguen la estructura actual de Compose. Consulte la [guía de despliegue](DEPLOYMENT.md) para copias de seguridad, HTTPS y recuperación.
 
 <div align="center">
 
@@ -103,110 +103,66 @@ Para más detalles sobre la interfaz y las funciones, consulte la [Página Princ
 
 ### Docker
 
-La imagen ligera `latest` es adecuada para la mayoría de las tareas de monitoreo y registros HTTP. La imagen completa `full` incluye adicionalmente el navegador y las dependencias de registro vía navegador, necesarias para tareas que requieren inicio de sesión web como la actualización de cookies de Weibo, iKuuu, Rainyun, etc. En amd64, la imagen `full` utiliza Google Chrome Stable + chromedriver de la misma versión.
-
-**Arranque con Docker Compose Imagen Ligera (Recomendado)**
+La imagen predeterminada **full** incluye navegador, controlador y OCR. `latest` es la versión ligera sin estas dependencias. Las tareas de navegador de Weibo, iKuuu y Rainyun necesitan full. Ejecute en la máquina donde alojará el servicio:
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config/config.yml.sample config.yml
-
-# Imagen ligera: Iniciar
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
-
-# Imagen ligera: Ver logs, detener, iniciar, reiniciar, eliminar contenedores/redes
-docker compose -f docker/docker-compose.yml logs -f
-docker compose -f docker/docker-compose.yml stop
-docker compose -f docker/docker-compose.yml start
-docker compose -f docker/docker-compose.yml restart
-docker compose -f docker/docker-compose.yml down
+bash install.sh docker
 ```
 
-Acceda a `http://localhost:8866`, cuenta predeterminada `admin` / `123`. Por favor, cambie la contraseña tras el primer inicio de sesión.
+Si faltan Docker Engine y Compose, el script los instala en Ubuntu 22.04/24.04/26.04 (requiere root o sudo), descarga full y lo inicia en segundo plano. En otros sistemas, instale Docker y Compose primero. Si ya dispone de Compose, puede sustituir el script por `docker compose up -d --pull always --wait --wait-timeout 180`.
 
-Para tareas de navegador como actualización de cookies de Weibo, iKuuu, Rainyun, etc., utilice la imagen completa:
+Abra **http://127.0.0.1:8866** localmente o `http://IP_DEL_SERVIDOR:8866` de forma remota. El mapeo actual es `0.0.0.0:8866:8866`; permita TCP 8866 desde los clientes previstos en el cortafuegos y el grupo de seguridad, y cambie la contraseña antes de exponer el servicio. Para usar solo SSH o un proxy en el host, cambie el mapeo a `127.0.0.1:8866:8866` y vuelva a ejecutar Compose `up`. Para el túnel SSH, ejecute lo siguiente en su ordenador, sustituya el destino y mantenga la conexión abierta; después abra la dirección local:
 
 ```bash
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-
-docker compose -f docker/docker-compose.full.yml logs -f
-docker compose -f docker/docker-compose.full.yml stop
-docker compose -f docker/docker-compose.full.yml start
-docker compose -f docker/docker-compose.full.yml restart
-docker compose -f docker/docker-compose.full.yml down
+ssh -N -L 8866:127.0.0.1:8866 user@server
 ```
 
-<details>
-<summary><strong>Contenedor Único · Imagen Ligera</strong></summary>
+Inicie sesión con **`admin` / `123`**, cambie la contraseña y configure los canales, cuentas y objetivos antes de activar las tareas necesarias. Las tareas de negocio están desactivadas inicialmente. Revise los resultados en los registros; los cambios de configuración suelen aplicarse en unos 5 segundos. Las cuentas existentes conservan su contraseña.
+
+#### Actualizar, detener y eliminar
+
+Ejecute el mantenimiento desde la raíz original del repositorio. Conserve los mismos parámetros `-f`, `-p`, `--env-file` y archivos de personalización; añada `sudo` si necesita permisos de Docker. Primero [haga una copia de seguridad](DEPLOYMENT.md#backup-restore) y ejecute cada comando solo si el anterior termina correctamente:
 
 ```bash
-docker pull fengyu666/webmoniter:latest
-docker run -d --name webmoniter --restart unless-stopped \
-  -p 8866:8866 --shm-size=128m \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:latest
-
-docker stop webmoniter
-docker start webmoniter
-docker restart webmoniter
-# Eliminar contenedor; si está corriendo use docker rm -f webmoniter
-docker rm webmoniter
-docker image rm fengyu666/webmoniter:latest
+git pull --ff-only
+docker compose up -d --pull always --wait --wait-timeout 180
+docker compose ps
+docker compose logs --tail=100 web-monitor
 ```
 
-</details>
+`git pull` actualiza el repositorio, no la imagen. `pull` solo descarga y `restart` conserva la imagen anterior. `up --pull always` aplica una imagen publicada. Si `WEBMONITER_IMAGE` fija una versión o digest, modifíquelo primero. Los cambios aún no publicados requieren una [compilación local](https://github.com/666fy666/WebMoniter/blob/main/docker/README.md#local-build) y después `up --pull never`.
 
-<details>
-<summary><strong>Contenedor Único · Imagen Completa</strong></summary>
+| Objetivo | Comando | Datos |
+|---|---|---|
+| Ver estado | `docker compose ps` | Sin cambios |
+| Seguir registros | `docker compose logs --tail=100 -f web-monitor` | Ctrl+C solo cierra la vista de registros |
+| Detener servicio y tareas | `docker compose stop` | Conserva contenedor y datos |
+| Reanudar contenedor detenido | `docker compose start` | Conserva los datos |
+| Reiniciar el contenedor actual | `docker compose restart` | No actualiza la imagen |
+| Eliminar contenedores y red | `docker compose down` | Conserva los volúmenes |
+| Reanudar después de down | `docker compose up -d --wait --wait-timeout 180` | Reutiliza los volúmenes |
+
+**Desinstalación permanente: elimina configuración, cuentas, cookies, historial y registros. Haga una copia antes; no se puede deshacer:**
 
 ```bash
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped \
-  -p 8866:8866 --shm-size=256m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
-
-docker stop webmoniter-full
-docker start webmoniter-full
-docker restart webmoniter-full
-# Eliminar contenedor; si está corriendo use docker rm -f webmoniter-full
-docker rm webmoniter-full
-docker image rm fengyu666/webmoniter:full
+docker compose down --volumes
 ```
 
-En Windows PowerShell, si encuentra problemas con la ruta de montaje, cambie `$(pwd)` por la ruta absoluta del directorio actual. Para más detalles sobre puertos, montajes, actualizaciones y retención de datos, consulte [Instalación y Ejecución](installation.md) y [docker/README.md](../docker/README.md).
+Los volúmenes predeterminados son `webmoniter_config` (`/app/config`), `webmoniter_data` (`/app/data`) y `webmoniter_logs` (`/app/logs`). Docker no utiliza `config.yml` ni `./data` de la raíz del repositorio. Las actualizaciones conservan estos volúmenes; `down --volumes` los elimina. Los montajes antiguos no se migran automáticamente.
 
-</details>
+Tras eliminar los contenedores, puede ejecutar `docker image rm fengyu666/webmoniter:full` para eliminar la imagen sin uso (sustituya la etiqueta si corresponde). El código, `.env`, las copias, los directorios montados y Docker permanecen; elimínelos por separado si ya no los necesita. No utilice una limpieza global para desinstalar este proyecto.
 
-### Ejecución Local
+### Ejecución Local (Linux)
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-
-uv python install 3.11
-uv venv --python 3.11
-uv sync --locked --extra dev --extra rainyun
-cp config/config.yml.sample config.yml
-uv run python main.py
+bash install.sh source
 ```
 
-Si no utiliza el registro mediante navegador, puede instalar solo las dependencias principales y de desarrollo:
-
-```bash
-uv sync --locked --extra dev
-```
+El instalador prepara Python 3.11, uv, Node 24, el frontend, el navegador/controlador y los modelos, y después ejecuta el servicio en primer plano. Crea la configuración automáticamente. Use `bash install.sh source --no-browser` para tareas solo HTTP. Detenga con Ctrl+C; para actualizar, detenga y haga una copia, ejecute `git pull --ff-only` y vuelva a ejecutar el instalador. Consulte el [mantenimiento desde código fuente](installation.md#source-maintenance) para limpiar o eliminar la instalación.
 
 ### Paquete "Un Click" para Windows
 
@@ -220,13 +176,7 @@ Los usuarios de Qinglong pueden configurar a través de variables de entorno y e
 
 ## Configuración
 
-El archivo de configuración central es `config.yml` en la raíz del repositorio. Para el primer uso, copie la plantilla:
-
-```bash
-cp config/config.yml.sample config.yml
-```
-
-Para más información sobre los elementos de configuración, consulte:
+La instalación desde código crea `config.yml` en la raíz. Docker crea `/app/config/config.yml` en su volumen de configuración. Se conserva la configuración existente; edítela en la interfaz Web. No la sobrescriba con la plantilla al actualizar.
 
 - [Explicación de la Configuración](guides/config.md)
 - [Monitoreo y Tareas Programadas](guides/tasks.md)

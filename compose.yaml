@@ -12,7 +12,7 @@ services:
     cpus: 1.75
     pids_limit: 256
     ports:
-      - "127.0.0.1:8866:8866"
+      - "0.0.0.0:8866:8866"
     volumes:
       - config:/app/config
       - data:/app/data

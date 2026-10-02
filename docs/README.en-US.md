@@ -1,4 +1,4 @@
-> 此翻译尚未同步全栈重构的部署步骤，请以 [当前安装说明](installation.md) 为准。新部署默认账号 `admin`、密码 `123`，环境变量覆盖为可选项。
+> Deployment and maintenance commands below follow the current Compose layout. See the [deployment guide](DEPLOYMENT.md) for backups, HTTPS and recovery.
 
 <div align="center">
 
@@ -99,89 +99,66 @@ See the [documentation home](index.md) and [Web management UI guide](guides/web-
 
 ### Docker
 
-The lightweight `latest` image is suitable for most monitoring and HTTP check-in tasks. The `full` image additionally includes a browser and browser check-in dependencies for tasks such as Weibo cookie refresh, iKuuu, and Rainyun.
-
-**Start the lightweight image with Docker Compose (recommended)**
+The default **full** image includes the browser, driver and OCR. `latest` is the slim image without those dependencies. Weibo cookie refresh, iKuuu and Rainyun browser tasks require full. Run the following on the deployment machine:
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config/config.yml.sample config.yml
-
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
-
-docker compose -f docker/docker-compose.yml logs -f
-docker compose -f docker/docker-compose.yml stop
-docker compose -f docker/docker-compose.yml start
-docker compose -f docker/docker-compose.yml restart
-docker compose -f docker/docker-compose.yml down
+bash install.sh docker
 ```
 
-Open `http://localhost:8866`. The default credentials are `admin` / `123`; change the password after your first login.
+The script installs Docker Engine and Compose on Ubuntu 22.04/24.04/26.04 when missing (root or sudo required), pulls full, and starts it in the background. On other systems, install Docker and Compose first. With Compose already installed, you can replace the script with `docker compose up -d --pull always --wait --wait-timeout 180`.
 
-Use the full image for browser-based tasks:
+Open **http://127.0.0.1:8866** locally or `http://SERVER_IP:8866` remotely. The current mapping is `0.0.0.0:8866:8866`; allow TCP 8866 from the intended clients in the firewall and cloud security group, and change the default password before exposing the service. For SSH or a host reverse proxy only, change the mapping to `127.0.0.1:8866:8866` and rerun Compose `up`. To use an SSH tunnel, run this on your own computer, replace the destination, keep the connection open, then open the local browser address:
 
 ```bash
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-
-docker compose -f docker/docker-compose.full.yml logs -f
-docker compose -f docker/docker-compose.full.yml stop
-docker compose -f docker/docker-compose.full.yml start
-docker compose -f docker/docker-compose.full.yml restart
-docker compose -f docker/docker-compose.full.yml down
+ssh -N -L 8866:127.0.0.1:8866 user@server
 ```
 
-<details>
-<summary><strong>Single-container commands</strong></summary>
+Log in with **`admin` / `123`**, change the password, then configure notification channels, accounts and targets and enable the tasks you need. Business tasks start disabled. Check task results in the logs; configuration changes usually apply within about 5 seconds. Existing accounts keep their current password.
 
-Lightweight image:
+#### Update, stop and remove
+
+Run all maintenance commands from the original repository root. Reuse the same `-f`, `-p`, `--env-file` and override files if customized; add `sudo` if Docker permissions require it. [Back up configuration and data](DEPLOYMENT.md#backup-restore) first, then run each command only after the previous one succeeds:
 
 ```bash
-docker pull fengyu666/webmoniter:latest
-docker run -d --name webmoniter --restart unless-stopped \
-  -p 8866:8866 --shm-size=128m \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:latest
+git pull --ff-only
+docker compose up -d --pull always --wait --wait-timeout 180
+docker compose ps
+docker compose logs --tail=100 web-monitor
 ```
 
-Full image:
+`git pull` updates repository files, not the image. `pull` only downloads; `restart` keeps the old container image. `up --pull always` applies a published image update. If `WEBMONITER_IMAGE` pins a version or digest, change it first. Unpublished source changes require a [local build](https://github.com/666fy666/WebMoniter/blob/main/docker/README.md#local-build), followed by `up --pull never`.
+
+| Purpose | Command | Data |
+|---|---|---|
+| View status | `docker compose ps` | Unchanged |
+| Follow logs | `docker compose logs --tail=100 -f web-monitor` | Ctrl+C only exits the log viewer |
+| Stop service and tasks | `docker compose stop` | Container and data retained |
+| Resume stopped container | `docker compose start` | Original data retained |
+| Restart current container | `docker compose restart` | Does not update the image |
+| Remove containers and network | `docker compose down` | Named volumes retained |
+| Resume after down | `docker compose up -d --wait --wait-timeout 180` | Reuses named volumes |
+
+**Permanent uninstall, including all configuration, accounts, cookies, history and logs. Back up first; this cannot be undone:**
 
 ```bash
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped \
-  -p 8866:8866 --shm-size=256m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
+docker compose down --volumes
 ```
 
-Use `docker stop`, `docker start`, or `docker restart` with the container name to manage it. See [Installation and Operation](installation.md) and [docker/README.md](../docker/README.md) for port, volume, update, and data retention details.
+Default volumes are `webmoniter_config` (`/app/config`), `webmoniter_data` (`/app/data`) and `webmoniter_logs` (`/app/logs`). Docker does not use the repository root `config.yml` or `./data`. Updates preserve these volumes; `down --volumes` deletes them. Old bind mounts are not migrated automatically.
 
-</details>
+After removing containers, optionally run `docker image rm fengyu666/webmoniter:full` to remove the unused image (substitute your actual tag). Source files, `.env`, host backups, bind mounts and Docker itself remain; clean those separately if no longer needed. Do not use global pruning to uninstall this project.
 
-### Local Installation
+### Local Installation (Linux)
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-
-uv python install 3.11
-uv venv --python 3.11
-uv sync --locked --extra dev --extra rainyun
-cp config/config.yml.sample config.yml
-uv run python main.py
+bash install.sh source
 ```
 
-If you do not need browser-based check-ins, install only the core and development dependencies with `uv sync --locked --extra dev`.
+The installer prepares Python 3.11, uv, Node 24, frontend assets, the browser/driver and models, then runs in the foreground. Configuration is created automatically. Use `bash install.sh source --no-browser` for HTTP-only tasks. Stop with Ctrl+C; to update, stop and back up first, run `git pull --ff-only`, then rerun the installer. See [source maintenance](installation.md#source-maintenance) for cleanup and removal.
 
 ### Windows Package
 
@@ -195,13 +172,7 @@ Qinglong users can configure tasks with environment variables and run them with 
 
 ## Configuration
 
-The main configuration file is `config.yml` in the repository root. Create it from the template:
-
-```bash
-cp config/config.yml.sample config.yml
-```
-
-Related documentation:
+The source installer creates `config.yml` at the repository root. Docker creates `/app/config/config.yml` in its configuration volume. Existing configuration is preserved; edit it through the Web configuration page. Do not overwrite it with the sample during updates.
 
 - [Configuration](guides/config.md)
 - [Monitoring and scheduled tasks](guides/tasks.md)

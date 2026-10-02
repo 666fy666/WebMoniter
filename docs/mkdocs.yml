@@ -70,6 +70,7 @@ nav:
   - 首页: index.md
   - 快速开始:
     - 安装与运行: installation.md
+    - Docker 部署与维护: DEPLOYMENT.md
     - 青龙面板部署: QINGLONG.md
   - 使用指南:
     - 配置与设置:
@@ -84,7 +85,6 @@ nav:
   - 二次开发:
     - 架构概览: ARCHITECTURE.md
     - 重构审查与实测: REFACTOR_AUDIT.md
-    - 服务器部署: DEPLOYMENT.md
     - 二次开发指南: SECONDARY_DEVELOPMENT.md
     - API 参考: API.md
   - 帮助与支持:

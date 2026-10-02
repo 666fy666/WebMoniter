@@ -1,4 +1,4 @@
-> 此翻译尚未同步全栈重构的部署步骤，请以 [当前安装说明](installation.md) 为准。新部署默认账号 `admin`、密码 `123`，环境变量覆盖为可选项。
+> 以下の導入・保守コマンドは現在の Compose 構成に対応しています。バックアップ、HTTPS、復元は[デプロイガイド](DEPLOYMENT.md)を参照してください。
 
 <div align="center">
 
@@ -98,89 +98,66 @@ WebMoniter は Python、FastAPI、APScheduler をベースにしたタスクシ�
 
 ### Docker
 
-軽量版の `latest` イメージは、多くの監視タスクと HTTP チェックインに適しています。`full` イメージにはブラウザと関連依存関係が追加されており、Weibo Cookie 更新、iKuuu、Rainyun など Web ログインが必要なタスクに使用します。
-
-**Docker Compose で軽量版を起動（推奨）**
+既定の **full** イメージにはブラウザ、ドライバ、OCR が含まれます。`latest` はこれらを含まない軽量版です。Weibo Cookie 更新、iKuuu、Rainyun のブラウザタスクには full を使用してください。サービスを動かすマシンで実行します。
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-cp config/config.yml.sample config.yml
-
-docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d
-
-docker compose -f docker/docker-compose.yml logs -f
-docker compose -f docker/docker-compose.yml stop
-docker compose -f docker/docker-compose.yml start
-docker compose -f docker/docker-compose.yml restart
-docker compose -f docker/docker-compose.yml down
+bash install.sh docker
 ```
 
-`http://localhost:8866` を開きます。初期アカウントは `admin` / `123` です。初回ログイン後に必ずパスワードを変更してください。
+Ubuntu 22.04/24.04/26.04 で Docker Engine と Compose が未導入の場合、スクリプトがインストールします（root または sudo が必要）。full を取得してバックグラウンドで起動します。他の OS では先に Docker と Compose を準備してください。導入済みならスクリプトの代わりに `docker compose up -d --pull always --wait --wait-timeout 180` を実行できます。
 
-ブラウザを使用するタスクでは完全版を起動します。
+ローカルでは **http://127.0.0.1:8866**、リモートでは `http://サーバーIP:8866` を開きます。現在のマッピングは `0.0.0.0:8866:8866` です。ファイアウォールとセキュリティグループで必要な接続元からの TCP 8866 を許可し、外部公開前に初期パスワードを変更してください。SSH またはホストのリバースプロキシのみを使う場合は `127.0.0.1:8866:8866` に変更し、Compose `up` を再実行します。SSH トンネルは手元のパソコンで接続先を書き換えて以下を実行し、接続を維持したままローカル URL を開きます。
 
 ```bash
-docker compose -f docker/docker-compose.full.yml pull
-docker compose -f docker/docker-compose.full.yml up -d
-
-docker compose -f docker/docker-compose.full.yml logs -f
-docker compose -f docker/docker-compose.full.yml stop
-docker compose -f docker/docker-compose.full.yml start
-docker compose -f docker/docker-compose.full.yml restart
-docker compose -f docker/docker-compose.full.yml down
+ssh -N -L 8866:127.0.0.1:8866 user@server
 ```
 
-<details>
-<summary><strong>単一コンテナで起動</strong></summary>
+**`admin` / `123`** でログインしてパスワードを変更し、通知先、アカウント、監視対象を設定して必要なタスクを有効にしてください。業務タスクは初期状態では無効です。実行結果はログで確認でき、設定変更は通常約 5 秒で反映されます。既存アカウントのパスワードは維持されます。
 
-軽量版：
+#### 更新・停止・削除
+
+保守コマンドは元のリポジトリ直下で実行します。独自の `-f`、`-p`、`--env-file`、上書きファイルを使っている場合は同じ指定を維持し、権限が必要なら `sudo` を付けてください。まず[バックアップ](DEPLOYMENT.md#backup-restore)を取り、各コマンドの成功を確認してから次へ進みます。
 
 ```bash
-docker pull fengyu666/webmoniter:latest
-docker run -d --name webmoniter --restart unless-stopped \
-  -p 8866:8866 --shm-size=128m \
-  -e TZ=Asia/Shanghai \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:latest
+git pull --ff-only
+docker compose up -d --pull always --wait --wait-timeout 180
+docker compose ps
+docker compose logs --tail=100 web-monitor
 ```
 
-完全版：
+`git pull` はリポジトリのみを更新します。`pull` はイメージの取得のみ、`restart` は元のイメージの再起動です。公開済みイメージの適用には `up --pull always` を使います。`WEBMONITER_IMAGE` でバージョンや digest を固定している場合は先に変更してください。未公開の変更は[ローカルビルド](https://github.com/666fy666/WebMoniter/blob/main/docker/README.md#local-build)後に `up --pull never` で起動します。
+
+| 目的 | コマンド | データ |
+|---|---|---|
+| 状態確認 | `docker compose ps` | 変更なし |
+| ログを追跡 | `docker compose logs --tail=100 -f web-monitor` | Ctrl+C はログ表示だけを終了 |
+| サービスとタスクを停止 | `docker compose stop` | コンテナとデータを保持 |
+| 停止したコンテナを再開 | `docker compose start` | 元のデータを保持 |
+| 現在のコンテナを再起動 | `docker compose restart` | イメージは更新しない |
+| コンテナとネットワークを削除 | `docker compose down` | 名前付きボリュームを保持 |
+| down 後に再開 | `docker compose up -d --wait --wait-timeout 180` | 元のボリュームを再利用 |
+
+**完全削除：設定、アカウント、Cookie、履歴、ログを削除します。事前にバックアップしてください。元に戻せません。**
 
 ```bash
-docker pull fengyu666/webmoniter:full
-docker run -d --name webmoniter-full --restart unless-stopped \
-  -p 8866:8866 --shm-size=256m \
-  -e TZ=Asia/Shanghai \
-  -e CHROME_BIN=/usr/bin/chromium \
-  -e CHROMEDRIVER_PATH=/usr/bin/chromedriver \
-  -v "$(pwd)/config.yml:/app/config.yml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/logs:/app/logs" \
-  fengyu666/webmoniter:full
+docker compose down --volumes
 ```
 
-コンテナ名を指定して `docker stop`、`docker start`、`docker restart` で管理できます。ポート、ボリューム、更新、データ保持については[インストールと実行](installation.md)および [docker/README.md](../docker/README.md)を参照してください。
+既定のボリュームは `webmoniter_config`（`/app/config`）、`webmoniter_data`（`/app/data`）、`webmoniter_logs`（`/app/logs`）です。Docker はリポジトリ直下の `config.yml` や `./data` を使いません。更新では保持されますが、`down --volumes` はこれらを削除します。旧 bind mount のデータは自動移行されません。
 
-</details>
+コンテナ削除後、不要なイメージは `docker image rm fengyu666/webmoniter:full` で削除できます（利用中のタグに置換）。ソース、`.env`、バックアップ、ホストのマウント先、Docker 自体は残るため、不要なら個別に削除してください。このプロジェクトの削除に全体の prune は使わないでください。
 
-### ローカル実行
+### ローカル実行（Linux）
 
 ```bash
 git clone https://github.com/666fy666/WebMoniter.git
 cd WebMoniter
-
-uv python install 3.11
-uv venv --python 3.11
-uv sync --locked --extra dev --extra rainyun
-cp config/config.yml.sample config.yml
-uv run python main.py
+bash install.sh source
 ```
 
-ブラウザを使用するチェックインが不要な場合は、`uv sync --locked --extra dev` でコア依存関係と開発用依存関係のみをインストールできます。
+スクリプトが Python 3.11、uv、Node 24、フロントエンド、ブラウザとドライバ、モデルを準備し、設定を自動生成してフォアグラウンドで起動します。HTTP タスクのみなら `bash install.sh source --no-browser` を使えます。Ctrl+C で停止します。更新時は停止とバックアップ後に `git pull --ff-only` を実行し、再びインストーラを実行します。環境の整理と削除は[ソース版の保守](installation.md#source-maintenance)を参照してください。
 
 ### Windows パッケージ
 
@@ -194,11 +171,7 @@ Qinglong では環境変数で設定し、`python -m src.ql <task_id>` で定期
 
 ## 設定
 
-メインの設定ファイルはリポジトリ直下の `config.yml` です。初回はテンプレートから作成します。
-
-```bash
-cp config/config.yml.sample config.yml
-```
+ソース版はリポジトリ直下の `config.yml`、Docker 版は設定ボリューム内の `/app/config/config.yml` を自動生成します。既存設定は保持されます。Web 設定画面で編集し、更新時にサンプルで上書きしないでください。
 
 - [設定ガイド](guides/config.md)
 - [監視タスクと定期タスク](guides/tasks.md)

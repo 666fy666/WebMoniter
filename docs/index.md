@@ -49,13 +49,18 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 
 ## 从这里开始
 
-这一节的各个小节会自动出现在右侧侧边栏，便于快速跳转。
+首次安装、日常使用与停用操作可从以下入口查找。
 
 ### 🚀 快速开始
 
-:material-rocket-launch: 使用 Docker 或 Windows 一键包，几分钟内完成部署并访问 Web 管理界面。若已使用青龙面板，可保留完整项目代码并通过 `python -m src.ql <task_id>` 运行定时任务，配置来自环境变量。
+:material-rocket-launch: 推荐使用 Docker full 镜像；源码安装与 Windows 包也见安装说明。首次登录 `admin / 123`，修改密码后在配置页启用所需任务。当前服务器部署支持通过 `http://服务器IP:8866` 访问，需按访问来源放行端口；长期访问建议使用 HTTPS。若已使用青龙面板，可通过 `python -m src.ql <task_id>` 运行单次任务，配置来自环境变量。
 
 - [安装与运行](installation.md)
+- [Docker 首次部署与访问](DEPLOYMENT.md#first-start)
+- [更新已发布版本](DEPLOYMENT.md#update)
+- [停止、恢复与彻底卸载](DEPLOYMENT.md#stop-uninstall)
+- [备份与恢复](DEPLOYMENT.md#backup-restore)
+- [源码更新与清理](installation.md#source-maintenance)
 - [青龙面板部署](QINGLONG.md)
 
 ### ⚙️ 使用指南
@@ -112,7 +117,7 @@ Web 任务系统（WebMoniter）支持 **虎牙直播、微博、哔哩哔哩、
 - **运行环境**: Python 3.11
 - **调度**: APScheduler
 - **Web**: FastAPI + Uvicorn
-- **数据**: MySQL（可选权威主库）+ SQLite（本地镜像与故障回退）
+- **数据**: 默认本地 SQLite；可选 MySQL 权威主库与 SQLite 镜像/故障回退
 - **配置**: YAML，支持热重载
 
 ---
