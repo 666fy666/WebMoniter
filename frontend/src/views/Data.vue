@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { api } from '../api'
 import { usePolling } from '../composables'
 import Icon from '../components/Icon.vue'
+import Avatar from '../components/Avatar.vue'
+import PostBody from '../components/PostBody.vue'
 interface Item {
   [key: string]: unknown
 }
@@ -22,6 +24,7 @@ const platform = ref('weibo'),
   pages = ref(0),
   items = ref<Item[]>([])
 let generation = 0
+let pendingRefresh = false
 const { error, loading, refresh } = usePolling(async (signal) => {
   const current = generation
   const result = await api<{ data: Item[]; total: number; total_pages: number }>(
@@ -33,15 +36,21 @@ const { error, loading, refresh } = usePolling(async (signal) => {
   total.value = result.total
   pages.value = result.total_pages
 }, 30000)
-watch(platform, () => {
-  page.value = 1
+watch(platform, () => (page.value = 1), { flush: 'sync' })
+watch([platform, page], () => {
+  generation++
   items.value = []
-  generation++
-  void refresh()
+  total.value = pages.value = 0
+  error.value = ''
+  pendingRefresh = loading.value
+  if (!pendingRefresh) void refresh()
 })
-watch(page, () => {
-  generation++
-  void refresh()
+watch(loading, (busy) => {
+  if (!busy && pendingRefresh) {
+    pendingRefresh = false
+    error.value = ''
+    void nextTick(refresh)
+  }
 })
 function name(item: Item) {
   return String(item['用户名'] || item.name || item.uname || item.user_name || '未命名用户')
@@ -93,15 +102,17 @@ function live(item: Item) {
         {{ label }}
       </button>
     </div>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <p v-if="error && items.length" class="error" role="alert">
+      更新失败：{{ error }}。当前显示上次成功读取的数据。
+    </p>
     <div class="section-heading">
       <span class="muted">{{ total }} 个监控对象</span
       ><span class="muted small">展示各对象的最近状态</span>
     </div>
-    <div class="data-grid">
-      <article v-for="item in items" :key="id(item)" class="surface data-card">
+    <div class="data-grid" :aria-busy="loading">
+      <article v-for="item in items" :key="`${platform}:${id(item)}`" class="surface data-card">
         <div class="data-card-title">
-          <span class="avatar soft">{{ name(item).slice(0, 1) }}</span>
+          <Avatar :name="name(item)" :src="item.avatar_url" />
           <div class="grow">
             <h3>{{ name(item) }}</h3>
             <small class="muted">{{ id(item) }}</small>
@@ -114,15 +125,17 @@ function live(item: Item) {
           >
         </div>
         <p v-if="item['认证信息']" class="small muted">{{ item['认证信息'] }}</p>
-        <p class="post-body">
-          {{
-            item['文本'] ||
-            item.dynamic_text ||
-            item.latest_note_title ||
-            item['简介'] ||
-            '暂无新的动态内容'
-          }}
-        </p>
+        <PostBody
+          :text="
+            String(
+              item['文本'] ||
+                item.dynamic_text ||
+                item.latest_note_title ||
+                item['简介'] ||
+                '暂无新的动态内容',
+            )
+          "
+        />
         <div v-if="images(item).length" class="post-images">
           <a
             v-for="(src, i) in images(item)"
@@ -146,13 +159,15 @@ function live(item: Item) {
           class="repost"
         >
           <summary>查看转发内容</summary>
-          <p class="post-body">
-            {{
-              (item.retweeted_status as Item).text ||
-              (item.retweeted_status as Item).文本 ||
-              JSON.stringify(item.retweeted_status)
-            }}
-          </p>
+          <PostBody
+            :text="
+              String(
+                (item.retweeted_status as Item).text ||
+                  (item.retweeted_status as Item).文本 ||
+                  JSON.stringify(item.retweeted_status),
+              )
+            "
+          />
         </details>
         <div class="data-card-footer">
           <span class="small muted">{{ platforms[platform] }}</span
@@ -167,9 +182,18 @@ function live(item: Item) {
         </div>
       </article>
     </div>
-    <div v-if="!items.length" class="empty surface">
+    <div v-if="!items.length && loading" class="empty surface" role="status">
+      <Icon name="refresh" :size="34" />
+      <h3>正在读取动态…</h3>
+    </div>
+    <div v-else-if="!items.length && error" class="empty surface" role="alert">
+      <h3>读取失败</h3>
+      <p>{{ error }}</p>
+      <button class="button" @click="refresh">重新加载</button>
+    </div>
+    <div v-else-if="!items.length" class="empty surface">
       <Icon name="data" :size="34" />
-      <h3>{{ loading ? '正在读取动态…' : '等待第一条动态' }}</h3>
+      <h3>等待第一条动态</h3>
       <p>配置监控对象并启用任务后，最新状态会显示在这里。</p>
       <RouterLink to="/config" class="button">前往配置</RouterLink>
     </div>

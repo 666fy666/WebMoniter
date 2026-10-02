@@ -3,8 +3,9 @@
 import json
 import re
 from functools import lru_cache
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
+from src.core.paths import WEIBO_IMG_DIR
 from src.core.weibo_dates import (
     _parse_weibo_created_at as _parse_weibo_created_at,
 )
@@ -221,6 +222,26 @@ def _weibo_page_ids(rows: list[tuple], offset: int, page_size: int) -> list[obje
     return list(order[offset : offset + page_size])
 
 
+def _weibo_avatar_url(username: object) -> str:
+    # Match the collector's existing directory names without importing the monitor.
+    directory = re.sub(r'[\\/:*?"<>|]', "_", str(username or "unknown_user")).strip()
+    directory = directory or "unknown_user"
+    if directory in {".", ".."}:
+        return ""
+    try:
+        root = WEIBO_IMG_DIR.resolve()
+        for filename in ("profile_image.jpg", "avatar_large.jpg", "avatar_hd.jpg"):
+            candidate = (root / directory / filename).resolve()
+            if not candidate.is_relative_to(root):
+                continue
+            if candidate.is_file() and candidate.stat().st_size > 0:
+                return f"/weibo_img/{quote(directory, safe='')}/{filename}"
+    except (OSError, RuntimeError, ValueError):
+        # Missing or unreadable media must not prevent loading monitoring data.
+        return ""
+    return ""
+
+
 def _weibo_row_to_item(row: tuple) -> dict:
     mid = row[7] if len(row) > 7 else ""
     images = _parse_weibo_images(row[8] if len(row) > 8 else None)
@@ -231,6 +252,7 @@ def _weibo_row_to_item(row: tuple) -> dict:
     return {
         "UID": row[0],
         "用户名": row[1],
+        "avatar_url": _weibo_avatar_url(row[1]),
         "认证信息": row[2],
         "简介": row[3],
         "粉丝数": row[4],

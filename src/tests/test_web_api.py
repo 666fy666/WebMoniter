@@ -9,6 +9,61 @@ from src.jobs.log_manager import _current_job_id
 from src.web.routers import data, logs, tasks
 
 
+@pytest.mark.parametrize(
+    ("username", "directory"),
+    [("中文用户 #1%", "中文用户 #1%"), (' A/B\\C:*?"<>| ', "A_B_C_______")],
+)
+def test_weibo_avatar_fallback_priority_and_encoded_path(
+    tmp_path, monkeypatch, username, directory
+):
+    from urllib.parse import quote
+
+    from src.web import data_support
+
+    monkeypatch.setattr(data_support, "WEIBO_IMG_DIR", tmp_path)
+    folder = tmp_path / directory
+    folder.mkdir()
+    row = ("123", username, "", "", 0, 0, "正文")
+    assert data_support._row_to_item("weibo", row)["avatar_url"] == ""
+    for filename in ("avatar_hd.jpg", "avatar_large.jpg", "profile_image.jpg"):
+        (folder / filename).write_bytes(b"image")
+        assert data_support._row_to_item("weibo", row)["avatar_url"] == (
+            f"/weibo_img/{quote(directory, safe='')}/{filename}"
+        )
+    (folder / "profile_image.jpg").write_bytes(b"")
+    assert data_support._weibo_avatar_url(username).endswith("/avatar_large.jpg")
+
+
+@pytest.mark.parametrize("username", [".", "..", "../outside", "linked", "\x00"])
+def test_weibo_avatar_cannot_escape_media_root(tmp_path, monkeypatch, username):
+    from src.web import data_support
+
+    root = tmp_path / "weibo"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "profile_image.jpg").write_bytes(b"image")
+    (tmp_path / "profile_image.jpg").write_bytes(b"image")
+    (root / "profile_image.jpg").write_bytes(b"image")
+    (root / "linked").symlink_to(outside, target_is_directory=True)
+    monkeypatch.setattr(data_support, "WEIBO_IMG_DIR", root)
+    assert data_support._weibo_avatar_url(username) == ""
+
+
+def test_weibo_avatar_file_symlink_cannot_escape_media_root(tmp_path, monkeypatch):
+    from src.web import data_support
+
+    root = tmp_path / "weibo"
+    folder = root / "user"
+    folder.mkdir(parents=True)
+    external = tmp_path / "external.jpg"
+    external.write_bytes(b"external")
+    (folder / "profile_image.jpg").symlink_to(external)
+    (folder / "avatar_large.jpg").write_bytes(b"local")
+    monkeypatch.setattr(data_support, "WEIBO_IMG_DIR", root)
+    assert data_support._weibo_avatar_url("user") == "/weibo_img/user/avatar_large.jpg"
+
+
 @pytest.fixture
 def web_request(monkeypatch):
     for module in (data, logs, tasks):

@@ -100,7 +100,9 @@ async function run(task: Task) {
           }}</span
           ><small v-if="!task.available" class="muted">当前镜像未提供此任务</small>
         </div>
-        <span class="small muted next-run">{{ dateTime(task.next_run) }}</span>
+        <span class="small muted next-run"
+          ><span class="next-run-label">下次执行：</span>{{ dateTime(task.next_run) }}</span
+        >
         <div class="row-actions">
           <button
             class="button run-button glass-interactive"
